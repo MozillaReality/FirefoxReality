@@ -1,1 +1,2 @@
-include ':app', ':geckoview-withGeckoBinaries'
+include ':app', ':geckoview-withGeckoBinaries', ':wavesdk'
+project(':wavesdk').projectDir = new File('third_party/wavesdk')
