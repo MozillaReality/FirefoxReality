@@ -1,6 +1,9 @@
 [submodule "app/src/main/cpp/vrb"]
 	path = app/src/main/cpp/vrb
-	url = https://github.com/MozillaReality/vrb.git
+	url = git@github.com/MozillaReality/vrb.git
 [submodule "gvr-android-sdk"]
 	path = gvr-android-sdk
-	url = https://github.com/googlevr/gvr-android-sdk.git
+	url = git@github.com/googlevr/gvr-android-sdk.git
+[submodule "gecko-external-vr"]
+	path = app/src/gecko-external-vr
+	url = git@github.com:kearwood/gecko-external-vr.git
