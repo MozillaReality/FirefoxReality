@@ -7,6 +7,7 @@
 #include <string>
 #include <GLES2/gl2.h>
 
+#include "gecko_vr.h"
 #include "BrowserWorld.h"
 #include "vrb/Logger.h"
 #include "vrb/GLError.h"
@@ -163,6 +164,9 @@ android_main(android_app *aAppState) {
   aAppState->userData = sAppContext.get();
   aAppState->onAppCmd = CommandCallback;
 
+  // Initialize Gecko External VR Interface
+  gecko_vr_init();
+
   // Main render loop
   while (true) {
     int events;
@@ -181,6 +185,7 @@ android_main(android_app *aAppState) {
 
       // Check if we are exiting.
       if (aAppState->destroyRequested != 0) {
+        gecko_vr_shutdown();
         sAppContext->mWorld->ShutdownGL();
         sAppContext->mEgl->Destroy();
         aAppState->activity->vm->DetachCurrentThread();

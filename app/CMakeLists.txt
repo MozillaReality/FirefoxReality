@@ -19,6 +19,7 @@ add_library( # Sets the name of the library.
              SHARED
 
              # Provides a relative path to your source file(s).
+             src/gecko-external-vr/src/gecko_vr.cpp
              src/main/cpp/Widget.cpp
              src/main/cpp/BrowserWorld.cpp
              src/main/cpp/ElbowModel.cpp
@@ -54,6 +55,7 @@ add_library( # Sets the name of the library.
              src/main/cpp/vrb/src/Updatable.cpp
              src/main/cpp/vrb/src/VertexArray.cpp
            )
+include_directories(src/gecko-external-vr/include)
 
 if(WAVEVR)
 target_sources(
