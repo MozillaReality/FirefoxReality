@@ -39,7 +39,7 @@ These devices are only for testing:
 
 Building for Oculus Mobile, SVR, and WaveVR requires access to their respective SDKs which are not included in this repo.
 
-* If you want to build FirefoxReality for Daydream/googlevr, you need to run:
+*If you want to build FirefoxReality for Daydream/googlevr, you need to run:*
 
 ```bash
 cd gvr-android-sdk && ./gradlew :extractNdk
