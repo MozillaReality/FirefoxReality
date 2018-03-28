@@ -12,7 +12,7 @@ You can find us on Twitter [@MozillaReality](https://twitter.com/mozillareality)
 
 ## Setup instructions
 
-* Clone FirefoxReality
+*Clone FirefoxReality*
 
 ```bash
 git clone git@github.com:MozillaReality/FirefoxReality.git
@@ -38,8 +38,6 @@ These devices are only for testing:
 - noapi => Runs on standard Android phone without headset
 
 Building for Oculus Mobile, SVR, and WaveVR requires access to their respective SDKs which are not included in this repo.
-
-If you want to build for Daydream/googlevr, you need to run:
 
 * If you want to build FirefoxReality for Daydream/googlevr, you need to run:
 
