@@ -12,10 +12,10 @@ You can find us on Twitter [@MozillaReality](https://twitter.com/mozillareality)
 
 ## Setup instructions
 
-*Clone the repo*
+* Clone FirefoxReality
 
 ```bash
-git clone git@github.com:MozillaReality/VRBrowser.git
+git clone git@github.com:MozillaReality/FirefoxReality.git
 ```
 
 *Fetch git submodules.*
@@ -40,6 +40,8 @@ These devices are only for testing:
 Building for Oculus Mobile, SVR, and WaveVR requires access to their respective SDKs which are not included in this repo.
 
 If you want to build for Daydream/googlevr, you need to run:
+
+* If you want to build FirefoxReality for Daydream/googlevr, you need to run:
 
 ```bash
 cd gvr-android-sdk && ./gradlew :extractNdk
