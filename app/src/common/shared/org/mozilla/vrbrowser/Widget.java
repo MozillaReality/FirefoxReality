@@ -11,6 +11,7 @@ import android.view.MotionEvent;
 public interface Widget {
     int Browser = 0;
     int URLBar = 1;
+    int MoreMenu = 2;
     void setSurfaceTexture(SurfaceTexture aTexture, final int aWidth, final int aHeight);
     void setHandle(int aHandle);
     int getHandle();

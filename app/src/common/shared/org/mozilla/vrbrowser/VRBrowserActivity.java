@@ -22,6 +22,7 @@ import android.widget.FrameLayout;
 import org.mozilla.vrbrowser.audio.AudioEngine;
 import org.mozilla.vrbrowser.audio.VRAudioTheme;
 import org.mozilla.vrbrowser.ui.BrowserHeaderWidget;
+import org.mozilla.vrbrowser.ui.MoreMenuWidget;
 import org.mozilla.vrbrowser.ui.OffscreenDisplay;
 import org.mozilla.vrbrowser.ui.NavigationBar;
 import org.mozilla.vrbrowser.ui.UIWidget;
@@ -188,6 +189,8 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
             widget = new BrowserWidget(this, currentSession);
         } else if (aType == Widget.URLBar) {
             widget = new BrowserHeaderWidget(this);
+        } else if (aType == Widget.MoreMenu) {
+            widget = new MoreMenuWidget(this);
         }
 
         if (widget != null) {
