@@ -157,8 +157,8 @@ Widget::Create(vrb::ContextWeak aContext, const int aType, const int32_t aWidth,
   result->m.textureWidth = aWidth;
   result->m.textureHeight = aHeight;
   const float aspect = (float)aWidth / (float)aHeight;
-  result->m.windowMin = vrb::Vector(-aWorldWidth, 0.0f, 0.0f);
-  result->m.windowMax = vrb::Vector(aWorldWidth, aWorldWidth/aspect * 2.0f, 0.0f);
+  result->m.windowMin = vrb::Vector(-aWorldWidth * 0.5f, 0.0f, 0.0f);
+  result->m.windowMax = vrb::Vector(aWorldWidth *0.5f, aWorldWidth/aspect, 0.0f);
   result->m.Initialize(aType);
   return result;
 }

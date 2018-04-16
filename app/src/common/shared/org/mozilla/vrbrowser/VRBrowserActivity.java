@@ -288,9 +288,9 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     }
 
     @Keep
-    int getDisplayDensity() {
+    float getDisplayDensity() {
         DisplayMetrics dm = getResources().getDisplayMetrics();
-        return dm.densityDpi;
+        return dm.density;
     }
 
     void createOffscreenDisplay() {
