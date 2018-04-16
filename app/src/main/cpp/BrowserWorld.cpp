@@ -528,14 +528,15 @@ BrowserWorld::SetSurfaceTexture(const std::string& aName, jobject& aSurface) {
     if (widget) {
       int32_t width = 0, height = 0;
       widget->GetSurfaceTextureSize(width, height);
+      int32_t callbackId = widget->GetAddCallbackId();
       m.env->CallVoidMethod(m.activity, m.dispatchCreateWidgetMethod, widget->GetType(),
-                            widget->GetHandle(), aSurface, width, height);
+                            widget->GetHandle(), aSurface, width, height, callbackId);
     }
   }
 }
 
 void
-BrowserWorld::AddWidget(const WidgetPlacement& placement) {
+BrowserWorld::AddWidget(const WidgetPlacement& placement, int32_t aCallbackId) {
   WidgetPtr parent = m.GetWidget(placement.parentHandle);
   if (!parent) {
     VRB_LOG("Can't find Widget with handle: %d", placement.parentHandle);
@@ -570,6 +571,26 @@ BrowserWorld::AddWidget(const WidgetPlacement& placement) {
   widget->SetTransform(vrb::Matrix::Translation(translation));
   parent->GetTransformNode()->AddNode(widget->GetRoot());
   m.widgets.push_back(widget);
+}
+
+void
+BrowserWorld::SetWidgetVisible(int32_t aHandle, bool aVisible) {
+  WidgetPtr widget = m.GetWidget(aHandle);
+  if (widget) {
+    widget->ToggleWidget(aVisible);
+  }
+}
+
+void
+BrowserWorld::RemoveWidget(int32_t aHandle) {
+  WidgetPtr widget = m.GetWidget(aHandle);
+  if (widget) {
+    widget->GetRoot()->RemoveFromParents();
+    auto it = std::find(m.widgets.begin(), m.widgets.end(), widget);
+    if (it != m.widgets.end()) {
+      m.widgets.erase(it);
+    }
+  }
 }
 
 JNIEnv*
@@ -701,10 +722,24 @@ BrowserWorld::AddControllerPointer() {
 extern "C" {
 
 JNI_METHOD(void, addWidgetNative)
-(JNIEnv*, jobject thiz, jobject data) {
+(JNIEnv*, jobject thiz, jobject data, jint aCallbackId) {
   crow::WidgetPlacementPtr placement = crow::WidgetPlacement::FromJava(sWorld->GetJNIEnv(), data);
   if (placement && sWorld) {
-    sWorld->AddWidget(*placement);
+    sWorld->AddWidget(*placement, aCallbackId);
+  }
+}
+
+JNI_METHOD(void, setWidgetVisibleNative)
+(JNIEnv*, jobject thiz, jint aHandle, jboolean aVisible) {
+  if (sWorld) {
+    sWorld->SetWidgetVisible(aHandle, aVisible);
+  }
+}
+
+JNI_METHOD(void, removeWidgetNative)
+(JNIEnv*, jobject thiz, jint aHandle) {
+  if (sWorld) {
+    sWorld->RemoveWidget(aHandle);
   }
 }
 

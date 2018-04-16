@@ -31,6 +31,7 @@ struct Widget::State {
   uint32_t handle;
   int32_t textureWidth;
   int32_t textureHeight;
+  int32_t addCallbackId;
   vrb::Vector windowMin;
   vrb::Vector windowMax;
   vrb::Vector windowNormal;
@@ -46,6 +47,7 @@ struct Widget::State {
       , handle(0)
       , textureWidth(1920)
       , textureHeight(1080)
+      , addCallbackId(0)
       , windowMin(-kWidth, 0.0f, 0.0f)
       , windowMax(kWidth, kHeight * 2.0f, 0.0f)
   {}
@@ -315,6 +317,17 @@ Widget::SetPointerGeometry(vrb::NodePtr& aNode) {
   }
   m.pointerGeometry = aNode;
   m.pointer->AddNode(aNode);
+}
+
+
+void
+Widget::SetAddCallbackId(int32_t aCallbackId) {
+  m.addCallbackId = aCallbackId;
+}
+
+int32_t
+Widget::GetAddCallbackId() const {
+  return m.addCallbackId;
 }
 
 Widget::Widget(State& aState, vrb::ContextWeak& aContext) : m(aState) {

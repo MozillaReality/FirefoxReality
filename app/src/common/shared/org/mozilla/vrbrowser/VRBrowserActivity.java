@@ -15,6 +15,7 @@ import android.os.Handler;
 import android.support.annotation.Keep;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.util.SparseArray;
 import android.view.View;
 import android.widget.FrameLayout;
 
@@ -23,11 +24,11 @@ import org.mozilla.vrbrowser.audio.VRAudioTheme;
 import org.mozilla.vrbrowser.ui.BrowserHeaderWidget;
 import org.mozilla.vrbrowser.ui.OffscreenDisplay;
 import org.mozilla.vrbrowser.ui.NavigationBar;
+import org.mozilla.vrbrowser.ui.UIWidget;
 
 import java.util.HashMap;
 
-public class VRBrowserActivity extends PlatformActivity {
-
+public class VRBrowserActivity extends PlatformActivity implements WidgetManagerDelegate {
     class SwipeRunnable implements Runnable {
         boolean mCanceled = false;
         @Override
@@ -50,6 +51,8 @@ public class VRBrowserActivity extends PlatformActivity {
 
     static final String LOGTAG = "VRB";
     HashMap<Integer, Widget> mWidgets;
+    SparseArray<WidgetAddCallback> mWidgetAddCallbacks;
+    private int mWidgetAddCallbackIndex;
     AudioEngine mAudioEngine;
     OffscreenDisplay mOffscreenDisplay;
     FrameLayout mWidgetContainer;
@@ -79,6 +82,7 @@ public class VRBrowserActivity extends PlatformActivity {
         super.onCreate(savedInstanceState);
 
         mWidgets = new HashMap<>();
+        mWidgetAddCallbacks = new SparseArray<>();
         mWidgetContainer = new FrameLayout(this);
 
         mAudioEngine = new AudioEngine(this, new VRAudioTheme());
@@ -166,7 +170,7 @@ public class VRBrowserActivity extends PlatformActivity {
         }
     }
 
-    void createWidget(final int aType, final int aHandle, SurfaceTexture aTexture, int aWidth, int aHeight) {
+    void createWidget(final int aType, final int aHandle, SurfaceTexture aTexture, int aWidth, int aHeight, int aCallbackId) {
         Widget widget = mWidgets.get(aHandle);
         if (widget != null) {
             Log.e(LOGTAG, "Widget of type: " + aType + " already created");
@@ -191,15 +195,24 @@ public class VRBrowserActivity extends PlatformActivity {
             mWidgets.put(aHandle, widget);
         }
 
+        widget.setHandle(aHandle);
+        widget.setWidgetManager(this);
+
         // Add hidden UI widget to a virtual display for invalidation
         mWidgetContainer.addView((View) widget, new FrameLayout.LayoutParams(aWidth, aHeight));
+
+        WidgetAddCallback callback = mWidgetAddCallbacks.get(aCallbackId);
+        if (callback != null) {
+            mWidgetAddCallbacks.remove(aCallbackId);
+            callback.onWidgetAdd(widget);
+        }
     }
 
     @Keep
-    void dispatchCreateWidget(final int aType, final int aHandle, final SurfaceTexture aTexture, final int aWidth, final int aHeight) {
+    void dispatchCreateWidget(final int aType, final int aHandle, final SurfaceTexture aTexture, final int aWidth, final int aHeight, final int aCallbackId) {
         runOnUiThread(new Runnable() {
             public void run() {
-                createWidget(aType, aHandle, aTexture, aWidth, aHeight);
+                createWidget(aType, aHandle, aTexture, aWidth, aHeight, aCallbackId);
             }
         });
     }
@@ -304,5 +317,50 @@ public class VRBrowserActivity extends PlatformActivity {
         });
     }
 
-    private native void addWidgetNative(WidgetPlacement aWidget);
+
+    // WidgetManagerDelegate
+    @Override
+    public void addWidget(final WidgetPlacement aPlacement, final WidgetAddCallback aCallback) {
+        int id = 0;
+        if (aCallback != null) {
+            id = ++mWidgetAddCallbackIndex;
+            mWidgetAddCallbacks.put(id, aCallback);
+        }
+        final int callbackId = id;
+        queueRunnable(new Runnable() {
+            @Override
+            public void run() {
+                addWidgetNative(aPlacement, callbackId);
+            }
+        });
+    }
+
+    @Override
+    public void setWidgetVisible(final int aHandle, final boolean aVisible) {
+        queueRunnable(new Runnable() {
+            @Override
+            public void run() {
+                setWidgetVisibleNative(aHandle, aVisible);
+            }
+        });
+    }
+
+    @Override
+    public void removeWidget(final int aHandle) {
+
+        Widget widget = mWidgets.remove(aHandle);
+        if (widget instanceof View) {
+            mWidgetContainer.removeView((View) widget);
+        }
+        queueRunnable(new Runnable() {
+            @Override
+            public void run() {
+                removeWidgetNative(aHandle);
+            }
+        });
+    }
+
+    private native void addWidgetNative(WidgetPlacement aWidget, int aCallbackId);
+    private native void setWidgetVisibleNative(int aHandle, boolean aVisible);
+    private native void removeWidgetNative(int aHandle);
 }

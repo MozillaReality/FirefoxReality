@@ -12,6 +12,9 @@ public interface Widget {
     int Browser = 0;
     int URLBar = 1;
     void setSurfaceTexture(SurfaceTexture aTexture, final int aWidth, final int aHeight);
+    void setHandle(int aHandle);
+    int getHandle();
+    void setWidgetManager(WidgetManagerDelegate aWidgetManager);
     void handleTouchEvent(MotionEvent aEvent);
     void handleHoverEvent(MotionEvent aEvent);
     void releaseWidget();
