@@ -13,6 +13,7 @@
 #include "vrb/CullVisitor.h"
 #include "vrb/DrawableList.h"
 #include "vrb/Geometry.h"
+#include "vrb/GLError.h"
 #include "vrb/Group.h"
 #include "vrb/Light.h"
 #include "vrb/Logger.h"
@@ -437,6 +438,8 @@ BrowserWorld::InitializeGL() {
   if (m.context) {
     if (!m.glInitialized) {
       m.glInitialized = m.context->InitializeGL();
+      VRB_CHECK(glEnable(GL_BLEND));
+      VRB_CHECK(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
       if (!m.glInitialized) {
         return;
       }
