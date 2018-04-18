@@ -328,7 +328,7 @@ DeviceDelegateSVR::BindEye(const CameraEnum aWhich) {
   }
 
   if (m.currentEye >= 0) {
-    svrEndEye(kEyeBufferStereoSeparate, (svrWhichEye) m.currentEye);
+    svrEndEye((svrWhichEye) m.currentEye);
   }
 
   const auto &swapChain = m.eyeSwapChains[index];
@@ -338,7 +338,7 @@ DeviceDelegateSVR::BindEye(const CameraEnum aWhich) {
   if (m.currentFBO) {
     m.currentFBO->Bind();
     m.currentEye = index;
-    svrBeginEye(kEyeBufferStereoSeparate, (svrWhichEye) m.currentEye);
+    svrBeginEye((svrWhichEye) m.currentEye);
     VRB_CHECK(glViewport(0, 0, m.renderWidth, m.renderHeight));
     VRB_CHECK(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
   } else {
@@ -354,7 +354,7 @@ DeviceDelegateSVR::EndFrame() {
   }
 
   if (m.currentEye >= 0) {
-    svrEndEye(kEyeBufferStereoSeparate, (svrWhichEye) m.currentEye);
+    svrEndEye((svrWhichEye) m.currentEye);
     m.currentEye = -1;
   }
 
@@ -376,18 +376,16 @@ DeviceDelegateSVR::EndFrame() {
   // Field of view used to generate this frame (larger than device fov to provide timewarp margin).
   // A 0 value uses the SVR fov.
   params.fieldOfView = 0.0;
-  // Separate eye buffers for the left and right eyes.
-  params.eyeBufferType = kEyeBufferStereoSeparate;
 
   for (uint32_t eyeIndex = 0; eyeIndex < kNumEyes; eyeIndex++) {
     uint32_t swapChainIndex = m.frameIndex % m.eyeSwapChains[eyeIndex]->swapChainLength;
-    params.eyeLayers[eyeIndex].imageType = kTypeTexture;
-    params.eyeLayers[eyeIndex].imageHandle = m.eyeSwapChains[eyeIndex]->textures[swapChainIndex];
-    params.eyeLayers[eyeIndex].imageCoords = m.layoutCoords;
+    params.renderLayers[eyeIndex].imageType = kTypeTexture;
+    params.renderLayers[eyeIndex].imageHandle = m.eyeSwapChains[eyeIndex]->textures[swapChainIndex];
+    params.renderLayers[eyeIndex].imageCoords = m.layoutCoords;
     if (eyeIndex == kLeftEye) {
-      params.eyeLayers[eyeIndex].eyeMask = kEyeMaskLeft;
+      params.renderLayers[eyeIndex].eyeMask = kEyeMaskLeft;
     } else {
-      params.eyeLayers[eyeIndex].eyeMask = kEyeMaskRight;
+      params.renderLayers[eyeIndex].eyeMask = kEyeMaskRight;
     }
   }
 
