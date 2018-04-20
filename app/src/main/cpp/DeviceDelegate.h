@@ -34,6 +34,8 @@ public:
   virtual bool GetControllerButtonState(const int32_t aWhichController, const int32_t aWhichButton,
                                         bool& aChangedState) = 0;
   virtual bool GetControllerScrolled(const int32_t aWhichController, float& aScrollX, float& aScrollY) = 0;
+  virtual bool GetScrolledDelta(const int32_t aWhichController, float& aScrollX, float& aScrollY) = 0;
+  virtual bool IsControllerUsingHeadTracking(const int32_t aWhichController) const = 0;
   virtual void StartFrame() = 0;
   virtual void BindEye(const CameraEnum aWhich) = 0;
   virtual void EndFrame() = 0;

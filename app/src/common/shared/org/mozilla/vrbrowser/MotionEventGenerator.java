@@ -60,7 +60,8 @@ class MotionEventGenerator {
             device.mWasPressed = false;
             action |= MotionEvent.ACTION_UP;
         } else if (moving && aPressed) {
-            action |= MotionEvent.ACTION_MOVE;
+            return;
+            //action |= MotionEvent.ACTION_MOVE;
         } else if (moving && !aPressed) {
             action |= MotionEvent.ACTION_HOVER_MOVE;
             hover = true;

@@ -26,6 +26,7 @@ public:
   const vrb::Matrix& GetControllerTransform(const int32_t aWhichController) override;
   bool GetControllerButtonState(const int32_t aWhichController, const int32_t aWhichButton, bool& aChangedState) override;
   bool GetControllerScrolled(const int32_t aWhichController, float& aScrollX, float& aScrollY) override;
+  bool IsControllerUsingHeadTracking(const int32_t aWhichController) const override { return false; };
   void StartFrame() override;
   void BindEye(const CameraEnum aWhich) override;
   void EndFrame() override;
