@@ -24,6 +24,7 @@
 #include "vrb/SurfaceTextureFactory.h"
 #include "vrb/TextureCache.h"
 #include "vrb/TextureSurface.h"
+#include "vrb/Toggle.h"
 #include "vrb/Transform.h"
 #include "vrb/VertexArray.h"
 #include "vrb/Vector.h"
@@ -156,7 +157,7 @@ struct BrowserWorld::State {
   ContextWeak contextWeak;
   NodeFactoryObjPtr factory;
   ParserObjPtr parser;
-  GroupPtr root;
+  TogglePtr root;
   LightPtr light;
   int32_t controllerCount;
   std::vector<ControllerRecord> controllers;
@@ -184,7 +185,7 @@ struct BrowserWorld::State {
     factory = NodeFactoryObj::Create(contextWeak);
     parser = ParserObj::Create(contextWeak);
     parser->SetObserver(factory);
-    root = Group::Create(contextWeak);
+    root = vrb::Toggle::Create(contextWeak);
     light = Light::Create(contextWeak);
     root->AddLight(light);
     cullVisitor = CullVisitor::Create(contextWeak);
@@ -222,6 +223,7 @@ BrowserWorld::State::UpdateControllers() {
   for (ControllerRecord& record: controllers) {
     vrb::Matrix transform = device->GetControllerTransform(record.index);
     record.controller->SetTransform(transform);
+    root->ToggleChild(*record.controller, !device->IsControllerUsingHeadTracking(record.index));
     vrb::Vector start = transform.MultiplyPosition(vrb::Vector());
     vrb::Vector direction = transform.MultiplyDirection(vrb::Vector(0.0f, 0.0f, -1.0f));
     WidgetPtr hitWidget;
@@ -271,7 +273,10 @@ BrowserWorld::State::UpdateControllers() {
         record.pressed = pressed;
       }
       float scrollX = 0.0f, scrollY = 0.0f;
-      if (device->GetControllerScrolled(record.index, scrollX, scrollY)) {
+      if (device->GetScrolledDelta(record.index, scrollX, scrollY)) {
+          env->CallVoidMethod(activity, handleScrollEventMethod, record.widget, record.index,
+                              scrollX * kScrollFactor, scrollY * kScrollFactor);
+      } else if (device->GetControllerScrolled(record.index, scrollX, scrollY)) {
         if (record.touched && !record.pressed) {
           env->CallVoidMethod(activity, handleScrollEventMethod, record.widget, record.index,
                               (scrollX - record.touchPadX) * kScrollFactor, (scrollY - record.touchPadY) * kScrollFactor);
