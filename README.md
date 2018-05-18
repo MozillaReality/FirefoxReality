@@ -73,3 +73,6 @@ Create a file called user.properties in the top level project directory. Add a v
 ```
 
 [![Task Status](https://github.taskcluster.net/v1/repository/MozillaReality/FirefoxReality/master/badge.svg)](https://github.taskcluster.net/v1/repository/MozillaReality/FirefoxReality/master/latest) [Build results](https://github.taskcluster.net/v1/repository/MozillaReality/FirefoxReality/master/latest)
+
+
+This repository is integrated with a Jira instance used for internal work tracking as well.
