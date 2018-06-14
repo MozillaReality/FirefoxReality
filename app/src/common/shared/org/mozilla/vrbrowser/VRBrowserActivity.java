@@ -21,6 +21,7 @@ import android.widget.FrameLayout;
 
 import org.mozilla.vrbrowser.audio.AudioEngine;
 import org.mozilla.vrbrowser.audio.VRAudioTheme;
+import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
 import org.mozilla.vrbrowser.ui.BrowserHeaderWidget;
 import org.mozilla.vrbrowser.ui.BrowserWidget;
 import org.mozilla.vrbrowser.ui.KeyboardWidget;
@@ -129,6 +130,20 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         mKeyboard.getPlacement().parentHandle = mBrowserWidget.getHandle();
 
         addWidgets(Arrays.<Widget>asList(mBrowserWidget, header, mKeyboard));
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+        TelemetryWrapper.start();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+
+        TelemetryWrapper.stop();
     }
 
     @Override
