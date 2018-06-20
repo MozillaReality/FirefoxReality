@@ -36,6 +36,7 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
         return mInstance;
     }
     public static final String DEFAULT_URL = "resource://android/assets/html/index.html";
+    public static final String ERROR_404_URL = "resource://android/assets/html/404.html";
 
     private LinkedList<GeckoSession.NavigationDelegate> mNavigationListeners;
     private LinkedList<GeckoSession.ProgressDelegate> mProgressListeners;
@@ -499,6 +500,9 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
         for (GeckoSession.ProgressDelegate listener: mProgressListeners) {
             listener.onPageStop(aSession, b);
         }
+        
+        if (!b)
+            aSession.loadUri(ERROR_404_URL);
     }
 
     @Override
