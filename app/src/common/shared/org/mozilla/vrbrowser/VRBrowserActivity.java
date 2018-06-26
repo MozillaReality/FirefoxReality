@@ -64,7 +64,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     BrowserWidget mBrowserWidget;
     KeyboardWidget mKeyboard;
     PermissionDelegate mPermissionDelegate;
-    SettingsWidget mSettingsWidget;
+    LinkedList<WidgetManagerDelegate.Listener> mWidgetEventListeners;
     LinkedList<Runnable> mBackHandlers;
 
     @Override
@@ -88,6 +88,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         });
 
         mPermissionDelegate = new PermissionDelegate(this, this);
+        mWidgetEventListeners = new LinkedList<>();
         mBackHandlers = new LinkedList<>();
 
         mAudioEngine = new AudioEngine(this, new VRAudioTheme());
@@ -125,25 +126,15 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         mBrowserWidget = new BrowserWidget(this, currentSession);
         mPermissionDelegate.setParentWidgetHandle(mBrowserWidget.getHandle());
 
-        // Settings Widget
-        mSettingsWidget = new SettingsWidget(VRBrowserActivity.this);
-        mSettingsWidget.hide();
-
         // Create Browser navigation widget
         NavigationBarWidget navigationBar = new NavigationBarWidget(this);
-        navigationBar.setSettingDelegate(new NavigationBarWidget.SettingsDelegate() {
-            @Override
-            public void openSettings() {
-                mSettingsWidget.show();
-            }
-        });
-        navigationBar.getPlacement().parentHandle = mBrowserWidget.getHandle();
+        navigationBar.setBrowserWidget(mBrowserWidget);
 
         // Create keyboard widget
         mKeyboard = new KeyboardWidget(this);
         mKeyboard.setBrowserWidget(mBrowserWidget);
 
-        addWidgets(Arrays.<Widget>asList(mBrowserWidget, navigationBar, mKeyboard, mSettingsWidget));
+        addWidgets(Arrays.<Widget>asList(mBrowserWidget, navigationBar, mKeyboard));
     }
 
     @Override
@@ -296,6 +287,21 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         runOnUiThread(mAudioUpdateRunnable);
     }
 
+    @Keep
+    void handleResize(final int aHandle, final float aWorldWidth, final float aWorldHeight) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Widget widget = mWidgets.get(aHandle);
+                if (widget != null) {
+                    widget.handleResizeEvent(aWorldWidth, aWorldHeight);
+                } else {
+                    Log.e(LOGTAG, "Failed to find widget: " + aHandle);
+                }
+            }
+        });
+    }
+
     void createOffscreenDisplay() {
         int[] ids = new int[1];
         GLES20.glGenTextures(1, ids, 0);
@@ -341,17 +347,6 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         });
     }
 
-    public void updateWidgets(final Iterable<Widget> aWidgets) {
-        queueRunnable(new Runnable() {
-            @Override
-            public void run() {
-                for (Widget widget: aWidgets) {
-                    updateWidgetNative(widget.getHandle(), widget.getPlacement());
-                }
-            }
-        });
-    }
-
     // WidgetManagerDelegate
     @Override
     public void addWidget(final Widget aWidget) {
@@ -375,11 +370,31 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
             }
         });
 
+        final int textureWidth = aWidget.getPlacement().textureWidth();
+        final int textureHeight = aWidget.getPlacement().textureHeight();
+
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams)((View)aWidget).getLayoutParams();
+        if (params == null) {
+            // Widget not added yet
+            return;
+        }
+        if (params.width != textureWidth || params.height != textureHeight) {
+            params.width = textureWidth;
+            params.height = textureHeight;
+            ((View)aWidget).setLayoutParams(params);
+            aWidget.resizeSurfaceTexture(textureWidth, textureHeight);
+        }
+
         boolean visible = aWidget.getPlacement().visible;
         View view = (View)aWidget;
         if (visible != (view.getVisibility() == View.VISIBLE)) {
             view.setVisibility(visible ? View.VISIBLE : View.GONE);
         }
+
+        for (WidgetManagerDelegate.Listener listener: mWidgetEventListeners) {
+            listener.onWidgetUpdate(aWidget);
+        }
+
     }
 
     @Override
@@ -392,6 +407,38 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
                 removeWidgetNative(aWidget.getHandle());
             }
         });
+    }
+
+    @Override
+    public void startWidgetResize(final Widget aWidget) {
+        queueRunnable(new Runnable() {
+            @Override
+            public void run() {
+                startWidgetResizeNative(aWidget.getHandle());
+            }
+        });
+    }
+
+    @Override
+    public void finishWidgetResize(final Widget aWidget) {
+        queueRunnable(new Runnable() {
+            @Override
+            public void run() {
+                finishWidgetResizeNative(aWidget.getHandle());
+            }
+        });
+    }
+
+    @Override
+    public void addListener(WidgetManagerDelegate.Listener aListener) {
+        if (!mWidgetEventListeners.contains(aListener)) {
+            mWidgetEventListeners.add(aListener);
+        }
+    }
+
+    @Override
+    public void removeListener(WidgetManagerDelegate.Listener aListener) {
+        mWidgetEventListeners.remove(aListener);
     }
 
     @Override
@@ -435,6 +482,8 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     private native void addWidgetNative(int aHandle, WidgetPlacement aPlacement);
     private native void updateWidgetNative(int aHandle, WidgetPlacement aPlacement);
     private native void removeWidgetNative(int aHandle);
+    private native void startWidgetResizeNative(int aHandle);
+    private native void finishWidgetResizeNative(int aHandle);
     private native void fadeOutWorldNative();
     private native void fadeInWorldNative();
 
