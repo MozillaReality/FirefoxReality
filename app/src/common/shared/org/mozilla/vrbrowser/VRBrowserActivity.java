@@ -28,6 +28,7 @@ import org.mozilla.vrbrowser.ui.SettingsWidget;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedList;
 
 public class VRBrowserActivity extends PlatformActivity implements WidgetManagerDelegate {
     class SwipeRunnable implements Runnable {
@@ -64,6 +65,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     KeyboardWidget mKeyboard;
     PermissionDelegate mPermissionDelegate;
     SettingsWidget mSettingsWidget;
+    LinkedList<Runnable> mBackHandlers;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,6 +88,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         });
 
         mPermissionDelegate = new PermissionDelegate(this, this);
+        mBackHandlers = new LinkedList<>();
 
         mAudioEngine = new AudioEngine(this, new VRAudioTheme());
         mAudioEngine.preloadAsync(new Runnable() {
@@ -198,6 +201,10 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
 
     @Override
     public void onBackPressed() {
+        if (mBackHandlers.size() > 0) {
+            mBackHandlers.getLast().run();
+            return;
+        }
         if (SessionStore.get().canGoBack()) {
             SessionStore.get().goBack();
         } else {
@@ -385,6 +392,16 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
                 removeWidgetNative(aWidget.getHandle());
             }
         });
+    }
+
+    @Override
+    public void pushBackHandler(Runnable aRunnable) {
+        mBackHandlers.addLast(aRunnable);
+    }
+
+    @Override
+    public void popBackHandler(Runnable aRunnable) {
+        mBackHandlers.removeLastOccurrence(aRunnable);
     }
 
     @Override
