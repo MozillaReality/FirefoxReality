@@ -5,4 +5,6 @@ public interface WidgetManagerDelegate {
     void addWidget(Widget aWidget);
     void updateWidget(Widget aWidget);
     void removeWidget(Widget aWidget);
+    void fadeOutWorld();
+    void fadeInWorld();
 }

@@ -39,6 +39,8 @@ public:
   void AddWidget(int32_t aHandle, const WidgetPlacement& placement);
   void UpdateWidget(int32_t aHandle, const WidgetPlacement& aPlacement);
   void RemoveWidget(int32_t aHandle);
+  void FadeOut();
+  void FadeIn();
   JNIEnv* GetJNIEnv() const;
 protected:
   struct State;

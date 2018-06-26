@@ -388,6 +388,26 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     }
 
     @Override
+    public void fadeOutWorld() {
+        queueRunnable(new Runnable() {
+            @Override
+            public void run() {
+                fadeOutWorldNative();
+            }
+        });
+    }
+
+    @Override
+    public void fadeInWorld() {
+        queueRunnable(new Runnable() {
+            @Override
+            public void run() {
+                fadeInWorldNative();
+            }
+        });
+    }
+
+    @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (mPermissionDelegate != null) {
@@ -398,4 +418,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     private native void addWidgetNative(int aHandle, WidgetPlacement aPlacement);
     private native void updateWidgetNative(int aHandle, WidgetPlacement aPlacement);
     private native void removeWidgetNative(int aHandle);
+    private native void fadeOutWorldNative();
+    private native void fadeInWorldNative();
+
 }

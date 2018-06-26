@@ -5,6 +5,7 @@
 
 #include "BrowserWorld.h"
 #include "ControllerDelegate.h"
+#include "FadeBlitter.h"
 #include "Widget.h"
 #include "WidgetPlacement.h"
 #include "vrb/CameraSimple.h"
@@ -870,6 +871,16 @@ BrowserWorld::RemoveWidget(int32_t aHandle) {
   }
 }
 
+void
+BrowserWorld::FadeOut() {
+  m.fadeBlitter->FadeOut();
+}
+
+void
+BrowserWorld::FadeIn() {
+  m.fadeBlitter->FadeIn();
+}
+
 JNIEnv*
 BrowserWorld::GetJNIEnv() const {
   return m.env;
@@ -1066,6 +1077,20 @@ JNI_METHOD(void, removeWidgetNative)
 (JNIEnv*, jobject, jint aHandle) {
   if (sWorld) {
     sWorld->RemoveWidget(aHandle);
+  }
+}
+
+JNI_METHOD(void, fadeOutWorldNative)
+(JNIEnv* aEnv, jobject, jint aHandle) {
+  if (sWorld) {
+    sWorld->FadeOut();
+  }
+}
+
+JNI_METHOD(void, fadeInWorldNative)
+(JNIEnv* aEnv, jobject, jint aHandle) {
+  if (sWorld) {
+    sWorld->FadeIn();
   }
 }
 
