@@ -26,6 +26,7 @@ add_library( # Sets the name of the library.
              src/main/cpp/Quad.cpp
              src/main/cpp/Widget.cpp
              src/main/cpp/WidgetPlacement.cpp
+             src/main/cpp/WidgetResizer.cpp
              src/main/cpp/vrb/src/CameraEye.cpp
              src/main/cpp/vrb/src/CameraSimple.cpp
              src/main/cpp/vrb/src/ClassLoaderAndroid.cpp
