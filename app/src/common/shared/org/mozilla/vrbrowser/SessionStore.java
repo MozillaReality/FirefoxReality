@@ -497,7 +497,7 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
                 Handler handler = new Handler();
                 Runnable r = new Runnable() {
                     public void run() {
-                        // FIXME: The referrer doesn't seem to work on Gecko right now, so when going back we always loads the error page
+                        // FIXME: The referrer doesn't seem to work on Gecko right now, so when going back we always go back to the error page
                         session.loadUri("javascript:updateMessage('" + errorType + "', '" + errorURL + "', '" + errorDescription + "');");
                     }
                 };
