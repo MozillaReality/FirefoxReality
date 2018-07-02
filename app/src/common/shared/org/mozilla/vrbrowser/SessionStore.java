@@ -507,7 +507,7 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
                 e.printStackTrace();
             }
 
-        } else if (!aUri.startsWith("javascrtipt:")) {
+        } else if (!aUri.startsWith("javascript:")) {
             mLastValidURI = aUri;
         }
 
