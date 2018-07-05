@@ -27,6 +27,7 @@ import org.mozilla.vrbrowser.ui.BrowserWidget;
 import org.mozilla.vrbrowser.ui.KeyboardWidget;
 import org.mozilla.vrbrowser.ui.NavigationBarWidget;
 import org.mozilla.vrbrowser.ui.OffscreenDisplay;
+import org.mozilla.vrbrowser.ui.SettingsStore;
 import org.mozilla.vrbrowser.ui.SettingsWidget;
 import org.mozilla.vrbrowser.ui.TopBarWidget;
 
@@ -128,6 +129,21 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
             }
         });
         initializeWorld();
+
+        int sessionId = SettingsStore.getInstance(this).getCurrentSessionId();
+        if (sessionId != SessionStore.NO_SESSION_ID) {
+            GeckoSession session = SessionStore.get().getSession(sessionId);
+            if (session != null) {
+                SessionStore.get().setCurrentSession(sessionId);
+                mPreviousSessionId = SettingsStore.getInstance(this).getPreviousSessionId();
+
+                if (session.getSettings().getBoolean(GeckoSessionSettings.USE_PRIVATE_MODE)) {
+                    mNavigationBar.setPrivateBrowsingEnabled(true);
+                    mTopBar.setPrivateBrowsingEnabled(true);
+                    mBrowserWidget.setPrivateBrowsingEnabled(true);
+                }
+            }
+        }
     }
 
     protected void initializeWorld() {
@@ -191,6 +207,10 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         if (mPermissionDelegate != null) {
             mPermissionDelegate.release();
         }
+
+        SettingsStore.getInstance(this).setCurrentSeesionId(SessionStore.get().getCurrentSessionId());
+        SettingsStore.getInstance(this).setPreviousSeesionId(mPreviousSessionId);
+
         super.onDestroy();
     }
 
