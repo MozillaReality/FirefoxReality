@@ -538,6 +538,9 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
 
     public void onPrivateBrowsingClicked() {
         GeckoSession currentSession = SessionStore.get().getCurrentSession();
+        if (currentSession == null)
+            return;
+
         boolean isPrivateMode  = currentSession.getSettings().getBoolean(GeckoSessionSettings.USE_PRIVATE_MODE);
 
         if (!isPrivateMode) {
@@ -581,6 +584,9 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     @Override
     public void onCloseClicked() {
         GeckoSession currentSession = SessionStore.get().getCurrentSession();
+        if (currentSession == null)
+            return;
+
         boolean isPrivateMode  = currentSession.getSettings().getBoolean(GeckoSessionSettings.USE_PRIVATE_MODE);
 
         if (isPrivateMode) {
