@@ -247,6 +247,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         SessionStore.get().removeNavigationListener(this);
         SessionStore.get().removeProgressListener(this);
         SessionStore.get().removeContentListener(this);
+        SessionStore.get().removeSessionChangeListener(this);
         mBrowserWidget = null;
         super.releaseWidget();
     }

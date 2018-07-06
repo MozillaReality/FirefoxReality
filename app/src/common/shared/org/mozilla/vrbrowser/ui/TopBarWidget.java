@@ -76,6 +76,13 @@ public class TopBarWidget extends UIWidget implements SessionStore.SessionChange
         aPlacement.parentAnchorY = 1.0f;
     }
 
+    @Override
+    public void releaseWidget() {
+        SessionStore.get().removeSessionChangeListener(this);
+
+        super.releaseWidget();
+    }
+
     private void setPrivateBrowsingEnabled(boolean isEnabled) {
         if (isEnabled) {
             mCloseButton.setBackground(getContext().getDrawable(R.drawable.main_button_private));
