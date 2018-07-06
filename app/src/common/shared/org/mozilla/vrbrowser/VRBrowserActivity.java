@@ -136,12 +136,6 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
             if (session != null) {
                 SessionStore.get().setCurrentSession(sessionId);
                 mPreviousSessionId = SettingsStore.getInstance(this).getPreviousSessionId();
-
-                if (session.getSettings().getBoolean(GeckoSessionSettings.USE_PRIVATE_MODE)) {
-                    mNavigationBar.setPrivateBrowsingEnabled(true);
-                    mTopBar.setPrivateBrowsingEnabled(true);
-                    mBrowserWidget.setPrivateBrowsingEnabled(true);
-                }
             }
         }
     }
@@ -208,8 +202,8 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
             mPermissionDelegate.release();
         }
 
-        SettingsStore.getInstance(this).setCurrentSeesionId(SessionStore.get().getCurrentSessionId());
-        SettingsStore.getInstance(this).setPreviousSeesionId(mPreviousSessionId);
+        SettingsStore.getInstance(this).setCurrentSessionId(SessionStore.get().getCurrentSessionId());
+        SettingsStore.getInstance(this).setPreviousSessionId(mPreviousSessionId);
 
         super.onDestroy();
     }
@@ -582,10 +576,6 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
                 mPreviousSessionId = sessionId;
             }
 
-            mNavigationBar.setPrivateBrowsingEnabled(true);
-            mTopBar.setPrivateBrowsingEnabled(true);
-            mBrowserWidget.setPrivateBrowsingEnabled(true);
-
         } else {
             fadeInWorld();
             // TODO: Fade in the browser window. Waiting for https://github.com/MozillaReality/FirefoxReality/issues/77
@@ -593,10 +583,6 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
             int sessionId = SessionStore.get().getCurrentSessionId();
             SessionStore.get().setCurrentSession(mPreviousSessionId);
             mPreviousSessionId = sessionId;
-
-            mNavigationBar.setPrivateBrowsingEnabled(false);
-            mTopBar.setPrivateBrowsingEnabled(false);
-            mBrowserWidget.setPrivateBrowsingEnabled(false);
         }
     }
 
@@ -616,10 +602,6 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
             int privateSessionId = SessionStore.get().getCurrentSessionId();
             SessionStore.get().setCurrentSession(mPreviousSessionId);
             mPreviousSessionId = SessionStore.NO_SESSION_ID;
-
-            mNavigationBar.setPrivateBrowsingEnabled(false);
-            mTopBar.setPrivateBrowsingEnabled(false);
-            mBrowserWidget.setPrivateBrowsingEnabled(false);
 
             SessionStore.get().removeSession(privateSessionId);
         }

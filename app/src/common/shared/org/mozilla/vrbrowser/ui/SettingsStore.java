@@ -74,7 +74,7 @@ public class SettingsStore {
     }
 
 
-    public void setCurrentSeesionId(int sessionId) {
+    public void setCurrentSessionId(int sessionId) {
         SharedPreferences.Editor editor = mPrefs.edit();
         editor.putInt(mContext.getString(R.string.settings_key_session_id), sessionId);
         editor.commit();
@@ -84,7 +84,7 @@ public class SettingsStore {
         return mPrefs.getInt(mContext.getString(R.string.settings_key_session_id), SessionStore.NO_SESSION_ID);
     }
 
-    public void setPreviousSeesionId(int sessionId) {
+    public void setPreviousSessionId(int sessionId) {
         SharedPreferences.Editor editor = mPrefs.edit();
         editor.putInt(mContext.getString(R.string.settings_key_previous_session_id), sessionId);
         editor.commit();
