@@ -51,6 +51,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
     private NavigationBarTextButton mPreset2;
     private NavigationBarTextButton mPreset3;
     private ArrayList<CustomUIButton> mButtons;
+    private float mLastResizePreset;
 
     public NavigationBarWidget(Context aContext) {
         super(aContext);
@@ -191,6 +192,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
             @Override
             public void onClick(View view) {
                 setResizePreset(0.5f);
+                mLastResizePreset = 0.5f;
                 if (mAudio != null) {
                     mAudio.playSound(AudioEngine.Sound.CLICK);
                 }
@@ -201,6 +203,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
             @Override
             public void onClick(View view) {
                 setResizePreset(1.0f);
+                mLastResizePreset = 1.0f;
                 if (mAudio != null) {
                     mAudio.playSound(AudioEngine.Sound.CLICK);
                 }
@@ -211,6 +214,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
             @Override
             public void onClick(View view) {
                 setResizePreset(2.0f);
+                mLastResizePreset = 2.0f;
                 if (mAudio != null) {
                     mAudio.playSound(AudioEngine.Sound.CLICK);
                 }
@@ -221,6 +225,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
             @Override
             public void onClick(View view) {
                 setResizePreset(3.0f);
+                mLastResizePreset = 3.0f;
                 if (mAudio != null) {
                     mAudio.playSound(AudioEngine.Sound.CLICK);
                 }
@@ -239,6 +244,8 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         mWidgetManager.addListener(this);
 
         SessionStore.get().addSessionChangeListener(this);
+
+        mLastResizePreset = 1.0f;
     }
 
     @Override
@@ -287,6 +294,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
 
         mWidgetPlacement.anchorX = 1.0f;
         mWidgetPlacement.parentAnchorX = 1.0f;
+        setResizePreset(mLastResizePreset);
         mWidgetManager.updateWidget(this);
         mWidgetManager.pushBackHandler(mFocusBackHandler);
     }
@@ -468,7 +476,10 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
                 exitResizeMode(false);
             }
             // Set default fullscreen size
-            setResizePreset(2.0f);
+            if (mLastResizePreset == 1.0f)
+                setResizePreset(2.0f);
+            else
+                setResizePreset(mLastResizePreset);
 
         } else {
             if (mFocusDueToFullScreen) {
