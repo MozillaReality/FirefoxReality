@@ -13,10 +13,12 @@ import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.geckoview.GeckoSessionSettings;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.SessionStore;
+import org.mozilla.vrbrowser.Widget;
+import org.mozilla.vrbrowser.WidgetManagerDelegate;
 import org.mozilla.vrbrowser.WidgetPlacement;
 import org.mozilla.vrbrowser.audio.AudioEngine;
 
-public class TopBarWidget extends UIWidget implements SessionStore.SessionChangeListener {
+public class TopBarWidget extends UIWidget implements SessionStore.SessionChangeListener, WidgetManagerDelegate.Listener {
     private static final String LOGTAG = "VRB";
 
     public interface TopBarDelegate {
@@ -26,6 +28,7 @@ public class TopBarWidget extends UIWidget implements SessionStore.SessionChange
     private NavigationBarButton mCloseButton;
     private TopBarDelegate mDelegate;
     private AudioEngine mAudio;
+    private BrowserWidget mBrowserWidget;
 
     public TopBarWidget(Context aContext) {
         super(aContext);
@@ -61,6 +64,7 @@ public class TopBarWidget extends UIWidget implements SessionStore.SessionChange
         mAudio = AudioEngine.fromContext(aContext);
 
         SessionStore.get().addSessionChangeListener(this);
+        mWidgetManager.addListener(this);
     }
 
     @Override
@@ -79,8 +83,16 @@ public class TopBarWidget extends UIWidget implements SessionStore.SessionChange
     @Override
     public void releaseWidget() {
         SessionStore.get().removeSessionChangeListener(this);
+        mWidgetManager.removeListener(this);
 
         super.releaseWidget();
+    }
+
+    public void setBrowserWidget(BrowserWidget aWidget) {
+        if (aWidget != null) {
+            mWidgetPlacement.parentHandle = aWidget.getHandle();
+        }
+        mBrowserWidget = aWidget;
     }
 
     private void setPrivateBrowsingEnabled(boolean isEnabled) {
@@ -116,5 +128,23 @@ public class TopBarWidget extends UIWidget implements SessionStore.SessionChange
             setPrivateBrowsingEnabled(true);
         else
             setPrivateBrowsingEnabled(false);
+    }
+
+    // WidgetManagerDelegate.Listener
+    @Override
+    public void onWidgetUpdate(Widget aWidget) {
+        if (aWidget != mBrowserWidget) {
+            return;
+        }
+
+        // Browser window may have been resized, adjust the navigation bar
+        float targetWidth = aWidget.getPlacement().worldWidth;
+        float defaultWidth = WidgetPlacement.floatDimension(getContext(), R.dimen.browser_world_width);
+        targetWidth = Math.max(defaultWidth, targetWidth);
+
+        float ratio = targetWidth / defaultWidth;
+        mWidgetPlacement.worldWidth = targetWidth;
+        mWidgetPlacement.width = (int) (WidgetPlacement.dpDimension(getContext(), R.dimen.top_bar_width) * ratio);
+        mWidgetManager.updateWidget(this);
     }
 }
