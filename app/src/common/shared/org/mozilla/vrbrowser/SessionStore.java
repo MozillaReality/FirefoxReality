@@ -8,6 +8,7 @@ package org.mozilla.vrbrowser;
 import android.content.Context;
 import android.os.Handler;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.util.Log;
 import android.view.inputmethod.CursorAnchorInfo;
 import android.view.inputmethod.ExtractedText;
@@ -15,7 +16,6 @@ import android.view.inputmethod.ExtractedTextRequest;
 
 import org.mozilla.gecko.GeckoProfile;
 import org.mozilla.gecko.PrefsHelper;
-import org.mozilla.geckoview.GeckoResponse;
 import org.mozilla.geckoview.GeckoResult;
 import org.mozilla.geckoview.GeckoRuntime;
 import org.mozilla.geckoview.GeckoRuntimeSettings;
@@ -46,10 +46,6 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
         return mInstance;
     }
     public static final String DEFAULT_URL = "resource://android/assets/html/index.html";
-    public static final String ERROR_URL = "resource://android/assets/html/error.html";
-
-    public static final String NET_ERROR = "about:neterror";
-    public static final String CERT_ERROR = "about:certerror";
 
     public static final int NO_SESSION_ID = -1;
 
@@ -77,10 +73,58 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
         GeckoSession mSession;
     }
 
+    private static class GeckoError {
+
+        public static final String ERROR_URL = "resource://android/assets/html/error/netError.xhtml";
+
+        public static final String NET_ERROR_TYPE = "about:neterror";
+        public static final String CERT_ERROR_TYPE = "about:certerror";
+        public static final String BLOCKED_ERROR_TYPE = "about:blocked";
+
+        private String mRedirectUri;
+
+        public String getRedirectUri() {
+            return mRedirectUri;
+        }
+
+        public static GeckoError parse(String aUri) {
+            GeckoError geckoError = new GeckoError();
+
+            int parseStartPos;
+            if (aUri.startsWith(NET_ERROR_TYPE)) {
+                parseStartPos = NET_ERROR_TYPE.length();
+
+            } else if (aUri.startsWith(CERT_ERROR_TYPE)) {
+                parseStartPos = CERT_ERROR_TYPE.length();
+
+            } else if (aUri.startsWith(BLOCKED_ERROR_TYPE)) {
+                parseStartPos = BLOCKED_ERROR_TYPE.length();
+
+            } else {
+                return null;
+            }
+
+            String query = aUri.substring(parseStartPos);
+            geckoError.mRedirectUri = ERROR_URL + query;
+
+            return geckoError;
+        }
+
+        public static boolean isGeckoErrorUri(String aURI) {
+            if (aURI.startsWith(NET_ERROR_TYPE) ||
+                    aURI.startsWith(CERT_ERROR_TYPE) ||
+                    aURI.startsWith(BLOCKED_ERROR_TYPE))
+                return true;
+
+            return false;
+        }
+    }
+
     private GeckoRuntime mRuntime;
     private GeckoSession mCurrentSession;
     private HashMap<Integer, State> mSessions;
     private GeckoSession.PermissionDelegate mPermissionDelegate;
+    private GeckoError mGeckoError;
 
     private SessionStore() {
         mNavigationListeners = new LinkedList<>();
@@ -487,66 +531,25 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
         }
     }
 
-    String mLastLoadedErrorURI;
-    String mLastValidURI;
+    @Nullable
+    public GeckoResult<Boolean> onLoadRequest(@NonNull GeckoSession aSession,
+                                       @NonNull String aUri,
+                                       @TargetWindow int target,
+                                       @LoadRequestFlags int flags) {
+        boolean isHandled = false;
+        if (GeckoError.isGeckoErrorUri(aUri)) {
+            mGeckoError = GeckoError.parse(aUri);
 
-    @Override
-    public GeckoResult<Boolean> onLoadRequest(GeckoSession aSession, String aUri, int target, int flags) {
-        boolean isErrorPage = false;
-        if (aUri.startsWith(NET_ERROR)) {
-            isErrorPage = true;
-            mLastLoadedErrorURI = aUri;
-
-        } else if (aUri.startsWith(CERT_ERROR)) {
-            isErrorPage = true;
-            mLastLoadedErrorURI = aUri;
+            if (mGeckoError != null) {
+                aSession.loadUri(mGeckoError.getRedirectUri());
+                isHandled = true;
+            }
         }
 
-        if (isErrorPage) {
-            aSession.loadUri(ERROR_URL);
-            return GeckoResult.fromValue(true);
+        GeckoResult<Boolean> result = new GeckoResult<>();
+        result.complete(isHandled);
 
-        } else if (aUri.equalsIgnoreCase(ERROR_URL)) {
-            int parseStartPos = 0;
-            if (mLastLoadedErrorURI.startsWith(NET_ERROR)) {
-                parseStartPos = NET_ERROR.length() + 1;
-
-            } else if (mLastLoadedErrorURI.startsWith(CERT_ERROR)) {
-                parseStartPos = CERT_ERROR.length() + 1;
-            }
-
-            try {
-                Map<String, String> query_pairs = new LinkedHashMap<>();
-                String query = mLastLoadedErrorURI.substring(parseStartPos);
-                String[] pairs = query.split("&");
-                for (String pair : pairs) {
-                    int idx = pair.indexOf("=");
-                    query_pairs.put(URLDecoder.decode(pair.substring(0, idx), "UTF-8"), URLDecoder.decode(pair.substring(idx + 1), "UTF-8"));
-                }
-
-                final String errorType = query_pairs.get("e");
-                final String errorURL = query_pairs.get("u");
-                final String errorDescription = query_pairs.get("d");
-
-                final GeckoSession session = aSession;
-                Handler handler = new Handler();
-                Runnable r = new Runnable() {
-                    public void run() {
-                        // FIXME: The referrer doesn't seem to work on Gecko right now, so when going back we always go back to the error page
-                        session.loadUri("javascript:updateMessage('" + errorType + "', '" + errorURL + "', '" + errorDescription + "');");
-                    }
-                };
-                handler.postDelayed(r, 0);
-
-            } catch (UnsupportedEncodingException e) {
-                e.printStackTrace();
-            }
-
-        } else if (!aUri.startsWith("javascript:")) {
-            mLastValidURI = aUri;
-        }
-
-        return null;
+        return result;
     }
 
     @Override
