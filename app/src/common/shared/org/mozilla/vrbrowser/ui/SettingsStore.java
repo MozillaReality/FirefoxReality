@@ -29,6 +29,7 @@ public class SettingsStore {
 
     private Context mContext;
     private SharedPreferences mPrefs;
+    private final static boolean enableCrashReportByDefault = true;
     // Enable telemetry by default (opt-out).
     private final static boolean enableTelemetryByDefault = true;
 
@@ -38,7 +39,7 @@ public class SettingsStore {
     }
 
     public boolean isCrashReportingEnabled() {
-        return mPrefs.getBoolean(mContext.getString(R.string.settings_key_crash), false);
+        return mPrefs.getBoolean(mContext.getString(R.string.settings_key_crash), enableCrashReportByDefault);
     }
 
     public void setCrashReportingEnabled(boolean isEnabled) {
