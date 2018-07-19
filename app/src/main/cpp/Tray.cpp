@@ -100,10 +100,10 @@ namespace {
 
     bool Intersect(const vrb::Vector& aStartPoint, const vrb::Vector& aDirection, vrb::Vector& aResult, bool& aInside) {
       const float dotNormals = aDirection.Dot(colliderNormal);
-//      if (dotNormals > -kEpsilon) {
-//        // Not pointed at the plane
-//        return false;
-//      }
+      if (dotNormals < -kEpsilon) {
+        // Not pointed at the plane
+        return false;
+      }
       const float dotV = (colliderMin - aStartPoint).Dot(colliderNormal);
 
       if ((dotV < kEpsilon) && (dotV > -kEpsilon)) {
