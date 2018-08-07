@@ -30,6 +30,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 
+import static org.mozilla.vrbrowser.ui.NavigationURLBar.VOICESEARCH_AUDIO_REQUEST_CODE;
+
 public class VRBrowserActivity extends PlatformActivity implements WidgetManagerDelegate {
 
     class SwipeRunnable implements Runnable {
@@ -663,7 +665,11 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (mPermissionDelegate != null) {
+        // We need to handle the audio permission request made by the voicesearch
+        // here so we can trigger the search again after the user grants access
+        if (requestCode == VOICESEARCH_AUDIO_REQUEST_CODE) {
+            mNavigationBar.handleVoiceSearchPermissionRequest(grantResults);
+        } else if (mPermissionDelegate != null) {
             mPermissionDelegate.onRequestPermissionsResult(requestCode, permissions, grantResults);
         }
     }

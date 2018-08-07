@@ -5,8 +5,12 @@
 
 package org.mozilla.vrbrowser.ui;
 
+import android.Manifest;
+import android.app.Activity;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.content.res.Resources;
+import android.support.v4.app.ActivityCompat;
 import android.text.Editable;
 import android.text.SpannableString;
 import android.text.TextWatcher;
@@ -25,6 +29,10 @@ import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import com.mozilla.speechlibrary.ISpeechRecognitionListener;
+import com.mozilla.speechlibrary.MozillaSpeechService;
+import com.mozilla.speechlibrary.STTResult;
+
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.SessionStore;
 import org.mozilla.vrbrowser.search.SearchEngine;
@@ -34,7 +42,11 @@ import java.net.URI;
 import java.net.URL;
 import java.util.regex.Pattern;
 
+import static com.google.vr.cardboard.ThreadUtils.runOnUiThread;
+import static org.mozilla.gecko.GeckoAppShell.getApplicationContext;
+
 public class NavigationURLBar extends FrameLayout {
+    public static final int VOICESEARCH_AUDIO_REQUEST_CODE = 7455;
     private EditText mURL;
     private ImageButton mMicrophoneButton;
     private ImageView mInsecureIcon;
@@ -47,6 +59,8 @@ public class NavigationURLBar extends FrameLayout {
     private int mURLProtocolColor;
     private int mURLWebsiteColor;
     private Pattern mURLPattern;
+    private MozillaSpeechService mMozillaSpeechService;
+    private Context mContext;
 
     public NavigationURLBar(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -77,6 +91,8 @@ public class NavigationURLBar extends FrameLayout {
             }
         });
         mURL.addTextChangedListener(mURLTextWatcher);
+        mMozillaSpeechService = MozillaSpeechService.getInstance();
+        mMozillaSpeechService.addListener(mVoiceSearchListener);
         mMicrophoneButton = findViewById(R.id.microphoneButton);
         mMicrophoneButton.setOnClickListener(mMicrophoneListener);
         mURLLeftContainer = findViewById(R.id.urlLeftContainer);
@@ -235,6 +251,7 @@ public class NavigationURLBar extends FrameLayout {
         @Override
         public void onClick(View view) {
             TelemetryWrapper.voiceInputEvent();
+            startVoiceSearch();
         }
     };
 
@@ -266,4 +283,66 @@ public class NavigationURLBar extends FrameLayout {
 
         }
     };
+
+    public void setContext(Context aContext) {
+        mContext = aContext;
+    }
+    private ISpeechRecognitionListener mVoiceSearchListener = new ISpeechRecognitionListener() {
+
+        public void onSpeechStatusChanged(final MozillaSpeechService.SpeechState aState, final Object aPayload){
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    switch (aState) {
+                        case DECODING:
+                            // Handle when the speech object changes to decoding state
+                            break;
+                        case MIC_ACTIVITY:
+                            // Captures the activity from the microphone
+                            double db = (double)aPayload * -1; // the higher the value, quieter the user/environment is
+                            break;
+                        case STT_RESULT:
+                            // When the api finished processing and returned a hypothesis
+                            setURLText(((STTResult)aPayload).mTranscription);
+                            float confidence = ((STTResult)aPayload).mConfidence;
+                            handleURLEdit(((STTResult)aPayload).mTranscription);
+                            break;
+                        case START_LISTEN:
+                            // Handle when the api successfully opened the microphone and started listening
+                            break;
+                        case NO_VOICE:
+                            // Handle when the api didn't detect any voice
+                            break;
+                        case CANCELED:
+                            // Handle when a cancelation was fully executed
+                            break;
+                        case ERROR:
+                            // Handle when any error occurred
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            });
+        }
+    };
+
+    public void startVoiceSearch() {
+        if (ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.RECORD_AUDIO)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions((Activity)mContext, new String[]{Manifest.permission.RECORD_AUDIO},
+                    VOICESEARCH_AUDIO_REQUEST_CODE);
+        } else {
+            mMozillaSpeechService.start(getApplicationContext());
+        }
+    }
+
+    public void handleVoiceSearchPermissionRequest(int[] grantResults) {
+        for (int result: grantResults) {
+            if (result == PackageManager.PERMISSION_GRANTED) {
+                startVoiceSearch();
+                break;
+            }
+        }
+    }
 }

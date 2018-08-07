@@ -238,6 +238,8 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
                 mFocusEnterButton, mFocusExitButton, mResizeEnterButton, mResizeExitButton,
                 mPreset0, mPreset1, mPreset2, mPreset3));
 
+        mURLBar.setContext(aContext);
+
         SessionStore.get().addNavigationListener(this);
         SessionStore.get().addProgressListener(this);
         SessionStore.get().addContentListener(this);
@@ -588,5 +590,9 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         for (CustomUIButton button : mButtons) {
             button.setPrivateMode(isPrivateMode);
         }
+    }
+
+    public void handleVoiceSearchPermissionRequest(int[] grantResults) {
+        mURLBar.handleVoiceSearchPermissionRequest(grantResults);
     }
 }
