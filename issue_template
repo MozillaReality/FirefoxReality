@@ -30,7 +30,7 @@
 ## Error Logs and Stack Traces
 <!--- [Optional] -->
 <!--- These are very useful for quickly identifying the causes for bug fixes. -->
-<!--- In Developer Mode, run `adb logcat` (or `adb logcat | grep GeckoView`) to capture potentially useful logs. -->
+<!--- In Developer Mode, run `adb logcat` to capture potentially useful logs. -->
 <details open>
   <!--- Logs go here. -->
 </details>
