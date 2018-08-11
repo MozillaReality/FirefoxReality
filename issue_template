@@ -32,5 +32,9 @@
 <!--- These are very useful for quickly identifying the causes for bug fixes. -->
 <!--- In Developer Mode, run `adb logcat` to capture potentially useful logs. -->
 <details open>
-  <!--- Logs go here. -->
+
+<!--- Logs go here. -->
+```
+```
+
 </details>
