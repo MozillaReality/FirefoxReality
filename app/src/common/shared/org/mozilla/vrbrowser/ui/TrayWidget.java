@@ -10,7 +10,9 @@ import android.util.AttributeSet;
 import android.view.View;
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.geckoview.GeckoSessionSettings;
-import org.mozilla.vrbrowser.*;
+import org.mozilla.vrbrowser.R;
+import org.mozilla.vrbrowser.SessionStore;
+import org.mozilla.vrbrowser.WidgetPlacement;
 import org.mozilla.vrbrowser.audio.AudioEngine;
 
 public class TrayWidget extends UIWidget implements SessionStore.SessionChangeListener {
@@ -19,6 +21,7 @@ public class TrayWidget extends UIWidget implements SessionStore.SessionChangeLi
     private UIButton mHelpButton;
     private UIButton mSettingsButton;
     private UIButton mPrivateButton;
+    private UIButton mExitButton;
     private AudioEngine mAudio;
     private SettingsWidget mSettingsWidget;
     private boolean mIsLastSessionPrivate;
@@ -75,6 +78,18 @@ public class TrayWidget extends UIWidget implements SessionStore.SessionChangeLi
                     mSettingsWidget = new SettingsWidget(getContext());
                 }
                 mSettingsWidget.toggle();
+            }
+        });
+
+        mExitButton = findViewById(R.id.exitButton);
+        mExitButton.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (mAudio != null) {
+                    mAudio.playSound(AudioEngine.Sound.CLICK);
+                }
+
+                mWidgetManager.exit();
             }
         });
 
