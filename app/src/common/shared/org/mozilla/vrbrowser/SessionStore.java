@@ -32,7 +32,7 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
         }
         return mInstance;
     }
-    public static final String DEFAULT_URL = "resource://android/assets/html/index.html";
+    public static final String HOME_WITHOUT_REGION_ORIGIN = "https://webxr.today";
 
     public static final int NO_SESSION_ID = -1;
 
@@ -55,6 +55,7 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
         boolean mIsInputActive;
         GeckoSession.ProgressDelegate.SecurityInformation mSecurityInformation;
         String mUri;
+        String mRegion;
         String mTitle;
         boolean mFullScreen;
         GeckoSession mSession;
@@ -67,6 +68,7 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
     private Deque<Integer> mPrivateSessionsStack;
     private GeckoSession.PermissionDelegate mPermissionDelegate;
     private int mPreviousSessionId = SessionStore.NO_SESSION_ID;
+    private String mHomeUri = SessionStore.HOME_WITHOUT_REGION_ORIGIN;
     private String mLastUri;
     private Context mContext;
 
@@ -315,7 +317,7 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
     }
 
     private void pushSession(int aSessionId) {
-        boolean isPrivateMode  = mCurrentSession.getSettings().getBoolean(GeckoSessionSettings.USE_PRIVATE_MODE);
+        boolean isPrivateMode = mCurrentSession.getSettings().getBoolean(GeckoSessionSettings.USE_PRIVATE_MODE);
         if (isPrivateMode)
             mPrivateSessionsStack.push(aSessionId);
         else
@@ -323,7 +325,7 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
     }
 
     private Integer popSession() {
-        boolean isPrivateMode  = mCurrentSession.getSettings().getBoolean(GeckoSessionSettings.USE_PRIVATE_MODE);
+        boolean isPrivateMode = mCurrentSession.getSettings().getBoolean(GeckoSessionSettings.USE_PRIVATE_MODE);
         if (isPrivateMode)
             return mPrivateSessionsStack.pop();
         else
@@ -331,7 +333,7 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
     }
 
     private Integer peekSession() {
-        boolean isPrivateMode  = mCurrentSession.getSettings().getBoolean(GeckoSessionSettings.USE_PRIVATE_MODE);
+        boolean isPrivateMode = mCurrentSession.getSettings().getBoolean(GeckoSessionSettings.USE_PRIVATE_MODE);
         if (isPrivateMode)
             return mPrivateSessionsStack.peek();
         else
@@ -355,7 +357,7 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
         return null;
     }
 
-    public String gerUriFromSession(GeckoSession aSession) {
+    public String getUriFromSession(GeckoSession aSession) {
         Integer sessionId = getSessionId(aSession);
         if (sessionId == null) {
             return "";
@@ -408,6 +410,35 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
 
         if (mCurrentSession != null)
             mCurrentSession.setActive(true);
+    }
+
+    public String setRegion(String aRegion) {
+        Log.d(LOGTAG, "SessionStore setRegion: " + aRegion);
+        String result = "worldwide";
+        if (mCurrentSession == null || aRegion == null) {
+            return result;
+        }
+        State state = mSessions.get(mCurrentSession.hashCode());
+        if (state == null) {
+            return result;
+        }
+        result = state.mRegion = aRegion.toLowerCase();
+        return result;
+    }
+
+    public String getHomeUri() {
+        String result = SessionStore.HOME_WITHOUT_REGION_ORIGIN;
+        if (mCurrentSession == null) {
+            return result;
+        }
+        State state = mSessions.get(mCurrentSession.hashCode());
+        if (state == null) {
+            return result;
+        }
+        if (state.mRegion != null) {
+            result = SessionStore.HOME_WITHOUT_REGION_ORIGIN + "/?region=" + state.mRegion;
+        }
+        return result;
     }
 
     public String getCurrentUri() {
@@ -637,7 +668,7 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
 
         if (isLocalPage(aUri))
             aUri = mLastUri;
-        
+
         state.mUri = aUri;
 
         for (GeckoSession.NavigationDelegate listener: mNavigationListeners) {

@@ -221,7 +221,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     void loadFromIntent(final Intent intent) {
         final Uri uri = intent.getData();
         if (SessionStore.get().getCurrentSession() == null) {
-            String url = (uri != null ? uri.toString() : SessionStore.DEFAULT_URL);
+            String url = (uri != null ? uri.toString() : SessionStore.get().getHomeUri());
             int id = SessionStore.get().createSession();
             SessionStore.get().setCurrentSession(id);
             SessionStore.get().loadUri(url);
