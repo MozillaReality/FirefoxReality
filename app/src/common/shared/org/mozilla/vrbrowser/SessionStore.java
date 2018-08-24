@@ -412,7 +412,7 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
             mCurrentSession.setActive(true);
     }
 
-    public String setRegion(String aRegion) {
+    public void setRegion(String aRegion) {
         Log.d(LOGTAG, "SessionStore setRegion: " + aRegion);
         aRegion = aRegion != null ? aRegion.toLowerCase() : "worldwide";
         mRegion = aRegion;
@@ -424,6 +424,10 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
             result = SessionStore.HOME_WITHOUT_REGION_ORIGIN + "/?region=" + mRegion;
         }
         return result;
+    }
+
+    public Boolean isHomeUri(String aUri) {
+        return aUri != null && aUri.toLowerCase().startsWith(SessionStore.HOME_WITHOUT_REGION_ORIGIN);
     }
 
     public String getCurrentUri() {

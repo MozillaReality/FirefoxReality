@@ -494,9 +494,6 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
     public void onSecurityChange(GeckoSession geckoSession, SecurityInformation securityInformation) {
         if (mURLBar != null) {
             boolean isSecure = securityInformation.isSecure;
-            if (SessionStore.get().getUriFromSession(geckoSession).equalsIgnoreCase(SessionStore.get().getHomeUri())) {
-                isSecure = true;
-            }
             mURLBar.setIsInsecure(!isSecure);
         }
     }
