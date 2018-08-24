@@ -83,7 +83,6 @@ public class SearchEngine implements GeolocationTask.GeolocationTaskDelegate {
         String geolocationJson = SettingsStore.getInstance(mContext).getGeolocationData();
         GeolocationTask.GeolocationData data = GeolocationTask.GeolocationData.parse(geolocationJson);
         mEngine = Engine.getEngine(data);
-
         SessionStore.get().setRegion(data.getCountryCode());
     }
 
@@ -114,7 +113,9 @@ public class SearchEngine implements GeolocationTask.GeolocationTaskDelegate {
         isUpdating = false;
 
         SettingsStore.getInstance(mContext).setGeolocationData(data.toString());
+
         mEngine = Engine.getEngine(data);
+        SessionStore.get().setRegion(data.getCountryCode());
 
         Log.d(LOGTAG, "Geolocation request success: " + data.toString());
     }
