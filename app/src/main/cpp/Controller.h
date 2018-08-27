@@ -42,6 +42,7 @@ struct Controller {
   uint32_t numAxes;
   bool leftHanded;
   bool inDeadZone;
+  int scrollingFrames;
 
   Controller();
   Controller(const Controller& aController);

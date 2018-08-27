@@ -53,6 +53,7 @@ Controller::operator=(const Controller& aController) {
   numAxes = aController.numAxes;
   leftHanded = aController.leftHanded;
   inDeadZone = aController.inDeadZone;
+  scrollingFrames = aController.scrollingFrames;
   return *this;
 }
 
@@ -80,6 +81,7 @@ Controller::Reset() {
   numAxes = 0;
   leftHanded = false;
   inDeadZone = true;
+  scrollingFrames = 0;
 }
 
 } // namespace crow

@@ -72,6 +72,21 @@ static const int GestureSwipeLeft = 0;
 static const int GestureSwipeRight = 1;
 
 static const float kScrollFactor = 20.0f; // Just picked what fell right.
+// Deadzone used when clicking so that buttons are easier to activate.
+static const float kSrollDeadZone = 20.0f; //
+// Minimum scroll threshold to start scroll gestures.
+// The smaller, the more sensitive it is the scroll.
+// A very sensitive scroll can make it hard to click links, specially
+// on devices which don't have a trigger button (e.g. Daydream)
+#if defined(VRBROWSER_GOOGLEVR)
+static const float kMinScrollThreshold = 0.01f;
+static const int kMinScrollFrames = 1;
+#else
+static const float kMinScrollThreshold = 0.00f;
+static const int kMinScrollFrames = 0;
+#endif // defined(GOOGLEVR)
+
+
 static const float kWorldDPIRatio = 2.0f/720.0f;
 
 #if SPACE_THEME == 1
@@ -229,10 +244,9 @@ OutOfDeadZone(Controller& aController, const float aX, const float aY) {
   if (!aController.inDeadZone) {
     return true;
   }
-  const float kDeadZone = 20.0f;
   const float xDistance = aX - aController.pointerX;
   const float yDistance = aY - aController.pointerY;
-  aController.inDeadZone = sqrtf((xDistance * xDistance) + (yDistance * yDistance)) < kDeadZone;
+  aController.inDeadZone = sqrtf((xDistance * xDistance) + (yDistance * yDistance)) < kSrollDeadZone;
 
   // VRB_ERROR("Out of DEAD ZONE[%f]: %s", sqrtf((xDistance * xDistance) + (yDistance * yDistance)), (!aController.inDeadZone ? "TRUE" : "FALSE"));
 
@@ -325,15 +339,22 @@ BrowserWorld::State::UpdateControllers(bool& aRelayoutWidgets) {
           if (!controller.wasTouched) {
             controller.wasTouched = controller.touched;
           } else {
-            VRBrowser::HandleScrollEvent(controller.widget,
-                                controller.index,
-                                (controller.touchX - controller.lastTouchX) * kScrollFactor,
-                                (controller.touchY - controller.lastTouchY) * kScrollFactor);
+            if (controller.scrollingFrames >= kMinScrollFrames || fabs(controller.touchX - controller.lastTouchX) > kMinScrollThreshold ||
+                fabs(controller.touchY - controller.lastTouchY) > kMinScrollThreshold) {
+              VRBrowser::HandleScrollEvent(controller.widget,
+                                           controller.index,
+                                           (controller.touchX - controller.lastTouchX) *
+                                           kScrollFactor,
+                                           (controller.touchY - controller.lastTouchY) *
+                                           kScrollFactor);
+              controller.scrollingFrames++;
+            }
           }
           controller.lastTouchX = controller.touchX;
           controller.lastTouchY = controller.touchY;
         } else {
           controller.wasTouched = false;
+          controller.scrollingFrames = 0;
           controller.lastTouchX = controller.lastTouchY = 0.0f;
         }
       }
