@@ -62,6 +62,10 @@ public class DeveloperOptionsWidget extends UIWidget {
     private TextView mMaxWindowHeightText;
     private DeveloperOptionsEditText mMaxWindowHeightEdit;
     private TextView mResetButton;
+    private TextView mRemoteDebuggingSwitchText;
+    private TextView mConsoleLogsSwitchText;
+    private TextView mEnvOverrideSwitchText;
+    private TextView mMultiprocessSwitchText;
     private int mRestartDialogHandle = -1;
 
     public DeveloperOptionsWidget(Context aContext) {
@@ -96,21 +100,26 @@ public class DeveloperOptionsWidget extends UIWidget {
             }
         });
 
+
+        mRemoteDebuggingSwitchText = findViewById(R.id.developer_options_remote_debugging_switch_text);
         mRemoteDebuggingSwitch = findViewById(R.id.developer_options_remote_debugging_switch);
         mRemoteDebuggingSwitch.setOnCheckedChangeListener(mRemoteDebuggingListener);
         mRemoteDebuggingSwitch.setSoundEffectsEnabled(false);
         setRemoteDebugging(SettingsStore.getInstance(getContext()).isRemoteDebuggingEnabled());
 
+        mConsoleLogsSwitchText = findViewById(R.id.developer_options_show_console_switch_text);
         mConsoleLogsSwitch = findViewById(R.id.developer_options_show_console_switch);
         mConsoleLogsSwitch.setOnCheckedChangeListener(mConsoleLogsListener);
         mConsoleLogsSwitch.setSoundEffectsEnabled(false);
         setConsoleLogs(SettingsStore.getInstance(getContext()).isConsoleLogsEnabled(), false);
 
+        mEnvOverrideSwitchText = findViewById(R.id.developer_options_env_override_switch_text);
         mEnvOverrideSwitch = findViewById(R.id.developer_options_env_override_switch);
         mEnvOverrideSwitch.setOnCheckedChangeListener(mEnvOverrideListener);
         mEnvOverrideSwitch.setSoundEffectsEnabled(false);
         setEnvOverride(SettingsStore.getInstance(getContext()).isEnvironmentOverrideEnabled());
 
+        mMultiprocessSwitchText = findViewById(R.id.developer_options_multiprocess_switch_text);
         mMultiprocessSwitch = findViewById(R.id.developer_options_multiprocess_switch);
         mMultiprocessSwitch.setOnCheckedChangeListener(mMultiprocessListener);
         mMultiprocessSwitch.setSoundEffectsEnabled(false);
@@ -482,6 +491,8 @@ public class DeveloperOptionsWidget extends UIWidget {
                 restart = true;
             }
 
+            setMultiprocess(SettingsStore.MULTIPROCESS_DEFAULT, true);
+
             setUaMode(SettingsStore.UA_MODE_DEFAULT, true);
             setInputMode(SettingsStore.INPUT_MODE_DEFAULT);
             restart = restart | setDisplayDensity(SettingsStore.DISPLAY_DENSITY_DEFAULT);
@@ -498,6 +509,7 @@ public class DeveloperOptionsWidget extends UIWidget {
         mRemoteDebuggingSwitch.setOnCheckedChangeListener(null);
         mRemoteDebuggingSwitch.setChecked(value);
         mRemoteDebuggingSwitch.setOnCheckedChangeListener(mRemoteDebuggingListener);
+        mRemoteDebuggingSwitchText.setText(value ? getContext().getString(R.string.on) : getContext().getString(R.string.off));
 
         SettingsStore.getInstance(getContext()).setRemoteDebuggingEnabled(value);
     }
@@ -506,6 +518,7 @@ public class DeveloperOptionsWidget extends UIWidget {
         mConsoleLogsSwitch.setOnCheckedChangeListener(null);
         mConsoleLogsSwitch.setChecked(value);
         mConsoleLogsSwitch.setOnCheckedChangeListener(mConsoleLogsListener);
+        mConsoleLogsSwitchText.setText(value ? getContext().getString(R.string.on) : getContext().getString(R.string.off));
 
         SettingsStore.getInstance(getContext()).setConsoleLogsEnabled(value);
 
@@ -518,6 +531,7 @@ public class DeveloperOptionsWidget extends UIWidget {
         mEnvOverrideSwitch.setOnCheckedChangeListener(null);
         mEnvOverrideSwitch.setChecked(value);
         mEnvOverrideSwitch.setOnCheckedChangeListener(mEnvOverrideListener);
+        mEnvOverrideSwitchText.setText(value ? getContext().getString(R.string.on) : getContext().getString(R.string.off));
 
         SettingsStore.getInstance(getContext()).setEnvironmentOverrideEnabled(value);
     }
@@ -526,6 +540,7 @@ public class DeveloperOptionsWidget extends UIWidget {
         mMultiprocessSwitch.setOnCheckedChangeListener(null);
         mMultiprocessSwitch.setChecked(value);
         mMultiprocessSwitch.setOnCheckedChangeListener(mMultiprocessListener);
+        mMultiprocessSwitchText.setText(value ? getContext().getString(R.string.on) : getContext().getString(R.string.off));
 
         SettingsStore.getInstance(getContext()).setMultiprocessEnabled(value);
 
