@@ -263,7 +263,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
             mPermissionDelegate.release();
         }
 
-        SessionStore.get().clearListeners();
+        SessionStore.get().onDestroy();
         super.onDestroy();
     }
 
