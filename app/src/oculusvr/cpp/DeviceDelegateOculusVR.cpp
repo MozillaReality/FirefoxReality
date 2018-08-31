@@ -307,6 +307,16 @@ DeviceDelegateOculusVR::SetRenderMode(const device::RenderMode aMode) {
   if (aMode == m.renderMode) {
     return;
   }
+  if (aMode == device::RenderMode::Immersive) {
+    // Enable extra latency mode. We have stale frames when running
+    // WebVR immersive mode especially for video playback. I have checked
+    // VRAPI_EXTRA_LATENCY_MODE_ON is better than VRAPI_EXTRA_LATENCY_MODE_DYNAMIC
+    // when running video playback.
+    vrapi_SetExtraLatencyMode(m.ovr, ovrExtraLatencyMode::VRAPI_EXTRA_LATENCY_MODE_ON);
+  } else {
+    // Turn it off after exiting from the immersive mode.
+    vrapi_SetExtraLatencyMode(m.ovr, ovrExtraLatencyMode::VRAPI_EXTRA_LATENCY_MODE_OFF);
+  }
   m.renderMode = aMode;
   m.SetRenderSize(aMode);
   vrb::RenderContextPtr render = m.context.lock();
