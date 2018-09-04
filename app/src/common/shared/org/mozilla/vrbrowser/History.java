@@ -80,13 +80,17 @@ public class History implements GeckoSession.ProgressDelegate {
         save();
     }
 
+    public String getHistoryPath() {
+        return mContext.getFilesDir().getAbsolutePath() + "/" + FILENAME;
+    }
+
     private void save() {
         JSONArray array = new JSONArray();
         for (Item item: mItems.values()) {
             array.put(item.toJSON());
         }
 
-        try (FileWriter file = new FileWriter(mContext.getFilesDir().getAbsolutePath() + "/" + FILENAME)) {
+        try (FileWriter file = new FileWriter(getHistoryPath())) {
             file.write(getJSONString());
         }
         catch (Exception ex) {
@@ -95,7 +99,7 @@ public class History implements GeckoSession.ProgressDelegate {
     }
 
     private void restore() {
-        try (BufferedReader reader = new BufferedReader(new FileReader(mContext.getFilesDir().getAbsolutePath() + "/" + FILENAME))) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(getHistoryPath()))) {
             StringBuilder sb = new StringBuilder();
             String line = reader.readLine();
 
@@ -140,18 +144,20 @@ public class History implements GeckoSession.ProgressDelegate {
         return result;
     }
 
+    private static class SortItemsByTimestamp implements Comparator<Item> {
+        @Override
+        public int compare(Item o1, Item o2) {
+            return (int)(o1.timestamp - o2.timestamp);
+        }
+    }
+
     private void checkMaxSize() {
         if (mItems.size() <= MAX_ITEMS) {
             return;
         }
 
         ArrayList<Item> list = new ArrayList<>(mItems.values());
-        list.sort(new Comparator<Item>() {
-            @Override
-            public int compare(Item o1, Item o2) {
-                return (int)(o1.timestamp - o2.timestamp);
-            }
-        });
+        list.sort(new SortItemsByTimestamp());
 
         for (Item item: list) {
             mItems.remove(key(item.url));
@@ -171,14 +177,11 @@ public class History implements GeckoSession.ProgressDelegate {
     @Override
     public void onPageStop(GeckoSession geckoSession, boolean b) {
         String uri = SessionStore.get().getUriFromSession(geckoSession);
-        if (uri == null || uri.length() == 0) {
-            return;
-        }
-        if (SessionStore.get().isHomeUri(uri)) {
+        if (uri == null || uri.length() == 0 || SessionStore.get().isHomeUri(uri)) {
             return;
         }
         if (geckoSession.getSettings().getBoolean(GeckoSessionSettings.USE_PRIVATE_MODE)) {
-            // Do not store private mode history
+            // Do not store history in Private Mode.
             return;
         }
 
@@ -205,6 +208,5 @@ public class History implements GeckoSession.ProgressDelegate {
     public void onSecurityChange(GeckoSession geckoSession, SecurityInformation securityInformation) {
 
     }
-
 
 }

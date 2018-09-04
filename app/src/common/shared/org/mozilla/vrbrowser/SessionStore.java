@@ -391,36 +391,25 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
     public Integer getSessionId(GeckoSession aSession) {
         for (Map.Entry<Integer, State> entry : mSessions.entrySet()) {
             if (entry.getValue().mSession == aSession) {
-                return  entry.getKey();
+                return entry.getKey();
             }
         }
         return null;
     }
 
-    public String getUriFromSession(GeckoSession aSession) {
+    public State getStateFromSession(GeckoSession aSession) {
         Integer sessionId = getSessionId(aSession);
-        if (sessionId == null) {
-            return "";
-        }
-        State state = mSessions.get(sessionId);
-        if (state != null) {
-            return state.mUri;
-        }
+        return sessionId == null ? null : mSessions.get(sessionId);
+    }
 
-        return "";
+    public String getUriFromSession(GeckoSession aSession) {
+        State state = getStateFromSession(aSession);
+        return state == null ? "" : state.mUri;
     }
 
     public String getTitleFromSession(GeckoSession aSession) {
-        Integer sessionId = getSessionId(aSession);
-        if (sessionId == null) {
-            return "";
-        }
-        State state = mSessions.get(sessionId);
-        if (state != null) {
-            return state.mTitle;
-        }
-
-        return "";
+        State state = getStateFromSession(aSession);
+        return state == null ? "" : state.mTitle;
     }
 
     public List<Integer> getSessions() {
@@ -480,28 +469,28 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
     public String getHomeUri() {
         String result = SessionStore.HOME_WITHOUT_REGION_ORIGIN;
         if (mRegion != null) {
-            result = SessionStore.HOME_WITHOUT_REGION_ORIGIN + "?region=" + mRegion;
+            result += "?region=" + mRegion;
         }
-        if (mHistory != null) {
-            result += "#history=" + mHistory.encodedJSON();
+        if (mHistory != null && mCurrentSession != null) {
+            GeckoSession.ProgressDelegate.SecurityInformation securityInformation = getStateFromSession(mCurrentSession).mSecurityInformation;
+            if (securityInformation != null && securityInformation.isSecure) {
+                result += "#history=" + mHistory.encodedJSON();
+            }
         }
         return result;
     }
 
     public Boolean isHomeUri(String aUri) {
-        return aUri != null && aUri.toLowerCase().startsWith(SessionStore.HOME_WITHOUT_REGION_ORIGIN);
+        return aUri != null && aUri.length() > 0 &&
+            aUri.toLowerCase().startsWith(SessionStore.HOME_WITHOUT_REGION_ORIGIN);
     }
 
     public String getCurrentUri() {
-        String result = "";
         if (mCurrentSession != null) {
-            State state = mSessions.get(mCurrentSession.hashCode());
-            if (state == null) {
-                return result;
-            }
-            result = state.mUri;
+            State state = getStateFromSession(mCurrentSession);
+            return state == null ? "" : state.mUri;
         }
-        return result;
+        return "";
     }
 
     public boolean isInputActive(int aSessionId) {
