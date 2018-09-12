@@ -174,6 +174,7 @@ struct WidgetResizer::State {
   vrb::Vector resizeStartMax;
   vrb::Vector defaultMin;
   vrb::Vector defaultMax;
+  vrb::Vector pointerOffset;
   bool resizing;
   vrb::TogglePtr root;
   std::vector<ResizeHandlePtr> resizeHandles;
@@ -271,6 +272,7 @@ struct WidgetResizer::State {
       vrb::Vector worldCenter(min.x() + WorldWidth() * handle->center.x(), min.y() + WorldHeight() * handle->center.y(), 0.0f);
       float distance = (point - worldCenter).Magnitude();
       if (distance < kHandleRadius * handle->touchRatio) {
+        //pointerOffset = point - worldCenter;
         return handle;
       }
     }
@@ -282,13 +284,13 @@ struct WidgetResizer::State {
       return;
     }
 
+    const vrb::Vector point = aPoint - pointerOffset;
     float originalWidth = fabsf(resizeStartMax.x() - resizeStartMin.x());
     float originalHeight = fabsf(resizeStartMax.y() - resizeStartMin.y());
     float originalAspect = originalWidth / originalHeight;
-    vrb::Vector originalCenter = vrb::Vector(0.0, originalHeight * 0.5f, 0.0f);
 
-    float width = fabsf(aPoint.x()) * 2.0f;
-    float height = fabsf(aPoint.y()) * 2.0f;
+    float width = fabsf(point.x()) * 2.0f;
+    float height = fabsf(point.y() - min.y());
 
     // Calculate resize based on resize mode
     bool keepAspect = false;
@@ -376,6 +378,9 @@ WidgetResizer::HandleResizeGestures(const vrb::Vector& aPoint, bool aPressed, bo
       m.resizeStartMin = m.min;
       m.resizeStartMax = m.max;
       m.activeHandle->SetResizeState(ResizeState::Active);
+      vrb::Vector center = m.activeHandle->transform->GetTransform().GetTranslation();
+      m.pointerOffset = aPoint - center;
+      VRB_ERROR("center:%s m.pointerOffset:%s aPoint:%s", center.ToString().c_str(), m.pointerOffset.ToString().c_str(), aPoint.ToString().c_str());
     }
   } else if (!aPressed && m.wasPressed) {
     // Handle resize handle unclick
