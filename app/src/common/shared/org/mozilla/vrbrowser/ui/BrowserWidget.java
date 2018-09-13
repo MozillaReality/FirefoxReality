@@ -21,7 +21,6 @@ import org.mozilla.geckoview.GeckoSessionSettings;
 import org.mozilla.vrbrowser.*;
 import org.mozilla.vrbrowser.ui.prompts.ChoicePromptWidget;
 
-import java.util.ArrayList;
 
 public class BrowserWidget extends View implements Widget, SessionStore.SessionChangeListener, GeckoSession.PromptDelegate {
 
@@ -36,7 +35,6 @@ public class BrowserWidget extends View implements Widget, SessionStore.SessionC
     private int mHandle;
     private WidgetPlacement mWidgetPlacement;
     private WidgetManagerDelegate mWidgetManager;
-    private PointF mLastWorldSize;
     private ChoicePromptWidget mChoicePrompt;
 
     public BrowserWidget(Context aContext, int aSessionId) {
@@ -156,18 +154,14 @@ public class BrowserWidget extends View implements Widget, SessionStore.SessionC
 
     @Override
     public void handleResizeEvent(float aWorldWidth, float aWorldHeight) {
+        float worldWidth = WidgetPlacement.floatDimension(getContext(), R.dimen.browser_world_width);
         int defaultWidth = SettingsStore.getInstance(getContext()).getWindowWidth();
         int defaultHeight = SettingsStore.getInstance(getContext()).getWindowHeight();
-        float defaultAspect = (float) defaultWidth / (float) defaultHeight;
-        float worldAspect = aWorldWidth / aWorldHeight;
 
-        if (worldAspect > defaultAspect) {
-            mWidgetPlacement.height = (int) Math.ceil(defaultWidth / worldAspect);
-            mWidgetPlacement.width = defaultWidth;
-        } else {
-            mWidgetPlacement.width = (int) Math.ceil(defaultHeight * worldAspect);
-            mWidgetPlacement.height = defaultHeight;
-        }
+        float aspect = (float)defaultWidth / (float)defaultHeight;
+        float worldHeight = worldWidth / aspect;
+        mWidgetPlacement.width = (int)((aWorldWidth * defaultWidth) / worldWidth);
+        mWidgetPlacement.height = (int)((aWorldHeight * defaultHeight) /worldHeight);
         mWidgetPlacement.worldWidth = aWorldWidth;
         mWidgetManager.updateWidget(this);
 
@@ -318,10 +312,6 @@ public class BrowserWidget extends View implements Widget, SessionStore.SessionC
 
     private void setPrivateBrowsingEnabled(boolean isEnabled) {
         // TODO: Fade in/out the browser window. Waiting for https://github.com/MozillaReality/FirefoxReality/issues/77
-    }
-
-    protected  PointF getLastWorldSize() {
-        return mLastWorldSize;
     }
 
     @Override
