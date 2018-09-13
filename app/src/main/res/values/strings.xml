@@ -63,4 +63,5 @@
     <string name="voice_search_error">Sorry! I couldn\'t understand.</string>
     <string name="voice_search_try_again">Please try again.</string>
     <string name="voice_search_permission_1">Please allow microphone access to use the voice search.</string>
+    <string name="search_placeholder">Search the Web or enter address</string>
 </resources>
