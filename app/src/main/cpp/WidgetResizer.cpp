@@ -272,7 +272,6 @@ struct WidgetResizer::State {
       vrb::Vector worldCenter(min.x() + WorldWidth() * handle->center.x(), min.y() + WorldHeight() * handle->center.y(), 0.0f);
       float distance = (point - worldCenter).Magnitude();
       if (distance < kHandleRadius * handle->touchRatio) {
-        //pointerOffset = point - worldCenter;
         return handle;
       }
     }
@@ -380,7 +379,6 @@ WidgetResizer::HandleResizeGestures(const vrb::Vector& aPoint, bool aPressed, bo
       m.activeHandle->SetResizeState(ResizeState::Active);
       vrb::Vector center = m.activeHandle->transform->GetTransform().GetTranslation();
       m.pointerOffset = aPoint - center;
-      VRB_ERROR("center:%s m.pointerOffset:%s aPoint:%s", center.ToString().c_str(), m.pointerOffset.ToString().c_str(), aPoint.ToString().c_str());
     }
   } else if (!aPressed && m.wasPressed) {
     // Handle resize handle unclick
