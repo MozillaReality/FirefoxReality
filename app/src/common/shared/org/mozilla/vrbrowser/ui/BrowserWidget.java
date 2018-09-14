@@ -117,6 +117,8 @@ public class BrowserWidget extends View implements Widget, SessionStore.SessionC
 
     @Override
     public void resizeSurfaceTexture(final int aWidth, final int aHeight) {
+        mWidth = aWidth;
+        mHeight = aHeight;
         mSurfaceTexture.setDefaultBufferSize(aWidth, aHeight);
         mDisplay.surfaceChanged(mSurface, aWidth, aHeight);
     }
