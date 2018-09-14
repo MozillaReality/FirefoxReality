@@ -87,8 +87,8 @@ typedef std::shared_ptr<ResizeHandle> ResizeHandlePtr;
 
 struct ResizeHandle {
   enum class ResizeMode {
-    Horizontal,
     Vertical,
+    Horizontal,
     Both
   };
 
@@ -207,12 +207,12 @@ struct WidgetResizer::State {
 
     CreateResizeHandle(vrb::Vector(0.0f, 1.0f, 0.0f), ResizeHandle::ResizeMode::Both, {leftTop, topLeft});
     CreateResizeHandle(vrb::Vector(1.0f, 1.0f, 0.0f), ResizeHandle::ResizeMode::Both, {rightTop, topRight});
-    CreateResizeHandle(vrb::Vector(0.0f, 0.0f, 0.0f), ResizeHandle::ResizeMode::Both, {leftBottom, bottomLeft});
-    CreateResizeHandle(vrb::Vector(1.0f, 0.0f, 0.0f), ResizeHandle::ResizeMode::Both, {rightBottom, bottomRight}, 1.0f);
-    CreateResizeHandle(vrb::Vector(0.5f, 1.0f, 0.0f), ResizeHandle::ResizeMode::Vertical, {topLeft, topRight});
-    CreateResizeHandle(vrb::Vector(0.5f, 0.0f, 0.0f), ResizeHandle::ResizeMode::Vertical, {bottomLeft, bottomRight});
-    CreateResizeHandle(vrb::Vector(0.0f, 0.5f, 0.0f), ResizeHandle::ResizeMode::Horizontal, {leftTop, leftBottom});
-    CreateResizeHandle(vrb::Vector(1.0f, 0.5f, 0.0f), ResizeHandle::ResizeMode::Horizontal, {rightTop, rightBottom});
+    //CreateResizeHandle(vrb::Vector(0.0f, 0.0f, 0.0f), ResizeHandle::ResizeMode::Both, {leftBottom, bottomLeft});
+    //CreateResizeHandle(vrb::Vector(1.0f, 0.0f, 0.0f), ResizeHandle::ResizeMode::Both, {rightBottom, bottomRight}, 1.0f);
+    CreateResizeHandle(vrb::Vector(0.5f, 1.0f, 0.0f), ResizeHandle::ResizeMode::Horizontal, {topLeft, topRight});
+    //CreateResizeHandle(vrb::Vector(0.5f, 0.0f, 0.0f), ResizeHandle::ResizeMode::Horizontal, {bottomLeft, bottomRight});
+    CreateResizeHandle(vrb::Vector(0.0f, 0.5f, 0.0f), ResizeHandle::ResizeMode::Vertical, {leftTop, leftBottom});
+    CreateResizeHandle(vrb::Vector(1.0f, 0.5f, 0.0f), ResizeHandle::ResizeMode::Vertical, {rightTop, rightBottom});
 
     Layout();
   }
@@ -294,9 +294,9 @@ struct WidgetResizer::State {
 
     // Calculate resize based on resize mode
     bool keepAspect = false;
-    if (activeHandle->resizeMode == ResizeHandle::ResizeMode::Horizontal) {
+    if (activeHandle->resizeMode == ResizeHandle::ResizeMode::Vertical) {
       height = originalHeight;
-    } else if (activeHandle->resizeMode == ResizeHandle::ResizeMode::Vertical) {
+    } else if (activeHandle->resizeMode == ResizeHandle::ResizeMode::Horizontal) {
       width = originalWidth;
     } else {
       width = fmaxf(width, height * originalAspect);
