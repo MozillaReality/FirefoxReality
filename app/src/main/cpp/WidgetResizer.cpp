@@ -254,8 +254,8 @@ struct WidgetResizer::State {
     const float height = WorldHeight();
 
     for (ResizeBarPtr& bar: resizeBars) {
-      float targetWidth = bar->scale.x() > 0.0f ? bar->scale.x() * fabsf(width) : kBarSize;
-      float targetHeight = bar->scale.y() > 0.0f ? bar->scale.y() * fabs(height) : kBarSize;
+      float targetWidth = bar->scale.x() > 0.0f ? (bar->scale.x() * fabsf(width)) + kBarSize : kBarSize;
+      float targetHeight = bar->scale.y() > 0.0f ? (bar->scale.y() * fabs(height)) + kBarSize : kBarSize;
       vrb::Matrix matrix = vrb::Matrix::Position(vrb::Vector(min.x() + width * bar->center.x(), min.y() + height * bar->center.y(), 0.005f));
       matrix.ScaleInPlace(vrb::Vector(targetWidth / kBarSize, targetHeight / kBarSize, 1.0f));
       bar->transform->SetTransform(matrix);
