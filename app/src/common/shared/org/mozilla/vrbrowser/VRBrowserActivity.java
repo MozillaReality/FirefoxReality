@@ -180,12 +180,9 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     @Override
     protected void onPause() {
         if (mIsPresentingImmersive) {
-            queueRunnable(new Runnable() {
-                @Override
-                public void run() {
-                    exitImmersiveNative();
-                }
-            });
+            // This needs to be sync to ensure that WebVR is correctly paused.
+            // Also prevents a deadlock in onDestroy when the BrowserWidget is released.
+            exitImmersiveSync();
         }
         mAudioEngine.pauseEngine();
         SessionStore.get().setActive(false);
@@ -217,8 +214,6 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
 
         SessionStore.get().clearListeners();
         super.onDestroy();
-        // FIXME: HACK TO KILL GECKO BETWEEN RUNS.
-        android.os.Process.killProcess(android.os.Process.myPid());
     }
 
     @Override
@@ -274,6 +269,26 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
 
         } else{
             super.onBackPressed();
+        }
+    }
+
+    private void exitImmersiveSync() {
+        Runnable exitImmersive = new Runnable() {
+            @Override
+            public void run() {
+                exitImmersiveNative();
+                synchronized(this) {
+                    this.notifyAll();
+                }
+            }
+        };
+        synchronized (exitImmersive) {
+            queueRunnable(exitImmersive);
+            try {
+                exitImmersive.wait();
+            } catch (InterruptedException e) {
+                Log.e(LOGTAG, "Waiting for exit immersive onPause interrupted");
+            }
         }
     }
 
