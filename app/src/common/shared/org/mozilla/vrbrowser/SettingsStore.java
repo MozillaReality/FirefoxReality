@@ -59,6 +59,10 @@ public class SettingsStore {
     }
 
     public boolean isCrashReportingEnabled() {
+        if (BuildConfig.FLAVOR.equals("oculusvr")) {
+            return false;
+        }
+
         return mPrefs.getBoolean(mContext.getString(R.string.settings_key_crash), enableCrashReportingByDefault);
     }
 

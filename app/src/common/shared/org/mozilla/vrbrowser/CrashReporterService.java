@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Handler;
 import android.os.Process;
+import android.os.SystemClock;
 import android.support.annotation.Nullable;
 import android.util.Log;
 import org.mozilla.geckoview.GeckoRuntime;
@@ -16,13 +17,12 @@ public class CrashReporterService extends IntentService {
 
     public static final String CRASH_ACTION = "org.mozilla.vrbrowser.CRASH_ACTION";
     public static final String DATA_TAG = "intent";
-    private static final int PID_CHECK_INTERVAL = 100;
+    private static final int PID_CHECK_INTERVAL = 10;
 
     private Handler mHandler;
 
     public CrashReporterService() {
         super("CrashReporterService");
-
         mHandler = new Handler();
     }
 
@@ -34,31 +34,31 @@ public class CrashReporterService extends IntentService {
         }
 
         if (fatal) {
-            Log.d(LOGTAG, "======> PARENT CRASH" + intent);
+            Log.d(LOGTAG, "======> PARENT CRASH " + intent);
             final int pid = Process.myPid();
             final ActivityManager activityManager = (ActivityManager) this.getSystemService(Context.ACTIVITY_SERVICE);
-            mHandler.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    boolean otherProcessesFound = false;
-                    for (final ActivityManager.RunningAppProcessInfo info : activityManager.getRunningAppProcesses()) {
-                        if (pid != info.pid) {
-                            otherProcessesFound = true;
-                        }
+            if (activityManager == null) {
+                return;
+            }
+            while (true) {
+                boolean otherProcessesFound = false;
+                for (final ActivityManager.RunningAppProcessInfo info : activityManager.getRunningAppProcesses()) {
+                    if (pid != info.pid) {
+                        otherProcessesFound = true;
                     }
-
-                    if (!otherProcessesFound) {
-                        intent.setClass(CrashReporterService.this, VRBrowserActivity.class);
-                        startActivity(intent);
-
-                    } else {
-                        mHandler.postDelayed(this, PID_CHECK_INTERVAL);
-                    }
+                    Log.e(LOGTAG, "Found PID " + info.pid);
                 }
-            }, PID_CHECK_INTERVAL);
+
+                if (!otherProcessesFound) {
+                    intent.setClass(CrashReporterService.this, VRBrowserActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(intent);
+                } else {
+                    SystemClock.sleep(PID_CHECK_INTERVAL);
+                }
+            }
 
         } else {
-            Log.d(LOGTAG, "======> CONTENT CRASH" + intent);
+            Log.d(LOGTAG, "======> CONTENT CRASH " + intent);
             Intent broadcastIntent = new Intent(CRASH_ACTION);
             broadcastIntent.putExtra(DATA_TAG, intent);
             sendBroadcast(broadcastIntent, getString(R.string.app_permission_name));

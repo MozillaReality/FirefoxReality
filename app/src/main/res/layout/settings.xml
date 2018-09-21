@@ -105,7 +105,7 @@
                             android:textOn=""
                             android:track="@drawable/switch_track"
                             android:thumb="@drawable/switch_thumb"
-                            android:enabled="false"/>
+                            android:enabled="true"/>
 
                     <TextView
                             android:id="@+id/crash_reporting_switch_text"
