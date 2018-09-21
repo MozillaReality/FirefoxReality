@@ -178,6 +178,7 @@ public class BrowserWidget extends View implements Widget, SessionStore.SessionC
     @Override
     public void releaseWidget() {
         SessionStore.get().removeSessionChangeListener(this);
+        SessionStore.get().removePromptListener(this);
         GeckoSession session = SessionStore.get().getSession(mSessionId);
         if (session == null) {
             return;
