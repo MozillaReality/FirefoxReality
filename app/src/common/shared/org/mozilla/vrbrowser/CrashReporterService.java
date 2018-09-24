@@ -52,6 +52,7 @@ public class CrashReporterService extends IntentService {
                 if (!otherProcessesFound) {
                     intent.setClass(CrashReporterService.this, VRBrowserActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     startActivity(intent);
+                    System.exit(0);
                 } else {
                     SystemClock.sleep(PID_CHECK_INTERVAL);
                 }

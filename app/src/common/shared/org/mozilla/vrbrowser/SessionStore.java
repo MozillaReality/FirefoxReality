@@ -140,10 +140,7 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
             // FIXME: Once GeckoView has a prefs API
             vrPrefsWorkAround(aContext, aExtras);
             GeckoRuntimeSettings.Builder runtimeSettingsBuilder = new GeckoRuntimeSettings.Builder();
-            // FIXME: Temporarily disabling crash handler for Oculus until https://github.com/MozillaReality/FirefoxReality/issues/564 gets fixed
-            if (!BuildConfig.FLAVOR.equals("oculusvr")) {
-                runtimeSettingsBuilder.crashHandler(CrashReporterService.class);
-            }
+            runtimeSettingsBuilder.crashHandler(CrashReporterService.class);
             runtimeSettingsBuilder.trackingProtectionCategories(GeckoSession.TrackingProtectionDelegate.CATEGORY_AD | GeckoSession.TrackingProtectionDelegate.CATEGORY_SOCIAL | GeckoSession.TrackingProtectionDelegate.CATEGORY_ANALYTIC);
             runtimeSettingsBuilder.consoleOutput(SettingsStore.getInstance(aContext).isConsoleLogsEnabled());
             runtimeSettingsBuilder.displayDensityOverride(SettingsStore.getInstance(aContext).getDisplayDensity());

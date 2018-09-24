@@ -103,9 +103,6 @@ public class SettingsWidget extends UIWidget {
 
         final TextView crashReportingSwitchText  = findViewById(R.id.crash_reporting_switch_text);
         Switch crashReportingSwitch  = findViewById(R.id.crash_reporting_switch);
-        if (BuildConfig.FLAVOR.equals("oculusvr")) {
-            crashReportingSwitch.setEnabled(false);
-        }
         crashReportingSwitch.setChecked(SettingsStore.getInstance(getContext()).isCrashReportingEnabled());
         crashReportingSwitchText.setText(crashReportingSwitch.isChecked() ? getContext().getString(R.string.on) : getContext().getString(R.string.off));
         crashReportingSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
