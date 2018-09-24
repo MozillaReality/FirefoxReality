@@ -36,7 +36,8 @@
         <service
             android:name=".CrashReporterService"
             android:exported="false"
-            android:process=":crash">
+            android:process=":crash"
+            android:permission="android.permission.BIND_JOB_SERVICE">
         </service>
     </application>
 </manifest>
