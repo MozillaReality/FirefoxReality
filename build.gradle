@@ -1,6 +1,11 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
 buildscript {
+    // Gecko pinned version
+    ext.geckoNightly = [
+            version: '64.0.20180914100149'
+    ]
+
     repositories {
         google()
         jcenter()
