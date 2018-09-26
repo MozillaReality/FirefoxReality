@@ -106,6 +106,7 @@ DeviceDelegateNoAPI::RegisterImmersiveDisplay(ImmersiveDisplayPtr aDisplay) {
   if (m.display) {
     m.display->SetDeviceName("NoAPI");
     m.UpdateDisplay();
+    m.display->CompleteEnumeration();
   }
 }
 
