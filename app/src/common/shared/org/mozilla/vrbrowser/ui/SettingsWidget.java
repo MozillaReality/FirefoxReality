@@ -18,6 +18,8 @@ import android.widget.CompoundButton;
 import android.widget.ImageButton;
 import android.widget.Switch;
 import android.widget.TextView;
+
+import org.mozilla.browser.BrowserSession;
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.*;
 import org.mozilla.vrbrowser.audio.AudioEngine;
@@ -213,7 +215,7 @@ public class SettingsWidget extends UIWidget {
     }
 
     private void onSettingsPrivacyClick() {
-        GeckoSession session = SessionStore.get().getCurrentSession();
+        BrowserSession session = SessionStore.get().getCurrentSession();
         if (session == null) {
             int sessionId = SessionStore.get().createSession();
             SessionStore.get().setCurrentSession(sessionId);
@@ -227,7 +229,7 @@ public class SettingsWidget extends UIWidget {
     private void onSettingsReportClick() {
         String url = SessionStore.get().getCurrentUri();
 
-        GeckoSession session = SessionStore.get().getCurrentSession();
+        BrowserSession session = SessionStore.get().getCurrentSession();
         if (session == null) {
             int sessionId = SessionStore.get().createSession();
             SessionStore.get().setCurrentSession(sessionId);

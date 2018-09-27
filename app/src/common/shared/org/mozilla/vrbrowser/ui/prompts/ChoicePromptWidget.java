@@ -12,6 +12,8 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.*;
+
+import org.mozilla.browser.BrowserSession;
 import org.mozilla.geckoview.GeckoResult;
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.geckoview.GeckoSession.PromptDelegate.Choice;
@@ -24,7 +26,7 @@ import org.mozilla.vrbrowser.ui.UIWidget;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class ChoicePromptWidget extends UIWidget implements GeckoSession.NavigationDelegate {
+public class ChoicePromptWidget extends UIWidget implements BrowserSession.NavigationDelegate {
 
     private static final int DIALOG_CLOSE_DELAY = 250;
 
@@ -397,25 +399,25 @@ public class ChoicePromptWidget extends UIWidget implements GeckoSession.Navigat
     // NavigationDelegate
 
     @Override
-    public void onLocationChange(GeckoSession session, String url) {
+    public void onLocationChange(BrowserSession session, String url) {
         if (mPromptDelegate != null) {
             mPromptDelegate.onDismissed(getDefaultChoices(mListItems));
         }
     }
 
     @Override
-    public void onCanGoBack(GeckoSession session, boolean canGoBack) {
+    public void onCanGoBack(BrowserSession session, boolean canGoBack) {
 
     }
 
     @Override
-    public void onCanGoForward(GeckoSession session, boolean canGoForward) {
+    public void onCanGoForward(BrowserSession session, boolean canGoForward) {
 
     }
 
     @Nullable
     @Override
-    public GeckoResult<Boolean> onLoadRequest(@NonNull GeckoSession session, @NonNull String uri, int target, int flags) {
+    public GeckoResult<Boolean> onLoadRequest(@NonNull BrowserSession session, @NonNull String uri, int target, int flags) {
         if (mPromptDelegate != null) {
             mPromptDelegate.onDismissed(getDefaultChoices(mListItems));
         }
@@ -424,7 +426,7 @@ public class ChoicePromptWidget extends UIWidget implements GeckoSession.Navigat
 
     @Nullable
     @Override
-    public GeckoResult<GeckoSession> onNewSession(@NonNull GeckoSession session, @NonNull String uri) {
+    public GeckoResult<GeckoSession> onNewSession(@NonNull BrowserSession session, @NonNull String uri) {
         if (mPromptDelegate != null) {
             mPromptDelegate.onDismissed(getDefaultChoices(mListItems));
         }
@@ -433,7 +435,7 @@ public class ChoicePromptWidget extends UIWidget implements GeckoSession.Navigat
     }
 
     @Override
-    public GeckoResult<String> onLoadError(GeckoSession session, String uri, int category, int error) {
+    public GeckoResult<String> onLoadError(BrowserSession session, String uri, int category, int error) {
         return null;
     }
 

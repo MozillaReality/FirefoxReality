@@ -15,7 +15,9 @@ import android.view.Surface;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
-import org.mozilla.geckoview.GeckoDisplay;
+
+import org.mozilla.browser.BrowserDisplay;
+import org.mozilla.browser.BrowserSession;
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.geckoview.GeckoSessionSettings;
 import org.mozilla.vrbrowser.*;
@@ -27,7 +29,7 @@ public class BrowserWidget extends View implements Widget, SessionStore.SessionC
     private static final String LOGTAG = "VRB";
 
     private int mSessionId;
-    private GeckoDisplay mDisplay;
+    private BrowserDisplay mDisplay;
     private Surface mSurface;
     private SurfaceTexture mSurfaceTexture;
     private int mWidth;
@@ -44,9 +46,9 @@ public class BrowserWidget extends View implements Widget, SessionStore.SessionC
         SessionStore.get().addSessionChangeListener(this);
         SessionStore.get().addPromptListener(this);
         setFocusableInTouchMode(true);
-        GeckoSession session = SessionStore.get().getSession(mSessionId);
-        if (session != null) {
-            session.getTextInput().setView(this);
+        BrowserSession session = SessionStore.get().getSession(mSessionId);
+        if (session != null && session.isGecko()) {
+            session.gecko().getTextInput().setView(this);
         }
         mHandle = ((WidgetManagerDelegate)aContext).newWidgetHandle();
         mWidgetPlacement = new WidgetPlacement(aContext);
@@ -102,7 +104,7 @@ public class BrowserWidget extends View implements Widget, SessionStore.SessionC
 
     @Override
     public void setSurfaceTexture(SurfaceTexture aTexture, final int aWidth, final int aHeight) {
-        GeckoSession session = SessionStore.get().getSession(mSessionId);
+        BrowserSession session = SessionStore.get().getSession(mSessionId);
         if (session == null) {
             return;
         }
@@ -114,7 +116,7 @@ public class BrowserWidget extends View implements Widget, SessionStore.SessionC
         if (mDisplay == null) {
             mDisplay = session.acquireDisplay();
         } else {
-            Log.e(LOGTAG, "GeckoDisplay was not null in BrowserWidget.setSurfaceTexture()");
+            Log.e(LOGTAG, "BrowserDisplay was not null in BrowserWidget.setSurfaceTexture()");
         }
         mDisplay.surfaceChanged(mSurface, aWidth, aHeight);
     }
@@ -142,20 +144,30 @@ public class BrowserWidget extends View implements Widget, SessionStore.SessionC
         if (aEvent.getActionMasked() == MotionEvent.ACTION_DOWN) {
             requestFocus();
         }
-        GeckoSession session = SessionStore.get().getSession(mSessionId);
+        BrowserSession session = SessionStore.get().getSession(mSessionId);
         if (session == null) {
             return;
         }
-        session.getPanZoomController().onTouchEvent(aEvent);
+
+        if (session.isGecko()) {
+            session.gecko().getPanZoomController().onTouchEvent(aEvent);
+        } else {
+            // FIXME
+        }
     }
 
     @Override
     public void handleHoverEvent(MotionEvent aEvent) {
-        GeckoSession session = SessionStore.get().getSession(mSessionId);
+        BrowserSession session = SessionStore.get().getSession(mSessionId);
         if (session == null) {
             return;
         }
-        session.getPanZoomController().onMotionEvent(aEvent);
+
+        if (session.isGecko()) {
+            session.gecko().getPanZoomController().onMotionEvent(aEvent);
+        } else {
+            // FIXME
+        }
     }
 
     @Override
@@ -178,7 +190,7 @@ public class BrowserWidget extends View implements Widget, SessionStore.SessionC
     @Override
     public void releaseWidget() {
         SessionStore.get().removeSessionChangeListener(this);
-        GeckoSession session = SessionStore.get().getSession(mSessionId);
+        BrowserSession session = SessionStore.get().getSession(mSessionId);
         if (session == null) {
             return;
         }
@@ -187,7 +199,10 @@ public class BrowserWidget extends View implements Widget, SessionStore.SessionC
             session.releaseDisplay(mDisplay);
             mDisplay = null;
         }
-        session.getTextInput().setView(null);
+
+        if (session.isGecko()) {
+            session.gecko().getTextInput().setView(null);
+        }
     }
 
 
@@ -203,27 +218,29 @@ public class BrowserWidget extends View implements Widget, SessionStore.SessionC
 
     // SessionStore.GeckoSessionChange
     @Override
-    public void onNewSession(GeckoSession aSession, int aId) {
+    public void onNewSession(BrowserSession aSession, int aId) {
 
     }
 
     @Override
-    public void onRemoveSession(GeckoSession aSession, int aId) {
+    public void onRemoveSession(BrowserSession aSession, int aId) {
 
     }
 
     @Override
-    public void onCurrentSessionChange(GeckoSession aSession, int aId) {
+    public void onCurrentSessionChange(BrowserSession aSession, int aId) {
         Log.d(LOGTAG, "onCurrentSessionChange: " + this.toString());
         if (mSessionId == aId) {
             Log.d(LOGTAG, "BrowserWidget.onCurrentSessionChange session id same, bail: " + aId);
             return;
         }
 
-        GeckoSession oldSession = SessionStore.get().getSession(mSessionId);
+        BrowserSession oldSession = SessionStore.get().getSession(mSessionId);
         if (oldSession != null && mDisplay != null) {
             Log.d(LOGTAG, "Detach from previous session: " + mSessionId);
-            oldSession.getTextInput().setView(null);
+            if (oldSession.isGecko()) {
+                oldSession.gecko().getTextInput().setView(null);
+            }
             mDisplay.surfaceDestroyed();
             oldSession.releaseDisplay(mDisplay);
             mDisplay = null;
@@ -233,7 +250,9 @@ public class BrowserWidget extends View implements Widget, SessionStore.SessionC
         mDisplay = aSession.acquireDisplay();
         Log.d(LOGTAG, "surfaceChanged: " + aId);
         mDisplay.surfaceChanged(mSurface, mWidth, mHeight);
-        aSession.getTextInput().setView(this);
+        if (aSession.isGecko()) {
+            aSession.gecko().getTextInput().setView(this);
+        }
 
         boolean isPrivateMode  = aSession.getSettings().getBoolean(GeckoSessionSettings.USE_PRIVATE_MODE);
         if (isPrivateMode)
@@ -246,11 +265,11 @@ public class BrowserWidget extends View implements Widget, SessionStore.SessionC
     @Override
     public InputConnection onCreateInputConnection(final EditorInfo outAttrs) {
         Log.d(LOGTAG, "BrowserWidget onCreateInputConnection");
-        GeckoSession session = SessionStore.get().getSession(mSessionId);
-        if (session == null) {
+        BrowserSession session = SessionStore.get().getSession(mSessionId);
+        if (session == null || !session.isGecko()) {
             return null;
         }
-        return session.getTextInput().onCreateInputConnection(outAttrs);
+        return session.gecko().getTextInput().onCreateInputConnection(outAttrs);
     }
 
     @Override
@@ -264,8 +283,12 @@ public class BrowserWidget extends View implements Widget, SessionStore.SessionC
         if (super.onKeyPreIme(aKeyCode, aEvent)) {
             return true;
         }
-        GeckoSession session = SessionStore.get().getSession(mSessionId);
-        return (session != null) && session.getTextInput().onKeyPreIme(aKeyCode, aEvent);
+        BrowserSession session = SessionStore.get().getSession(mSessionId);
+        if (session != null && session.isGecko()) {
+            return session.gecko().getTextInput().onKeyPreIme(aKeyCode, aEvent);
+        } else {
+            return false;
+        }
     }
 
     @Override
@@ -273,8 +296,12 @@ public class BrowserWidget extends View implements Widget, SessionStore.SessionC
         if (super.onKeyUp(aKeyCode, aEvent)) {
             return true;
         }
-        GeckoSession session = SessionStore.get().getSession(mSessionId);
-        return (session != null) && session.getTextInput().onKeyUp(aKeyCode, aEvent);
+        BrowserSession session = SessionStore.get().getSession(mSessionId);
+        if (session != null && session.isGecko()) {
+            return session.gecko().getTextInput().onKeyUp(aKeyCode, aEvent);
+        } else {
+            return false;
+        }
     }
 
     @Override
@@ -282,8 +309,12 @@ public class BrowserWidget extends View implements Widget, SessionStore.SessionC
         if (super.onKeyDown(aKeyCode, aEvent)) {
             return true;
         }
-        GeckoSession session = SessionStore.get().getSession(mSessionId);
-        return (session != null) && session.getTextInput().onKeyDown(aKeyCode, aEvent);
+        BrowserSession session = SessionStore.get().getSession(mSessionId);
+        if (session != null && session.isGecko()) {
+            return session.gecko().getTextInput().onKeyDown(aKeyCode, aEvent);
+        } else {
+            return false;
+        }
     }
 
     @Override
@@ -291,8 +322,12 @@ public class BrowserWidget extends View implements Widget, SessionStore.SessionC
         if (super.onKeyLongPress(aKeyCode, aEvent)) {
             return true;
         }
-        GeckoSession session = SessionStore.get().getSession(mSessionId);
-        return (session != null) && session.getTextInput().onKeyLongPress(aKeyCode, aEvent);
+        BrowserSession session = SessionStore.get().getSession(mSessionId);
+        if (session != null && session.isGecko()) {
+            return session.gecko().getTextInput().onKeyLongPress(aKeyCode, aEvent);
+        } else {
+            return false;
+        }
     }
 
     @Override
@@ -300,8 +335,12 @@ public class BrowserWidget extends View implements Widget, SessionStore.SessionC
         if (super.onKeyMultiple(aKeyCode, repeatCount, aEvent)) {
             return true;
         }
-        GeckoSession session = SessionStore.get().getSession(mSessionId);
-        return (session != null) && session.getTextInput().onKeyMultiple(aKeyCode, repeatCount, aEvent);
+        BrowserSession session = SessionStore.get().getSession(mSessionId);
+        if (session != null && session.isGecko()) {
+            return session.gecko().getTextInput().onKeyMultiple(aKeyCode, repeatCount, aEvent);
+        } else {
+            return false;
+        }
     }
     
     @Override
@@ -312,13 +351,13 @@ public class BrowserWidget extends View implements Widget, SessionStore.SessionC
 
     @Override
     public boolean onTouchEvent(MotionEvent aEvent) {
-        GeckoSession session = SessionStore.get().getSession(mSessionId);
+        BrowserSession session = SessionStore.get().getSession(mSessionId);
         return (session != null) && session.getPanZoomController().onTouchEvent(aEvent);
     }
 
     @Override
     public boolean onGenericMotionEvent(MotionEvent aEvent) {
-        GeckoSession session = SessionStore.get().getSession(mSessionId);
+        BrowserSession session = SessionStore.get().getSession(mSessionId);
         return (session != null) && session.getPanZoomController().onMotionEvent(aEvent);
     }
 

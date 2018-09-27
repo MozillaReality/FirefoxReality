@@ -8,6 +8,8 @@ package org.mozilla.vrbrowser.ui;
 import android.content.Context;
 import android.util.AttributeSet;
 import android.view.View;
+
+import org.mozilla.browser.BrowserSession;
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.geckoview.GeckoSessionSettings;
 import org.mozilla.vrbrowser.R;
@@ -113,17 +115,17 @@ public class TrayWidget extends UIWidget implements SessionStore.SessionChangeLi
     // SessionStore.SessionChangeListener
 
     @Override
-    public void onNewSession(GeckoSession aSession, int aId) {
+    public void onNewSession(BrowserSession aSession, int aId) {
 
     }
 
     @Override
-    public void onRemoveSession(GeckoSession aSession, int aId) {
+    public void onRemoveSession(BrowserSession aSession, int aId) {
 
     }
 
     @Override
-    public void onCurrentSessionChange(GeckoSession aSession, int aId) {
+    public void onCurrentSessionChange(BrowserSession aSession, int aId) {
         boolean isPrivateMode  = aSession.getSettings().getBoolean(GeckoSessionSettings.USE_PRIVATE_MODE);
 
         if (isPrivateMode != mIsLastSessionPrivate) {
@@ -177,7 +179,7 @@ public class TrayWidget extends UIWidget implements SessionStore.SessionChangeLi
     }
 
     private void onHelpButtonClicked() {
-        GeckoSession session = SessionStore.get().getCurrentSession();
+        BrowserSession session = SessionStore.get().getCurrentSession();
         if (session == null) {
             int sessionId = SessionStore.get().createSession();
             SessionStore.get().setCurrentSession(sessionId);

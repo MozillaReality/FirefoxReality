@@ -15,6 +15,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 
+import org.mozilla.browser.BrowserSession;
 import org.mozilla.geckoview.GeckoResult;
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.geckoview.GeckoSessionSettings;
@@ -24,8 +25,8 @@ import org.mozilla.vrbrowser.audio.AudioEngine;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class NavigationBarWidget extends UIWidget implements GeckoSession.NavigationDelegate,
-        GeckoSession.ProgressDelegate, GeckoSession.ContentDelegate,
+public class NavigationBarWidget extends UIWidget implements BrowserSession.NavigationDelegate,
+        BrowserSession.ProgressDelegate, BrowserSession.ContentDelegate,
         WidgetManagerDelegate.Listener, SessionStore.SessionChangeListener,
         NavigationURLBar.NavigationURLBarDelegate, VoiceSearchWidget.VoiceSearchDelegate,
         SharedPreferences.OnSharedPreferenceChangeListener {
@@ -379,12 +380,12 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
     }
 
     @Override
-    public GeckoResult<GeckoSession> onNewSession(@NonNull GeckoSession aSession, @NonNull String aUri) {
+    public GeckoResult<GeckoSession> onNewSession(@NonNull BrowserSession aSession, @NonNull String aUri) {
         return null;
     }
 
     @Override
-    public GeckoResult<String> onLoadError(GeckoSession session, String uri, int category, int error) {
+    public GeckoResult<String> onLoadError(BrowserSession session, String uri, int category, int error) {
         return null;
     }
 
@@ -394,7 +395,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
     }
 
     @Override
-    public void onLocationChange(GeckoSession session, String url) {
+    public void onLocationChange(BrowserSession session, String url) {
         if (mURLBar != null) {
             Log.d(LOGTAG, "Got location change");
             mURLBar.setURL(url);
@@ -403,7 +404,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
     }
 
     @Override
-    public void onCanGoBack(GeckoSession aSession, boolean canGoBack) {
+    public void onCanGoBack(BrowserSession aSession, boolean canGoBack) {
         if (mBackButton != null) {
             boolean enableBackButton = SessionStore.get().canUnstackSession() | canGoBack;
 
@@ -415,7 +416,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
     }
 
     @Override
-    public void onCanGoForward(GeckoSession aSession, boolean canGoForward) {
+    public void onCanGoForward(BrowserSession aSession, boolean canGoForward) {
         if (mForwardButton != null) {
             Log.d(LOGTAG, "Got onCanGoForward: " + (canGoForward ? "true" : "false"));
             mForwardButton.setEnabled(canGoForward);
@@ -425,7 +426,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
     }
 
     @Override
-    public GeckoResult<Boolean> onLoadRequest(GeckoSession aSession, String aUri, int target, int flags) {
+    public GeckoResult<Boolean> onLoadRequest(BrowserSession aSession, String aUri, int target, int flags) {
         if (mURLBar != null) {
             Log.d(LOGTAG, "Got onLoadUri");
             mURLBar.setURL(aUri);
@@ -435,7 +436,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
 
     // Progress Listener
     @Override
-    public void onPageStart(GeckoSession aSession, String aUri) {
+    public void onPageStart(BrowserSession aSession, String aUri) {
         if (mURLBar != null) {
             Log.d(LOGTAG, "Got onPageStart");
             mURLBar.setURL(aUri);
@@ -451,7 +452,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
     }
 
     @Override
-    public void onPageStop(GeckoSession aSession, boolean b) {
+    public void onPageStop(BrowserSession aSession, boolean b) {
         mIsLoading = false;
         mURLBar.setIsLoading(false);
         if (mReloadButton != null) {
@@ -463,12 +464,12 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
     }
 
     @Override
-    public void onProgressChange(GeckoSession session, int progress) {
+    public void onProgressChange(BrowserSession session, int progress) {
 
     }
 
     @Override
-    public void onSecurityChange(GeckoSession geckoSession, SecurityInformation securityInformation) {
+    public void onSecurityChange(BrowserSession geckoSession, GeckoSession.ProgressDelegate.SecurityInformation securityInformation) {
         if (mURLBar != null) {
             boolean isSecure = securityInformation.isSecure;
             mURLBar.setIsInsecure(!isSecure);
@@ -478,22 +479,22 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
     // Content delegate
 
     @Override
-    public void onTitleChange(GeckoSession session, String title) {
+    public void onTitleChange(BrowserSession session, String title) {
 
     }
 
     @Override
-    public void onFocusRequest(GeckoSession session) {
+    public void onFocusRequest(BrowserSession session) {
 
     }
 
     @Override
-    public void onCloseRequest(GeckoSession session) {
+    public void onCloseRequest(BrowserSession session) {
 
     }
 
     @Override
-    public void onFullScreen(GeckoSession session, boolean aFullScreen) {
+    public void onFullScreen(BrowserSession session, boolean aFullScreen) {
         if (aFullScreen) {
             if (!mIsInFocusMode) {
                 enterFocusMode();
@@ -508,17 +509,17 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
     }
 
     @Override
-    public void onContextMenu(GeckoSession session, int screenX, int screenY, String uri, int elementType, String elementSrc) {
+    public void onContextMenu(BrowserSession session, int screenX, int screenY, String uri, int elementType, String elementSrc) {
 
     }
 
     @Override
-    public void onExternalResponse(GeckoSession session, GeckoSession.WebResponseInfo response) {
+    public void onExternalResponse(BrowserSession session, GeckoSession.WebResponseInfo response) {
 
     }
 
     @Override
-    public void onCrash(GeckoSession session) {
+    public void onCrash(BrowserSession session) {
 
     }
 
@@ -543,17 +544,17 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
 
     // SessionStore.SessionChangeListener
     @Override
-    public void onNewSession(GeckoSession aSession, int aId) {
+    public void onNewSession(BrowserSession aSession, int aId) {
 
     }
 
     @Override
-    public void onRemoveSession(GeckoSession aSession, int aId) {
+    public void onRemoveSession(BrowserSession aSession, int aId) {
 
     }
 
     @Override
-    public void onCurrentSessionChange(GeckoSession aSession, int aId) {
+    public void onCurrentSessionChange(BrowserSession aSession, int aId) {
         boolean isPrivateMode  = aSession.getSettings().getBoolean(GeckoSessionSettings.USE_PRIVATE_MODE);
         mURLBar.setPrivateMode(isPrivateMode);
 
