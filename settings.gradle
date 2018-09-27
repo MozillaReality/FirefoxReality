@@ -1,4 +1,4 @@
-include ':app'
+include ':app', ':toto'
 
 def wavebuild = new File('third_party/wavesdk/build.gradle')
 
@@ -22,6 +22,11 @@ if (userPropertiesFile.exists()) {
         println("Using local build of geckoview")
         include ':geckoview-local'
         project(':geckoview-local').projectDir = new File('geckoview-local')
+    }
+    if (gradle.hasProperty('servoViewLocal')) {
+        println("Using local build of servoview")
+        include ':servoview-local'
+        project(':servoview-local').projectDir = new File('servoview-local')
     }
 } else {
     println("FILE DOESN'T EXIST")

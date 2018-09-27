@@ -33,6 +33,10 @@ android {
             }
         }
     }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
     buildTypes {
         release {
             minifyEnabled true
@@ -209,6 +213,12 @@ if (findProject(':geckoview-local')) {
     }
 }
 
+
+if (findProject(':servoview-local')) {
+    dependencies {
+        implementation project(':servoview-local')
+    }
+}
 
 // -------------------------------------------------------------------------------------------------
 //  Dynamically set versionCode (See tools/build/versionCode.gradle
