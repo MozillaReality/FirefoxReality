@@ -40,6 +40,7 @@ public class DeveloperOptionsWidget extends UIWidget {
     private Switch mConsoleLogsSwitch;
     private Switch mEnvOverrideSwitch;
     private Switch mMultiprocessSwitch;
+    private Switch mServoSwitch;
     private RadioGroup mUaModeRadio;
     private RadioButton mDesktopRadio;
     private RadioButton mRadioMobile;
@@ -76,6 +77,7 @@ public class DeveloperOptionsWidget extends UIWidget {
     private TextView mConsoleLogsSwitchText;
     private TextView mEnvOverrideSwitchText;
     private TextView mMultiprocessSwitchText;
+    private TextView mServoSwitchText;
     private int mRestartDialogHandle = -1;
 
     public DeveloperOptionsWidget(Context aContext) {
@@ -156,6 +158,12 @@ public class DeveloperOptionsWidget extends UIWidget {
         mMultiprocessSwitch.setOnCheckedChangeListener(mMultiprocessListener);
         mMultiprocessSwitch.setSoundEffectsEnabled(false);
         setMultiprocess(SettingsStore.getInstance(getContext()).isMultiprocessEnabled(), false);
+
+        mServoSwitchText = findViewById(R.id.developer_options_servo_switch_text);
+        mServoSwitch = findViewById(R.id.developer_options_servo_switch);
+        mServoSwitch.setOnCheckedChangeListener(mServoListener);
+        mServoSwitch.setSoundEffectsEnabled(false);
+        setServo(SettingsStore.getInstance(getContext()).isServoEnabled(), false);
 
         UaMode uaMode = UaMode.values()[SettingsStore.getInstance(getContext()).getUaMode()];
         mUaModeRadio = findViewById(R.id.radioUaMode);
@@ -373,6 +381,17 @@ public class DeveloperOptionsWidget extends UIWidget {
         }
     };
 
+    private CompoundButton.OnCheckedChangeListener mServoListener = new CompoundButton.OnCheckedChangeListener() {
+        @Override
+        public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+            if (mAudio != null) {
+                mAudio.playSound(AudioEngine.Sound.CLICK);
+            }
+
+            setServo(b, true);
+        }
+    };
+
     private RadioGroup.OnCheckedChangeListener mUaModeListener = new RadioGroup.OnCheckedChangeListener() {
         @Override
         public void onCheckedChanged(RadioGroup radioGroup, int checkedId) {
@@ -548,6 +567,7 @@ public class DeveloperOptionsWidget extends UIWidget {
             }
 
             setMultiprocess(SettingsStore.MULTIPROCESS_DEFAULT, true);
+            setServo(SettingsStore.SERVO_DEFAULT, true);
             setUaMode(SettingsStore.UA_MODE_DEFAULT, true);
             setInputMode(SettingsStore.INPUT_MODE_DEFAULT);
             restart = restart | setDisplayDensity(SettingsStore.DISPLAY_DENSITY_DEFAULT);
@@ -604,6 +624,19 @@ public class DeveloperOptionsWidget extends UIWidget {
 
         if (doApply) {
             SessionStore.get().setMultiprocess(value);
+        }
+    }
+
+    private void setServo(boolean value, boolean doApply) {
+        mServoSwitch.setOnCheckedChangeListener(null);
+        mServoSwitch.setChecked(value);
+        mServoSwitch.setOnCheckedChangeListener(mServoListener);
+        mServoSwitchText.setText(value ? getContext().getString(R.string.on) : getContext().getString(R.string.off));
+
+        SettingsStore.getInstance(getContext()).setServoEnabled(value);
+
+        if (doApply) {
+            SessionStore.get().setServo(value);
         }
     }
 

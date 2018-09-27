@@ -6,6 +6,8 @@
 package org.mozilla.vrbrowser.ui;
 
 import android.content.Context;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -25,7 +27,8 @@ import java.util.Arrays;
 public class NavigationBarWidget extends UIWidget implements GeckoSession.NavigationDelegate,
         GeckoSession.ProgressDelegate, GeckoSession.ContentDelegate,
         WidgetManagerDelegate.Listener, SessionStore.SessionChangeListener,
-        NavigationURLBar.NavigationURLBarDelegate, VoiceSearchWidget.VoiceSearchDelegate {
+        NavigationURLBar.NavigationURLBarDelegate, VoiceSearchWidget.VoiceSearchDelegate,
+        SharedPreferences.OnSharedPreferenceChangeListener {
 
     private static final String LOGTAG = "VRB";
 
@@ -34,6 +37,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
     private UIButton mForwardButton;
     private UIButton mReloadButton;
     private UIButton mHomeButton;
+    private UIButton mServoButton;
     private NavigationURLBar mURLBar;
     private ViewGroup mNavigationContainer;
     private ViewGroup mFocusModeContainer;
@@ -52,6 +56,8 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
     private ArrayList<CustomUIButton> mButtons;
     private int mURLBarLayoutIndex;
     private VoiceSearchWidget mVoiceSearchWidget;
+    private Context mAppContext;
+    private SharedPreferences mPrefs;
 
     public NavigationBarWidget(Context aContext) {
         super(aContext);
@@ -69,12 +75,14 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
     }
 
     private void initialize(Context aContext) {
+        mAppContext = aContext.getApplicationContext();
         inflate(aContext, R.layout.navigation_bar, this);
         mAudio = AudioEngine.fromContext(aContext);
         mBackButton = findViewById(R.id.backButton);
         mForwardButton = findViewById(R.id.forwardButton);
         mReloadButton = findViewById(R.id.reloadButton);
         mHomeButton = findViewById(R.id.homeButton);
+        mServoButton = findViewById(R.id.servoButton);
         mURLBar = findViewById(R.id.urlBar);
         mNavigationContainer = findViewById(R.id.navigationBarContainer);
         mFocusModeContainer = findViewById(R.id.focusModeContainer);
@@ -129,6 +137,16 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
             @Override
             public void onClick(View v) {
                 SessionStore.get().loadUri(SessionStore.get().getHomeUri());
+                if (mAudio != null) {
+                    mAudio.playSound(AudioEngine.Sound.CLICK);
+                }
+            }
+        });
+
+        mServoButton.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                SessionStore.get().reloadWithServo();
                 if (mAudio != null) {
                     mAudio.playSound(AudioEngine.Sound.CLICK);
                 }
@@ -205,7 +223,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         mButtons = new ArrayList<>();
         mButtons.addAll(Arrays.<CustomUIButton>asList(
                 mBackButton, mForwardButton, mReloadButton, mHomeButton, mResizeEnterButton, mResizeExitButton,
-                mPreset0, mPreset1, mPreset2, mPreset3));
+                mServoButton, mPreset0, mPreset1, mPreset2, mPreset3));
 
         mURLBar.setDelegate(this);
 
@@ -218,11 +236,16 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         mVoiceSearchWidget.setDelegate(this);
 
         SessionStore.get().addSessionChangeListener(this);
+
+        mPrefs = PreferenceManager.getDefaultSharedPreferences(mAppContext);
+        mPrefs.registerOnSharedPreferenceChangeListener(this);
+        updateServoButton();
     }
 
     @Override
     public void releaseWidget() {
         mWidgetManager.removeListener(this);
+        mPrefs.unregisterOnSharedPreferenceChangeListener(this);
         SessionStore.get().removeNavigationListener(this);
         SessionStore.get().removeProgressListener(this);
         SessionStore.get().removeContentListener(this);
@@ -345,6 +368,14 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
 
     public void showVoiceSearch() {
         mURLBar.showVoiceSearch(true);
+    }
+
+    public void updateServoButton() {
+        if (SettingsStore.getInstance(mAppContext).isServoEnabled()) {
+            mServoButton.setVisibility(View.VISIBLE);
+        } else {
+            mServoButton.setVisibility(View.GONE);
+        }
     }
 
     @Override
@@ -551,5 +582,12 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
     @Override
     public void OnVoiceSearchError() {
         // Nothing to do yet
+    }
+
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+        if (key == mAppContext.getString(R.string.settings_key_servo)) {
+            updateServoButton();
+        }
     }
 }

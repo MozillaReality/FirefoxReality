@@ -35,6 +35,7 @@ public class SettingsStore {
     public final static boolean CONSOLE_LOGS_DEFAULT = false;
     public final static boolean ENV_OVERRIDE_DEFAULT = false;
     public final static boolean MULTIPROCESS_DEFAULT = false;
+    public final static boolean SERVO_DEFAULT = false;
     public final static DeveloperOptionsWidget.UaMode UA_MODE_DEFAULT = DeveloperOptionsWidget.UaMode.MOBILE;
     public final static DeveloperOptionsWidget.InputMode INPUT_MODE_DEFAULT = DeveloperOptionsWidget.InputMode.TOUCH;
     public final static float DISPLAY_DENSITY_DEFAULT = 1.0f;
@@ -144,6 +145,17 @@ public class SettingsStore {
     public void setMultiprocessEnabled(boolean isEnabled) {
         SharedPreferences.Editor editor = mPrefs.edit();
         editor.putBoolean(mContext.getString(R.string.settings_key_multiprocess), isEnabled);
+        editor.commit();
+    }
+
+    public boolean isServoEnabled() {
+        return mPrefs.getBoolean(
+                mContext.getString(R.string.settings_key_servo), SERVO_DEFAULT);
+    }
+
+    public void setServoEnabled(boolean isEnabled) {
+        SharedPreferences.Editor editor = mPrefs.edit();
+        editor.putBoolean(mContext.getString(R.string.settings_key_servo), isEnabled);
         editor.commit();
     }
 
