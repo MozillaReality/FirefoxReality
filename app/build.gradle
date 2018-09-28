@@ -31,6 +31,7 @@ android {
     }
     if (gradle.hasProperty('taskclusterBuild')) {
         project.archivesBaseName = "FirefoxReality-$defaultConfig.versionName-$generatedVersionCode"
+        defaultConfig.versionCode = generatedVersionCode
     } else {
         project.archivesBaseName = "FirefoxReality"
     }
@@ -252,6 +253,7 @@ if (findProject(':geckoview-local')) {
 // -------------------------------------------------------------------------------------------------
 
 android.applicationVariants.all { variant ->
+    def buildType = variant.buildType.name
     if (gradle.hasProperty('taskclusterBuild')) {
         def versionCode = generatedVersionCode
 
@@ -272,9 +274,9 @@ android.applicationVariants.all { variant ->
         } else if (variant.flavorName.contains("Arm")) {
             versionCode = versionCode + (1 * multiplier)
         }
-        variant.mergedFlavor.versionCode = versionCode
-        variant.outputs.all { output ->
-            output.setVersionCodeOverride(versionCode)
+
+        variant.outputs.each { output ->
+            output.versionCodeOverride = versionCode
         }
     }
 
