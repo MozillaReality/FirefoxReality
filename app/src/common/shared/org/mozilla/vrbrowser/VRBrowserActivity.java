@@ -95,7 +95,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        if (BuildConfig.FLAVOR == "oculusvr") {
+        if (BuildConfig.FLAVOR_platform == "oculusvr") {
             workaroundGeckoSigAction();
         }
         mUiThread = Thread.currentThread();

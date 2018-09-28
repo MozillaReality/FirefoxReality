@@ -1106,4 +1106,8 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
         }
     }
 
+    @Override
+    public GeckoResult<Boolean> onPopupRequest(final GeckoSession session, final String targetUri) {
+        return GeckoResult.fromValue(false);
+    }
 }
