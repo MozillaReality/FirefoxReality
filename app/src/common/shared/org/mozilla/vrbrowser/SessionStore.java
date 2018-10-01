@@ -319,6 +319,9 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
             session.setNavigationDelegate(null);
             session.setProgressDelegate(null);
             session.getTextInput().setDelegate(null);
+            session.setPromptDelegate(null);
+            session.setPermissionDelegate(null);
+            session.setTrackingProtectionDelegate(null);
             mSessions.remove(aSessionId);
             for (SessionChangeListener listener: mSessionChangeListeners) {
                 listener.onRemoveSession(session, aSessionId);
