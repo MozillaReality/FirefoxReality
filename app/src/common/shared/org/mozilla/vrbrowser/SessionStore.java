@@ -322,6 +322,7 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
             session.setPromptDelegate(null);
             session.setPermissionDelegate(null);
             session.setTrackingProtectionDelegate(null);
+            session.close();
             mSessions.remove(aSessionId);
             for (SessionChangeListener listener: mSessionChangeListeners) {
                 listener.onRemoveSession(session, aSessionId);
@@ -942,10 +943,11 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
     @Override
     public void onCrash(GeckoSession session) {
         Log.e(LOGTAG,"Child crashed. Creating new session");
-        removeSession(SessionStore.get().getCurrentSessionId());
-        int id = createSession();
-        setCurrentSession(id);
+        int crashedSessionId = SessionStore.get().getCurrentSessionId();
+        int newSessionId = createSession();
+        setCurrentSession(newSessionId);
         loadUri(getHomeUri());
+        removeSession(crashedSessionId);
     }
 
     // TextInput Delegate
