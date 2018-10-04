@@ -87,8 +87,9 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     TopBarWidget mTopBar;
     TrayWidget mTray;
     PermissionDelegate mPermissionDelegate;
-    LinkedList<WidgetManagerDelegate.Listener> mWidgetEventListeners;
-    LinkedList<WidgetManagerDelegate.PermissionListener> mPermissionListeners;
+    LinkedList<UpdateListener> mWidgetUpdateListeners;
+    LinkedList<PermissionListener> mPermissionListeners;
+    LinkedList<FocusChangeListener> mFocusChangeListeners;
     LinkedList<Runnable> mBackHandlers;
     private boolean mIsPresentingImmersive = false;
     private Thread mUiThread;
@@ -114,8 +115,9 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         mLastGesture = NoGesture;
         super.onCreate(savedInstanceState);
 
-        mWidgetEventListeners = new LinkedList<>();
+        mWidgetUpdateListeners = new LinkedList<>();
         mPermissionListeners = new LinkedList<>();
+        mFocusChangeListeners = new LinkedList<>();
         mBackHandlers = new LinkedList<>();
 
         mWidgets = new HashMap<>();
@@ -123,8 +125,9 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         mWidgetContainer.getViewTreeObserver().addOnGlobalFocusChangeListener(new ViewTreeObserver.OnGlobalFocusChangeListener() {
             @Override
             public void onGlobalFocusChanged(View oldFocus, View newFocus) {
-                if (mKeyboard != null) {
-                    mKeyboard.updateFocusedView(newFocus);
+                Log.d(LOGTAG, "======> OnGlobalFocusChangeListener: old(" + oldFocus + ") new(" + newFocus + ")");
+                for (FocusChangeListener listener: mFocusChangeListeners) {
+                    listener.onGlobalFocusChanged(oldFocus, newFocus);
                 }
             }
         });
@@ -685,7 +688,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
             view.setVisibility(visible ? View.VISIBLE : View.GONE);
         }
 
-        for (WidgetManagerDelegate.Listener listener: mWidgetEventListeners) {
+        for (UpdateListener listener: mWidgetUpdateListeners) {
             listener.onWidgetUpdate(aWidget);
         }
 
@@ -725,15 +728,15 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     }
 
     @Override
-    public void addListener(WidgetManagerDelegate.Listener aListener) {
-        if (!mWidgetEventListeners.contains(aListener)) {
-            mWidgetEventListeners.add(aListener);
+    public void addUpdateListener(UpdateListener aUpdateListener) {
+        if (!mWidgetUpdateListeners.contains(aUpdateListener)) {
+            mWidgetUpdateListeners.add(aUpdateListener);
         }
     }
 
     @Override
-    public void removeListener(WidgetManagerDelegate.Listener aListener) {
-        mWidgetEventListeners.remove(aListener);
+    public void removeUpdateListener(UpdateListener aUpdateListener) {
+        mWidgetUpdateListeners.remove(aUpdateListener);
     }
 
     @Override
@@ -746,6 +749,18 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     @Override
     public void removePermissionListener(PermissionListener aListener) {
         mPermissionListeners.remove(aListener);
+    }
+
+    @Override
+    public void addFocusChangeListener(FocusChangeListener aListener) {
+        if (!mFocusChangeListeners.contains(aListener)) {
+            mFocusChangeListeners.add(aListener);
+        }
+    }
+
+    @Override
+    public void removeFocusChangeListener(FocusChangeListener aListener) {
+        mFocusChangeListeners.remove(aListener);
     }
 
     @Override
