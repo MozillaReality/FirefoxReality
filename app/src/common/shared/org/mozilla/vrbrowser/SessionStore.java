@@ -7,6 +7,7 @@ package org.mozilla.vrbrowser;
 
 import android.content.Context;
 import android.graphics.Rect;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -80,7 +81,7 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
     private HashMap<Integer, State> mSessions;
     private Deque<Integer> mSessionsStack;
     private Deque<Integer> mPrivateSessionsStack;
-    private GeckoSession.PermissionDelegate mPermissionDelegate;
+    private PermissionDelegate mPermissionDelegate;
     private int mPreviousSessionId = SessionStore.NO_SESSION_ID;
     private String mRegion;
     private Context mContext;
@@ -515,7 +516,34 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
         if (mCurrentSession == null) {
             return;
         }
-        mCurrentSession.reload();
+
+        String aUri = getCurrentUri();
+        final Uri uri = Uri.parse(aUri);
+        if (uri.getScheme().equals("file")) {
+            if (!mPermissionDelegate.isPermissionGranted(android.Manifest.permission.READ_EXTERNAL_STORAGE)) {
+                mPermissionDelegate.onAppPermissionRequest(
+                        getCurrentSession(),
+                        aUri,
+                        android.Manifest.permission.READ_EXTERNAL_STORAGE,
+                        new GeckoSession.PermissionDelegate.Callback() {
+                            @Override
+                            public void grant() {
+                                mCurrentSession.reload();
+                            }
+
+                            @Override
+                            public void reject() {
+                                mCurrentSession.reload();
+                            }
+                        });
+
+            } else {
+                mCurrentSession.reload();
+            }
+
+        } else {
+            mCurrentSession.reload();
+        }
     }
 
     public void stop() {
@@ -534,7 +562,33 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
             aUri = getHomeUri();
         }
         Log.d(LOGTAG, "Loading URI: " + aUri);
-        mCurrentSession.loadUri(aUri);
+
+        final Uri uri = Uri.parse(aUri);
+        if (uri.getScheme().equals("file")) {
+            if (!mPermissionDelegate.isPermissionGranted(android.Manifest.permission.READ_EXTERNAL_STORAGE)) {
+                mPermissionDelegate.onAppPermissionRequest(
+                        getCurrentSession(),
+                        aUri,
+                        android.Manifest.permission.READ_EXTERNAL_STORAGE,
+                        new GeckoSession.PermissionDelegate.Callback() {
+                            @Override
+                            public void grant() {
+                                mCurrentSession.loadUri(uri.toString());
+                            }
+
+                            @Override
+                            public void reject() {
+                                mCurrentSession.loadUri(uri.toString());
+                            }
+                        });
+
+            } else {
+                mCurrentSession.loadUri(aUri);
+            }
+
+        } else {
+            mCurrentSession.loadUri(aUri);
+        }
     }
 
     public boolean isInFullScreen() {
@@ -568,7 +622,7 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
         return mCurrentSession.hashCode();
     }
 
-    public void setPermissionDelegate(GeckoSession.PermissionDelegate aDelegate) {
+    public void setPermissionDelegate(PermissionDelegate aDelegate) {
         mPermissionDelegate = aDelegate;
         for (HashMap.Entry<Integer, State> entry : mSessions.entrySet()) {
             entry.getValue().mSession.setPermissionDelegate(aDelegate);
