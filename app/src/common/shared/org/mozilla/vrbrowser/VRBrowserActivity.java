@@ -22,6 +22,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.widget.FrameLayout;
+
 import org.mozilla.gecko.GeckoVRManager;
 import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.geckoview.CrashReporter;
@@ -30,7 +31,13 @@ import org.mozilla.vrbrowser.audio.AudioEngine;
 import org.mozilla.vrbrowser.audio.VRAudioTheme;
 import org.mozilla.vrbrowser.search.SearchEngine;
 import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
-import org.mozilla.vrbrowser.ui.*;
+import org.mozilla.vrbrowser.ui.BrowserWidget;
+import org.mozilla.vrbrowser.ui.CrashDialogWidget;
+import org.mozilla.vrbrowser.ui.KeyboardWidget;
+import org.mozilla.vrbrowser.ui.NavigationBarWidget;
+import org.mozilla.vrbrowser.ui.OffscreenDisplay;
+import org.mozilla.vrbrowser.ui.TopBarWidget;
+import org.mozilla.vrbrowser.ui.TrayWidget;
 
 import java.io.IOException;
 import java.net.URISyntaxException;

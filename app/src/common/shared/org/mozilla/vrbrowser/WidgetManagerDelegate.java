@@ -1,7 +1,5 @@
 package org.mozilla.vrbrowser;
 
-import android.support.annotation.Nullable;
-
 public interface WidgetManagerDelegate {
     interface Listener {
         void onWidgetUpdate(Widget aWidget);

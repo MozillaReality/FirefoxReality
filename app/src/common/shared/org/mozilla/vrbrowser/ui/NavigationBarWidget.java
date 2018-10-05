@@ -6,6 +6,7 @@
 package org.mozilla.vrbrowser.ui;
 
 import android.content.Context;
+import android.net.Uri;
 import android.support.annotation.NonNull;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -399,7 +400,8 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
             Log.d(LOGTAG, "Got onLoadUri");
             mURLBar.setURL(aUri);
         }
-        return null;
+
+        return GeckoResult.fromValue(true);
     }
 
     // Progress Listener
