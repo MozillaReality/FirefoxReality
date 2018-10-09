@@ -19,6 +19,7 @@ import android.os.Looper;
 import android.support.annotation.Keep;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.widget.FrameLayout;
@@ -81,6 +82,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     Handler mHandler = new Handler();
     Runnable mAudioUpdateRunnable;
     BrowserWidget mBrowserWidget;
+    RootWidget mRootWidget;
     KeyboardWidget mKeyboard;
     NavigationBarWidget mNavigationBar;
     CrashDialogWidget mCrashDialog;
@@ -190,10 +192,13 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         mTopBar = new TopBarWidget(this);
         mTopBar.setBrowserWidget(mBrowserWidget);
 
+        // Empty widget just for handling focus on empty space
+        mRootWidget = new RootWidget(this);
+
         // Create Tray
         mTray = new TrayWidget(this);
 
-        addWidgets(Arrays.<Widget>asList(mBrowserWidget, mNavigationBar, mKeyboard, mTray));
+        addWidgets(Arrays.<Widget>asList(mRootWidget, mBrowserWidget, mNavigationBar, mKeyboard, mTray));
     }
 
     @Override
@@ -422,11 +427,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
             public void run() {
                 Widget widget = mWidgets.get(aHandle);
                 if (widget == null) {
-                    if (aPressed) {
-                        for (FocusChangeListener listener: mFocusChangeListeners) {
-                            listener.onGlobalFocusChanged(null, null);
-                        }
-                    }
+                    MotionEventGenerator.dispatch(mRootWidget, aDevice, aPressed, aX, aY);
 
                 } else {
                     MotionEventGenerator.dispatch(widget, aDevice, aPressed, aX, aY);
