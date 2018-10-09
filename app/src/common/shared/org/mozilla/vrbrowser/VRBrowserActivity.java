@@ -422,8 +422,10 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
             public void run() {
                 Widget widget = mWidgets.get(aHandle);
                 if (widget == null) {
-                    for (FocusChangeListener listener: mFocusChangeListeners) {
-                        listener.onGlobalFocusChanged(null, null);
+                    if (aPressed) {
+                        for (FocusChangeListener listener: mFocusChangeListeners) {
+                            listener.onGlobalFocusChanged(null, null);
+                        }
                     }
 
                 } else {
