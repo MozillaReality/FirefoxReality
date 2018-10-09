@@ -421,7 +421,14 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
             @Override
             public void run() {
                 Widget widget = mWidgets.get(aHandle);
-                MotionEventGenerator.dispatch(widget, aDevice, aPressed, aX, aY);
+                if (widget == null) {
+                    for (FocusChangeListener listener: mFocusChangeListeners) {
+                        listener.onGlobalFocusChanged(null, null);
+                    }
+
+                } else {
+                    MotionEventGenerator.dispatch(widget, aDevice, aPressed, aX, aY);
+                }
             }
         });
     }
