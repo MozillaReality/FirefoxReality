@@ -29,6 +29,7 @@
     <string name="position_tag" translatable="false">position</string>
     <string name="crash_dialog_learn_more_url" translatable="false">https://support.mozilla.org/kb/crash-reporting-firefox-reality</string>
     <string name="app_permission_name">org.mozilla.vrbrowser.CRASH_RECEIVER_PERMISSION</string>
+    <string name="developer_options_by">x</string>
 
     <!-- SEARCH ENGINES -->
     <string name="geolocation_api_url" translatable="false">https://location.services.mozilla.com/v1/country</string>

@@ -35,7 +35,6 @@
     <string name="developer_options_events">Input Events</string>
     <string name="developer_options_display_density">Display Density:</string>
     <string name="developer_options_window_size">Window Size:</string>
-    <string name="developer_options_by">By</string>
     <string name="developer_options_mouse">Mouse</string>
     <string name="developer_options_touch">Touch</string>
     <string name="developer_options_edit">Edit</string>
@@ -52,9 +51,9 @@
     <string name="developer_options_reset">Reset Developer Settings</string>
     <string name="developer_options_reset_button">Reset</string>
     <string name="developer_options_environments">Environment</string>
-    <string name="developer_options_env_meadow">meadow</string>
-    <string name="developer_options_env_cave">cave</string>
-    <string name="developer_options_env_void">void</string>
+    <string name="developer_options_env_meadow">Meadow</string>
+    <string name="developer_options_env_cave">Cave</string>
+    <string name="developer_options_env_void">Void</string>
     <string name="developer_options_pointer_color">Pointer Color</string>
     <string name="developer_options_pointer_white">White</string>
     <string name="developer_options_pointer_purple">Purple</string>

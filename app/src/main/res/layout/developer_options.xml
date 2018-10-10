@@ -65,7 +65,7 @@
                     android:layout_height="60dp"
                     app:description="@string/developer_options_environments"
                     app:options="@array/developer_options_environments"
-                    app:values="@array/developer_options_environments"/>
+                    app:values="@array/developer_options_environments_values"/>
 
                 <org.mozilla.vrbrowser.ui.settings.RadioGroupSetting
                     android:id="@+id/pointer_radio"
