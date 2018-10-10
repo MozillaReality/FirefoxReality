@@ -52,7 +52,7 @@ public class TrayWidget extends UIWidget implements SessionStore.SessionChangeLi
         mHelpButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
-                requestFocusFromTouch();
+                mHelpButton.requestFocusFromTouch();
                 if (mAudio != null) {
                     mAudio.playSound(AudioEngine.Sound.CLICK);
                 }
@@ -65,7 +65,7 @@ public class TrayWidget extends UIWidget implements SessionStore.SessionChangeLi
         mPrivateButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
-                requestFocusFromTouch();
+                mPrivateButton.requestFocusFromTouch();
                 if (mAudio != null) {
                     mAudio.playSound(AudioEngine.Sound.CLICK);
                 }
@@ -79,7 +79,7 @@ public class TrayWidget extends UIWidget implements SessionStore.SessionChangeLi
             @Override
             public void onClick(View view) {
                 if (!isChildVisible(mSettingsDialogHandle))
-                    requestFocusFromTouch();
+                    mSettingsButton.requestFocusFromTouch();
 
                 if (mAudio != null) {
                     mAudio.playSound(AudioEngine.Sound.CLICK);
