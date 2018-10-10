@@ -90,7 +90,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         mBackButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                mBackButton.requestFocusFromTouch();
+                v.requestFocusFromTouch();
                 if (SessionStore.get().canGoBack())
                     SessionStore.get().goBack();
                 else if (SessionStore.get().canUnstackSession())
@@ -105,7 +105,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         mForwardButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                mForwardButton.requestFocusFromTouch();
+                v.requestFocusFromTouch();
                 SessionStore.get().goForward();
                 if (mAudio != null) {
                     mAudio.playSound(AudioEngine.Sound.CLICK);
@@ -116,7 +116,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         mReloadButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                mReloadButton.requestFocusFromTouch();
+                v.requestFocusFromTouch();
                 if (mIsLoading) {
                     SessionStore.get().stop();
                 } else {
@@ -131,7 +131,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         mHomeButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                mHomeButton.requestFocusFromTouch();
+                v.requestFocusFromTouch();
                 SessionStore.get().loadUri(SessionStore.get().getHomeUri());
                 if (mAudio != null) {
                     mAudio.playSound(AudioEngine.Sound.CLICK);
@@ -149,7 +149,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         mResizeEnterButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
-                mResizeEnterButton.requestFocusFromTouch();
+                view.requestFocusFromTouch();
                 enterResizeMode();
                 if (mAudio != null) {
                     mAudio.playSound(AudioEngine.Sound.CLICK);
@@ -160,7 +160,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         mResizeExitButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
-                mResizeExitButton.requestFocusFromTouch();
+                view.requestFocusFromTouch();
                 exitResizeMode(true);
                 if (mAudio != null) {
                     mAudio.playSound(AudioEngine.Sound.CLICK);
@@ -171,7 +171,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         mPreset0.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
-                mPreset0.requestFocusFromTouch();
+                view.requestFocusFromTouch();
                 setResizePreset(0.5f);
                 if (mAudio != null) {
                     mAudio.playSound(AudioEngine.Sound.CLICK);
@@ -182,7 +182,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         mPreset1.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
-                mPreset1.requestFocusFromTouch();
+                view.requestFocusFromTouch();
                 setResizePreset(1.0f);
                 if (mAudio != null) {
                     mAudio.playSound(AudioEngine.Sound.CLICK);
@@ -193,7 +193,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         mPreset2.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
-                mPreset2.requestFocusFromTouch();
+                view.requestFocusFromTouch();
                 setResizePreset(2.0f);
                 if (mAudio != null) {
                     mAudio.playSound(AudioEngine.Sound.CLICK);
@@ -204,7 +204,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         mPreset3.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
-                mPreset3.requestFocusFromTouch();
+                view.requestFocusFromTouch();
                 setResizePreset(3.0f);
                 if (mAudio != null) {
                     mAudio.playSound(AudioEngine.Sound.CLICK);

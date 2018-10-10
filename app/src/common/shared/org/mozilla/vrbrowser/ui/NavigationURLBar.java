@@ -85,7 +85,7 @@ public class NavigationURLBar extends FrameLayout {
         mURL.setOnTouchListener(new OnTouchListener() {
             @Override
             public boolean onTouch(View view, MotionEvent motionEvent) {
-                mURL.requestFocusFromTouch();
+                view.requestFocusFromTouch();
                 if (gd.onTouchEvent(motionEvent)) {
                     return true;
                 }
@@ -262,7 +262,7 @@ public class NavigationURLBar extends FrameLayout {
     private OnClickListener mMicrophoneListener = new OnClickListener() {
         @Override
         public void onClick(View view) {
-            mMicrophoneButton.requestFocusFromTouch();
+            view.requestFocusFromTouch();
             if (mDelegate != null)
                 mDelegate.OnVoiceSearchClicked();
 
@@ -273,7 +273,7 @@ public class NavigationURLBar extends FrameLayout {
     private OnClickListener mClearListener = new OnClickListener() {
         @Override
         public void onClick(View view) {
-            mMicrophoneButton.requestFocusFromTouch();
+            view.requestFocusFromTouch();
             mURL.getText().clear();
         }
     };
