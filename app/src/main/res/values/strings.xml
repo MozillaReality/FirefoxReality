@@ -1,78 +1,182 @@
 <resources>
+    <!-- LOCALIZATION NOTE (app_name): The string 'app_name' will be used any time the application
+         name is to be displayed to the user inside of the application as well as any system launcher
+         such as the text bellow the application launch icon. -->
     <string name="app_name">Firefox Reality</string>
+    <!-- LOCALIZATION NOTE (keyboard_enter_label): The string 'keyboard_enter_label' is used on the
+         virtual keyboard to label the enter key. -->
     <string name="keyboard_enter_label">ENTER</string>
-    <!-- Parameter will be replaced with the app name -->
+    <!-- LOCALIZATION NOTE (permission_camera): '%1$s' will be replaced at run time with the app name.
+         The string 'permission_camera' will be displayed in a dialog box presented to the user
+         when the application needs to request permission to access the device's camera. -->
     <string name="permission_camera">Will you allow %1$s to use your camera?</string>
-    <!-- Parameter will be replaced with the app name -->
+    <!-- LOCALIZATION NOTE (permission_microphone): '%1$s' will be replaced at runtime with the app name.
+         The string 'permission_microphone' will be displayed in a dialog box presented to the user
+         when the application needs to request permission to access the device's microphone.-->
     <string name="permission_microphone">Will you allow %1$s to use your microphone?</string>
-    <!-- Parameter will be replaced with the app name -->
+    <!-- LOCALIZATION NOTE (permission_camera_and_microphone): '%1$s' will be replaced at runtime with the app name.
+         The string 'permission_camera_and_microphone' will be displayed in a dialog box presented to the user
+         when the application needs to request permission to access the device's camera and microphone. -->
     <string name="permission_camera_and_microphone">Will you allow %1$s to use your camera and microphone?</string>
-    <!-- Parameter will be replaced with the app name -->
+    <!-- LOCALIZATION NOTE (permission_location): '%1$s' will be replaced at runtime with the app name.
+         The string 'permission_location' will be displayed in a dialog box presented to the user
+         when the application needs to request permission to access the device's geographic location. -->
     <string name="permission_location">Will you allow %1$s to access your location?</string>
+    <!-- LOCALIZATION NOTE (permission_notification): '%1$s' will be replaced at runtime with the app name.
+         The string 'permission_notification' will be displayed in a dialog box presented to the user
+         when the application needs to request permission to send system notifications. -->
     <!-- Parameter will be replaced with the app name -->
     <string name="permission_notification">Will you allow %1$s to send notifications?</string>
-    <!-- Parameter will be replaced with the app name -->
+    <!-- LOCALIZATION NOTE (permission_read_external_storage): '%1$s' will be replaced at runtime with the app name.
+         The string 'permission_read_external_storage' will be displayed in a dialog box presented to the user
+         when the application needs to request permission to access the device's external storage such as the
+         sdcard. -->
     <string name="permission_read_external_storage">Will you allow %1$s to read your external storage?</string>
+    <!-- LOCALIZATION NOTE (): FIXME It doesn't look like this string is actually used -->
     <string name="speak_now">Speak now</string>
+    <!-- LOCALIZATION NOTE (settings_version): '%1$s' will be replaced at runtime with the application
+         version number. The string 'settings_version' is displayed in the settings dialog box and how
+         the user can know what version of the application they are currently running. -->
     <string name="settings_version">version %1$s</string>
+    <!-- LOCALIZATION NOTE (settings_crash_reporting): The string 'settings_crash_reporting' is
+         displayed in the settings dialog and is used to label an ON/OFF switch which toggles whether
+         an application crash is reported with out prompting the user first. -->
     <string name="settings_crash_reporting">Crash Reporting</string>
+    <!-- LOCALIZATION NOTE (settings_telemetry): The string 'settings_telemetry' is displayed in the
+         settings dialog and is used to label an ON/OFF switch which toggles whether telemetry is
+         reported back to Mozilla. -->
     <string name="settings_telemetry">Telemetry</string>
+    <!-- LOCALIZATION NOTE (settings_privacy): The string 'settings_privacy' is used to label a button
+         that when pressed loads a web page the describes Mozilla's privacy policy. -->
     <string name="settings_privacy">Privacy Policy</string>
+    <!-- LOCALIZATION NOTE (settings_report_issue): The string 'settings_report_issue' is used to label
+         a button that when pressed loads a web page that allows the user file an issue or problem
+         they may have encountered while using the application. -->
     <string name="settings_report_issue">Report an issue</string>
+    <!-- LOCALIZATION NOTE (settings_version_developer): FIXME This string probably doesn't need to be localized/ -->
     <string name="settings_version_developer">Developer Build</string>
+    <!-- LOCALIZATION NOTE (settings_developer): The string 'settings_developer' is used to label a
+         button in the settings dialog that when pressed opens a dialog box that contains setting
+         an application or web developer might want to change. -->
     <string name="settings_developer">Developer</string>
+    <!-- LOCALIZATION NOTE (settings_options): FIXME this string is part of 'settings_developer' and is broken up to make it fit. -->
     <string name="settings_options">Options</string>
+    <!-- LOCALIZATION NOTE (restart_dialog_restart): The string 'restart_dialog_restart' is the title of
+         a dialog box shown to the user when a settings change requires the application to restart. -->
     <string name="restart_dialog_restart">Restart Required</string>
+    <!-- LOCALIZATION NOTE (restart_dialog_text): The string 'restart_dialog_text' is the text displayed
+         in the restart dialog box explaining why the restart is required. -->
     <string name="restart_dialog_text">You must restart the Firefox Reality app in order to complete changes. Would you like to do that now?</string>
+    <!-- LOCALIZATION NOTE (restart_dialog_button):  The string 'restart_dialog_button' is used to
+         label the button the user presses to restart the application in the restart dialog. -->
     <string name="restart_dialog_button">Restart Now</string>
+    <!-- LOCALIZATION NOTE (developer_options_remote_debugging): The string 'developer_options_remote_debugging'
+         labels an ON/OFF switch in the developer options dialog and is used to toggle remote debugging
+         of web content in the application. -->
     <string name="developer_options_remote_debugging">Enable Remote Debugging</string>
+    <!-- LOCALIZATION NOTE (developer_options_show_console): The string 'developer_options_show_console'
+         labels an ON/OFF switch in the developer options dialog and is used to toggle redirecting
+         console output to the Android logcat. -->
     <string name="developer_options_show_console">Redirect Console to Logcat</string>
+    <!-- LOCALIZATION NOTE (developer_options_env_override): The string 'developer_options_env_override'
+         labels an ON/OFF switch in the developer options dialog and is used to toggle loading externally
+         generated environments and overriding the ones built in. -->
     <string name="developer_options_env_override">Enable Environment Override</string>
+    <!-- LOCALIZATION NOTE (developer_options_multiprocess): The string 'developer_options_multiprocess'
+         labels an ON/OFF switch in the developer options dialog and is used to toggle running content
+         in a separate process. -->
     <string name="developer_options_multiprocess">Enable Multiprocess</string>
+    <!-- LOCALIZATION NOTE (developer_options_servo): The string 'developer_options_servo'
+         labels an ON/OFF switch in the developer options dialog and is used to toggle enabling servo. -->
     <string name="developer_options_servo">Enable Servo</string>
+    <!-- LOCALIZATION NOTE (developer_options_ua_mode): The string 'developer_options_ua_mode' is
+         used to label a set of radio buttons that allow the user to change the user agent (UA) string
+         of the browser. -->
     <string name="developer_options_ua_mode">User Agent Mode</string>
+    <!-- LOCALIZATION NOTE (developer_options_events): FIXME This option should be removed -->
     <string name="developer_options_events">Input Events</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="developer_options_display_density">Display Density:</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="developer_options_window_size">Window Size:</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="developer_options_mouse">Mouse</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="developer_options_touch">Touch</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="developer_options_edit">Edit</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="developer_options_save">Save</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="developer_options_display_dpi">Display DPI:</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="developer_options_max_window_size">Max. Window Size:</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="developer_options_msaa">MSAA</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="developer_options_msaa_disabled">Disabled</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="developer_options_msaa_2">2x</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="developer_options_msaa_4">4x</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="developer_options_ua_desktop">Desktop</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="developer_options_ua_mobile">Mobile</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="developer_options_ua_vr">VR</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="developer_options_reset">Reset Developer Settings</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="developer_options_reset_button">Reset</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="developer_options_environments">Environment</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="developer_options_env_meadow">Meadow</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="developer_options_env_cave">Cave</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="developer_options_env_void">Void</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="developer_options_pointer_color">Pointer Color</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="developer_options_pointer_white">White</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="developer_options_pointer_purple">Purple</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="on">ON</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="off">OFF</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="voice_search_start_1">What would you like to</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="voice_search_start_2">search on the web?</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="voice_search_example">Example: Please say, \"360 videos, weather, news…\"</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="voice_search_decoding">Searching…</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="voice_search_error">Sorry! I couldn\'t understand.</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="voice_search_try_again">Please try again.</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="voice_search_permission_1">Please allow microphone access to use the voice search.</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="search_placeholder">Search the Web or enter address</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="cancel_button">Cancel</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="ok_button">Ok</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="crash_dialog_header">We had an issue and crashed</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="crash_dialog_message">Please help Mozilla improve Firefox Reality by sending your crash data</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="crash_dialog_send_data">Always send data without asking</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="learn_more_button">Learn More</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="dont_sent_button">Don’t Send</string>
+    <!-- LOCALIZATION NOTE ():  -->
     <string name="send_data_button">Send Data</string>
-    <string name="crash_app_name">FirefoxReality</string>
 </resources>
