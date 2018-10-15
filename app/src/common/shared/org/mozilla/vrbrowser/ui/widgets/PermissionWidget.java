@@ -3,32 +3,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.vrbrowser.ui;
+package org.mozilla.vrbrowser.ui.widgets;
 
 import android.content.Context;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.AdapterView;
-import android.widget.BaseAdapter;
 import android.widget.ImageButton;
 import android.widget.ImageView;
-import android.widget.ListView;
 import android.widget.TextView;
 
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.R;
-import org.mozilla.vrbrowser.Widget;
-import org.mozilla.vrbrowser.WidgetManagerDelegate;
-import org.mozilla.vrbrowser.WidgetPlacement;
 
 import java.net.URI;
-import java.net.URL;
-import java.util.ArrayList;
 
 public class PermissionWidget extends UIWidget implements WidgetManagerDelegate.FocusChangeListener {
 

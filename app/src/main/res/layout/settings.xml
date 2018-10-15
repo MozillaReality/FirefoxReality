@@ -67,7 +67,7 @@
                        android:layout_centerHorizontal="true"
                        android:visibility="invisible"/>
 
-                <org.mozilla.vrbrowser.ui.SettingsButton
+                <org.mozilla.vrbrowser.ui.views.SettingsButton
                         android:id="@+id/developerOptionsButton"
                         style="?attr/settingsButtonStyle"
                         app:settingsButtonIcon="@drawable/ic_settings_developeroptions"
@@ -166,7 +166,7 @@
                 </LinearLayout>
 
 
-                <org.mozilla.vrbrowser.ui.SettingsButton
+                <org.mozilla.vrbrowser.ui.views.SettingsButton
                         android:id="@+id/privacyButton"
                         style="?attr/settingsButtonStyle"
                         app:settingsButtonIcon="@drawable/ic_settings_privacypolicy"
@@ -177,7 +177,7 @@
                         android:layout_marginTop="-25dp"
                         android:layout_below="@id/developerOptionsButton"/>
 
-                <org.mozilla.vrbrowser.ui.SettingsButton
+                <org.mozilla.vrbrowser.ui.views.SettingsButton
                         android:id="@+id/reportButton"
                         style="?attr/settingsButtonStyle"
                         app:settingsButtonIcon="@drawable/ic_settings_reportissue"
@@ -188,7 +188,7 @@
                         android:layout_marginTop="-25dp"
                         android:layout_below="@id/developerOptionsButton"/>
 
-                <org.mozilla.vrbrowser.ui.UIButton
+                <org.mozilla.vrbrowser.ui.views.UIButton
                         android:id="@+id/settingsCancelButton"
                         android:layout_width="40dp"
                         android:layout_height="40dp"

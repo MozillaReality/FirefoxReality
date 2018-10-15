@@ -1,11 +1,11 @@
-package org.mozilla.vrbrowser.ui;
+package org.mozilla.vrbrowser.ui.widgets;
 
 import android.content.Context;
 import android.util.AttributeSet;
 import android.view.View;
 import org.mozilla.vrbrowser.R;
-import org.mozilla.vrbrowser.WidgetPlacement;
 import org.mozilla.vrbrowser.audio.AudioEngine;
+import org.mozilla.vrbrowser.ui.views.UIButton;
 
 public class CloseButtonWidget extends UIWidget {
 

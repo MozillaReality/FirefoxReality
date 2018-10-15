@@ -1,4 +1,4 @@
-package org.mozilla.vrbrowser.ui;
+package org.mozilla.vrbrowser.ui.widgets;
 
 import android.Manifest;
 import android.app.Activity;
@@ -24,8 +24,6 @@ import com.mozilla.speechlibrary.ISpeechRecognitionListener;
 import com.mozilla.speechlibrary.MozillaSpeechService;
 import com.mozilla.speechlibrary.STTResult;
 import org.mozilla.vrbrowser.R;
-import org.mozilla.vrbrowser.WidgetManagerDelegate;
-import org.mozilla.vrbrowser.WidgetPlacement;
 
 import static org.mozilla.gecko.GeckoAppShell.getApplicationContext;
 

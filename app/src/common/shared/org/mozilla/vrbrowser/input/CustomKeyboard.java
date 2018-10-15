@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.vrbrowser.ui;
+package org.mozilla.vrbrowser.input;
 
 import android.content.Context;
 import android.content.res.Resources;
@@ -193,7 +193,7 @@ public class CustomKeyboard extends Keyboard {
         return new int[0];
     }
 
-    void setImeOptions(int options) {
+    public void setImeOptions(int options) {
         if (mEnterKey == null) {
             return;
         }

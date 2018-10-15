@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.vrbrowser;
+package org.mozilla.vrbrowser.input;
 
 import android.os.SystemClock;
 import android.util.Log;
@@ -11,7 +11,9 @@ import android.view.MotionEvent;
 import android.view.InputDevice;
 import android.util.SparseArray;
 
-class MotionEventGenerator {
+import org.mozilla.vrbrowser.ui.widgets.Widget;
+
+public class MotionEventGenerator {
     static final String LOGTAG = "VRB";
     static class Device {
         int mDevice;
@@ -63,7 +65,7 @@ class MotionEventGenerator {
         event.recycle();
     }
 
-    static void dispatch(Widget aWidget, int aDevice, boolean aPressed, float aX, float aY) {
+    public static void dispatch(Widget aWidget, int aDevice, boolean aPressed, float aX, float aY) {
         Device device = devices.get(aDevice);
         if (device == null) {
             device = new Device(aDevice);
@@ -115,7 +117,7 @@ class MotionEventGenerator {
         device.mPreviousWidget = aWidget;
     }
 
-    static void dispatchScroll(Widget aWidget, int aDevice, float aX, float aY) {
+    public static void dispatchScroll(Widget aWidget, int aDevice, float aX, float aY) {
         Device device = devices.get(aDevice);
         if (device == null) {
             device = new Device(aDevice);

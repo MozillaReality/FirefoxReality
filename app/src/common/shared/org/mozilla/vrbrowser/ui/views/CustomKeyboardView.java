@@ -14,7 +14,7 @@
  * the License.
  */
 
-package org.mozilla.vrbrowser.ui;
+package org.mozilla.vrbrowser.ui.views;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -45,6 +45,7 @@ import android.widget.PopupWindow;
 import android.widget.TextView;
 
 import org.mozilla.vrbrowser.R;
+import org.mozilla.vrbrowser.input.CustomKeyboard;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;

@@ -8,7 +8,8 @@ import android.support.annotation.NonNull;
 import android.util.Log;
 
 import org.mozilla.geckoview.GeckoSession;
-import org.mozilla.vrbrowser.ui.PermissionWidget;
+import org.mozilla.vrbrowser.ui.widgets.PermissionWidget;
+import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
 
 import java.util.ArrayList;
 import java.util.Arrays;

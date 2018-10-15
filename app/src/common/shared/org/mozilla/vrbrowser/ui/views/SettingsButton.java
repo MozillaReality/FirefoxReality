@@ -1,4 +1,4 @@
-package org.mozilla.vrbrowser.ui;
+package org.mozilla.vrbrowser.ui.views;
 
 import android.content.Context;
 import android.content.res.TypedArray;

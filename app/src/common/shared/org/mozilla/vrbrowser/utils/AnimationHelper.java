@@ -1,4 +1,4 @@
-package org.mozilla.vrbrowser.ui;
+package org.mozilla.vrbrowser.utils;
 
 import android.view.View;
 import android.view.animation.AccelerateInterpolator;

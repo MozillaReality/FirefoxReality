@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.vrbrowser.ui;
+package org.mozilla.vrbrowser.ui.widgets;
 
 import android.content.Context;
 import android.net.Uri;
@@ -19,6 +19,11 @@ import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.geckoview.GeckoSessionSettings;
 import org.mozilla.vrbrowser.*;
 import org.mozilla.vrbrowser.audio.AudioEngine;
+import org.mozilla.vrbrowser.utils.AnimationHelper;
+import org.mozilla.vrbrowser.ui.views.CustomUIButton;
+import org.mozilla.vrbrowser.ui.views.NavigationURLBar;
+import org.mozilla.vrbrowser.ui.views.UIButton;
+import org.mozilla.vrbrowser.ui.views.UITextButton;
 
 import java.util.ArrayList;
 import java.util.Arrays;

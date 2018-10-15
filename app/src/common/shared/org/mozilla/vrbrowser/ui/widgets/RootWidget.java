@@ -1,10 +1,8 @@
-package org.mozilla.vrbrowser.ui;
+package org.mozilla.vrbrowser.ui.widgets;
 
 import android.content.Context;
 import android.util.AttributeSet;
 import android.view.View;
-
-import org.mozilla.vrbrowser.WidgetPlacement;
 
 public class RootWidget extends UIWidget {
 

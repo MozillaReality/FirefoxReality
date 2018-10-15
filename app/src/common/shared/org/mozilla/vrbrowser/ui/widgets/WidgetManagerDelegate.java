@@ -1,4 +1,4 @@
-package org.mozilla.vrbrowser;
+package org.mozilla.vrbrowser.ui.widgets;
 
 import android.support.annotation.NonNull;
 import android.view.View;
