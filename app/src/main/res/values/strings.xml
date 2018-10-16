@@ -32,8 +32,6 @@
          when the application needs to request permission to access the device's external storage such as the
          sdcard. -->
     <string name="permission_read_external_storage">Will you allow %1$s to read your external storage?</string>
-    <!-- LOCALIZATION NOTE (): FIXME It doesn't look like this string is actually used -->
-    <string name="speak_now">Speak now</string>
     <!-- LOCALIZATION NOTE (settings_version): '%1$s' will be replaced at runtime with the application
          version number. The string 'settings_version' is displayed in the settings dialog box and how
          the user can know what version of the application they are currently running. -->
@@ -58,7 +56,7 @@
     <!-- LOCALIZATION NOTE (settings_developer): The string 'settings_developer' is used to label a
          button in the settings dialog that when pressed opens a dialog box that contains setting
          an application or web developer might want to change. -->
-    <string name="settings_developer">Developer</string>
+    <string name="settings_developer_options">Developer Options</string>
     <!-- LOCALIZATION NOTE (settings_options): FIXME this string is part of 'settings_developer' and is broken up to make it fit. -->
     <string name="settings_options">Options</string>
     <!-- LOCALIZATION NOTE (restart_dialog_restart): The string 'restart_dialog_restart' is the title of
