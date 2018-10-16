@@ -26,7 +26,7 @@ import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.R;
-import org.mozilla.vrbrowser.SessionStore;
+import org.mozilla.vrbrowser.browser.SessionStore;
 import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
 import org.mozilla.vrbrowser.input.CustomKeyboard;
 import org.mozilla.vrbrowser.ui.views.CustomKeyboardView;

@@ -22,7 +22,7 @@ import android.view.animation.AnimationUtils;
 import android.view.inputmethod.EditorInfo;
 import android.widget.*;
 import org.mozilla.vrbrowser.R;
-import org.mozilla.vrbrowser.SessionStore;
+import org.mozilla.vrbrowser.browser.SessionStore;
 import org.mozilla.vrbrowser.search.SearchEngine;
 import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
 

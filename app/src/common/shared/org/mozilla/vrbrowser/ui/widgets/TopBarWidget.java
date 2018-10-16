@@ -12,7 +12,7 @@ import android.view.View;
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.geckoview.GeckoSessionSettings;
 import org.mozilla.vrbrowser.R;
-import org.mozilla.vrbrowser.SessionStore;
+import org.mozilla.vrbrowser.browser.SessionStore;
 import org.mozilla.vrbrowser.audio.AudioEngine;
 import org.mozilla.vrbrowser.ui.views.UIButton;
 

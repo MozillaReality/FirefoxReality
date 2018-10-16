@@ -12,8 +12,8 @@ import android.widget.CompoundButton;
 import android.widget.RadioGroup;
 
 import org.mozilla.vrbrowser.R;
-import org.mozilla.vrbrowser.SessionStore;
-import org.mozilla.vrbrowser.SettingsStore;
+import org.mozilla.vrbrowser.browser.SessionStore;
+import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.audio.AudioEngine;
 import org.mozilla.vrbrowser.ui.views.UIButton;
 import org.mozilla.vrbrowser.ui.settings.ButtonSetting;

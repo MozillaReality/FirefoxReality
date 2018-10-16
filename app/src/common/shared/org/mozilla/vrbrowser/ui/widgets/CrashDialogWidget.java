@@ -13,8 +13,8 @@ import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.R;
-import org.mozilla.vrbrowser.SessionStore;
-import org.mozilla.vrbrowser.SettingsStore;
+import org.mozilla.vrbrowser.browser.SessionStore;
+import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.audio.AudioEngine;
 
 public class CrashDialogWidget extends UIWidget implements WidgetManagerDelegate.FocusChangeListener {

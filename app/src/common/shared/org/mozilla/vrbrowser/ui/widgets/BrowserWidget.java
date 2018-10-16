@@ -20,6 +20,8 @@ import org.mozilla.geckoview.GeckoResult;
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.geckoview.GeckoSessionSettings;
 import org.mozilla.vrbrowser.*;
+import org.mozilla.vrbrowser.browser.SessionStore;
+import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.ui.prompts.ChoicePromptWidget;
 
 

@@ -83,8 +83,7 @@
                         android:layout_toLeftOf="@id/developerOptionsButton">
 
                     <TextView
-                            android:id="@+id/crashing_text"
-                            android:layout_width="wrap_content"
+                        android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_gravity="center"
                             android:clickable="true"
@@ -128,8 +127,7 @@
                         android:layout_toRightOf="@id/developerOptionsButton">
 
                     <TextView
-                            android:id="@+id/telemetry_text"
-                            android:layout_width="wrap_content"
+                        android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_gravity="center"
                             android:clickable="true"

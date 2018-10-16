@@ -21,6 +21,8 @@ import android.widget.TextView;
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.*;
 import org.mozilla.vrbrowser.audio.AudioEngine;
+import org.mozilla.vrbrowser.browser.SessionStore;
+import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.ui.views.SettingsButton;
 
 import java.io.UnsupportedEncodingException;
