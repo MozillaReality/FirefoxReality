@@ -53,8 +53,7 @@
     <string name="restart_dialog_restart">Restart Required</string>
     <!-- This string is the text displayed in the restart dialog box explaining why the
          restart is required. -->
-    <!-- FIXME replace 'Firefox Reality' with '%1$s' and set in code with 'app_name' -->
-    <string name="restart_dialog_text">You must restart the Firefox Reality app in order to complete changes. Would you like to do that now?</string>
+    <string name="restart_dialog_text">You must restart %1$s in order to complete changes. Would you like to do that now?</string>
     <!-- 'This string is used to label the button the user presses to restart the
          application in the restart dialog. -->
     <string name="restart_dialog_button">Restart Now</string>
