@@ -84,10 +84,6 @@
     <!-- This string is used to label two integer entry fields where the default height and width of
          the browser window may be set. -->
     <string name="developer_options_window_size">Window Size:</string>
-    <!-- FIXME This option should be removed -->
-    <string name="developer_options_mouse">Mouse</string>
-    <!-- FIXME This option should be removed -->
-    <string name="developer_options_touch">Touch</string>
     <!-- This string is used to label buttons to enable editing of text fields in the developer
          options dialog. Pressing this button switches the fields to edit boxes so their values
          may be changed. -->

@@ -72,8 +72,4 @@
         <item>@string/developer_options_msaa_2</item>
         <item>@string/developer_options_msaa_4</item>
     </string-array>
-    <string-array name="developer_options_events_options" translatable="false">
-        <item>@string/developer_options_mouse</item>
-        <item>@string/developer_options_touch</item>
-    </string-array>
 </resources>
