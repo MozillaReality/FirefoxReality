@@ -15,13 +15,13 @@
             app:srcCompat="@drawable/sad_fox"
         android:src="@drawable/sad_fox"/>
     <TextView
-            android:text="@string/crash_dialog_header"
+            android:text="@string/crash_dialog_heading"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
         android:layout_marginTop="20dp"
             android:textSize="24sp"
             android:textStyle="bold"
-            tools:text="@string/crash_dialog_header"
+            tools:text="@string/crash_dialog_heading"
             android:textAlignment="center"/>
     <TextView
             android:text="@string/crash_dialog_message"

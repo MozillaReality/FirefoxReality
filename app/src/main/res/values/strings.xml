@@ -1,180 +1,195 @@
 <resources>
-    <!-- LOCALIZATION NOTE (app_name): The string 'app_name' will be used any time the application
-         name is to be displayed to the user inside of the application as well as any system launcher
-         such as the text bellow the application launch icon. -->
-    <string name="app_name">Firefox Reality</string>
-    <!-- LOCALIZATION NOTE (keyboard_enter_label): The string 'keyboard_enter_label' is used on the
-         virtual keyboard to label the enter key. -->
+    <!-- This string is used on the virtual keyboard to label the enter key. -->
     <string name="keyboard_enter_label">ENTER</string>
-    <!-- LOCALIZATION NOTE (permission_camera): '%1$s' will be replaced at run time with the app name.
-         The string 'permission_camera' will be displayed in a dialog box presented to the user
-         when the application needs to request permission to access the device's camera. -->
+    <!-- This string will be displayed in a dialog box presented to the user
+         when the application needs to request permission to access the device's camera.
+         '%1$s' will be replaced at runtime with the app name. -->
     <string name="permission_camera">Will you allow %1$s to use your camera?</string>
-    <!-- LOCALIZATION NOTE (permission_microphone): '%1$s' will be replaced at runtime with the app name.
-         The string 'permission_microphone' will be displayed in a dialog box presented to the user
-         when the application needs to request permission to access the device's microphone.-->
+    <!-- This string will be displayed in a dialog box presented to the user
+         when the application needs to request permission to access the device's microphone.
+         '%1$s' will be replaced at runtime with the app name. -->
     <string name="permission_microphone">Will you allow %1$s to use your microphone?</string>
-    <!-- LOCALIZATION NOTE (permission_camera_and_microphone): '%1$s' will be replaced at runtime with the app name.
-         The string 'permission_camera_and_microphone' will be displayed in a dialog box presented to the user
-         when the application needs to request permission to access the device's camera and microphone. -->
+    <!-- This string will be displayed in a dialog box presented to the user
+         when the application needs to request permission to access the device's camera and microphone.
+         '%1$s' will be replaced at runtime with the app name. -->
     <string name="permission_camera_and_microphone">Will you allow %1$s to use your camera and microphone?</string>
-    <!-- LOCALIZATION NOTE (permission_location): '%1$s' will be replaced at runtime with the app name.
-         The string 'permission_location' will be displayed in a dialog box presented to the user
-         when the application needs to request permission to access the device's geographic location. -->
+    <!-- This string will be displayed in a dialog box presented to the user
+         when the application needs to request permission to access the device's geographic location.
+         '%1$s' will be replaced at runtime with the app name. -->
     <string name="permission_location">Will you allow %1$s to access your location?</string>
-    <!-- LOCALIZATION NOTE (permission_notification): '%1$s' will be replaced at runtime with the app name.
-         The string 'permission_notification' will be displayed in a dialog box presented to the user
-         when the application needs to request permission to send system notifications. -->
-    <!-- Parameter will be replaced with the app name -->
+    <!-- This string will be displayed in a dialog box presented to the user
+         when the application needs to request permission to send system notifications.
+         '%1$s' will be replaced at runtime with the app name. -->
     <string name="permission_notification">Will you allow %1$s to send notifications?</string>
-    <!-- LOCALIZATION NOTE (permission_read_external_storage): '%1$s' will be replaced at runtime with the app name.
-         The string 'permission_read_external_storage' will be displayed in a dialog box presented to the user
+    <!-- This string will be displayed in a dialog box presented to the user
          when the application needs to request permission to access the device's external storage such as the
-         sdcard. -->
+         sdcard. '%1$s' will be replaced at runtime with the app name. -->
     <string name="permission_read_external_storage">Will you allow %1$s to read your external storage?</string>
-    <!-- LOCALIZATION NOTE (settings_version): '%1$s' will be replaced at runtime with the application
-         version number. The string 'settings_version' is displayed in the settings dialog box and how
-         the user can know what version of the application they are currently running. -->
+    <!-- This string is displayed in the settings dialog box and how
+         the user can know which version of the application they are currently running.
+         '%1$s' will be replaced at runtime with the application version number. -->
     <string name="settings_version">version %1$s</string>
-    <!-- LOCALIZATION NOTE (settings_crash_reporting): The string 'settings_crash_reporting' is
-         displayed in the settings dialog and is used to label an ON/OFF switch which toggles whether
-         an application crash is reported with out prompting the user first. -->
+    <!-- This string is displayed in the settings dialog and is used to label an
+         ON/OFF switch which toggles whether an application crash is reported without first
+         prompting the user. -->
     <string name="settings_crash_reporting">Crash Reporting</string>
-    <!-- LOCALIZATION NOTE (settings_telemetry): The string 'settings_telemetry' is displayed in the
-         settings dialog and is used to label an ON/OFF switch which toggles whether telemetry is
-         reported back to Mozilla. -->
+    <!-- This string is displayed in the settings dialog and is used to label an ON/OFF
+         switch which toggles whether telemetry is reported back to Mozilla. -->
     <string name="settings_telemetry">Telemetry</string>
-    <!-- LOCALIZATION NOTE (settings_privacy): The string 'settings_privacy' is used to label a button
-         that when pressed loads a web page the describes Mozilla's privacy policy. -->
+    <!-- This string is used to label a button that when pressed loads a web page the
+         describes Mozilla's privacy policy. -->
     <string name="settings_privacy">Privacy Policy</string>
-    <!-- LOCALIZATION NOTE (settings_report_issue): The string 'settings_report_issue' is used to label
-         a button that when pressed loads a web page that allows the user file an issue or problem
-         they may have encountered while using the application. -->
+    <!-- This string is used to label a button that when pressed loads a web page
+         that allows the user file an issue or problem they may have encountered while using the
+         application or while visiting a site. -->
     <string name="settings_report_issue">Report an issue</string>
-    <!-- LOCALIZATION NOTE (settings_version_developer): FIXME This string probably doesn't need to be localized/ -->
+    <!-- This string is used in place of 'settings_version' for developer builds. -->
     <string name="settings_version_developer">Developer Build</string>
-    <!-- LOCALIZATION NOTE (settings_developer): The string 'settings_developer' is used to label a
-         button in the settings dialog that when pressed opens a dialog box that contains setting
-         an application or web developer might want to change. -->
+    <!-- This string is used to label a button in the settings dialog that when pressed
+         opens a dialog box that contains setting an application or web developer might want to change. -->
     <string name="settings_developer_options">Developer Options</string>
-    <!-- LOCALIZATION NOTE (settings_options): FIXME this string is part of 'settings_developer' and is broken up to make it fit. -->
-    <string name="settings_options">Options</string>
-    <!-- LOCALIZATION NOTE (restart_dialog_restart): The string 'restart_dialog_restart' is the title of
-         a dialog box shown to the user when a settings change requires the application to restart. -->
+    <!-- This string is the title of a dialog box shown to the user when a settings
+         change requires the application to restart. -->
     <string name="restart_dialog_restart">Restart Required</string>
-    <!-- LOCALIZATION NOTE (restart_dialog_text): The string 'restart_dialog_text' is the text displayed
-         in the restart dialog box explaining why the restart is required. -->
+    <!-- This string is the text displayed in the restart dialog box explaining why the
+         restart is required. -->
+    <!-- FIXME replace 'Firefox Reality' with '%1$s' and set in code with 'app_name' -->
     <string name="restart_dialog_text">You must restart the Firefox Reality app in order to complete changes. Would you like to do that now?</string>
-    <!-- LOCALIZATION NOTE (restart_dialog_button):  The string 'restart_dialog_button' is used to
-         label the button the user presses to restart the application in the restart dialog. -->
+    <!-- 'This string is used to label the button the user presses to restart the
+         application in the restart dialog. -->
     <string name="restart_dialog_button">Restart Now</string>
-    <!-- LOCALIZATION NOTE (developer_options_remote_debugging): The string 'developer_options_remote_debugging'
-         labels an ON/OFF switch in the developer options dialog and is used to toggle remote debugging
-         of web content in the application. -->
+    <!-- This string labels an ON/OFF switch in the developer options
+         dialog and is used to toggle remote debugging of web content in the application. -->
     <string name="developer_options_remote_debugging">Enable Remote Debugging</string>
-    <!-- LOCALIZATION NOTE (developer_options_show_console): The string 'developer_options_show_console'
-         labels an ON/OFF switch in the developer options dialog and is used to toggle redirecting
-         console output to the Android logcat. -->
+    <!-- This string labels an ON/OFF switch in the developer options dialog
+         and is used to toggle redirecting console output to the Android logcat. -->
     <string name="developer_options_show_console">Redirect Console to Logcat</string>
-    <!-- LOCALIZATION NOTE (developer_options_env_override): The string 'developer_options_env_override'
-         labels an ON/OFF switch in the developer options dialog and is used to toggle loading externally
-         generated environments and overriding the ones built in. -->
+    <!-- This string labels an ON/OFF switch in the developer options dialog
+         and is used to toggle loading externally generated environments and overriding the ones built in. -->
     <string name="developer_options_env_override">Enable Environment Override</string>
-    <!-- LOCALIZATION NOTE (developer_options_multiprocess): The string 'developer_options_multiprocess'
-         labels an ON/OFF switch in the developer options dialog and is used to toggle running content
-         in a separate process. -->
+    <!-- This string' labels an ON/OFF switch in the developer options dialog
+         and is used to toggle running content in a separate process.
+         Multiprocessing:
+         the running of two or more programs or sequences of instructions simultaneously
+         by a computer with more than one central processor.-->
     <string name="developer_options_multiprocess">Enable Multiprocess</string>
     <!-- LOCALIZATION NOTE (developer_options_servo): The string 'developer_options_servo'
          labels an ON/OFF switch in the developer options dialog and is used to toggle enabling servo. -->
     <string name="developer_options_servo">Enable Servo</string>
-    <!-- LOCALIZATION NOTE (developer_options_ua_mode): The string 'developer_options_ua_mode' is
-         used to label a set of radio buttons that allow the user to change the user agent (UA) string
-         of the browser. -->
-    <string name="developer_options_ua_mode">User Agent Mode</string>
     <!-- LOCALIZATION NOTE (developer_options_events): FIXME This option should be removed -->
     <string name="developer_options_events">Input Events</string>
-    <!-- LOCALIZATION NOTE ():  -->
+    <!-- This string is used to label a numerical entry field where the user
+         may enter a new value to use for the display density. -->
     <string name="developer_options_display_density">Display Density:</string>
-    <!-- LOCALIZATION NOTE ():  -->
+    <!-- This string is used to label two integer entry fields where the default height and width of
+         the browser window may be set. -->
     <string name="developer_options_window_size">Window Size:</string>
-    <!-- LOCALIZATION NOTE ():  -->
+    <!-- FIXME This option should be removed -->
     <string name="developer_options_mouse">Mouse</string>
-    <!-- LOCALIZATION NOTE ():  -->
+    <!-- FIXME This option should be removed -->
     <string name="developer_options_touch">Touch</string>
-    <!-- LOCALIZATION NOTE ():  -->
+    <!-- This string is used to label buttons to enable editing of text fields in the developer
+         options dialog. Pressing this button switches the fields to edit boxes so their values
+         may be changed. -->
     <string name="developer_options_edit">Edit</string>
-    <!-- LOCALIZATION NOTE ():  -->
+    <!-- This string is used to label the 'Edit' button once it has been clicked by the user. It
+         indicates that when the button is clicked, the user's edits will be saved. -->
     <string name="developer_options_save">Save</string>
-    <!-- LOCALIZATION NOTE ():  -->
+    <!-- This string is used to label a numerical entry field where the user may enter a new value
+         for the virtual displays dots per inch (DPI). -->
     <string name="developer_options_display_dpi">Display DPI:</string>
-    <!-- LOCALIZATION NOTE ():  -->
+    <!-- This string is used to label two integer entry fields that will allow the user to adjust
+         the maximum window size in the X and Y dimensions. -->
     <string name="developer_options_max_window_size">Max. Window Size:</string>
-    <!-- LOCALIZATION NOTE ():  -->
+    <!-- This string is used to label radio buttons for setting multi-sample anti-aliasing (MSAA) in
+         VR immersive mode. -->
     <string name="developer_options_msaa">MSAA</string>
-    <!-- LOCALIZATION NOTE ():  -->
+    <!-- This string is used to label the MSAA radio button that disables MSAA in immersive mode. -->
     <string name="developer_options_msaa_disabled">Disabled</string>
-    <!-- LOCALIZATION NOTE ():  -->
+    <!-- This string is used to label the MSAA radio button that enables two times MSAA in immersive mode. -->
     <string name="developer_options_msaa_2">2x</string>
-    <!-- LOCALIZATION NOTE ():  -->
+    <!-- This string is used to label the MSAA radio button that enables four times MSAA in immersive mode. -->
     <string name="developer_options_msaa_4">4x</string>
-    <!-- LOCALIZATION NOTE ():  -->
+    <!-- This string is used to label a set of radio buttons that allow the user to
+     change the user-agent (UA) string of the browser. -->
+    <string name="developer_options_ua_mode">User-Agent Mode</string>
+    <!-- This string is used to label the desktop user-agent radio button of the 'User-Agent Mode'
+         settings option. -->
     <string name="developer_options_ua_desktop">Desktop</string>
-    <!-- LOCALIZATION NOTE ():  -->
+    <!-- This string is used to label the mobile user-agent radio button of the 'User-Agent Mode'
+         settings option. -->
     <string name="developer_options_ua_mobile">Mobile</string>
-    <!-- LOCALIZATION NOTE ():  -->
+    <!-- This string is used to label the virtual reality (VR) user-agent radio button of the
+         'User-Agent Mode' settings option. -->
     <string name="developer_options_ua_vr">VR</string>
-    <!-- LOCALIZATION NOTE ():  -->
+    <!-- This string describes what the 'Reset' button in the developer options does which is
+         restore all the developer settings to their default value. -->
     <string name="developer_options_reset">Reset Developer Settings</string>
-    <!-- LOCALIZATION NOTE ():  -->
+    <!-- This string labels the 'Reset' button that restores the default developer settings values.  -->
     <string name="developer_options_reset_button">Reset</string>
-    <!-- LOCALIZATION NOTE ():  -->
+    <!-- This string describes the radio buttons used to select the environment seen while not in
+         immersive mode. -->
     <string name="developer_options_environments">Environment</string>
-    <!-- LOCALIZATION NOTE ():  -->
+    <!-- This string labels the radio button that selects the 'Meadow' environment. -->
     <string name="developer_options_env_meadow">Meadow</string>
-    <!-- LOCALIZATION NOTE ():  -->
+    <!-- This string labels the radio button that selects the 'Cave' environment. -->
     <string name="developer_options_env_cave">Cave</string>
-    <!-- LOCALIZATION NOTE ():  -->
+    <!-- This string labels the radio button that selects the 'Void' environment. The void
+         environment is an empty space that surrounds the user in empty, black space. -->
     <string name="developer_options_env_void">Void</string>
-    <!-- LOCALIZATION NOTE ():  -->
+    <!-- This string describes the radio buttons used to select the pointer color. -->
     <string name="developer_options_pointer_color">Pointer Color</string>
-    <!-- LOCALIZATION NOTE ():  -->
+    <!-- This string labels the radio button that sets the pointer color to white. -->
     <string name="developer_options_pointer_white">White</string>
-    <!-- LOCALIZATION NOTE ():  -->
+    <!-- This string labels the radio button that sets the pointer color to purple.  -->
     <string name="developer_options_pointer_purple">Purple</string>
-    <!-- LOCALIZATION NOTE ():  -->
-    <string name="on">ON</string>
-    <!-- LOCALIZATION NOTE ():  -->
-    <string name="off">OFF</string>
-    <!-- LOCALIZATION NOTE ():  -->
+    <!-- This string is displayed below the ON/OFF switch to indicated the switches current
+         state as 'ON'.  -->
+    <string name="on">On</string>
+    <!-- This string is displayed below the ON/OFF switch to indicated the switches current
+         state as 'OFF'.  -->
+    <string name="off">Off</string>
+    <!-- This string is displayed in the voice search dialog box that is show to the user when they press the
+         button used to initiate voice search. -->
+    <!-- FIXME This sentence should not be broken into two parts. Pleas combine into a single 'voice_search_start' string. -->
     <string name="voice_search_start_1">What would you like to</string>
-    <!-- LOCALIZATION NOTE ():  -->
+    <!-- FIXME  -->
     <string name="voice_search_start_2">search on the web?</string>
-    <!-- LOCALIZATION NOTE ():  -->
+    <!-- This string is displayed in the voice search dialog box and gives examples of phrases they
+         might use in a voice search. -->
     <string name="voice_search_example">Example: Please say, \"360 videos, weather, news…\"</string>
-    <!-- LOCALIZATION NOTE ():  -->
+    <!-- This string is displayed in a dialog box show to the user while the voice search is being
+         performed. It indicates that the search query is running and they should wait for the result. -->
     <string name="voice_search_decoding">Searching…</string>
-    <!-- LOCALIZATION NOTE ():  -->
-    <string name="voice_search_error">Sorry! I couldn\'t understand.</string>
-    <!-- LOCALIZATION NOTE ():  -->
+    <!-- This string is displayed in a dialog box when the phrase the user spoke for the voice search
+         was not understood by the system. -->
+    <string name="voice_search_error">Sorry! I could not understand.</string>
+    <!-- This string is displayed in a dialog box after a failed voice search and is prompting the
+         user to try the voice search again. -->
     <string name="voice_search_try_again">Please try again.</string>
-    <!-- LOCALIZATION NOTE ():  -->
-    <string name="voice_search_permission_1">Please allow microphone access to use the voice search.</string>
-    <!-- LOCALIZATION NOTE ():  -->
+    <!-- This string is displayed in a dialog after the user has declined permission to use the
+         devices microphone. It explains why voice search is not working. -->
+    <string name="voice_search_permission_after_decline">Please allow microphone access to use the voice search.</string>
+    <!-- This string is displayed in the URL bar when it is empty. It informs the user that they
+         may use the URL bar to search the web or enter a web address. -->
     <string name="search_placeholder">Search the Web or enter address</string>
-    <!-- LOCALIZATION NOTE ():  -->
+    <!-- This string labels buttons used to cancel an action. -->
     <string name="cancel_button">Cancel</string>
-    <!-- LOCALIZATION NOTE ():  -->
-    <string name="ok_button">Ok</string>
-    <!-- LOCALIZATION NOTE ():  -->
-    <string name="crash_dialog_header">We had an issue and crashed</string>
-    <!-- LOCALIZATION NOTE ():  -->
-    <string name="crash_dialog_message">Please help Mozilla improve Firefox Reality by sending your crash data</string>
-    <!-- LOCALIZATION NOTE ():  -->
+    <!-- This string labels buttons that are used to approve an action. -->
+    <string name="ok_button">OK</string>
+    <!-- This string is displayed in a dialog after an application crash. -->
+    <string name="crash_dialog_heading">We had an issue and crashed</string>
+    <!-- This string explains why Mozilla would like the user to allow the crash data to be uploaded. -->
+    <!-- FIXME replace 'Firefox Reality' with '%1$s' and set in code with 'app_name' -->
+    <string name="crash_dialog_message">Please help Mozilla improve Firefox Reality by sending your crash data.</string>
+    <!-- This string labels a checkbox in the crash dialog box. When checked, user will no longer
+         be prompted for permission to upload crash data after an application crash. -->
     <string name="crash_dialog_send_data">Always send data without asking</string>
-    <!-- LOCALIZATION NOTE ():  -->
+    <!-- This string labels a button that when clicked allows the user to learn more about the
+         currently open dialog. -->
     <string name="learn_more_button">Learn More</string>
-    <!-- LOCALIZATION NOTE ():  -->
-    <string name="dont_sent_button">Don’t Send</string>
-    <!-- LOCALIZATION NOTE ():  -->
+    <!-- This string labels a button that when clicked prevents crash data from being sent to Mozilla. -->
+    <string name="dont_sent_button">Do Not Send</string>
+    <!-- This string lables a button that when clicked allows the crash data to be sent to Mozilla. -->
     <string name="send_data_button">Send Data</string>
 </resources>

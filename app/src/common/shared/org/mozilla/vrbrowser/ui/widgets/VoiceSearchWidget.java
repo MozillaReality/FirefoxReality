@@ -303,7 +303,7 @@ public class VoiceSearchWidget extends UIWidget implements WidgetManagerDelegate
     }
 
     private void setPermissionNotGranted() {
-        mVoiceSearchText1.setText(R.string.voice_search_permission_1);
+        mVoiceSearchText1.setText(R.string.voice_search_permission_after_decline);
         mVoiceSearchText1.setVisibility(View.VISIBLE);
         mVoiceSearchText2.setVisibility(View.INVISIBLE);
         mVoiceSearchText3.setVisibility(View.INVISIBLE);
