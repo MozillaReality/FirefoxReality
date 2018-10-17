@@ -36,17 +36,17 @@
     <!-- This string is displayed in the settings dialog and is used to label an ON/OFF
          switch which toggles whether telemetry is reported back to Mozilla. -->
     <string name="settings_telemetry">Telemetry</string>
-    <!-- This string is used to label a button that when pressed loads a web page the
+    <!-- This string is used to label a button that when pressed loads a Web page the
          describes Mozilla's privacy policy. -->
     <string name="settings_privacy">Privacy Policy</string>
-    <!-- This string is used to label a button that when pressed loads a web page
+    <!-- This string is used to label a button that when pressed loads a Web page
          that allows the user file an issue or problem they may have encountered while using the
          application or while visiting a site. -->
     <string name="settings_report_issue">Report an issue</string>
     <!-- This string is used in place of 'settings_version' for developer builds. -->
     <string name="settings_version_developer">Developer Build</string>
     <!-- This string is used to label a button in the settings dialog that when pressed
-         opens a dialog box that contains setting an application or web developer might want to change. -->
+         opens a dialog box that contains setting an application or Web developer might want to change. -->
     <string name="settings_developer_options">Developer Options</string>
     <!-- This string is the title of a dialog box shown to the user when a settings
          change requires the application to restart. -->
@@ -54,29 +54,27 @@
     <!-- This string is the text displayed in the restart dialog box explaining why the
          restart is required. -->
     <string name="restart_dialog_text">You must restart %1$s in order to complete changes. Would you like to do that now?</string>
-    <!-- 'This string is used to label the button the user presses to restart the
+    <!-- This string is used to label the button the user presses to restart the
          application in the restart dialog. -->
     <string name="restart_dialog_button">Restart Now</string>
     <!-- This string labels an ON/OFF switch in the developer options
-         dialog and is used to toggle remote debugging of web content in the application. -->
+         dialog and is used to toggle remote debugging of Web content in the application. -->
     <string name="developer_options_remote_debugging">Enable Remote Debugging</string>
     <!-- This string labels an ON/OFF switch in the developer options dialog
-         and is used to toggle redirecting console output to the Android logcat. -->
+         and is used to toggle redirecting Javascript console output to the Android logcat. -->
     <string name="developer_options_show_console">Redirect Console to Logcat</string>
     <!-- This string labels an ON/OFF switch in the developer options dialog
          and is used to toggle loading externally generated environments and overriding the ones built in. -->
     <string name="developer_options_env_override">Enable Environment Override</string>
-    <!-- This string' labels an ON/OFF switch in the developer options dialog
+    <!-- This string labels an ON/OFF switch in the developer options dialog
          and is used to toggle running content in a separate process.
          Multiprocessing:
          the running of two or more programs or sequences of instructions simultaneously
-         by a computer with more than one central processor.-->
+         by a computer with more than one central processor. -->
     <string name="developer_options_multiprocess">Enable Multiprocess</string>
     <!-- LOCALIZATION NOTE (developer_options_servo): The string 'developer_options_servo'
          labels an ON/OFF switch in the developer options dialog and is used to toggle enabling servo. -->
     <string name="developer_options_servo">Enable Servo</string>
-    <!-- LOCALIZATION NOTE (developer_options_events): FIXME This option should be removed -->
-    <string name="developer_options_events">Input Events</string>
     <!-- This string is used to label a numerical entry field where the user
          may enter a new value to use for the display density. -->
     <string name="developer_options_display_density">Display Density:</string>
@@ -146,10 +144,7 @@
     <string name="off">Off</string>
     <!-- This string is displayed in the voice search dialog box that is show to the user when they press the
          button used to initiate voice search. -->
-    <!-- FIXME This sentence should not be broken into two parts. Pleas combine into a single 'voice_search_start' string. -->
-    <string name="voice_search_start_1">What would you like to</string>
-    <!-- FIXME  -->
-    <string name="voice_search_start_2">search on the web?</string>
+    <string name="voice_search_start">What would you like to search on the Web?</string>
     <!-- This string is displayed in the voice search dialog box and gives examples of phrases they
          might use in a voice search. -->
     <string name="voice_search_example">Example: Please say, \"360 videos, weather, news…\"</string>
@@ -166,25 +161,24 @@
          devices microphone. It explains why voice search is not working. -->
     <string name="voice_search_permission_after_decline">Please allow microphone access to use the voice search.</string>
     <!-- This string is displayed in the URL bar when it is empty. It informs the user that they
-         may use the URL bar to search the web or enter a web address. -->
+         may use the URL bar to search the Web or enter a Web address. -->
     <string name="search_placeholder">Search the Web or enter address</string>
-    <!-- This string labels buttons used to cancel an action. -->
+    <!-- This string labels a button used to cancel an action. -->
     <string name="cancel_button">Cancel</string>
-    <!-- This string labels buttons that are used to approve an action. -->
+    <!-- This string labels a button that are used to approve an action. -->
     <string name="ok_button">OK</string>
     <!-- This string is displayed in a dialog after an application crash. -->
     <string name="crash_dialog_heading">We had an issue and crashed</string>
     <!-- This string explains why Mozilla would like the user to allow the crash data to be uploaded. -->
-    <!-- FIXME replace 'Firefox Reality' with '%1$s' and set in code with 'app_name' -->
-    <string name="crash_dialog_message">Please help Mozilla improve Firefox Reality by sending your crash data.</string>
-    <!-- This string labels a checkbox in the crash dialog box. When checked, user will no longer
+    <string name="crash_dialog_message">Please help Mozilla improve %1$s by sending your crash data.</string>
+    <!-- This string labels a checkbox in the crash dialog box. When checked, the user will no longer
          be prompted for permission to upload crash data after an application crash. -->
     <string name="crash_dialog_send_data">Always send data without asking</string>
     <!-- This string labels a button that when clicked allows the user to learn more about the
          currently open dialog. -->
     <string name="learn_more_button">Learn More</string>
     <!-- This string labels a button that when clicked prevents crash data from being sent to Mozilla. -->
-    <string name="dont_sent_button">Do Not Send</string>
-    <!-- This string lables a button that when clicked allows the crash data to be sent to Mozilla. -->
+    <string name="do_not_sent_button">Do Not Send</string>
+    <!-- This string labels a button that when clicked allows the crash data to be sent to Mozilla. -->
     <string name="send_data_button">Send Data</string>
 </resources>
