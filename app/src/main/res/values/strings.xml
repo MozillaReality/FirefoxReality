@@ -52,7 +52,7 @@
          change requires the application to restart. -->
     <string name="restart_dialog_restart">Restart Required</string>
     <!-- This string is the text displayed in the restart dialog box explaining why the
-         restart is required. -->
+         restart is required. '%1$s' will be replaced at runtime with the app name. -->
     <string name="restart_dialog_text">You must restart %1$s in order to complete changes. Would you like to do that now?</string>
     <!-- This string is used to label the button the user presses to restart the
          application in the restart dialog. -->
@@ -72,8 +72,7 @@
          the running of two or more programs or sequences of instructions simultaneously
          by a computer with more than one central processor. -->
     <string name="developer_options_multiprocess">Enable Multiprocess</string>
-    <!-- LOCALIZATION NOTE (developer_options_servo): The string 'developer_options_servo'
-         labels an ON/OFF switch in the developer options dialog and is used to toggle enabling servo. -->
+    <!-- The string an ON/OFF switch in the developer options dialog and is used to toggle enabling servo. -->
     <string name="developer_options_servo">Enable Servo</string>
     <!-- This string is used to label a numerical entry field where the user
          may enter a new value to use for the display density. -->
@@ -169,7 +168,8 @@
     <string name="ok_button">OK</string>
     <!-- This string is displayed in a dialog after an application crash. -->
     <string name="crash_dialog_heading">We had an issue and crashed</string>
-    <!-- This string explains why Mozilla would like the user to allow the crash data to be uploaded. -->
+    <!-- This string explains why Mozilla would like the user to allow the crash data to be uploaded.
+         '%1$s' will be replaced at runtime with the app name. -->
     <string name="crash_dialog_message">Please help Mozilla improve %1$s by sending your crash data.</string>
     <!-- This string labels a checkbox in the crash dialog box. When checked, the user will no longer
          be prompted for permission to upload crash data after an application crash. -->
