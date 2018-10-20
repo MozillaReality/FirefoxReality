@@ -90,6 +90,7 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
         boolean mIsInputActive;
         GeckoSession.ProgressDelegate.SecurityInformation mSecurityInformation;
         String mUri;
+        String mPreviousUri;
         String mTitle;
         boolean mFullScreen;
         GeckoSession mSession;
@@ -495,6 +496,18 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
         return result;
     }
 
+    public String getPreviousUri() {
+        String result = "";
+        if (mCurrentSession != null) {
+            State state = mSessions.get(mCurrentSession.hashCode());
+            if (state == null) {
+                return result;
+            }
+            result = state.mPreviousUri;
+        }
+        return result;
+    }
+
     public boolean isInputActive(int aSessionId) {
         SessionStore.State state = mSessions.get(aSessionId);
         if (state != null) {
@@ -798,6 +811,7 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
             return;
         }
 
+        state.mPreviousUri = state.mUri;
         state.mUri = aUri;
 
         for (GeckoSession.NavigationDelegate listener: mNavigationListeners) {
