@@ -70,7 +70,7 @@ struct OculusEyeSwapChain {
         attributes.samples = 0;
       } else {
         attributes.depth = true;
-        attributes.samples = 2;
+        attributes.samples = 4;
       }
 
       VRB_GL_CHECK(fbo->SetTextureHandle(texture, aWidth, aHeight, attributes));
@@ -110,6 +110,7 @@ struct DeviceDelegateOculusVR::State {
   vrb::Color clearColor;
   float near = 0.1f;
   float far = 100.f;
+  ovrMatrix4f projection;
   ovrDeviceID controllerID = ovrDeviceIdType_Invalid;
   ovrInputTrackedRemoteCapabilities controllerCapabilities;
   vrb::Matrix controllerTransform = vrb::Matrix::Identity();
@@ -123,10 +124,18 @@ struct DeviceDelegateOculusVR::State {
 
 
   void UpdatePerspective() {
-    float fovX = vrapi_GetSystemPropertyFloat(&java, VRAPI_SYS_PROP_SUGGESTED_EYE_FOV_DEGREES_X);
-    float fovY = vrapi_GetSystemPropertyFloat(&java, VRAPI_SYS_PROP_SUGGESTED_EYE_FOV_DEGREES_Y);
+    /**
+     * Reducing kFOVScale results in increased pixel density at the cost of vignetting.
+     * Through experimentation, 0.85 was found to be a good balance.  When more devices
+     * are supported, it may be beneficial to make this a user configurable value.
+     * The ideal value may be different for immersive content and could be
+     * independently configured.
+     */
+    const float kFOVScale = 0.85f;
+    float fovX = vrapi_GetSystemPropertyFloat(&java, VRAPI_SYS_PROP_SUGGESTED_EYE_FOV_DEGREES_X) * kFOVScale;
+    float fovY = vrapi_GetSystemPropertyFloat(&java, VRAPI_SYS_PROP_SUGGESTED_EYE_FOV_DEGREES_Y) * kFOVScale;
 
-    ovrMatrix4f projection = ovrMatrix4f_CreateProjectionFov(fovX, fovY, 0.0, 0.0, near, far);
+    projection = ovrMatrix4f_CreateProjectionFov(fovX, fovY, 0.0, 0.0, near, far);
     auto matrix = vrb::Matrix::FromRowMajor(projection.M);
     for (int i = 0; i < VRAPI_EYE_COUNT; ++i) {
       cameras[i]->SetPerspective(matrix);
@@ -180,8 +189,9 @@ struct DeviceDelegateOculusVR::State {
   }
 
   void GetStandaloneRenderSize(uint32_t& aWidth, uint32_t& aHeight) {
-    aWidth = 1.5f * (uint32_t)(vrapi_GetSystemPropertyInt(&java, VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_WIDTH));
-    aHeight = 1.5f * (uint32_t)(vrapi_GetSystemPropertyInt(&java, VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_HEIGHT));
+    const float kEyeTextureScale = 1.0f;
+    aWidth = kEyeTextureScale * (uint32_t)(vrapi_GetSystemPropertyInt(&java, VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_WIDTH));
+    aHeight = kEyeTextureScale * (uint32_t)(vrapi_GetSystemPropertyInt(&java, VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_HEIGHT));
   }
 
   void SetRenderSize(device::RenderMode aRenderMode) {
@@ -511,8 +521,7 @@ DeviceDelegateOculusVR::EndFrame(const bool aDiscard) {
     // Set up OVR layer textures
     layer.Textures[i].ColorSwapChain = eyeSwapChain->ovrSwapChain;
     layer.Textures[i].SwapChainIndex = swapChainIndex;
-    layer.Textures[i].TexCoordsFromTanAngles = ovrMatrix4f_TanAngleMatrixFromProjection(
-        &m.predictedTracking.Eye[i].ProjectionMatrix);
+    layer.Textures[i].TexCoordsFromTanAngles = ovrMatrix4f_TanAngleMatrixFromProjection(&m.projection);
   }
 
   ovrSubmitFrameDescription2 frameDesc = {};
