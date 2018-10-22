@@ -298,6 +298,11 @@ DeviceDelegateWaveVR::SetControllerDelegate(ControllerDelegatePtr& aController) 
 }
 
 void
+DeviceDelegateWaveVR::SetFoveatedLevel(const uint32_t aLevel) {
+  // Not Supported
+}
+
+void
 DeviceDelegateWaveVR::ReleaseControllerDelegate() {
   m.delegate = nullptr;
 }

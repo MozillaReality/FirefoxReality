@@ -441,6 +441,11 @@ DeviceDelegateGoogleVR::SetControllerDelegate(ControllerDelegatePtr& aController
 }
 
 void
+DeviceDelegateGoogleVR::SetFoveatedLevel(const uint32_t aLevel) {
+  // Not Supported
+}
+
+void
 DeviceDelegateGoogleVR::ReleaseControllerDelegate() {
   m.controllerDelegate = nullptr;
 }

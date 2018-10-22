@@ -25,6 +25,7 @@ public:
   void SetClearColor(const vrb::Color& aColor) override;
   void SetClipPlanes(const float aNear, const float aFar) override;
   void SetControllerDelegate(ControllerDelegatePtr& aController) override;
+  void SetFoveatedLevel(const uint32_t aLevel) override;
   void ReleaseControllerDelegate() override;
   int32_t GetControllerModelCount() const override;
   const std::string GetControllerModelName(const int32_t aModelIndex) const override;

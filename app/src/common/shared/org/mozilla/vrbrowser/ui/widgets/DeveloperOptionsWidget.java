@@ -14,6 +14,7 @@ import android.widget.RadioGroup;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.browser.SessionStore;
 import org.mozilla.vrbrowser.browser.SettingsStore;
+import org.mozilla.vrbrowser.BuildConfig;
 import org.mozilla.vrbrowser.audio.AudioEngine;
 import org.mozilla.vrbrowser.ui.views.UIButton;
 import org.mozilla.vrbrowser.ui.settings.ButtonSetting;
@@ -41,6 +42,7 @@ public class DeveloperOptionsWidget extends UIWidget {
     private RadioGroupSetting mPointerColorRadio;
     private RadioGroupSetting mUaModeRadio;
     private RadioGroupSetting mMSAARadio;
+    private RadioGroupSetting mFoveatedRadio;
 
     private SingleEditSetting mDensityEdit;
     private SingleEditSetting mDpiEdit;
@@ -126,6 +128,15 @@ public class DeveloperOptionsWidget extends UIWidget {
         mMSAARadio = findViewById(R.id.msaa_radio);
         mMSAARadio.setOnCheckedChangeListener(mMSSAChangeListener);
         setMSAAMode(mMSAARadio.getIdForValue(msaaLevel), false);
+
+        mFoveatedRadio = findViewById(R.id.foveated_radio);
+        if (BuildConfig.FLAVOR_platform == "oculusvr") {
+            int foveatedLevel = SettingsStore.getInstance(getContext()).getFoveatedLevel();
+            mFoveatedRadio.setOnCheckedChangeListener(mFoveatedChangeListener);
+            setFoveatedLevel(mFoveatedRadio.getIdForValue(foveatedLevel), false);
+        } else {
+            mFoveatedRadio.setVisibility(View.GONE);
+        }
 
         mDensityEdit = findViewById(R.id.density_edit);
         mDensityEdit.setFirstText(Float.toString(SettingsStore.getInstance(getContext()).getDisplayDensity()));
@@ -242,6 +253,13 @@ public class DeveloperOptionsWidget extends UIWidget {
         @Override
         public void onCheckedChanged(RadioGroup radioGroup, int checkedId, boolean doApply) {
             setMSAAMode(checkedId, true);
+        }
+    };
+
+    private RadioGroupSetting.OnCheckedChangeListener mFoveatedChangeListener = new RadioGroupSetting.OnCheckedChangeListener() {
+        @Override
+        public void onCheckedChanged(RadioGroup radioGroup, int checkedId, boolean doApply) {
+            setFoveatedLevel(checkedId, true);
         }
     };
 
@@ -411,6 +429,18 @@ public class DeveloperOptionsWidget extends UIWidget {
         if (doApply) {
             SettingsStore.getInstance(getContext()).setMSAALevel((Integer)mMSAARadio.getValueForId(checkedId));
             showRestartDialog();
+        }
+    }
+
+    private void setFoveatedLevel(int checkedId, boolean doApply) {
+        mFoveatedRadio.setOnCheckedChangeListener(null);
+        mFoveatedRadio.setChecked(checkedId, doApply);
+        mFoveatedRadio.setOnCheckedChangeListener(mFoveatedChangeListener);
+
+        SettingsStore.getInstance(getContext()).setFoveatedLevel((Integer)mFoveatedRadio.getValueForId(checkedId));
+
+        if (doApply) {
+            mWidgetManager.updateFoveatedLevel();
         }
     }
 

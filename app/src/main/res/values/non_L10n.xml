@@ -21,6 +21,7 @@
     <string name="settings_key_env" translatable="false">settings_env</string>
     <string name="settings_key_pointer_color" translatable="false">settings_pointer_color</string>
     <string name="settings_key_msaa" translatable="false">settings_msaa</string>
+    <string name="settings_key_foveated" translatable="false">settings_foveated</string>
     <string name="private_browsing_support_url" translatable="false">https://support.mozilla.org/kb/private-mode-firefox-reality</string>
     <string name="settings_key_browser_world_width" translatable="false">settings_browser_world_width</string>
     <string name="settings_key_browser_world_height" translatable="false">settings_browser_world_height</string>
@@ -71,5 +72,11 @@
         <item>@string/developer_options_msaa_disabled</item>
         <item>@string/developer_options_msaa_2</item>
         <item>@string/developer_options_msaa_4</item>
+    </string-array>
+    <string-array name="developer_options_foveated_options" translatable="false">
+        <item>@string/developer_options_foveated_disabled</item>
+        <item>@string/developer_options_foveated_1</item>
+        <item>@string/developer_options_foveated_2</item>
+        <item>@string/developer_options_foveated_3</item>
     </string-array>
 </resources>

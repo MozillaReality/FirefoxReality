@@ -500,6 +500,7 @@ BrowserWorld::InitializeJava(JNIEnv* aEnv, jobject& aActivity, jobject& aAssetMa
     m.loadingAnimation->LoadModels(m.loader);
     m.rootController->AddNode(m.controllers->GetRoot());
     std::string skyboxPath = VRBrowser::GetActiveEnvironment();
+    m.device->SetFoveatedLevel(VRBrowser::GetFoveatedLevel());
     if (VRBrowser::isOverrideEnvPathEnabled()) {
       std::string storagePath = VRBrowser::GetStorageAbsolutePath(INJECT_SKYBOX_PATH);
       if (std::ifstream(storagePath)) {
@@ -644,6 +645,12 @@ BrowserWorld::UpdateEnvironment() {
   m.rootOpaqueParent->RemoveNode(*m.skybox);
   m.skybox = CreateSkyBox(env.c_str());
   m.rootOpaqueParent->AddNode(m.skybox);
+}
+
+void
+BrowserWorld::UpdateFoveatedLevel() {
+  ASSERT_ON_RENDER_THREAD();
+  m.device->SetFoveatedLevel(VRBrowser::GetFoveatedLevel());
 }
 
 void
@@ -1147,7 +1154,7 @@ BrowserWorld::DistanceToPlane(const WidgetPtr& aWidget, const vrb::Vector& aPosi
 extern "C" {
 
 JNI_METHOD(void, addWidgetNative)
-(JNIEnv* aEnv, jobject, jint aHandle, jobject aPlacement) {
+(JNIEnv *aEnv, jobject, jint aHandle, jobject aPlacement) {
   crow::WidgetPlacementPtr placement = crow::WidgetPlacement::FromJava(aEnv, aPlacement);
   if (placement) {
     crow::BrowserWorld::Instance().AddWidget(aHandle, placement);
@@ -1155,7 +1162,7 @@ JNI_METHOD(void, addWidgetNative)
 }
 
 JNI_METHOD(void, updateWidgetNative)
-(JNIEnv* aEnv, jobject, jint aHandle, jobject aPlacement) {
+(JNIEnv *aEnv, jobject, jint aHandle, jobject aPlacement) {
   crow::WidgetPlacementPtr placement = crow::WidgetPlacement::FromJava(aEnv, aPlacement);
   if (placement) {
     crow::BrowserWorld::Instance().UpdateWidget(aHandle, placement);
@@ -1163,17 +1170,17 @@ JNI_METHOD(void, updateWidgetNative)
 }
 
 JNI_METHOD(void, removeWidgetNative)
-(JNIEnv*, jobject, jint aHandle) {
+(JNIEnv *, jobject, jint aHandle) {
   crow::BrowserWorld::Instance().RemoveWidget(aHandle);
 }
 
 JNI_METHOD(void, startWidgetResizeNative)
-(JNIEnv*, jobject, jint aHandle) {
+(JNIEnv *, jobject, jint aHandle) {
   crow::BrowserWorld::Instance().StartWidgetResize(aHandle);
 }
 
 JNI_METHOD(void, finishWidgetResizeNative)
-(JNIEnv*, jobject, jint aHandle) {
+(JNIEnv *, jobject, jint aHandle) {
   crow::BrowserWorld::Instance().FinishWidgetResize(aHandle);
 }
 
@@ -1183,7 +1190,7 @@ JNI_METHOD(void, setWorldBrightnessNative)
 }
 
 JNI_METHOD(void, setTemporaryFilePath)
-(JNIEnv* aEnv, jobject, jstring aPath) {
+(JNIEnv *aEnv, jobject, jstring aPath) {
   const char *nativeString = aEnv->GetStringUTFChars(aPath, 0);
   std::string path = nativeString;
   aEnv->ReleaseStringUTFChars(aPath, nativeString);
@@ -1191,12 +1198,12 @@ JNI_METHOD(void, setTemporaryFilePath)
 }
 
 JNI_METHOD(void, exitImmersiveNative)
-(JNIEnv* aEnv, jobject) {
+(JNIEnv *aEnv, jobject) {
   crow::BrowserWorld::Instance().ExitImmersive();
 }
 
 JNI_METHOD(void, workaroundGeckoSigAction)
-(JNIEnv*, jobject) {
+(JNIEnv *, jobject) {
   if (putenv(strdup("MOZ_DISABLE_SIG_HANDLER=1")) == 0) {
     VRB_DEBUG("Successfully set MOZ_DISABLE_SIG_HANDLER");
   } else {
@@ -1210,8 +1217,13 @@ JNI_METHOD(void, workaroundGeckoSigAction)
 }
 
 JNI_METHOD(void, updateEnvironmentNative)
-(JNIEnv* aEnv, jobject) {
+(JNIEnv *aEnv, jobject) {
   crow::BrowserWorld::Instance().UpdateEnvironment();
+}
+
+JNI_METHOD(void, updateFoveatedLevelNative)
+(JNIEnv *aEnv, jobject) {
+  crow::BrowserWorld::Instance().UpdateFoveatedLevel();
 }
 
 JNI_METHOD(void, updatePointerColorNative)

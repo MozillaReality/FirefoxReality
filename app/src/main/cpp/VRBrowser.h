@@ -31,6 +31,7 @@ std::string GetStorageAbsolutePath(const std::string& aRelativePath);
 bool isOverrideEnvPathEnabled();
 std::string GetActiveEnvironment();
 int32_t GetPointerColor();
+int32_t GetFoveatedLevel();
 } // namespace VRBrowser;
 
 } // namespace crow

@@ -587,6 +587,12 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         return SettingsStore.getInstance(this).getPointerColor();
     }
 
+    @Keep
+    @SuppressWarnings("unused")
+    public int getFoveatedLevel() {
+        return SettingsStore.getInstance(this).getFoveatedLevel();
+    }
+
     void createOffscreenDisplay() {
         int[] ids = new int[1];
         GLES20.glGenTextures(1, ids, 0);
@@ -816,6 +822,11 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     }
 
     @Override
+    public void updateFoveatedLevel() {
+        queueRunnable(() -> updateFoveatedLevelNative());
+    }
+
+    @Override
     public void updatePointerColor() {
         queueRunnable(() -> updatePointerColorNative());
     }
@@ -854,4 +865,5 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     private native void workaroundGeckoSigAction();
     private native void updateEnvironmentNative();
     private native void updatePointerColorNative();
+    private native void updateFoveatedLevelNative();
 }

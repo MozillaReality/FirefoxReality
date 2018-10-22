@@ -154,6 +154,11 @@ DeviceDelegateNoAPI::ReleaseControllerDelegate() {
     m.controller = nullptr;
 }
 
+void
+DeviceDelegateNoAPI::SetFoveatedLevel(const uint32_t aLevel) {
+  // Not Supported
+}
+
 int32_t
 DeviceDelegateNoAPI::GetControllerModelCount() const {
   return 0;

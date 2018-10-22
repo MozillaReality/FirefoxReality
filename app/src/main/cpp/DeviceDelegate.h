@@ -48,6 +48,7 @@ public:
   virtual void SetClearColor(const vrb::Color& aColor) = 0;
   virtual void SetClipPlanes(const float aNear, const float aFar) = 0;
   virtual void SetControllerDelegate(ControllerDelegatePtr& aController) = 0;
+  virtual void SetFoveatedLevel(const uint32_t aLevel) = 0;
   virtual void ReleaseControllerDelegate() = 0;
   virtual int32_t GetControllerModelCount() const = 0;
   virtual const std::string GetControllerModelName(const int32_t aModelIndex) const = 0;

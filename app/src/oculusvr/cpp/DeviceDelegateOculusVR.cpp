@@ -386,6 +386,12 @@ DeviceDelegateOculusVR::ReleaseControllerDelegate() {
   m.controller = nullptr;
 }
 
+void
+DeviceDelegateOculusVR::SetFoveatedLevel(const uint32_t aLevel) {
+  // Enable fixed-foveated rendering level.
+  vrapi_SetPropertyInt(&m.java, VRAPI_FOVEATION_LEVEL, aLevel);
+}
+
 int32_t
 DeviceDelegateOculusVR::GetControllerModelCount() const {
   return 1;

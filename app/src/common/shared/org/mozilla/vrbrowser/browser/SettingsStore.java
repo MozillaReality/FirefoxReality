@@ -50,6 +50,7 @@ public class SettingsStore {
     public final static float BROWSER_WORLD_WIDTH_DEFAULT = 4.0f;
     public final static float BROWSER_WORLD_HEIGHT_DEFAULT = 2.25f;
     public final static int MSAA_DEFAULT_LEVEL = 1;
+    public final static int FOVEATED_DEFAULT_LEVEL = 2;
 
     // Enable telemetry by default (opt-out).
     private final static boolean enableCrashReportingByDefault = false;
@@ -304,4 +305,14 @@ public class SettingsStore {
         editor.commit();
     }
 
+    public int getFoveatedLevel() {
+        return mPrefs.getInt(
+                mContext.getString(R.string.settings_key_foveated), FOVEATED_DEFAULT_LEVEL);
+    }
+
+    public void setFoveatedLevel(int level) {
+        SharedPreferences.Editor editor = mPrefs.edit();
+        editor.putInt(mContext.getString(R.string.settings_key_foveated), level);
+        editor.commit();
+    }
 }

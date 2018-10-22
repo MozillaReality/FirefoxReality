@@ -38,6 +38,7 @@ public interface WidgetManagerDelegate {
     void setBrowserSize(float targetWidth, float targetHeight);
     void keyboardDismissed();
     void updateEnvironment();
+    void updateFoveatedLevel();
     void updatePointerColor();
     void addFocusChangeListener(@NonNull FocusChangeListener aListener);
     void removeFocusChangeListener(@NonNull FocusChangeListener aListener);

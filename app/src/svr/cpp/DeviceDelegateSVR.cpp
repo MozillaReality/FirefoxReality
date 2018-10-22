@@ -383,6 +383,11 @@ DeviceDelegateSVR::SetControllerDelegate(ControllerDelegatePtr& aController) {
 }
 
 void
+DeviceDelegateSVR::SetFoveatedLevel(const uint32_t aLevel) {
+  // Not supported
+}
+
+void
 DeviceDelegateSVR::ReleaseControllerDelegate() {
   m.controller = nullptr;
 }
