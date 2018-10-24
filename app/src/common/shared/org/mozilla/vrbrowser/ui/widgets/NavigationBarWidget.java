@@ -563,16 +563,18 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         // 1. the current session is using Servo. No matter what, we need the toggle button to go back to Gecko.
         // 2. Or, if the pref is enabled and the current url is white listed.
         boolean show = false;
+        boolean isServoSession = false;
         GeckoSession currentSession = SessionStore.get().getCurrentSession();
         if (currentSession != null) {
             String currentUri = SessionStore.get().getCurrentUri();
             boolean isPrefEnabled = SettingsStore.getInstance(mAppContext).isServoEnabled();
-            boolean isServoSession = ServoUtils.isInstanceOfServoSession(currentSession);
             boolean isUrlWhiteListed = ServoUtils.isUrlInServoWhiteList(mAppContext, currentUri);
+            isServoSession = ServoUtils.isInstanceOfServoSession(currentSession);
             show = isServoSession || (isPrefEnabled && isUrlWhiteListed);
         }
         if (show) {
             mServoButton.setVisibility(View.VISIBLE);
+            mServoButton.setImageResource(isServoSession ? R.drawable.ic_icon_gecko : R.drawable.ic_icon_servo);
         } else {
             mServoButton.setVisibility(View.GONE);
         }
