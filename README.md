@@ -9,7 +9,8 @@ You can find us on Twitter [@MozillaReality](https://twitter.com/mozillareality)
 ## Bleeding-edge developer APKs
 
 1. Load [this TaskCluster URL](https://github.taskcluster.net/v1/repository/MozillaReality/FirefoxReality/master/latest).
-2. Click the `Run Artifacts` tab, and click to download the APK for your platform of choice.
+2. Click the `Firefox Reality for Android - Build - Master update →` link.
+3. Click the `Run Artifacts` tab, and click to download the APK for your platform of choice.
 
 ## Setup instructions
 
