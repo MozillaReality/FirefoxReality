@@ -45,6 +45,9 @@ public:
   void LeaveVR();
   bool IsInVRMode() const;
   bool ExitApp();
+  uint32_t CreateAsyncLayer(uint32_t aWidth, uint32_t aHeight) override;
+  void DeleteAsyncLayer(uint32_t aLayer) override;
+  void BindAsyncLayer(uint32_t aLayer) override;
 protected:
   struct State;
   DeviceDelegateOculusVR(State& aState);

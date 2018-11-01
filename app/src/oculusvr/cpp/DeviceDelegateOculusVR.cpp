@@ -39,13 +39,30 @@ struct OculusEyeSwapChain {
   ovrTextureSwapChain *ovrSwapChain = nullptr;
   int swapChainLength = 0;
   std::vector<vrb::FBOPtr> fbos;
+  uint32_t renderWidth = 0;
+  uint32_t renderHeight = 0;
+  uint32_t frameIndex = 0;
 
   static OculusEyeSwapChainPtr create() {
     return std::make_shared<OculusEyeSwapChain>();
   }
 
   void Init(vrb::RenderContextPtr& aContext, device::RenderMode aMode, uint32_t aWidth, uint32_t aHeight) {
+      vrb::FBO::Attributes attributes;
+      if (aMode == device::RenderMode::Immersive) {
+        attributes.depth = true;
+        attributes.samples = 0;
+      } else {
+        attributes.depth = true;
+        attributes.samples = 2;
+      }
+      Init(aContext, attributes, aWidth, aHeight);
+  }
+
+  void Init(vrb::RenderContextPtr& aContext, const vrb::FBO::Attributes& aAttributes, uint32_t aWidth, uint32_t aHeight) {
     Destroy();
+    renderWidth = aWidth;
+    renderHeight = aHeight;
     ovrSwapChain = vrapi_CreateTextureSwapChain(VRAPI_TEXTURE_TYPE_2D,
                                                 VRAPI_TEXTURE_FORMAT_8888,
                                                 aWidth, aHeight, 1, true);
@@ -55,21 +72,14 @@ struct OculusEyeSwapChain {
       vrb::FBOPtr fbo = vrb::FBO::Create(aContext);
       auto texture = vrapi_GetTextureSwapChainHandle(ovrSwapChain, i);
       VRB_GL_CHECK(glBindTexture(GL_TEXTURE_2D, texture));
-      VRB_GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-      VRB_GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+      VRB_GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER_OES));
+      VRB_GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER_OES));
       VRB_GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
       VRB_GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+      GLfloat border_color[] = { 0.0f, 0.0f, 0.0f, 0.0f};
+      VRB_GL_CHECK(glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR_OES, border_color));
 
-      vrb::FBO::Attributes attributes;
-      if (aMode == device::RenderMode::Immersive) {
-        attributes.depth = true;
-        attributes.samples = 0;
-      } else {
-        attributes.depth = true;
-        attributes.samples = 2;
-      }
-
-      VRB_GL_CHECK(fbo->SetTextureHandle(texture, aWidth, aHeight, attributes));
+      VRB_GL_CHECK(fbo->SetTextureHandle(texture, aWidth, aHeight, aAttributes));
       if (fbo->IsValid()) {
         fbos.push_back(fbo);
       } else {
@@ -85,6 +95,21 @@ struct OculusEyeSwapChain {
       ovrSwapChain = nullptr;
     }
     swapChainLength = 0;
+    renderWidth = 0;
+    renderHeight = 0;
+    frameIndex = 0;
+  }
+
+  bool IsInitialized() {
+    return ovrSwapChain != nullptr;
+  }
+
+  uint32_t GetRenderWidth() {
+    return renderWidth;
+  }
+
+  uint32_t GetRenderHeight() {
+    return renderHeight;
   }
 };
 
@@ -95,6 +120,7 @@ struct DeviceDelegateOculusVR::State {
   ovrJava java = {};
   ovrMobile* ovr = nullptr;
   OculusEyeSwapChainPtr eyeSwapChains[VRAPI_EYE_COUNT];
+  OculusEyeSwapChainPtr asyncLayerSwapChains[ovrMaxLayerCount - 1];
   device::RenderMode renderMode = device::RenderMode::StandAlone;
   vrb::FBOPtr currentFBO;
   vrb::CameraEyePtr cameras[2];
@@ -161,6 +187,9 @@ struct DeviceDelegateOculusVR::State {
       eyeSwapChains[i] = OculusEyeSwapChain::create();
     }
     UpdatePerspective();
+    for (int i = 0; i < ovrMaxLayerCount - 1; i++) {
+      asyncLayerSwapChains[i] = OculusEyeSwapChain::create();
+    }
 
     reorientCount = vrapi_GetSystemStatusInt(&java, VRAPI_SYS_STATUS_RECENTER_COUNT);
 
@@ -454,6 +483,53 @@ DeviceDelegateOculusVR::StartFrame() {
   VRB_GL_CHECK(glClearColor(m.clearColor.Red(), m.clearColor.Green(), m.clearColor.Blue(), m.clearColor.Alpha()));
 }
 
+uint32_t
+DeviceDelegateOculusVR::CreateAsyncLayer(uint32_t aWidth, uint32_t aHeight)
+{
+  // 0 is returned to indicate failure
+  uint32_t layerId = 0;
+  for (int i = 0; i < ovrMaxLayerCount - 1; i++) {
+    if (!m.asyncLayerSwapChains[i]->IsInitialized()) {
+      layerId = i + 1;
+      vrb::RenderContextPtr render = m.context.lock();
+      vrb::FBO::Attributes attributes;
+      attributes.depth = false;
+      attributes.samples = 0;
+      m.asyncLayerSwapChains[layerId - 1]->Init(render, attributes, aWidth, aHeight);
+      break;
+    }
+  }
+
+  return layerId;
+}
+
+void
+DeviceDelegateOculusVR::DeleteAsyncLayer(uint32_t aLayer)
+{
+  m.asyncLayerSwapChains[aLayer - 1]->Destroy();
+}
+
+void
+DeviceDelegateOculusVR::BindAsyncLayer(uint32_t aLayer)
+{
+  assert(aLayer > 0 && aLayer <= ovrMaxLayerCount - 1);
+  if (m.currentFBO) {
+    m.currentFBO->Unbind();
+  }
+
+  const auto &swapChain = m.asyncLayerSwapChains[aLayer - 1];
+  int swapChainIndex = swapChain->frameIndex++ % swapChain->swapChainLength;
+  m.currentFBO = swapChain->fbos[swapChainIndex];
+
+  if (m.currentFBO) {
+    m.currentFBO->Bind();
+    VRB_GL_CHECK(glViewport(0, 0, swapChain->GetRenderWidth(), swapChain->GetRenderHeight()));
+    VRB_GL_CHECK(glClear(GL_COLOR_BUFFER_BIT));
+  } else {
+    VRB_LOG("No Swap chain FBO found");
+  }
+}
+
 void
 DeviceDelegateOculusVR::BindEye(const device::Eye aWhich) {
   if (!m.ovr) {
@@ -499,16 +575,59 @@ DeviceDelegateOculusVR::EndFrame(const bool aDiscard) {
     return;
   }
 
-  auto layer = vrapi_DefaultLayerProjection2();
-  layer.HeadPose = m.predictedTracking.HeadPose;
-  for (int i = 0; i < VRAPI_FRAME_LAYER_EYE_MAX; ++i) {
-    const auto &eyeSwapChain = m.eyeSwapChains[i];
-    int swapChainIndex = m.frameIndex % eyeSwapChain->swapChainLength;
-    // Set up OVR layer textures
-    layer.Textures[i].ColorSwapChain = eyeSwapChain->ovrSwapChain;
-    layer.Textures[i].SwapChainIndex = swapChainIndex;
-    layer.Textures[i].TexCoordsFromTanAngles = ovrMatrix4f_TanAngleMatrixFromProjection(
-        &m.predictedTracking.Eye[i].ProjectionMatrix);
+  uint32_t layerCount = 0;
+  ovrLayerHeader2* layers[ovrMaxLayerCount] = {};
+
+  uint32_t projectionLayerCount = 0;
+  ovrLayerProjection2 projectionLayers[ovrMaxLayerCount] = {};
+
+  {
+    ovrLayerProjection2 &layer = projectionLayers[projectionLayerCount++];
+    layers[layerCount++] = &layer.Header;
+    layer = vrapi_DefaultLayerProjection2();
+    layer.HeadPose = m.predictedTracking.HeadPose;
+    for (int i = 0; i < VRAPI_FRAME_LAYER_EYE_MAX; ++i) {
+      const auto &eyeSwapChain = m.eyeSwapChains[i];
+      int swapChainIndex = m.frameIndex % eyeSwapChain->swapChainLength;
+      // Set up OVR layer textures
+      layer.Textures[i].ColorSwapChain = eyeSwapChain->ovrSwapChain;
+      layer.Textures[i].SwapChainIndex = swapChainIndex;
+      layer.Textures[i].TexCoordsFromTanAngles = ovrMatrix4f_TanAngleMatrixFromProjection(
+          &m.predictedTracking.Eye[i].ProjectionMatrix);
+
+    }
+  }
+
+
+  if (m.renderMode == device::RenderMode::StandAlone) {
+    const ovrMatrix4f headPose = vrapi_GetTransformFromPose(&m.predictedTracking.HeadPose.Pose);
+    const ovrMatrix4f headPoseInv = ovrMatrix4f_Inverse(&headPose);
+    for (int i = 0; i < ovrMaxLayerCount - 1; i++) {
+      if (m.asyncLayerSwapChains[i]->IsInitialized()) {
+        const auto &swapChain = m.asyncLayerSwapChains[i];
+        ovrLayerProjection2& layer = projectionLayers[projectionLayerCount++];
+        layers[layerCount++] = &layer.Header;
+        layer = vrapi_DefaultLayerProjection2();
+
+        ovrMatrix4f scaleMatrix = ovrMatrix4f_CreateScale(swapChain->GetRenderWidth(), swapChain->GetRenderHeight(), 1.0f);
+        ovrMatrix4f translateMatrix = ovrMatrix4f_CreateTranslation(0.0f, 0.0f, -1500.0f);
+        ovrMatrix4f modelView = ovrMatrix4f_CreateIdentity();
+
+        layer.HeadPose = m.predictedTracking.HeadPose;
+        int swapChainIndex = swapChain->frameIndex % swapChain->swapChainLength;
+        for (int i = 0; i < VRAPI_FRAME_LAYER_EYE_MAX; ++i) {
+          // Set up OVR layer textures
+          layer.Textures[i].ColorSwapChain = swapChain->ovrSwapChain;
+          layer.Textures[i].SwapChainIndex = swapChainIndex;
+
+          modelView = ovrMatrix4f_Multiply(&modelView, &headPoseInv);
+          modelView = ovrMatrix4f_Multiply(&modelView, &translateMatrix);
+          modelView = ovrMatrix4f_Multiply(&modelView, &scaleMatrix);
+          layer.Textures[i].TexCoordsFromTanAngles = ovrMatrix4f_TanAngleMatrixFromUnitSquare(
+              &modelView);
+        }
+      }
+    }
   }
 
   ovrSubmitFrameDescription2 frameDesc = {};
@@ -521,8 +640,7 @@ DeviceDelegateOculusVR::EndFrame(const bool aDiscard) {
   frameDesc.DisplayTime = m.predictedDisplayTime;
   frameDesc.CompletionFence = 0;
 
-  ovrLayerHeader2* layers[] = {&layer.Header};
-  frameDesc.LayerCount = sizeof(layers) / sizeof(layers[0]);
+  frameDesc.LayerCount = layerCount;
   frameDesc.Layers = layers;
 
   vrapi_SubmitFrame2(m.ovr, &frameDesc);

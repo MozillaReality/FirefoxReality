@@ -55,6 +55,9 @@ public:
   virtual void StartFrame() = 0;
   virtual void BindEye(const device::Eye aWhich) = 0;
   virtual void EndFrame(bool aDiscard = false) = 0;
+  virtual uint32_t CreateAsyncLayer(uint32_t aWidth, uint32_t aHeight) { return 0; }
+  virtual void DeleteAsyncLayer(uint32_t aLayer) { }
+  virtual void BindAsyncLayer(uint32_t aLayer) { }
 protected:
   DeviceDelegate() {}
 
