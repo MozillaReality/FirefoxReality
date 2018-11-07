@@ -149,7 +149,7 @@
     <string name="voice_search_example">Exemple : Dites  \"vidéos 360, météo, infos…\"</string>
     <!-- This string is displayed in a dialog box show to the user while the voice search is being
          performed. It indicates that the search query is running and they should wait for the result. -->
-    <string name="voice_search_decoding">Recherche en cours...</string>
+    <string name="voice_search_decoding">Recherche en cours…</string>
     <!-- This string is displayed in a dialog box when the phrase the user spoke for the voice search
          was not understood by the system. -->
     <string name="voice_search_error">Désolé ! Je n’ai pas compris.</string>

@@ -1,224 +1,225 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<!-- This string is used on the virtual keyboard to label the enter key. -->
-	<string name="keyboard_enter_label">ÊäÈë</string>
+	<string name="keyboard_enter_label">è¾“å…¥</string>
 	<!-- This string will be displayed in a dialog box presented to the user
          when the application needs to request permission to access the device's camera.
          '%1$s' will be replaced at runtime with the app name. -->
-	<string name="permission_camera">ÄúÊÇ·ñÒªÔÊÐí%1$sÊ¹ÓÃÄúµÄÉãÏñÍ·£¿</string>
+	<string name="permission_camera">æ‚¨æ˜¯å¦è¦å…è®¸%1$sä½¿ç”¨æ‚¨çš„æ‘„åƒå¤´ï¼Ÿ</string>
 	<!-- This string will be displayed in a dialog box presented to the user
          when the application needs to request permission to access the device's microphone.
          '%1$s' will be replaced at runtime with the app name. -->
-	<string name="permission_microphone">ÄúÊÇ·ñÒªÔÊÐí%1$sÊ¹ÓÃÄúµÄÂó¿Ë·ç£¿</string>
+	<string name="permission_microphone">æ‚¨æ˜¯å¦è¦å…è®¸%1$sä½¿ç”¨æ‚¨çš„éº¦å…‹é£Žï¼Ÿ</string>
 	<!-- This string will be displayed in a dialog box presented to the user
          when the application needs to request permission to access the device's camera and microphone.
          '%1$s' will be replaced at runtime with the app name. -->
-	<string name="permission_camera_and_microphone">ÄúÊÇ·ñÒªÔÊÐí%1$sÊ¹ÓÃÄúµÄÉãÏñÍ·ºÍÂó¿Ë·ç£¿</string>
+	<string name="permission_camera_and_microphone">æ‚¨æ˜¯å¦è¦å…è®¸%1$sä½¿ç”¨æ‚¨çš„æ‘„åƒå¤´å’Œéº¦å…‹é£Žï¼Ÿ</string>
 	<!-- This string will be displayed in a dialog box presented to the user
          when the application needs to request permission to access the device's geographic location.
          '%1$s' will be replaced at runtime with the app name. -->
-	<string name="permission_location">ÄúÊÇ·ñÒªÔÊÐí%1$s»ñÈ¡ÄúµÄÎ»ÖÃ£¿</string>
+	<string name="permission_location">æ‚¨æ˜¯å¦è¦å…è®¸%1$sèŽ·å–æ‚¨çš„ä½ç½®ï¼Ÿ</string>
 	<!-- This string will be displayed in a dialog box presented to the user
          when the application needs to request permission to send system notifications.
          '%1$s' will be replaced at runtime with the app name. -->
-	<string name="permission_notification">ÄúÊÇ·ñÒªÔÊÐí%1$sÏòÄú·¢ËÍÍ¨Öª£¿</string>
+	<string name="permission_notification">æ‚¨æ˜¯å¦è¦å…è®¸%1$så‘æ‚¨å‘é€é€šçŸ¥ï¼Ÿ</string>
 	<!-- This string will be displayed in a dialog box presented to the user
          when the application needs to request permission to access the device's external storage such as the
          sdcard. '%1$s' will be replaced at runtime with the app name. -->
-	<string name="permission_read_external_storage">ÄúÊÇ·ñÒªÔÊÐí%1$s¶ÁÈ¡ÄúµÄÍâ²¿´æ´¢£¿</string>
+	<string name="permission_read_external_storage">æ‚¨æ˜¯å¦è¦å…è®¸%1$sè¯»å–æ‚¨çš„å¤–éƒ¨å­˜å‚¨ï¼Ÿ</string>
 	<!-- This string is displayed in the settings dialog box and how
          the user can know which version of the application they are currently running.
          '%1$s' will be replaced at runtime with the application version number. -->
-	<string name="settings_version">°æ±¾%1$s</string>
+	<string name="settings_version">ç‰ˆæœ¬%1$s</string>
 	<!-- This string is displayed in the settings dialog and is used to label an
          ON/OFF switch which toggles whether an application crash is reported without first
          prompting the user. -->
-	<string name="settings_crash_reporting">±ÀÀ£±¨¸æ</string>
+	<string name="settings_crash_reporting">å´©æºƒæŠ¥å‘Š</string>
 	<!-- This string is displayed in the settings dialog and is used to label an ON/OFF
          switch which toggles whether telemetry is reported back to Mozilla. -->
-	<string name="settings_telemetry">Ò£²â</string>
+	<string name="settings_telemetry">é¥æµ‹</string>
 	<!-- This string is used to label a button that when pressed loads a Web page the
          describes Mozilla's privacy policy. -->
-	<string name="settings_privacy">ÒþË½Õþ²ß</string>
+	<string name="settings_privacy">éšç§æ”¿ç­–</string>
 	<!-- This string is used to label a button that when pressed loads a Web page
          that allows the user file an issue or problem they may have encountered while using the
          application or while visiting a site. -->
-	<string name="settings_report_issue">±¨¸æÎÊÌâ</string>
+	<string name="settings_report_issue">æŠ¥å‘Šé—®é¢˜</string>
 	<!-- This string is used in place of 'settings_version' for developer builds. -->
-	<string name="settings_version_developer">¿ª·¢Õß¹¹½¨</string>
+	<string name="settings_version_developer">å¼€å‘è€…æž„å»º</string>
 	<!-- This string is used to label a button in the settings dialog that when pressed
          opens a dialog box that contains setting an application or Web developer might want to change. -->
-	<string name="settings_developer_options">¿ª·¢ÕßÑ¡Ïî</string>
+	<string name="settings_developer_options">å¼€å‘è€…é€‰é¡¹</string>
 	<!-- This string is the title of a dialog box shown to the user when a settings
          change requires the application to restart. -->
-	<string name="restart_dialog_restart">ÐèÒªÖØ¿ª</string>
+	<string name="restart_dialog_restart">éœ€è¦é‡å¼€</string>
 	<!-- This string is the text displayed in the restart dialog box explaining why the
          restart is required. '%1$s' will be replaced at runtime with the app name. -->
-	<string name="restart_dialog_text">Äú±ØÐëÖØ¿ª£¥1$s²ÅÄÜÍê³É¸ü¸Ä¡£ÄúÏ£ÍûÁ¢¼´ÖØ¿ªÂð£¿</string>
+	<string name="restart_dialog_text">æ‚¨å¿…é¡»é‡å¼€ï¼…1$sæ‰èƒ½å®Œæˆæ›´æ”¹ã€‚æ‚¨å¸Œæœ›ç«‹å³é‡å¼€å—ï¼Ÿ</string>
 	<!-- This string is used to label the button the user presses to restart the
          application in the restart dialog. -->
-	<string name="restart_dialog_button">Á¢¼´ÖØ¿ª</string>
+	<string name="restart_dialog_button">ç«‹å³é‡å¼€</string>
 	<!-- This string labels an ON/OFF switch in the developer options
          dialog and is used to toggle remote debugging of Web content in the application. -->
-	<string name="developer_options_remote_debugging">ÆôÓÃÔ¶³Ìµ÷ÊÔ</string>
+	<string name="developer_options_remote_debugging">å¯ç”¨è¿œç¨‹è°ƒè¯•</string>
 	<!-- This string labels an ON/OFF switch in the developer options dialog
          and is used to toggle redirecting Javascript console output to the Android logcat. -->
-	<string name="developer_options_show_console">½«¿ØÖÆÌ¨ÖØ¶¨Ïòµ½Logcat</string>
+	<string name="developer_options_show_console">å°†æŽ§åˆ¶å°é‡å®šå‘åˆ°Logcat</string>
 	<!-- This string labels an ON/OFF switch in the developer options dialog
          and is used to toggle loading externally generated environments and overriding the ones built in. -->
-	<string name="developer_options_env_override">ÆôÓÃ»·¾³¸²¸Ç</string>
+	<string name="developer_options_env_override">å¯ç”¨çŽ¯å¢ƒè¦†ç›–</string>
 	<!-- This string labels an ON/OFF switch in the developer options dialog
          and is used to toggle running content in a separate process.
          Multiprocessing:
          the running of two or more programs or sequences of instructions simultaneously
          by a computer with more than one central processor. -->
-	<string name="developer_options_multiprocess">ÆôÓÃ¶à½ø³Ì</string>
+	<string name="developer_options_multiprocess">å¯ç”¨å¤šè¿›ç¨‹</string>
 	<!-- The string an ON/OFF switch in the developer options dialog and is used to toggle enabling servo. -->
-	<string name="developer_options_servo">ÆôÓÃËÅ·þ</string>
+	<string name="developer_options_servo">å¯ç”¨ä¼ºæœ</string>
 	<!-- This string is used to label a numerical entry field where the user
          may enter a new value to use for the display density. -->
-	<string name="developer_options_display_density">ÏÔÊ¾ÃÜ¶È£º</string>
+	<string name="developer_options_display_density">æ˜¾ç¤ºå¯†åº¦ï¼š</string>
 	<!-- This string is used to label two integer entry fields where the default height and width of
          the browser window may be set. -->
-	<string name="developer_options_window_size">´°¿Ú´óÐ¡£º</string>
+	<string name="developer_options_window_size">çª—å£å¤§å°ï¼š</string>
 	<!-- This string is used to label buttons to enable editing of text fields in the developer
          options dialog. Pressing this button switches the fields to edit boxes so their values
          may be changed. -->
-	<string name="developer_options_edit">±à¼­</string>
+	<string name="developer_options_edit">ç¼–è¾‘</string>
 	<!-- This string is used to label the 'Edit' button once it has been clicked by the user. It
          indicates that when the button is clicked, the user's edits will be saved. -->
-	<string name="developer_options_save">±£´æ</string>
+	<string name="developer_options_save">ä¿å­˜</string>
 	<!-- This string is used to label a numerical entry field where the user may enter a new value
          for the virtual displays dots per inch (DPI). -->
-	<string name="developer_options_display_dpi">ÏÔÊ¾DPI£º</string>
+	<string name="developer_options_display_dpi">æ˜¾ç¤ºDPIï¼š</string>
 	<!-- This string is used to label two integer entry fields that will allow the user to adjust
          the maximum window size in the X and Y dimensions. -->
-	<string name="developer_options_max_window_size">×î´ó´°¿Ú£º</string>
+	<string name="developer_options_max_window_size">æœ€å¤§çª—å£ï¼š</string>
 	<!-- This string is used to label radio buttons for setting multi-sample anti-aliasing (MSAA) in
          VR immersive mode. -->
 	<string name="developer_options_msaa">MSAA</string>
 	<!-- This string is used to label the MSAA radio button that disables MSAA in immersive mode. -->
-	<string name="developer_options_msaa_disabled">ÒÑ½ûÓÃ</string>
+	<string name="developer_options_msaa_disabled">å·²ç¦ç”¨</string>
 	<!-- This string is used to label the MSAA radio button that enables two times MSAA in immersive mode. -->
 	<string name="developer_options_msaa_2">2x</string>
 	<!-- This string is used to label the MSAA radio button that enables four times MSAA in immersive mode. -->
 	<string name="developer_options_msaa_4">4x</string>
 	<!-- This string is used to label a set of radio buttons that allow the user to
      change the user-agent (UA) string of the browser. -->
-	 <string name="developer_options_ua_mode">ÓÃ»§´úÀíÄ£Ê½</string>
+	 <string name="developer_options_ua_mode">ç”¨æˆ·ä»£ç†æ¨¡å¼</string>
 	 <!-- This string is used to label the desktop user-agent radio button of the 'User-Agent Mode'
          settings option. -->
-	<string name="developer_options_ua_desktop">×ÀÃæ</string>
+	<string name="developer_options_ua_desktop">æ¡Œé¢</string>
 	<!-- This string is used to label the mobile user-agent radio button of the 'User-Agent Mode'
          settings option. -->
-	<string name="developer_options_ua_mobile">ÊÖ»ú</string>
+	<string name="developer_options_ua_mobile">æ‰‹æœº</string>
 	<!-- This string is used to label the virtual reality (VR) user-agent radio button of the
          'User-Agent Mode' settings option. -->
 	<string name="developer_options_ua_vr">VR</string>
 	<!-- This string describes what the 'Reset' button in the developer options does which is
          restore all the developer settings to their default value. -->
-	<string name="developer_options_reset">ÖØÖÃ¿ª·¢ÕßÉèÖÃ</string>
+	<string name="developer_options_reset">é‡ç½®å¼€å‘è€…è®¾ç½®</string>
 	<!-- This string labels the 'Reset' button that restores the default developer settings values.  -->
-	<string name="developer_options_reset_button">ÖØÖÃ</string>
+	<string name="developer_options_reset_button">é‡ç½®</string>
 	<!-- This string describes the radio buttons used to select the environment seen while not in
          immersive mode. -->
-	<string name="developer_options_environments">»·¾³</string>
+	<string name="developer_options_environments">çŽ¯å¢ƒ</string>
 	<!-- This string labels the radio button that selects the 'Meadow' environment. -->
-	<string name="developer_options_env_meadow">²ÝµØ</string>
+	<string name="developer_options_env_meadow">è‰åœ°</string>
 	<!-- This string labels the radio button that selects the 'Cave' environment. -->
-	<string name="developer_options_env_cave">¶´Ñ¨</string>
+	<string name="developer_options_env_cave">æ´žç©´</string>
 	<!-- This string labels the radio button that selects the 'Void' environment. The void
          environment is an empty space that surrounds the user in empty, black space. -->
-	<string name="developer_options_env_void">¿Õ°×</string>
+	<string name="developer_options_env_void">ç©ºç™½</string>
 	<!-- This string describes the radio buttons used to select the pointer color. -->
-	<string name="developer_options_pointer_color">Ö¸ÕëÑÕÉ«</string>
+	<string name="developer_options_pointer_color">æŒ‡é’ˆé¢œè‰²</string>
 	<!-- This string labels the radio button that sets the pointer color to white. -->
-	<string name="developer_options_pointer_white">°×É«</string>
+	<string name="developer_options_pointer_white">ç™½è‰²</string>
 	<!-- This string labels the radio button that sets the pointer color to purple.  -->
-	<string name="developer_options_pointer_purple">×ÏÉ«</string>
+	<string name="developer_options_pointer_purple">ç´«è‰²</string>
 	<!-- This string is displayed below the ON/OFF switch to indicated the switches current
          state as 'ON'.  -->
-	<string name="on">¿ª</string>
+	<string name="on">å¼€</string>
 	<!-- This string is displayed below the ON/OFF switch to indicated the switches current
          state as 'OFF'.  -->
-	<string name="off">¹Ø</string>
+	<string name="off">å…³</string>
 	<!-- This string is displayed in the voice search dialog box that is show to the user when they press the
          button used to initiate voice search. -->
-	<string name="voice_search_start">ÄúÏ£ÍûÔÚÍøÂçÉÏËÑË÷Ê²Ã´£¿</string>
+	<string name="voice_search_start">æ‚¨å¸Œæœ›åœ¨ç½‘ç»œä¸Šæœç´¢ä»€ä¹ˆï¼Ÿ</string>
 	<!-- This string is displayed in the voice search dialog box and gives examples of phrases they
          might use in a voice search. -->
-	<string name="voice_search_example">ÀýÈç£ºÇëËµ\&quot;360ÊÓÆµ¡¢ÌìÆø¡¢ÐÂÎÅ¡­\&quot;</string>
+	<string name="voice_search_example">ä¾‹å¦‚ï¼šè¯·è¯´\&quot;360è§†é¢‘ã€å¤©æ°”ã€æ–°é—»â€¦\&quot;</string>
 	<!-- This string is displayed in a dialog box show to the user while the voice search is being
          performed. It indicates that the search query is running and they should wait for the result. -->
-	<string name="voice_search_decoding">ÕýÔÚËÑË÷¡­</string>
+	<string name="voice_search_decoding">æ­£åœ¨æœç´¢â€¦</string>
 	<!-- This string is displayed in a dialog box when the phrase the user spoke for the voice search
          was not understood by the system. -->
-	<string name="voice_search_error">±§Ç¸!ÎÒÃ»ÓÐÌý¶®¡£</string>
+	<string name="voice_search_error">æŠ±æ­‰!æˆ‘æ²¡æœ‰å¬æ‡‚ã€‚</string>
 	<!-- This string is displayed in a dialog box after a failed voice search and is prompting the
          user to try the voice search again. -->
-	<string name="voice_search_try_again">ÇëÖØÊÔ¡£</string>
+	<string name="voice_search_try_again">è¯·é‡è¯•ã€‚</string>
 	<!-- This string is displayed in a dialog after the user has declined permission to use the
          devices microphone. It explains why voice search is not working. -->
-	<string name="voice_search_permission_after_decline">ÇëÔÊÐí·ÃÎÊÂó¿Ë·çÒÔÊ¹ÓÃÓïÒôËÑË÷¡£</string>
+	<string name="voice_search_permission_after_decline">è¯·å…è®¸è®¿é—®éº¦å…‹é£Žä»¥ä½¿ç”¨è¯­éŸ³æœç´¢ã€‚</string>
 	<!-- This string is displayed in the URL bar when it is empty. It informs the user that they
          may use the URL bar to search the Web or enter a Web address. -->
-	<string name="search_placeholder">ËÑË÷ÍøÂç»òÊäÈëÍøÖ·</string>
+	<string name="search_placeholder">æœç´¢ç½‘ç»œæˆ–è¾“å…¥ç½‘å€</string>
 	<!-- This string labels a button used to cancel an action. -->
-	<string name="cancel_button">È¡Ïû</string>
+	<string name="cancel_button">å–æ¶ˆ</string>
 	<!-- This string labels a button that are used to approve an action. -->
-	<string name="ok_button">ºÃ</string>
+	<string name="ok_button">å¥½</string>
 	<!-- This string labels a button to go back to the previous menu or exits the current mode -->
-	<string name="back_button">ºóÍË</string>
+	<string name="back_button">åŽé€€</string>
 	<!-- This string is displayed in a dialog after an application crash. -->
-	<string name="crash_dialog_heading">ÎÒÃÇÓöµ½ÎÊÌâ²¢ÇÒ±ÀÀ£ÁË</string>
+	<string name="crash_dialog_heading">æˆ‘ä»¬é‡åˆ°é—®é¢˜å¹¶ä¸”å´©æºƒäº†</string>
 	<!-- This string explains why Mozilla would like the user to allow the crash data to be uploaded.
          '%1$s' will be replaced at runtime with the app name. -->
-	<string name="crash_dialog_message">Çë·¢ËÍÄúµÄ±ÀÀ£Êý¾Ý£¬ÒÔ°ïÖúMozilla¸Ä½ø£¥1$s¡£</string>
+	<string name="crash_dialog_message">è¯·å‘é€æ‚¨çš„å´©æºƒæ•°æ®ï¼Œä»¥å¸®åŠ©Mozillaæ”¹è¿›ï¼…1$sã€‚</string>
 	<!-- This string labels a checkbox in the crash dialog box. When checked, the user will no longer
          be prompted for permission to upload crash data after an application crash. -->
-	<string name="crash_dialog_send_data">²»ÔÙÑ¯ÎÊ£¬Ê¼ÖÕ·¢ËÍÊý¾Ý</string>
+	<string name="crash_dialog_send_data">ä¸å†è¯¢é—®ï¼Œå§‹ç»ˆå‘é€æ•°æ®</string>
 	<!-- This string labels a button that when clicked allows the user to learn more about the
          currently open dialog. -->
-	<string name="learn_more_button">ÁË½âÏêÇé</string>
+	<string name="learn_more_button">äº†è§£è¯¦æƒ…</string>
 	<!-- This string labels a button that when clicked prevents crash data from being sent to Mozilla. -->
-	<string name="do_not_sent_button">²»·¢ËÍ</string>
+	<string name="do_not_sent_button">ä¸å‘é€</string>
 	<!-- This string labels a button that when clicked allows the crash data to be sent to Mozilla. -->
-	<string name="send_data_button">·¢ËÍÊý¾Ý</string>
+	<string name="send_data_button">å‘é€æ•°æ®</string>
 	<!-- This string labels a button to open the Brightness mode selector-->
-	<string name="brightness_mode_tooltip">ÁÁ¶È</string>
+	<string name="brightness_mode_tooltip">äº®åº¦</string>
 	<!-- This string is displayed when selecting a background brightness mode -->
-	<string name="brightness_mode_normal">Õý³£</string>
+	<string name="brightness_mode_normal">æ­£å¸¸</string>
 	<!-- This string is displayed when selecting a background brightness mode -->
-	<string name="brightness_mode_dark">°µ</string>
+	<string name="brightness_mode_dark">æš—</string>
 	<!-- This string is displayed when selecting a background brightness mode -->
-	<string name="brightness_mode_void">¿Õ°×</string>
+	<string name="brightness_mode_void">ç©ºç™½</string>
 	<!-- This string labels a button to open the Video projection mode selector-->
-	<string name="video_mode_tooltip">ÊÓÆµÍ¶Ó°</string>
+	<string name="video_mode_tooltip">è§†é¢‘æŠ•å½±</string>
 	<!-- This string is displayed when selecting a video playback mode -->
-	<string name="video_mode_3d_side">3D²¢ÅÅ</string>
+	<string name="video_mode_3d_side">3Då¹¶æŽ’</string>
 	<!-- This string is displayed when selecting a video playback mode -->
 	<string name="video_mode_360">360</string>
 	<!-- This string is displayed when selecting a video playback mode -->
-	<string name="video_mode_360_stereo">360Á¢ÌåÉù</string>
+	<string name="video_mode_360_stereo">360ç«‹ä½“å£°</string>
 	<!-- This string is displayed when selecting a video playback mode -->
 	<string name="video_mode_180">180</string>
 	<!-- This string is displayed when selecting a video playback mode -->
-	<string name="video_mode_180_left_right">Á¢ÌåÉù180£¨×ó/ÓÒ£©</string>
+	<string name="video_mode_180_left_right">ç«‹ä½“å£°180ï¼ˆå·¦/å³ï¼‰</string>
 	<!-- This string is displayed when selecting a video playback mode -->
-	<string name="video_mode_180_top_bottom">Á¢ÌåÉù180£¨ÉÏ/ÏÂ£©</string>
+	<string name="video_mode_180_top_bottom">ç«‹ä½“å£°180ï¼ˆä¸Š/ä¸‹ï¼‰</string>
 	<!-- This string is displayed when selecting a video playback mode -->
 	<string name="video_mode_2d">2D</string>
 	<!-- This string is displayed as a tooltip in the video controls UI -->
-	<string name="video_controls_play">²¥·Å</string>
+	<string name="video_controls_play">æ’­æ”¾</string>
 	<!-- This string is displayed as a tooltip in the video controls UI -->
-	<string name="video_controls_pause">ÔÝÍ£</string>
+	<string name="video_controls_pause">æš‚åœ</string>
 	<!-- This string is displayed as a tooltip in the video controls UI -->
-	<string name="video_controls_mute">¾²Òô</string>
+	<string name="video_controls_mute">é™éŸ³</string>
 	<!-- This string is displayed as a tooltip in the video controls UI -->
-	<string name="video_controls_unmute">»Ö¸´ÉùÒô</string>
+	<string name="video_controls_unmute">æ¢å¤å£°éŸ³</string>
 	<!-- This string is displayed as a tooltip in the video controls UI -->
-	<string name="video_controls_volume">ÒôÁ¿</string>
+	<string name="video_controls_volume">éŸ³é‡</string>
 	<!-- This string is displayed as a tooltip in the video controls UI. E.g Seek +10 seconds -->
-	<string name="video_controls_seek_forward">Ñ°Çó+£¥1$Ãë</string>
+	<string name="video_controls_seek_forward">å¯»æ±‚+ï¼…1$ç§’</string>
 	<!-- This string is displayed as a tooltip in the video controls UI. E.g Seek -10 seconds -->
-	<string name="video_controls_seek_backward">Ñ°Çó-£¥1$Ãë</string>
+	<string name="video_controls_seek_backward">å¯»æ±‚-ï¼…1$ç§’</string>
 </resources>

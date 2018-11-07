@@ -149,7 +149,7 @@
 	<string name="voice_search_example">例: \&quot;360 ビデオ、天気、ニュース…\&quot;</string>
 	<!-- This string is displayed in a dialog box show to the user while the voice search is being
          performed. It indicates that the search query is running and they should wait for the result. -->
-	<string name="voice_search_decoding">検索しています...</string>
+	<string name="voice_search_decoding">検索しています…</string>
 	<!-- This string is displayed in a dialog box when the phrase the user spoke for the voice search
          was not understood by the system. -->
 	<string name="voice_search_error">認識できませんでした。</string>

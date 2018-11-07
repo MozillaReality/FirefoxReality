@@ -146,7 +146,7 @@
     <string name="voice_search_start">¿Qué le gustaría buscar en Internet?</string>
     <!-- This string is displayed in the voice search dialog box and gives examples of phrases they
          might use in a voice search. -->
-    <string name="voice_search_example">Ejemplo: Diga: \"vídeos de 360, clima, noticias...\"</string>
+    <string name="voice_search_example">Ejemplo: Diga: \"vídeos de 360, clima, noticias…\"</string>
     <!-- This string is displayed in a dialog box show to the user while the voice search is being
          performed. It indicates that the search query is running and they should wait for the result. -->
     <string name="voice_search_decoding">Buscando…</string>
