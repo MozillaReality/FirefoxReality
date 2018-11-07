@@ -332,11 +332,12 @@ public class SuggestionsWidget extends UIWidget implements WidgetManagerDelegate
             switch (ev) {
                 case MotionEvent.ACTION_UP:
                     view.setPressed(false);
-                    return false;
+                    view.performClick();
+                    return true;
 
                 case MotionEvent.ACTION_DOWN:
                     view.setPressed(true);
-                    return false;
+                    return true;
             }
 
             return false;
