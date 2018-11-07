@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="x-cp20936"?>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<resources>
+<!-- Private Browsing -->
+	<string name="private_browsing_title">隐私浏览</string>
+    <string name="private_browsing_body"><![CDATA[
+<h1>隐私浏览</h1>
+
+<p>当您在隐私浏览窗口中浏览时，%1$s <strong>不会保存</strong>：</p>
+
+<ul class="two-column">
+    <li>访问过的页面</li>
+    <li>搜索记录</li>
+    <li>cookie</li>
+    <li>临时文件</li>
+</ul>
+
+<p>隐私浏览<strong>不会使您</strong>在互联网上匿名。您的雇主或者网络服务提供商仍然可以知道您访问了什么页面。</p>
+
+<p class="about-info">详细了解<a id="learnMore">隐私浏览</a>。</p>
+     ]]></string>
+
+</resources>

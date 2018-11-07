@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<resources>
+	<!-- Private Browsing -->
+	<string name="private_browsing_title">プライベートブラウジング</string>
+    <string name="private_browsing_body"><![CDATA[
+<h1>プライベートブラウジング</h1>
+
+<p>プライベートブラウジング中、%1$s は以下を<strong>保存しません</strong>:</p>
+
+<ul class="two-column">
+    <li>表示したページ</li>
+    <li>検索履歴</li>
+    <li>Cookie </li>
+    <li>一時ファイル</li>
+</ul>
+
+<p>プライベートブラウジングは、<strong>匿名化はできません</strong>。ネットワーク管理者やインターネットサービスプロバイダーは、依然としてあなたが訪れたページを追跡できます。</p>
+
+<p class="about-info"><a id="learnMore">プライベートブラウジング</a>の詳細をご確認ください。</p>
+     ]]></string>
+
+</resources>
