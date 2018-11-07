@@ -158,10 +158,10 @@
     <string name="voice_search_try_again">Riprovare.</string>
     <!-- This string is displayed in a dialog after the user has declined permission to use the
          devices microphone. It explains why voice search is not working. -->
-    <string name="voice_search_permission_after_decline">Consentire l'accesso al microfono per utilizzare la ricerca vocale.</string>
+    <string name="voice_search_permission_after_decline">Consentire l’accesso al microfono per utilizzare la ricerca vocale.</string>
     <!-- This string is displayed in the URL bar when it is empty. It informs the user that they
          may use the URL bar to search the Web or enter a Web address. -->
-    <string name="search_placeholder">Cercare nel web o inserire l'indirizzo</string>
+    <string name="search_placeholder">Cercare nel web o inserire l’indirizzo</string>
     <!-- This string labels a button used to cancel an action. -->
     <string name="cancel_button">Annulla</string>
     <!-- This string labels a button that are used to approve an action. -->

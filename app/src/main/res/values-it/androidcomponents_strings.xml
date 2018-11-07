@@ -53,7 +53,7 @@
     <string name="mozac_browser_errorpages_net_timeout_message"><![CDATA[
 	<p>Il sito richiesto non ha risposto a una richiesta di connessione e il browser ha smesso di attendere una risposta.</p>
 	<ul>
-		<li>È possibile che il server sia soggetto a un’elevata richiesta o un'interruzione temporanea. Riprovare più tardi.</li>
+		<li>È possibile che il server sia soggetto a un’elevata richiesta o un’interruzione temporanea. Riprovare più tardi.</li>
 		<li>Si riesce a navigare su altri siti? Controllare la connessione di rete del computer. </li>
 		<li> Il computer o la rete sono protetti da un firewall o un proxy? Impostazioni errate possono interferire con la navigazione sul web. </li>
 		<li> Si riscontrano ancora problemi? Consultare l’amministratore di rete o il provider Internet per ricevere assistenza. </li>
@@ -81,7 +81,7 @@
 	<string name="mozac_browser_errorpages_redirect_loop_title">La pagina non reindirizza in modo corretto</string>
     <!-- The error message shown when the browser gets stuck in an infinite loop when loading a website. -->
     <string name="mozac_browser_errorpages_redirect_loop_message"><![CDATA[
-	<p> Il browser ha smesso di cercare di recuperare l'elemento richiesto. Il sito sta reindirizzando la richiesta in un modo che non sarà mai completato. </p>
+	<p> Il browser ha smesso di cercare di recuperare l’elemento richiesto. Il sito sta reindirizzando la richiesta in un modo che non sarà mai completato. </p>
 	<ul>
 		<li> Sono stati disabilitati o bloccati i cookie richiesti da questo sito? </li>
 		<li> Se accettando i cookie del sito non risolve il problema, è probabile che si tratti di un problema di configurazione del server e non del computer. </li>
@@ -103,7 +103,7 @@
 	<string name="mozac_browser_errorpages_port_blocked_title">Porta bloccata per motivi di sicurezza</string>
     <!-- The error message shown when the browser prevents loading a website on a restricted port. -->
     <string name="mozac_browser_errorpages_port_blocked_message"><![CDATA[
-	<p> L'indirizzo richiesto specificava una porta (per es. <q> Mozilla.org:80</q> per la porta 80 su mozilla.org) normalmente utilizzata per scopi <em>diversi</em> dalla navigazione sul web. Il browser ha annullato la richiesta per garantire la protezione e la sicurezza dell’utente. </p>
+	<p> L’indirizzo richiesto specificava una porta (per es. <q> Mozilla.org:80</q> per la porta 80 su mozilla.org) normalmente utilizzata per scopi <em>diversi</em> dalla navigazione sul web. Il browser ha annullato la richiesta per garantire la protezione e la sicurezza dell’utente. </p>
 	]]></string>
 	
 	<!-- The document title and heading of the error page shown when the Internet connection is disrupted while loading a website. -->
@@ -132,7 +132,7 @@
     <string name="mozac_browser_errorpages_corrupted_content_message"><![CDATA[
 	<p>La pagina che si sta cercando di visualizzare non può essere mostrata a causa di un errore di trasmissione dati.</p>
 	<ul>
-		<li>Contattare l'amministratore del sito per segnalare il problema.</li>
+		<li>Contattare l’amministratore del sito per segnalare il problema.</li>
 	</ul>
 	]]></string>
 	
@@ -141,7 +141,7 @@
     <string name="mozac_browser_errorpages_content_crashed_message"><![CDATA[
 	<p>La pagina che si sta cercando di visualizzare non può essere mostrata a causa di un errore di trasmissione dati.</p>
 	<ul>
-		<li>Contattare l'amministratore del sito per segnalare il problema.</li>
+		<li>Contattare l’amministratore del sito per segnalare il problema.</li>
 	</ul>
 	]]></string>
 	
@@ -158,9 +158,9 @@
 	<string name="mozac_browser_errorpages_unknown_host_title">Indirizzo non trovato</string>
     <!-- In the example, the two URLs in markup do not need to be translated. -->
     <string name="mozac_browser_errorpages_unknown_host_message"><![CDATA[
-	<p>Il browser non è riuscito a trovare il server host per l'indirizzo fornito.</p>
+	<p>Il browser non è riuscito a trovare il server host per l’indirizzo fornito.</p>
 	<ul>
-		<li>Verificare se l'indirizzo contiene errori di battitura del tipo 
+		<li>Verificare se l’indirizzo contiene errori di battitura del tipo
 			<strong>ww</strong>.esempio.com invece di 
 			<strong>www</strong>.esempio.com</li>
 		<li>Se non è possibile caricare alcuna pagina, controllare la connessione dati o Wi-Fi del dispositivo.</li>
@@ -170,7 +170,7 @@
 	<!-- The document title and heading of an error page. -->
 	<string name="mozac_browser_errorpages_malformed_uri_title">Indirizzo non valido</string>
     <string name="mozac_browser_errorpages_malformed_uri_message"><![CDATA[
-	<p> L'indirizzo fornito non è in un formato riconosciuto. Controllare la barra degli indirizzi per individuare eventuali errori e riprovare. </p>
+	<p> L’indirizzo fornito non è in un formato riconosciuto. Controllare la barra degli indirizzi per individuare eventuali errori e riprovare. </p>
 	]]></string>
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_malformed_uri_title_alternative">L’indirizzo non è valido</string>
@@ -185,7 +185,7 @@
 	<!-- The document title and heading of an error page. -->
 	<string name="mozac_browser_errorpages_unknown_protocol_title">Protocollo sconosciuto</string>
     <string name="mozac_browser_errorpages_unknown_protocol_message"><![CDATA[
-	<p> L'indirizzo specifica un protocollo (per es. <q> wxyz://z/q>) che il browser non riconosce per cui non può connettersi correttamente al sito. </p>
+	<p> L’indirizzo specifica un protocollo (per es. <q> wxyz://z/q>) che il browser non riconosce per cui non può connettersi correttamente al sito. </p>
 	<ul>
 		<li> Si sta cercando di accedere a servizi multimediali o altri servizi non in formato testo? Controllare se il sito ha ulteriori requisiti. </li>
 		<li> Alcuni protocolli potrebbero richiedere software o plug-in di terze parti prima che il browser possa riconoscerli. </li>
@@ -206,7 +206,7 @@
 	<string name="mozac_browser_errorpages_file_access_denied_title">Accesso al file non consentito</string>
     <string name="mozac_browser_errorpages_file_access_denied_message"><![CDATA[
 	<ul>
-		<li>Il file potrebbe essere stato spostato o cancellato oppure i permessi sul file potrebbero impedirne l'accesso.</li>
+		<li>Il file potrebbe essere stato spostato o cancellato oppure i permessi sul file potrebbero impedirne l’accesso.</li>
 	</ul>
 	]]></string>
 	
