@@ -118,15 +118,15 @@ public class PermissionWidget extends UIWidget implements WidgetManagerDelegate.
                 iconId = R.drawable.ic_icon_dialog_camera;
                 break;
             case Location:
-                messageId = R.string.permission_geolocation;
+                messageId = R.string.permission_location;
                 iconId = R.drawable.ic_icon_dialog_geolocation;
                 break;
             case Notification:
-                messageId = R.string.permission_notifications;
+                messageId = R.string.permission_notification;
                 iconId = R.drawable.ic_icon_dialog_notification;
                 break;
             case ReadExternalStorage:
-                messageId = R.string.permission_external_storage_read;
+                messageId = R.string.permission_read_external_storage;
                 iconId = R.drawable.ic_icon_storage;
                 break;
             default:

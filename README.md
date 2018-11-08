@@ -14,7 +14,7 @@ You can find us on Twitter [@MozillaReality](https://twitter.com/mozillareality)
 
 ## L10n
 
-Whenever a new string is added to a localizable strings file (strings.xml ,localpages.xml, ...) a string description must be provided as a comment above the new string. Also the project STRs wiki page must be updated with a key description, steps to reproduce and the excepted results.
+Whenever a new string is added to a localizable strings file (strings.xml ,localpages.xml, ...) a string description must be provided as a comment above the new string. Also the project STRs wiki page must be updated with a key description, steps to reproduce and the expected results.
 The L10n wiki page can be found [here](https://github.com/MozillaReality/FirefoxReality/wiki/L10n).
 
 ## Setup instructions

@@ -31,18 +31,18 @@
     <!-- This string will be displayed in a dialog box presented to the user
          when the application needs to request permission to access the device's geographic location.
          '%1$s' will be replaced at runtime with the website's domain name. -->
-    <string name="permission_geolocation">Will you allow %1$s to access your location?</string>
+    <string name="permission_location">Will you allow %1$s to access your location?</string>
 
     <!-- This string will be displayed in a dialog box presented to the user
          when the application needs to request permission to send browser-level
          push notifications from a particular website (i.e., same origin).
          '%1$s' will be replaced at runtime with the website's domain name. -->
-    <string name="permission_notifications">Will you allow %1$s to send notifications?</string>
+    <string name="permission_notification">Will you allow %1$s to send notifications?</string>
 
     <!-- This string will be displayed in a dialog box presented to the user when the application
          needs to request permission to access the device's external storage such as the
          sdcard. '%1$s' will be replaced at runtime with the website's domain name. -->
-    <string name="permission_external_storage_read">Will you allow %1$s to read your external storage?</string>
+    <string name="permission_read_external_storage">Will you allow %1$s to read your external storage?</string>
 
     <!-- This string will be displayed in a dialog box presented to the user when the application
          needs to request permission to access the device's external storage such as the
@@ -151,14 +151,14 @@
     <string name="restart_dialog_restart">Restart Required</string>
 
     <!-- This string is the text displayed in the restart dialog box explaining why the
-         restart is required. '%1$s' will be replaced at runtime with the website's domain name. -->
+         restart is required. '%1$s' will be replaced at runtime with the app's name. -->
     <string name="restart_dialog_text">You must restart %1$s in order to complete changes. Would you like to do that now?</string>
 
     <!-- This string is used to label the button the user presses to restart the
          application in the restart dialog. -->
     <string name="restart_now_dialog_button">Restart Now</string>
 
-    <!-- This string is used to label the button the user presses to restart the postpone the app restart. -->
+    <!-- This string is used to label the button the user presses to postpone the app restart. -->
     <string name="restart_later_dialog_button">Restart Later</string>
 
     <!-- This string labels an On/Off switch in the 'Developer Options' dialog
@@ -270,11 +270,11 @@
     <!-- This string is displayed below the On/Off switch to indicate a switch's current state as 'Off'. -->
     <string name="off">Off</string>
 
-    <!-- This string is displayed in the voice-search dialog box that is show to the user when they press the
+    <!-- This string is displayed in the voice-search dialog box that is shown to the user when they press the
          button used to initiate Voice Search. -->
     <string name="voice_search_start">What would you like to search on the Web?</string>
 
-    <!-- This string is displayed in the voice-search dialog box that is show to the user when they press the
+    <!-- This string is displayed in the voice-search dialog box that is shown to the user when they press the
          button used to initiate Voice Search. -->
     <string name="voice_search_example">Example: Please say, “360 videos, weather, news…”</string>
 
@@ -313,7 +313,7 @@
     <string name="crash_dialog_heading">We had an issue and crashed</string>
 
     <!-- This string explains why Mozilla would like the user to allow the crash data to be uploaded.
-         '%1$s' will be replaced at runtime with the website's domain name. -->
+         '%1$s' will be replaced at runtime with the app's domain name. -->
     <string name="crash_dialog_message">Please help Mozilla improve %1$s by sending your crash data.</string>
 
     <!-- This string labels a checkbox in the crash dialog box. When checked, the user will no longer
@@ -451,7 +451,7 @@
          'Forward' refers to going back one page in 'History'. -->
     <string name="forward_tooltip">Forward</string>
 
-    <!-- This string is for the tooltip that appears upon hovering the 'Forward' button in the browser's navigation bar.
+    <!-- This string is for the tooltip that appears upon hovering the 'Refresh' button in the browser's navigation bar.
          'Refresh' refers to reloading the current page. -->
     <string name="refresh_tooltip">Refresh</string>
 
