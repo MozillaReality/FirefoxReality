@@ -486,4 +486,7 @@
          user's History. -->
     <string name="show_history_tooltip">Show history</string>
 
+    <!-- This string is displayed in any button used for removing all the items in the current context. -->
+    <string name="remove_all">Remove All</string>
+
 </resources>
