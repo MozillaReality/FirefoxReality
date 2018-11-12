@@ -25,7 +25,6 @@ import android.view.View;
 import android.widget.FrameLayout;
 
 import org.mozilla.gecko.GeckoVRManager;
-import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.geckoview.CrashReporter;
 import org.mozilla.geckoview.GeckoRuntime;
 import org.mozilla.geckoview.GeckoSession;
@@ -35,7 +34,6 @@ import org.mozilla.vrbrowser.browser.PermissionDelegate;
 import org.mozilla.vrbrowser.browser.SessionStore;
 import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.crashreporting.CrashReporterService;
-import org.mozilla.vrbrowser.crashreporting.GlobalExceptionHandler;
 import org.mozilla.vrbrowser.geolocation.GeolocationWrapper;
 import org.mozilla.vrbrowser.input.MotionEventGenerator;
 import org.mozilla.vrbrowser.search.SearchEngineWrapper;
@@ -52,6 +50,7 @@ import org.mozilla.vrbrowser.ui.widgets.VideoProjectionMenuWidget;
 import org.mozilla.vrbrowser.ui.widgets.Widget;
 import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
 import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
+import org.mozilla.vrbrowser.utils.ThreadUtils;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -122,9 +121,6 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        // Set a global exception handler as soon as possible
-        GlobalExceptionHandler.register();
-
         if (BuildConfig.FLAVOR_platform == "oculusvr") {
             workaroundGeckoSigAction();
         }
@@ -561,8 +557,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         }
         mIsPresentingImmersive = false;
         TelemetryWrapper.uploadImmersiveToHistogram();
-        Handler handler = new Handler(Looper.getMainLooper());
-        handler.postDelayed(() -> {
+        ThreadUtils.postDelayedToUiThread(() -> {
             if (mBrowserWidget != null) {
                 mBrowserWidget.resumeCompositor();
                 Log.d(LOGTAG, "Compositor Resumed");

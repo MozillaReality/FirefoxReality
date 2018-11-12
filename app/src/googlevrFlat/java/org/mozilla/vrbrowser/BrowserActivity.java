@@ -22,7 +22,6 @@ import android.widget.TextView;
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.geckoview.GeckoSessionSettings;
 import org.mozilla.geckoview.GeckoView;
-import org.mozilla.gecko.util.GeckoBundle;
 import org.mozilla.vrbrowser.SessionStore;
 import org.mozilla.vrbrowser.audio.AudioEngine;
 import org.mozilla.vrbrowser.audio.VRAudioTheme;
@@ -342,30 +341,6 @@ public class BrowserActivity extends Activity implements SessionStore.SessionCha
                                              MediaSource[] mediaSources, MediaSource[] mediaSources1,
                                              MediaCallback mediaCallback) {
 
-        }
-
-        private void normalizeMediaName(final GeckoBundle[] sources) {
-/*            if (sources == null) {
-                return;
-            }
-            for (final GeckoBundle source : sources) {
-                final String mediaSource = source.getString("mediaSource");
-                String name = source.getString("name");
-                if ("camera".equals(mediaSource)) {
-                    if (name.toLowerCase(Locale.ENGLISH).contains("front")) {
-                        name = getString(R.string.media_front_camera);
-                    } else {
-                        name = getString(R.string.media_back_camera);
-                    }
-                } else if (!name.isEmpty()) {
-                    continue;
-                } else if ("microphone".equals(mediaSource)) {
-                    name = getString(R.string.media_microphone);
-                } else {
-                    name = getString(R.string.media_other);
-                }
-                source.putString("name", name);
-            }*/
         }
     }
 }

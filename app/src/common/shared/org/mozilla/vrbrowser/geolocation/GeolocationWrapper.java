@@ -3,9 +3,9 @@ package org.mozilla.vrbrowser.geolocation;
 import android.content.Context;
 import android.support.annotation.NonNull;
 
-import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.browser.SettingsStore;
+import org.mozilla.vrbrowser.utils.ThreadUtils;
 
 public class GeolocationWrapper {
 

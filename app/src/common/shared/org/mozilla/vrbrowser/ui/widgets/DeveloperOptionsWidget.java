@@ -547,6 +547,7 @@ public class DeveloperOptionsWidget extends UIWidget {
 
             if (doApply) {
                 SessionStore.get().setMaxWindowSize(newMaxWindowWidth, newMaxWindowHeight);
+                showRestartDialog();
             }
         }
 

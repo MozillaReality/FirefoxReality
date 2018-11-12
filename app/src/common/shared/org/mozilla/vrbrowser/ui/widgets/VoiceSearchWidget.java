@@ -29,8 +29,6 @@ import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.audio.AudioEngine;
 import org.mozilla.vrbrowser.ui.views.UIButton;
 
-import static org.mozilla.gecko.GeckoAppShell.getApplicationContext;
-
 public class VoiceSearchWidget extends UIWidget implements WidgetManagerDelegate.PermissionListener,
         Application.ActivityLifecycleCallbacks, WidgetManagerDelegate.FocusChangeListener {
 
@@ -121,7 +119,7 @@ public class VoiceSearchWidget extends UIWidget implements WidgetManagerDelegate
             onDismiss();
         });
 
-        ((Application)getApplicationContext()).registerActivityLifecycleCallbacks(this);
+        ((Application)aContext.getApplicationContext()).registerActivityLifecycleCallbacks(this);
     }
 
     public void setDelegate(VoiceSearchDelegate delegate) {
@@ -133,7 +131,7 @@ public class VoiceSearchWidget extends UIWidget implements WidgetManagerDelegate
         mWidgetManager.removeFocusChangeListener(this);
         mWidgetManager.removePermissionListener(this);
         mMozillaSpeechService.removeListener(mVoiceSearchListener);
-        ((Application)getApplicationContext()).unregisterActivityLifecycleCallbacks(this);
+        ((Application)getContext().getApplicationContext()).unregisterActivityLifecycleCallbacks(this);
 
         super.releaseWidget();
     }
@@ -214,13 +212,13 @@ public class VoiceSearchWidget extends UIWidget implements WidgetManagerDelegate
     };
 
     public void startVoiceSearch() {
-        if (ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.RECORD_AUDIO)
+        if (ActivityCompat.checkSelfPermission(getContext().getApplicationContext(), Manifest.permission.RECORD_AUDIO)
                 != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions((Activity)getContext(), new String[]{Manifest.permission.RECORD_AUDIO},
                     VOICESEARCH_AUDIO_REQUEST_CODE);
         } else {
             mMozillaSpeechService.setLanguage("en-us");
-            mMozillaSpeechService.start(getApplicationContext());
+            mMozillaSpeechService.start(getContext().getApplicationContext());
             mIsSpeechRecognitionRunning = true;
         }
     }
