@@ -12,7 +12,7 @@
     <!-- This string is used as the body of the Private Browsing page that is opened when the
     Private Browsing Mode button from the tray is clicked. -->
     <string name="private_browsing_body"><![CDATA[
-<p>%1$0.sプライベートウィンドウでは以下を<strong>保存しません</strong>:</p>
+<p>%1$sプライベートウィンドウでは以下を<strong>保存しません</strong>:</p>
 <ul class="two-column">
   <li>表示したページ</li>
   <li>検索履歴</li>
