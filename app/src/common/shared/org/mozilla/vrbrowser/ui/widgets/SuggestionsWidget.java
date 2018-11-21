@@ -75,7 +75,7 @@ public class SuggestionsWidget extends UIWidget implements WidgetManagerDelegate
 
             @Override
             public void onAnimationEnd(Animation animation) {
-                ThreadUtils.postToUiThread(() -> SuggestionsWidget.super.hide(REMOVE_WIDGET));
+                ThreadUtils.postToUiThread(() -> SuggestionsWidget.super.hide(KEEP_WIDGET));
             }
 
             @Override
