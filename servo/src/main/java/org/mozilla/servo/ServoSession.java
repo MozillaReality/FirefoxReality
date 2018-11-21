@@ -33,7 +33,7 @@ public class ServoSession extends GeckoSession {
         mActivity = (Activity) aContext;
     }
 
-    public void onSurfaceReady(Surface surface, int width, int height) {
+    public void onSurfaceReady(Surface surface, int left, int top, int width, int height) {
         Log.d(LOGTAG, "onSurfaceReady()");
         if (mServo == null) {
             mWidth = width;
