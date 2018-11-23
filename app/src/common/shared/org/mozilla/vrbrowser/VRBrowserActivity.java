@@ -62,9 +62,11 @@ import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.function.Consumer;
 
 import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
@@ -130,6 +132,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     private LinkedList<Pair<Object, Float>> mBrightnessQueue;
     private Pair<Object, Float> mCurrentBrightness;
     private SearchEngineWrapper mSearchEngineWrapper;
+    private ArrayList<Widget> mResizableWidgets;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -160,6 +163,8 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         mBackHandlers = new LinkedList<>();
         mBrightnessQueue = new LinkedList<>();
         mCurrentBrightness = Pair.create(null, 1.0f);
+
+        mResizableWidgets = new ArrayList<>();
 
         mWidgets = new HashMap<>();
         mWidgetContainer = new FrameLayout(this);
@@ -235,6 +240,8 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         // Add widget listeners
         mTray.addListeners(new TrayListener[]{mBookmarksWidget, mNavigationBar});
         mBookmarksWidget.addListeners(new BookmarkListener[]{mBrowserWidget, mNavigationBar, mTray});
+
+        mResizableWidgets.addAll(Arrays.asList(mBrowserWidget, mBookmarksWidget));
 
         addWidgets(Arrays.asList(mRootWidget, mBrowserWidget, mNavigationBar, mKeyboard, mTray, mBookmarksWidget));
     }
@@ -562,12 +569,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     @SuppressWarnings("unused")
     void handleResize(final int aHandle, final float aWorldWidth, final float aWorldHeight) {
         runOnUiThread(() -> {
-            Widget widget = mWidgets.get(aHandle);
-            if (widget != null) {
-                widget.handleResizeEvent(aWorldWidth, aWorldHeight);
-            } else {
-                Log.e(LOGTAG, "Failed to find widget for resize: " + aHandle);
-            }
+            mResizableWidgets.forEach(widget -> widget.handleResizeEvent(aWorldWidth, aWorldHeight));
         });
     }
 
@@ -912,8 +914,8 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     }
 
     @Override
-    public void setBrowserSize(float targetWidth, float targetHeight) {
-        mBrowserWidget.resizeByMultiplier(targetWidth / targetHeight, 1.0f);
+    public void setWindowSize(float targetWidth, float targetHeight) {
+            mBrowserWidget.resizeByMultiplier(targetWidth / targetHeight, 1.0f);
     }
 
     @Override
