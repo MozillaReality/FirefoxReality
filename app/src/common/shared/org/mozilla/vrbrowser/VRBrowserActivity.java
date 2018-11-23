@@ -47,7 +47,6 @@ import org.mozilla.vrbrowser.ui.OffscreenDisplay;
 import org.mozilla.vrbrowser.ui.widgets.BookmarkListener;
 import org.mozilla.vrbrowser.ui.widgets.BookmarksWidget;
 import org.mozilla.vrbrowser.ui.widgets.BrowserWidget;
-import org.mozilla.vrbrowser.ui.widgets.dialogs.CrashDialogWidget;
 import org.mozilla.vrbrowser.ui.widgets.KeyboardWidget;
 import org.mozilla.vrbrowser.ui.widgets.NavigationBarWidget;
 import org.mozilla.vrbrowser.ui.widgets.RootWidget;
@@ -59,6 +58,7 @@ import org.mozilla.vrbrowser.ui.widgets.VideoProjectionMenuWidget;
 import org.mozilla.vrbrowser.ui.widgets.Widget;
 import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
 import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
+import org.mozilla.vrbrowser.ui.widgets.dialogs.CrashDialogWidget;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -66,7 +66,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.function.Consumer;
 
 import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
@@ -210,8 +209,6 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
 
         // Bookmarks panel
         mBookmarksWidget = new BookmarksWidget(this);
-        mBookmarksWidget.setBrowserWidget(mBrowserWidget);
-        mBrowserWidget.setBookmarksWidget(mBookmarksWidget);
 
         // Create Browser navigation widget
         mNavigationBar = new NavigationBarWidget(this);

@@ -48,7 +48,6 @@ public class BookmarksWidget extends UIWidget implements Application.ActivityLif
     private BookmarksBinding mBinding;
     private BookmarkAdapter mBookmarkAdapter;
     private BookmarkListViewModel mBookmarkListModel;
-    private Widget mBrowserWidget;
     private List<BookmarkListener> mBookmarkListeners;
     private AudioEngine mAudio;
     private int mSessionId;
@@ -195,10 +194,6 @@ public class BookmarksWidget extends UIWidget implements Application.ActivityLif
             mBinding.executePendingBindings();
         }
     };
-
-    public void setBrowserWidget(Widget widget) {
-        mBrowserWidget = widget;
-    }
 
     @Override
     public void show() {
