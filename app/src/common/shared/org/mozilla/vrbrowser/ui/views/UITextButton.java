@@ -94,22 +94,18 @@ public class UITextButton extends AppCompatButton implements CustomUIButton {
     public void setPrivateMode(boolean isPrivateMode) {
         if (isPrivateMode) {
             setPrivate();
-            mState = State.PRIVATE;
 
         } else {
             setNormal();
-            mState = State.NORMAL;
         }
     }
 
     public void setActiveMode(boolean isActive) {
         if (isActive) {
             setActive();
-            mState = State.ACTIVE;
 
         } else {
             setNormal();
-            mState = State.NORMAL;
         }
     }
 
@@ -122,6 +118,7 @@ public class UITextButton extends AppCompatButton implements CustomUIButton {
     }
 
     private void setPrivate() {
+        mState = State.PRIVATE;
         if (mPrivateModeBackground != null)
             setBackground(mPrivateModeBackground);
 
@@ -131,6 +128,7 @@ public class UITextButton extends AppCompatButton implements CustomUIButton {
     }
 
     private void setNormal() {
+        mState = State.NORMAL;
         if (mBackground != null)
             setBackground(mBackground);
 
@@ -140,6 +138,7 @@ public class UITextButton extends AppCompatButton implements CustomUIButton {
     }
 
     private void setActive() {
+        mState = State.ACTIVE;
         if (mActiveModeBackground != null)
             setBackground(mActiveModeBackground);
 
