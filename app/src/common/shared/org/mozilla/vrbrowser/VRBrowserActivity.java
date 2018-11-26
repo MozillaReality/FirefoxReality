@@ -235,7 +235,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         mTray = new TrayWidget(this);
 
         // Add widget listeners
-        mTray.addListeners(new TrayListener[]{mBookmarksWidget, mNavigationBar});
+        mTray.addListeners(new TrayListener[]{mNavigationBar, mBookmarksWidget});
         mBookmarksWidget.addListeners(new BookmarkListener[]{mBrowserWidget, mNavigationBar, mTray});
 
         mResizableWidgets.addAll(Arrays.asList(mBrowserWidget, mBookmarksWidget));
