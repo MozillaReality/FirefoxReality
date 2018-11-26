@@ -1022,7 +1022,19 @@ public class SessionStore implements ContentBlocking.Delegate, GeckoSession.Navi
             }
             String result = aUri;
             result += aUri.contains("?") ? "&" : "?";
-            result += "disable_polymer=1";
+            if (uri.getQueryParameter("disable_polymer") == null) {
+                result += "disable_polymer=1";
+            }
+            if (uri.getQueryParameter("app") == null) {
+                result += "&app=desktop";
+            }
+            if (uri.getQueryParameter("persist_app") == null) {
+                result += "&persist_app=1";
+            }
+            if (uri.getQueryParameter("noapp") == null) {
+                result += "&noapp=1";
+            }
+
             return result;
         }
         catch (Exception ex) {
