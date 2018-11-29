@@ -462,6 +462,8 @@ public:
   }
 };
 
+const vrb::Vector kAverageHeight(0.0f, 1.7f, 0.0f);
+
 struct DeviceDelegateOculusVR::State {
   vrb::RenderContextWeak context;
   android_app* app = nullptr;
@@ -469,6 +471,7 @@ struct DeviceDelegateOculusVR::State {
   bool layersEnabled = true;
   ovrJava java = {};
   ovrMobile* ovr = nullptr;
+  ovrDeviceType deviceType;
   OculusEyeSwapChainPtr eyeSwapChains[VRAPI_EYE_COUNT];
   OculusLayerCubePtr cubeLayer;
   OculusLayerEquirectPtr equirectLayer;
@@ -534,6 +537,7 @@ struct DeviceDelegateOculusVR::State {
       return;
     }
     initialized = true;
+    deviceType = (ovrDeviceType)vrapi_GetSystemPropertyInt(&java, VRAPI_SYS_PROP_DEVICE_TYPE);
     SetRenderSize(device::RenderMode::StandAlone);
 
     for (int i = 0; i < VRAPI_EYE_COUNT; ++i) {
@@ -644,7 +648,9 @@ struct DeviceDelegateOculusVR::State {
 
     if (controllerCapabilities.ControllerCapabilities & ovrControllerCaps_HasPositionTracking) {
       auto & position = tracking.HeadPose.Pose.Position;
-      controllerTransform.TranslateInPlace(vrb::Vector(position.x, position.y, position.z));
+      controllerTransform.TranslateInPlace(vrb::Vector(position.x + kAverageHeight.x(),
+                                                       position.y + kAverageHeight.y(),
+                                                       position.z + kAverageHeight.z()));
     } else {
       controllerTransform = elbow->GetTransform(hand, head, controllerTransform);
     }
@@ -655,32 +661,52 @@ struct DeviceDelegateOculusVR::State {
     vrapi_GetCurrentInputState(ovr, controllerID, &controllerState.Header);
 
     reorientCount = controllerState.RecenterCount;
-    const bool triggerPressed = (controllerState.Buttons & ovrButton_A) != 0;
-    const bool trackpadPressed = (controllerState.Buttons & ovrButton_Enter) != 0;
-    const bool trackpadTouched = (bool) controllerState.TrackpadStatus;
-    const bool backPressed = (controllerState.Buttons & ovrButton_Back) != 0;
-    controller->SetButtonState(0, ControllerDelegate::BUTTON_TRIGGER, 1, triggerPressed, triggerPressed);
-    controller->SetButtonState(0, ControllerDelegate::BUTTON_TOUCHPAD, 0, trackpadPressed, trackpadTouched);
-    // By setting vrapi_SetPropertyInt(&java, VRAPI_EAT_NATIVE_GAMEPAD_EVENTS, 0);
-    // The app will receive onBackPressed when the back button is pressed on the controller.
-    // So there is no need to check for it here. Leaving code commented out for reference
-    // in the case that the back button stops working again due to Oculus Mobile API change.
-    // controller->SetButtonState(0, ControllerDelegate::BUTTON_APP, -1, backPressed, backPressed);
-
-    const float trackpadX = controllerState.TrackpadPosition.x / (float)controllerCapabilities.TrackpadMaxX;
-    const float trackpadY = controllerState.TrackpadPosition.y / (float)controllerCapabilities.TrackpadMaxY;
-    float scrollX = trackpadX;
-    float scrollY = trackpadY;
-    if (trackpadTouched && !trackpadPressed) {
-      controller->SetTouchPosition(0, scrollX, scrollY);
-    } else {
-      controller->SetTouchPosition(0, scrollX, scrollY);
-      controller->EndTouch(0);
-    }
-
     const int32_t kNumAxes = 2;
-    float axes[kNumAxes] = { trackpadTouched ? trackpadX * 2.0f - 1.0f : 0.0f,
-                             trackpadTouched ? trackpadY * 2.0f - 1.0f : 0.0f };
+    bool triggerPressed = false, triggerTouched = false;
+    bool trackpadPressed = false, trackpadTouched = false;
+    float axes[kNumAxes];
+    float trackpadX, trackpadY = 0.0f;
+    if (deviceType >= VRAPI_DEVICE_TYPE_OCULUSQUEST_START &&
+        deviceType <= VRAPI_DEVICE_TYPE_OCULUSQUEST_END) {
+      triggerPressed = (controllerState.Buttons & ovrButton_Trigger) != 0;
+      triggerTouched = (controllerState.Touches & ovrTouch_IndexTrigger) != 0;
+      trackpadPressed = (controllerState.Buttons & ovrButton_Joystick) != 0;
+      trackpadTouched = (controllerState.Touches & ovrTouch_Joystick) != 0;
+
+      controller->SetButtonState(0, ControllerDelegate::BUTTON_APP, -1, controllerState.Buttons & ovrButton_B,
+								 controllerState.Touches & ovrTouch_B);
+      trackpadX = controllerState.Joystick.x;
+      trackpadY = controllerState.Joystick.y;
+      axes[0] = trackpadX;
+      axes[1] = trackpadY;
+      controller->SetScrolledDelta(0, trackpadX, trackpadY);
+    } else {
+      triggerPressed = (controllerState.Buttons & ovrButton_A) != 0;
+      triggerTouched = triggerPressed;
+      trackpadPressed = (controllerState.Buttons & ovrButton_Enter) != 0;
+      trackpadTouched = (bool) controllerState.TrackpadStatus;
+
+      // For Oculus Go, by setting vrapi_SetPropertyInt(&java, VRAPI_EAT_NATIVE_GAMEPAD_EVENTS, 0);
+      // The app will receive onBackPressed when the back button is pressed on the controller.
+      // So there is no need to check for it here. Leaving code commented out for reference
+      // in the case that the back button stops working again due to Oculus Mobile API change.
+      // const bool backPressed = (controllerState.Buttons & ovrButton_Back) != 0;
+      // controller->SetButtonState(0, ControllerDelegate::BUTTON_APP, -1, backPressed, backPressed);
+      trackpadX = controllerState.TrackpadPosition.x / (float)controllerCapabilities.TrackpadMaxX;
+      trackpadY = controllerState.TrackpadPosition.y / (float)controllerCapabilities.TrackpadMaxY;
+
+      if (trackpadTouched && !trackpadPressed) {
+        controller->SetTouchPosition(0, trackpadX, trackpadY);
+      } else {
+        controller->SetTouchPosition(0, trackpadX, trackpadY);
+        controller->EndTouch(0);
+      }
+      axes[0] = trackpadTouched ? trackpadX * 2.0f - 1.0f : 0.0f;
+      axes[1] = trackpadTouched ? trackpadY * 2.0f - 1.0f : 0.0f;
+    }
+    controller->SetButtonState(0, ControllerDelegate::BUTTON_TRIGGER, 1, triggerPressed, triggerTouched);
+    controller->SetButtonState(0, ControllerDelegate::BUTTON_TOUCHPAD, 0, trackpadPressed, trackpadTouched);
+
     controller->SetAxes(0, axes, kNumAxes);
   }
 
@@ -797,8 +823,16 @@ DeviceDelegateOculusVR::SetClipPlanes(const float aNear, const float aFar) {
 void
 DeviceDelegateOculusVR::SetControllerDelegate(ControllerDelegatePtr& aController) {
   m.controller = aController;
-  m.controller->CreateController(0, 0, "Gear VR Controller");
-  m.controller->SetButtonCount(0, 2);
+  if (m.deviceType >= VRAPI_DEVICE_TYPE_OCULUSQUEST_START &&
+      m.deviceType <= VRAPI_DEVICE_TYPE_OCULUSQUEST_END) {
+    m.controller->CreateController(0, 0, "Oculus Touch Controller");
+    m.controller->SetButtonCount(0, 6);
+
+    // Todo: Getting multiple controllers support.
+  } else {
+    m.controller->CreateController(0, 0, "Gear VR Controller");
+    m.controller->SetButtonCount(0, 2);
+  }
 }
 
 void
@@ -846,7 +880,6 @@ DeviceDelegateOculusVR::StartFrame() {
   ovrMatrix4f matrix = vrapi_GetTransformFromPose(&m.predictedTracking.HeadPose.Pose);
   vrb::Matrix head = vrb::Matrix::FromRowMajor(matrix.M[0]);
 
-  static const vrb::Vector kAverageHeight(0.0f, 1.7f, 0.0f);
   if (m.renderMode == device::RenderMode::StandAlone) {
     head.TranslateInPlace(kAverageHeight);
   }
