@@ -987,7 +987,6 @@ DeviceDelegateOculusVR::EndFrame(const bool aDiscard) {
   frameDesc.SwapInterval = 1;
   frameDesc.FrameIndex = m.frameIndex;
   frameDesc.DisplayTime = m.predictedDisplayTime;
-  frameDesc.CompletionFence = 0;
 
   frameDesc.LayerCount = layerCount;
   frameDesc.Layers = layers;
