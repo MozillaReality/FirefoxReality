@@ -953,18 +953,21 @@ DeviceDelegateOculusVR::EndFrame(const bool aDiscard) {
   }
 
   // Add main eye buffer layer
+  const float fovX = vrapi_GetSystemPropertyFloat(&m.java, VRAPI_SYS_PROP_SUGGESTED_EYE_FOV_DEGREES_X);
+  const float fovY = vrapi_GetSystemPropertyFloat(&m.java, VRAPI_SYS_PROP_SUGGESTED_EYE_FOV_DEGREES_Y);
+  const ovrMatrix4f projectionMatrix = ovrMatrix4f_CreateProjectionFov(fovX, fovY, 0.0f, 0.0f, m.near, m.far);
+
   ovrLayerProjection2 projection = vrapi_DefaultLayerProjection2();
   projection.HeadPose = m.predictedTracking.HeadPose;
   projection.Header.SrcBlend = VRAPI_FRAME_LAYER_BLEND_ONE;
   projection.Header.DstBlend = VRAPI_FRAME_LAYER_BLEND_ONE_MINUS_SRC_ALPHA;
   for (int i = 0; i < VRAPI_FRAME_LAYER_EYE_MAX; ++i) {
     const auto &eyeSwapChain = m.eyeSwapChains[i];
-    int swapChainIndex = m.frameIndex % eyeSwapChain->swapChainLength;
+    const int swapChainIndex = m.frameIndex % eyeSwapChain->swapChainLength;
     // Set up OVR layer textures
     projection.Textures[i].ColorSwapChain = eyeSwapChain->ovrSwapChain;
     projection.Textures[i].SwapChainIndex = swapChainIndex;
-    projection.Textures[i].TexCoordsFromTanAngles = ovrMatrix4f_TanAngleMatrixFromProjection(
-        &m.predictedTracking.Eye[i].ProjectionMatrix);
+    projection.Textures[i].TexCoordsFromTanAngles = ovrMatrix4f_TanAngleMatrixFromProjection(&projectionMatrix);
   }
   layers[layerCount++] = &projection.Header;
 
