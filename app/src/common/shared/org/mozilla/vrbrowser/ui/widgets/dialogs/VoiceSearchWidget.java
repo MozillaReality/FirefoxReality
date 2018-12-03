@@ -230,6 +230,9 @@ public class VoiceSearchWidget extends UIDialog implements WidgetManagerDelegate
         } else {
             String language = SettingsStore.getInstance(getContext()).getVoiceSearchLanguage();
             mMozillaSpeechService.setLanguage(language);
+            mMozillaSpeechService.setModelPath(getContext().getExternalFilesDir("models").getAbsolutePath());
+            mMozillaSpeechService.useDeepSpeech(true);
+            mMozillaSpeechService.addListener(mVoiceSearchListener);
             mMozillaSpeechService.start(getContext().getApplicationContext());
             mIsSpeechRecognitionRunning = true;
         }
