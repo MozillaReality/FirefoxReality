@@ -228,8 +228,14 @@ public class VoiceSearchWidget extends UIDialog implements WidgetManagerDelegate
             ActivityCompat.requestPermissions((Activity)getContext(), new String[]{Manifest.permission.RECORD_AUDIO},
                     VOICESEARCH_AUDIO_REQUEST_CODE);
         } else {
-            String language = SettingsStore.getInstance(getContext()).getVoiceSearchLanguage();
-            mMozillaSpeechService.setLanguage(language);
+            String locale = LocaleUtils.getVoiceSearchLocale(getContext());
+            mMozillaSpeechService.setLanguage(LocaleUtils.mapToMozillaSpeechLocales(locale));
+            boolean storeData = SettingsStore.getInstance(getContext()).isSpeechDataCollectionEnabled();
+            if (SessionStore.get().getActiveSession().isPrivateMode()) {
+                storeData = false;
+            }
+            mMozillaSpeechService.storeSamples(storeData);
+            mMozillaSpeechService.storeTranscriptions(storeData);
             mMozillaSpeechService.setModelPath(getContext().getExternalFilesDir("models").getAbsolutePath());
             mMozillaSpeechService.useDeepSpeech(true);
             mMozillaSpeechService.addListener(mVoiceSearchListener);
