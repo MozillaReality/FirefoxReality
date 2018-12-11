@@ -991,7 +991,7 @@ DeviceDelegateOculusVR::EndFrame(const bool aDiscard) {
   // Add main eye buffer layer
   const float fovX = vrapi_GetSystemPropertyFloat(&m.java, VRAPI_SYS_PROP_SUGGESTED_EYE_FOV_DEGREES_X);
   const float fovY = vrapi_GetSystemPropertyFloat(&m.java, VRAPI_SYS_PROP_SUGGESTED_EYE_FOV_DEGREES_Y);
-  const ovrMatrix4f projectionMatrix = ovrMatrix4f_CreateProjectionFov(fovX, fovY, 0.0f, 0.0f, m.near, m.far);
+  const ovrMatrix4f projectionMatrix = ovrMatrix4f_CreateProjectionFov(fovX, fovY, 0.0f, 0.0f, VRAPI_ZNEAR, 0.0f);
 
   ovrLayerProjection2 projection = vrapi_DefaultLayerProjection2();
   projection.HeadPose = m.predictedTracking.HeadPose;
