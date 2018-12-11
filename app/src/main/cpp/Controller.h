@@ -7,6 +7,7 @@
 #define VRBROWSER_CONTROLLER_H
 
 #include "ControllerDelegate.h"
+#include "Device.h"
 #include "vrb/Forward.h"
 #include "vrb/Matrix.h"
 
@@ -47,6 +48,7 @@ struct Controller {
   bool leftHanded;
   bool inDeadZone;
   double lastHoverEvent;
+  device::CapabilityFlags deviceCapabilities;
 
   Controller();
   Controller(const Controller& aController);

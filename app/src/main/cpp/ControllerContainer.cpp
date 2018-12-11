@@ -60,12 +60,10 @@ ControllerContainer::Create(vrb::CreationContextPtr& aContext, const vrb::GroupP
   return result;
 }
 
-
 TogglePtr
 ControllerContainer::GetRoot() const {
   return m.root;
 }
-
 
 void
 ControllerContainer::LoadControllerModel(const int32_t aModelIndex, const ModelLoaderAndroidPtr& aLoader, const std::string& aFileName) {
@@ -198,6 +196,15 @@ ControllerContainer::DestroyController(const int32_t aControllerIndex) {
   if (m.Contains(aControllerIndex)) {
     m.list[aControllerIndex].Reset();
   }
+}
+
+void
+ControllerContainer::SetCapabilityFlags(const int32_t aControllerIndex, const device::CapabilityFlags aFlags) {
+  if (!m.Contains(aControllerIndex)) {
+    return;
+  }
+
+  m.list[aControllerIndex].deviceCapabilities = aFlags;
 }
 
 void
