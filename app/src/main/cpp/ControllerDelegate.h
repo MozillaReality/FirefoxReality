@@ -28,6 +28,7 @@ public:
 
   virtual void CreateController(const int32_t aControllerIndex, const int32_t aModelIndex, const std::string& aImmersiveName) = 0;
   virtual void DestroyController(const int32_t aControllerIndex) = 0;
+  virtual uint32_t GetControllerCount() = 0;
   virtual void SetCapabilityFlags(const int32_t aControllerIndex, const device::CapabilityFlags aFlags) = 0;
   virtual void SetEnabled(const int32_t aControllerIndex, const bool aEnabled) = 0;
   virtual void SetVisible(const int32_t aControllerIndex, const bool aVisible) = 0;

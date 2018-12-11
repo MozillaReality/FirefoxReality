@@ -159,6 +159,10 @@ ControllerContainer::GetControllers() const {
 }
 
 // crow::ControllerDelegate interface
+uint32_t
+ControllerContainer::GetControllerCount() {
+  return m.list.size();
+}
 
 void
 ControllerContainer::CreateController(const int32_t aControllerIndex, const int32_t aModelIndex, const std::string& aImmersiveName) {
