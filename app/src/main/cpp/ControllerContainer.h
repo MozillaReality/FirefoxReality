@@ -32,6 +32,7 @@ public:
   std::vector<Controller>& GetControllers();
   const std::vector<Controller>& GetControllers() const;
   // crow::ControllerDelegate interface
+  uint32_t GetControllerCount() override;
   void CreateController(const int32_t aControllerIndex, const int32_t aModelIndex, const std::string& aImmersiveName) override;
   void DestroyController(const int32_t aControllerIndex) override;
   void SetCapabilityFlags(const int32_t aControllerIndex, const device::CapabilityFlags aFlags) override;
