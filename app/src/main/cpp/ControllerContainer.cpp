@@ -3,6 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include <assert.h>
 #include "ControllerContainer.h"
 #include "Controller.h"
 #include "Pointer.h"
@@ -258,6 +259,9 @@ ControllerContainer::SetButtonCount(const int32_t aControllerIndex, const uint32
 
 void
 ControllerContainer::SetButtonState(const int32_t aControllerIndex, const Button aWhichButton, const int32_t aImmersiveIndex, const bool aPressed, const bool aTouched, const float aImmersiveTrigger) {
+  assert(kControllerMaxButtonCount > aImmersiveIndex
+         && "Button index must < kControllerMaxButtonCount.");
+
   if (!m.Contains(aControllerIndex)) {
     return;
   }
@@ -293,6 +297,9 @@ ControllerContainer::SetButtonState(const int32_t aControllerIndex, const Button
 
 void
 ControllerContainer::SetAxes(const int32_t aControllerIndex, const float* aData, const uint32_t aLength) {
+  assert(kControllerMaxAxes >= aLength
+         && "Axis length must <= kControllerMaxAxes.");
+
   if (!m.Contains(aControllerIndex)) {
     return;
   }

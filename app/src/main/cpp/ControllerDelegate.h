@@ -23,7 +23,8 @@ public:
   enum Button {
     BUTTON_TRIGGER   = 1 << 0,
     BUTTON_TOUCHPAD  = 1 << 1,
-    BUTTON_APP      = 1 << 2,
+    BUTTON_APP       = 1 << 2,
+    BUTTON_OTHERS    = 1 << 3,  // Other buttons only for the immersive mode.
   };
 
   virtual void CreateController(const int32_t aControllerIndex, const int32_t aModelIndex, const std::string& aImmersiveName) = 0;
