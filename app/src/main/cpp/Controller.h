@@ -16,7 +16,7 @@ namespace crow {
 class Pointer;
 typedef std::shared_ptr<Pointer> PointerPtr;
 
-static const int kControllerMaxButtonCount = 4;
+static const int kControllerMaxButtonCount = 6;
 static const int kControllerMaxAxes = 6;
 
 struct Controller {

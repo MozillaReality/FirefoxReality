@@ -712,21 +712,39 @@ struct DeviceDelegateOculusVR::State {
         triggerTouched = (state[i].controllerState.Touches & ovrTouch_IndexTrigger) != 0;
         trackpadPressed = (state[i].controllerState.Buttons & ovrButton_Joystick) != 0;
         trackpadTouched = (state[i].controllerState.Touches & ovrTouch_Joystick) != 0;
-
-        if (state[i].hand == ElbowModel::HandEnum::Left) {
-          controller->SetButtonState(i, ControllerDelegate::BUTTON_APP, -1, state[i].controllerState.Buttons & ovrButton_Y,
-                                     state[i].controllerState.Touches & ovrTouch_Y);
-        } else if (state[i].hand == ElbowModel::HandEnum::Right) {
-          controller->SetButtonState(i, ControllerDelegate::BUTTON_APP, -1, state[i].controllerState.Buttons & ovrButton_B,
-                                     state[i].controllerState.Touches & ovrTouch_B);
-        } else {
-          VRB_WARN("Undefined hand type in DeviceDelegateOculusVR.");
-        }
         trackpadX = state[i].controllerState.Joystick.x;
         trackpadY = state[i].controllerState.Joystick.y;
         axes[0] = trackpadX;
-        axes[1] = trackpadY;
+        axes[1] = -trackpadY; // We did y axis intentionally inverted in FF desktop as well.
         controller->SetScrolledDelta(i, trackpadX, trackpadY);
+
+        const bool gripPressed = (state[i].controllerState.Buttons & ovrButton_GripTrigger) != 0;
+        controller->SetButtonState(i, ControllerDelegate::BUTTON_OTHERS, 2, gripPressed, gripPressed,
+                                   state[i].controllerState.GripTrigger);
+        if (state[i].hand == ElbowModel::HandEnum::Left) {
+          const bool xPressed = (state[i].controllerState.Buttons & ovrButton_X) != 0;
+          const bool xTouched = (state[i].controllerState.Touches & ovrTouch_X) != 0;
+          const bool yPressed = (state[i].controllerState.Buttons & ovrButton_Y) != 0;
+          const bool yTouched = (state[i].controllerState.Touches & ovrTouch_Y) != 0;
+
+          controller->SetButtonState(i, ControllerDelegate::BUTTON_APP, -1, yPressed, yTouched);
+          controller->SetButtonState(i, ControllerDelegate::BUTTON_OTHERS, 3, xPressed, xTouched);
+          controller->SetButtonState(i, ControllerDelegate::BUTTON_OTHERS, 4, yPressed, yTouched);
+        } else if (state[i].hand == ElbowModel::HandEnum::Right) {
+          const bool aPressed = (state[i].controllerState.Buttons & ovrButton_A) != 0;
+          const bool aTouched = (state[i].controllerState.Touches & ovrTouch_A) != 0;
+          const bool bPressed = (state[i].controllerState.Buttons & ovrButton_B) != 0;
+          const bool bTouched = (state[i].controllerState.Touches & ovrTouch_B) != 0;
+
+          controller->SetButtonState(i, ControllerDelegate::BUTTON_APP, -1, bPressed, bTouched);
+          controller->SetButtonState(i, ControllerDelegate::BUTTON_OTHERS, 3, aPressed, aTouched);
+          controller->SetButtonState(i, ControllerDelegate::BUTTON_OTHERS, 4, bPressed, bTouched);
+        } else {
+          VRB_WARN("Undefined hand type in DeviceDelegateOculusVR.");
+        }
+
+        const bool thumbRest = (state[i].controllerState.Touches & ovrTouch_ThumbUp) != 0;
+        controller->SetButtonState(i, ControllerDelegate::BUTTON_OTHERS, 5, thumbRest, thumbRest);
       } else {
         triggerPressed = (state[i].controllerState.Buttons & ovrButton_A) != 0;
         triggerTouched = triggerPressed;
@@ -751,7 +769,8 @@ struct DeviceDelegateOculusVR::State {
         axes[0] = trackpadTouched ? trackpadX * 2.0f - 1.0f : 0.0f;
         axes[1] = trackpadTouched ? trackpadY * 2.0f - 1.0f : 0.0f;
       }
-      controller->SetButtonState(i, ControllerDelegate::BUTTON_TRIGGER, 1, triggerPressed, triggerTouched);
+      controller->SetButtonState(i, ControllerDelegate::BUTTON_TRIGGER, 1, triggerPressed, triggerTouched,
+                                 state[i].controllerState.IndexTrigger);
       controller->SetButtonState(i, ControllerDelegate::BUTTON_TOUCHPAD, 0, trackpadPressed, trackpadTouched);
 
       controller->SetAxes(i, axes, kNumAxes);
