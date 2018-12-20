@@ -45,6 +45,7 @@
             tools:text="Message" />
 
         <LinearLayout
+            android:id="@+id/listContainer"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:maxHeight="@dimen/prompt_content_max_height"
@@ -74,7 +75,7 @@
             android:orientation="horizontal"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/choiceslist">
+            app:layout_constraintTop_toBottomOf="@+id/listContainer">
 
             <Button
                 android:id="@+id/negativeButton"
