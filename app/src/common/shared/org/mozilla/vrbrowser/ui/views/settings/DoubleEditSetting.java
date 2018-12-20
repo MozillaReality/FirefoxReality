@@ -42,6 +42,13 @@ public class DoubleEditSetting extends SingleEditSetting {
 
         mEdit2 = findViewById(R.id.editValue2);
         mEdit2.setHighlightedTextColor(mHighlightedTextColor);
+        mEdit2.setHighlightedTextColor(mHighlightedTextColor);
+        mEdit2.setOnClickListener(view -> {
+            if (mEdit2.getText().toString().equals(mEdit2.getHint())) {
+                mEdit2.requestFocus();
+                mEdit2.selectAll();
+            }
+        });
         mEdit2.setSoundEffectsEnabled(false);
         if (mMaxLength != 0) {
             mEdit2.setFilters(new InputFilter[]{

@@ -25,8 +25,8 @@ public class SingleEditSetting extends LinearLayout {
     protected float mWidth;
     protected int mInputType;
     private TextView mDescriptionView;
-    protected TextView mText1;
-    protected SettingsEditText mEdit1;
+    private TextView mText1;
+    private SettingsEditText mEdit1;
     protected TextView mButton;
     private OnClickListener mListener;
     protected int mHighlightedTextColor;
@@ -63,6 +63,12 @@ public class SingleEditSetting extends LinearLayout {
         mEdit1 = findViewById(R.id.editValue1);
         mEdit1.setHighlightedTextColor(mHighlightedTextColor);
         mEdit1.setOnEditorActionListener(mInternalEditorActionListener);
+        mEdit1.setOnClickListener(view -> {
+            if (mEdit1.getText().toString().equals(mEdit1.getHint())) {
+                mEdit1.requestFocus();
+                mEdit1.selectAll();
+            }
+        });
         mEdit1.setSoundEffectsEnabled(false);
         if (mMaxLength != 0) {
             mEdit1.setFilters(new InputFilter[]{
@@ -127,6 +133,8 @@ public class SingleEditSetting extends LinearLayout {
         if (text.equals(mDefaultFirstValue)) {
             mText1.setText(mEdit1.getHint());
             mEdit1.setText(mEdit1.getHint());
+            mEdit1.requestFocus();
+            mEdit1.selectAll();
 
         } else {
             mText1.setText(text);
