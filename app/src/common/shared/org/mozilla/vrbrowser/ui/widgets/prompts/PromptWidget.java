@@ -75,6 +75,9 @@ public class PromptWidget extends UIWidget implements WidgetManagerDelegate.Focu
 
     @Override
     public void show() {
+        mLayout.measure(View.MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED),
+                        View.MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+        mWidgetPlacement.height = (int)(mLayout.getMeasuredHeight()/mWidgetPlacement.density);
         super.show();
 
         ViewTreeObserver viewTreeObserver = mLayout.getViewTreeObserver();
