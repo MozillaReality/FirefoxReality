@@ -911,6 +911,11 @@ BrowserWorld::ResetUIYaw() {
   m.device->SetReorientTransform(matrix);
 }
 
+void
+BrowserWorld::SetIsServo(const bool aIsServo) {
+  m.externalVR->SetSourceBrowser(aIsServo ? ExternalVR::VRBrowserType::Servo : ExternalVR::VRBrowserType::Gecko);
+}
+
 JNIEnv*
 BrowserWorld::GetJNIEnv() const {
   ASSERT_ON_RENDER_THREAD(nullptr);
@@ -1269,5 +1274,9 @@ JNI_METHOD(void, runCallbackNative)
   }
 }
 
+JNI_METHOD(void, setIsServo)
+(JNIEnv* aEnv, jboolean aIsServo) {
+  crow::BrowserWorld::Instance().SetIsServo(aIsServo);
+}
 
 } // extern "C"
