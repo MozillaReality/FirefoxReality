@@ -52,4 +52,5 @@ public interface WidgetManagerDelegate {
     void removeWorldClickListener(WorldClickListener aListener);
     boolean isPermissionGranted(@NonNull String permission);
     void requestPermission(@NonNull String uri, @NonNull String permission, GeckoSession.PermissionDelegate.Callback aCallback);
+    void setCurvatureRatio(float aRatio);
 }

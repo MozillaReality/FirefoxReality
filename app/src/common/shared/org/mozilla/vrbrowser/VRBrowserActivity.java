@@ -47,6 +47,7 @@ import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
 import org.mozilla.vrbrowser.ui.OffscreenDisplay;
 import org.mozilla.vrbrowser.ui.widgets.BookmarkListener;
 import org.mozilla.vrbrowser.ui.views.BookmarksView;
+import org.mozilla.vrbrowser.ui.widgets.CurvatureWidget;
 import org.mozilla.vrbrowser.ui.widgets.KeyboardWidget;
 import org.mozilla.vrbrowser.ui.widgets.NavigationBarWidget;
 import org.mozilla.vrbrowser.ui.widgets.RootWidget;
@@ -235,7 +236,10 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         mTray.addListeners(new TrayListener[]{mWindowWidget, mNavigationBar});
         mBookmarksView.addListeners(new BookmarkListener[]{mWindowWidget, mNavigationBar, mTray});
 
-        addWidgets(Arrays.asList(mRootWidget, mWindowWidget, mNavigationBar, mKeyboard, mTray));
+        CurvatureWidget curvature = new CurvatureWidget(this);
+        curvature.setParentWidget(mTray.getHandle());
+
+        addWidgets(Arrays.asList(mRootWidget, mWindowWidget, mNavigationBar, mKeyboard, mTray, curvature));
     }
 
     @Override
@@ -983,6 +987,11 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         queueRunnable(this::resetUIYawNative);
     }
 
+    @Override
+    public void setCurvatureRatio(final float aRatio) {
+        queueRunnable(() -> setCurvatureRatioNative(aRatio));
+    }
+
     private native void addWidgetNative(int aHandle, WidgetPlacement aPlacement);
     private native void updateWidgetNative(int aHandle, WidgetPlacement aPlacement);
     private native void removeWidgetNative(int aHandle);
@@ -999,4 +1008,5 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     private native void resetUIYawNative();
     private native void setControllersVisibleNative(boolean aVisible);
     private native void runCallbackNative(long aCallback);
+    private native void setCurvatureRatioNative(float aRatio);
 }

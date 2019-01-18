@@ -361,4 +361,13 @@ public class SettingsStore {
         editor.commit();
     }
 
+    public float getCurvatureRatio() {
+        return mPrefs.getFloat("curvature",  4680.0f / 8000.0f);
+    }
+
+    public void setCurvatureRatio(float aRatio) {
+        SharedPreferences.Editor editor = mPrefs.edit();
+        editor.putFloat("curvature", aRatio);
+        editor.commit();
+    }
 }

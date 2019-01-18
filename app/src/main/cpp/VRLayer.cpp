@@ -65,7 +65,7 @@ VRLayer::GetModelTransform(device::Eye aEye) const {
 
 
 const vrb::Matrix&
-VRLayer::GetModelView(device::Eye aEye) const {
+VRLayer::GetView(device::Eye aEye) const {
   return m.modelView[device::EyeIndex(aEye)];
 }
 
@@ -135,7 +135,7 @@ VRLayer::SetModelTransform(device::Eye aEye, const vrb::Matrix& aModelTransform)
 }
 
 void
-VRLayer::SetModelView(device::Eye aEye, const vrb::Matrix& aModelView) {
+VRLayer::SetView(device::Eye aEye, const vrb::Matrix& aModelView) {
   m.modelView[device::EyeIndex(aEye)] = aModelView;
 }
 
@@ -189,7 +189,7 @@ void VRLayer::NotifySurfaceChanged(SurfaceChange aChange, const std::function<vo
 
 // Layer Quad
 
-struct VRLayerQuad::State: public VRLayer::State {
+struct VRLayerSurface::State: public VRLayer::State {
   VRLayerQuad::SurfaceType surfaceType;
   int32_t width;
   int32_t height;
@@ -200,6 +200,7 @@ struct VRLayerQuad::State: public VRLayer::State {
   VRLayerQuad::ResizeDelegate resizeDelegate;
   VRLayerQuad::BindDelegate bindDelegate;
   jobject surface;
+  float pixelDensity;
   State():
       surfaceType(VRLayerQuad::SurfaceType::AndroidSurface),
       width(0),
@@ -208,51 +209,46 @@ struct VRLayerQuad::State: public VRLayer::State {
       worldHeight(0),
       boundTarget(GL_FRAMEBUFFER),
       priority(0),
-      surface(nullptr)
+      surface(nullptr),
+      pixelDensity(1.0f)
   {}
 };
 
-VRLayerQuadPtr
-VRLayerQuad::Create(const int32_t aWidth, const int32_t aHeight, VRLayerQuad::SurfaceType aSurfaceType) {
-  auto result = std::make_shared<vrb::ConcreteClass<VRLayerQuad, VRLayerQuad::State>>();
-  result->m.width = aWidth;
-  result->m.height = aHeight;
-  result->m.surfaceType = aSurfaceType;
-  return result;
-}
-
-
-VRLayerQuad::SurfaceType
-VRLayerQuad::GetSurfaceType() const {
+VRLayerSurface::SurfaceType
+VRLayerSurface::GetSurfaceType() const {
   return m.surfaceType;
 }
 
 int32_t
-VRLayerQuad::GetWidth() const {
+VRLayerSurface::GetWidth() const {
   return m.width;
 }
 
 int32_t
-VRLayerQuad::GetHeight() const {
+VRLayerSurface::GetHeight() const {
   return m.height;
 }
 float
-VRLayerQuad::GetWorldWidth() const {
+VRLayerSurface::GetWorldWidth() const {
   return m.worldWidth;
 }
 
 float
-VRLayerQuad::GetWorldHeight() const {
+VRLayerSurface::GetWorldHeight() const {
   return m.worldHeight;
 }
 
 jobject
-VRLayerQuad::GetSurface() const {
+VRLayerSurface::GetSurface() const {
   return m.surface;
 }
 
+float VRLayerSurface::GetPixelDensity() const {
+  return m.pixelDensity;
+}
+
 void
-VRLayerQuad::Bind(GLenum aTarget) {
+VRLayerSurface::Bind(GLenum aTarget) {
  m.boundTarget = aTarget;
  if (m.bindDelegate) {
    m.bindDelegate(aTarget, true);
@@ -260,7 +256,7 @@ VRLayerQuad::Bind(GLenum aTarget) {
 }
 
 void
-VRLayerQuad::Unbind(){
+VRLayerSurface::Unbind(){
   if (m.bindDelegate) {
     m.bindDelegate(m.boundTarget, false);
   }
@@ -268,13 +264,13 @@ VRLayerQuad::Unbind(){
 
 
 void
-VRLayerQuad::SetWorldSize(const float aWidth, const float aHeight) {
+VRLayerSurface::SetWorldSize(const float aWidth, const float aHeight) {
   m.worldWidth = aWidth;
   m.worldHeight = aHeight;
 }
 
 void
-VRLayerQuad::Resize(const int32_t aWidth, const int32_t aHeight) {
+VRLayerSurface::Resize(const int32_t aWidth, const int32_t aHeight) {
   if (m.width == aWidth && m.height == aHeight) {
     return;
   }
@@ -286,26 +282,96 @@ VRLayerQuad::Resize(const int32_t aWidth, const int32_t aHeight) {
 }
 
 void
-VRLayerQuad::SetResizeDelegate(const ResizeDelegate& aDelegate) {
+VRLayerSurface::SetResizeDelegate(const ResizeDelegate& aDelegate) {
   m.resizeDelegate = aDelegate;
 }
 
 void
-VRLayerQuad::SetBindDelegate(const BindDelegate& aDelegate) {
+VRLayerSurface::SetBindDelegate(const BindDelegate& aDelegate) {
   m.bindDelegate = aDelegate;
 }
 
 void
-VRLayerQuad::SetSurface(jobject aSurface) {
+VRLayerSurface::SetSurface(jobject aSurface) {
   m.surface = aSurface;
 }
 
-VRLayerQuad::VRLayerQuad(State& aState): VRLayer(aState, LayerType::QUAD), m(aState) {
+void
+VRLayerSurface::SetPixelDensity(float aDensity) {
+  m.pixelDensity = aDensity;
+}
+
+VRLayerSurface::VRLayerSurface(State& aState, LayerType aLayerType): VRLayer(aState, aLayerType), m(aState) {
+}
+
+VRLayerSurface::~VRLayerSurface() {}
+
+// Layer Quad
+
+struct VRLayerQuad::State: public VRLayerSurface::State {
+  State() {}
+};
+
+VRLayerQuadPtr
+VRLayerQuad::Create(const int32_t aWidth, const int32_t aHeight, VRLayerSurface::SurfaceType aSurfaceType) {
+  auto result = std::make_shared<vrb::ConcreteClass<VRLayerQuad, VRLayerQuad::State>>();
+  result->m.width = aWidth;
+  result->m.height = aHeight;
+  result->m.surfaceType = aSurfaceType;
+  return result;
+}
+
+VRLayerQuad::VRLayerQuad(State& aState): VRLayerSurface(aState, LayerType::QUAD), m(aState) {
 
 }
 
 VRLayerQuad::~VRLayerQuad() {}
 
+// Layer Cylinder
+
+struct VRLayerCylinder::State: public VRLayerSurface::State {
+  float radius;
+  float density;
+  State():
+      radius(1.0f),
+      density(4500.0f)
+  {}
+};
+
+VRLayerCylinderPtr
+VRLayerCylinder::Create(const int32_t aWidth, const int32_t aHeight, VRLayerSurface::SurfaceType aSurfaceType) {
+  auto result = std::make_shared<vrb::ConcreteClass<VRLayerCylinder, VRLayerCylinder::State>>();
+  result->m.width = aWidth;
+  result->m.height = aHeight;
+  result->m.surfaceType = aSurfaceType;
+  return result;
+}
+
+float
+VRLayerCylinder::GetRadius() const {
+  return m.radius;
+}
+
+float
+VRLayerCylinder::GetCylinderDensity() const {
+  return m.density;
+}
+
+void
+VRLayerCylinder::SetRadius(const float aRadius) {
+  m.radius = aRadius;
+}
+
+void
+VRLayerCylinder::SetCylinderDensity(const float aDensity) {
+  m.density = aDensity;
+}
+
+VRLayerCylinder::VRLayerCylinder(State& aState): VRLayerSurface(aState, LayerType::QUAD), m(aState) {
+
+}
+
+VRLayerCylinder::~VRLayerCylinder() {}
 
 // Layer Cube
 

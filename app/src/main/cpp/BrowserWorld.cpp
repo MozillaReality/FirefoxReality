@@ -18,6 +18,7 @@
 #include "Pointer.h"
 #include "Widget.h"
 #include "WidgetPlacement.h"
+#include "Cylinder.h"
 #include "Quad.h"
 #include "VRBrowser.h"
 #include "VRVideo.h"
@@ -150,6 +151,7 @@ struct BrowserWorld::State {
   DrawableListPtr drawList;
   CameraPtr leftCamera;
   CameraPtr rightCamera;
+  float curvatureRatio;
   float nearClip;
   float farClip;
   JNIEnv* env;
@@ -167,7 +169,7 @@ struct BrowserWorld::State {
   SplashAnimationPtr splashAnimation;
   VRVideoPtr vrVideo;
 
-  State() : paused(true), glInitialized(false), modelsLoaded(false), env(nullptr), nearClip(0.1f),
+  State() : paused(true), glInitialized(false), modelsLoaded(false), env(nullptr), curvatureRatio(0.0f), nearClip(0.1f),
             farClip(300.0f), activity(nullptr), windowsInitialized(false), exitImmersiveRequested(false), loaderDelay(0) {
     context = RenderContext::Create();
     create = context->GetRenderThreadCreationContext();
@@ -272,15 +274,18 @@ BrowserWorld::State::UpdateControllers(bool& aRelayoutWidgets) {
     WidgetPtr hitWidget;
     float hitDistance = farClip;
     vrb::Vector hitPoint;
+    vrb::Vector hitNormal;
     for (const WidgetPtr& widget: widgets) {
       vrb::Vector result;
+      vrb::Vector normal;
       float distance = 0.0f;
       bool isInWidget = false;
-      if (widget->TestControllerIntersection(start, direction, result, isInWidget, distance)) {
+      if (widget->TestControllerIntersection(start, direction, result, normal, isInWidget, distance)) {
         if (isInWidget && (distance < hitDistance)) {
           hitWidget = widget;
           hitDistance = distance;
           hitPoint = result;
+          hitNormal = normal;
         }
       }
     }
@@ -294,8 +299,10 @@ BrowserWorld::State::UpdateControllers(bool& aRelayoutWidgets) {
       controller.pointer->SetVisible(hitWidget.get() != nullptr);
       controller.pointer->SetHitWidget(hitWidget);
       if (hitWidget) {
-        vrb::Matrix translate = vrb::Matrix::Translation(vrb::Vector(hitPoint.x(), hitPoint.y(), 0.001f));
-        controller.pointer->SetTransform(hitWidget->GetTransform().PostMultiply(translate));
+        vrb::Matrix translation = vrb::Matrix::Translation(hitPoint);
+        vrb::Matrix localRotation = vrb::Matrix::Rotation(hitNormal);
+        vrb::Matrix reorient = device->GetReorientTransform();
+        controller.pointer->SetTransform(reorient.AfineInverse().PostMultiply(translation).PostMultiply(localRotation));
       }
     }
 
@@ -701,17 +708,26 @@ BrowserWorld::AddWidget(int32_t aHandle, const WidgetPlacementPtr& aPlacement) {
   int32_t textureWidth = (int32_t)(ceilf(aPlacement->width * aPlacement->density));
   int32_t textureHeight = (int32_t)(ceilf(aPlacement->height * aPlacement->density));
 
+  const float aspect = (float)textureWidth / (float)textureHeight;
+  const float worldHeight = worldWidth / aspect;
+
   WidgetPtr widget;
-  VRLayerQuadPtr layer;
-  if (aPlacement->layer && m.device) {
-    layer = m.device->CreateLayerQuad(textureWidth, textureHeight,
-                                      VRLayerQuad::SurfaceType::AndroidSurface);
+  if (aPlacement->cylinder && m.device) {
+    VRLayerCylinderPtr layer = m.device->CreateLayerCylinder(textureWidth, textureHeight, VRLayerQuad::SurfaceType::AndroidSurface);
+    if (layer) {
+      CylinderPtr cylinder = Cylinder::Create(m.create, worldWidth, worldHeight, layer);
+      widget = Widget::Create(m.context, aHandle, textureWidth, textureHeight, cylinder);
+    }
   }
 
-  if (layer) {
-    widget = Widget::Create(m.context, aHandle, layer, worldWidth);
-  } else {
-    widget = Widget::Create(m.context, aHandle, textureWidth, textureHeight, worldWidth);
+  if (!widget) {
+    VRLayerQuadPtr layer;
+    if (aPlacement->layer && m.device) {
+      layer = m.device->CreateLayerQuad(textureWidth, textureHeight, VRLayerQuad::SurfaceType::AndroidSurface);
+    }
+
+    QuadPtr quad = Quad::Create(m.create, worldWidth, worldHeight, layer);
+    widget = Widget::Create(m.context, aHandle, textureWidth, textureHeight, quad);
   }
 
   if (aPlacement->opaque) {
@@ -741,6 +757,7 @@ BrowserWorld::UpdateWidget(int32_t aHandle, const WidgetPlacementPtr& aPlacement
   }
 
   widget->SetPlacement(aPlacement);
+  widget->SetCurvatureRatio(m.curvatureRatio);
   widget->ToggleWidget(aPlacement->visible);
   widget->SetSurfaceTextureSize((int32_t)(ceilf(aPlacement->width * aPlacement->density)),
                                 (int32_t)(ceilf(aPlacement->height * aPlacement->density)));
@@ -846,6 +863,9 @@ BrowserWorld::LayoutWidget(int32_t aHandle) {
   }
 
   transform.TranslateInPlace(translation);
+  if (!parent) {
+    translation = transform.GetTranslation();
+  }
   widget->SetTransform(parent ? parent->GetTransform().PostMultiply(transform) : transform);
 }
 
@@ -909,6 +929,14 @@ BrowserWorld::ResetUIYaw() {
 
   vrb::Matrix matrix = vrb::Matrix::Rotation(vrb::Vector(0.0f, 1.0f, 0.0f), -yaw);
   m.device->SetReorientTransform(matrix);
+}
+
+void
+BrowserWorld::SetCurvatureRatio(const float aRatio) {
+  m.curvatureRatio = aRatio;
+  for (WidgetPtr& widget: m.widgets) {
+    widget->SetCurvatureRatio(aRatio);
+  }
 }
 
 JNIEnv*
@@ -1149,9 +1177,14 @@ BrowserWorld::DistanceToPlane(const vrb::NodePtr& aNode, const vrb::Vector& aPos
     return -1.0f;
   }
   vrb::Vector result;
+  vrb::Vector normal;
   bool inside = false;
   float distance = -1.0f;
-  target->GetQuad()->TestIntersection(aPosition, aDirection, result, false, inside, distance);
+  if (target->GetQuad()) {
+    target->GetQuad()->TestIntersection(aPosition, aDirection, result, normal, false, inside, distance);
+  } else if (target->GetCylinder()) {
+    distance = target->GetCylinder()->DistanceToBackPlane(aPosition, aDirection);
+  }
   if (pointer) {
     distance-= 0.001f;
   }
@@ -1259,6 +1292,12 @@ JNI_METHOD(void, resetUIYawNative)
 (JNIEnv* aEnv, jobject) {
   crow::BrowserWorld::Instance().ResetUIYaw();
 }
+
+JNI_METHOD(void, setCurvatureRatioNative)
+(JNIEnv* aEnv, jobject, jfloat aRatio) {
+  crow::BrowserWorld::Instance().SetCurvatureRatio(aRatio);
+}
+
 
 JNI_METHOD(void, runCallbackNative)
 (JNIEnv* aEnv, jobject, jlong aCallback) {

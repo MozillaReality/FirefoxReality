@@ -41,7 +41,7 @@ public:
   bool IsInitialized() const;
   bool IsDrawRequested() const;
   const vrb::Matrix& GetModelTransform(device::Eye aEye) const;
-  const vrb::Matrix& GetModelView(device::Eye aEye) const;
+  const vrb::Matrix& GetView(device::Eye aEye) const;
   device::Eye GetCurrentEye() const;
   int32_t GetPriority() const;
   const vrb::Color& GetTintColor() const;
@@ -53,7 +53,7 @@ public:
   void RequestDraw();
   void ClearRequestDraw();
   void SetModelTransform(device::Eye aEye, const vrb::Matrix& aModelTransform);
-  void SetModelView(device::Eye aEye, const vrb::Matrix& aModelView);
+  void SetView(device::Eye aEye, const vrb::Matrix& aModelView);
   void SetCurrentEye(device::Eye aEye);
   void SetPriority(int32_t aPriority);
   void SetTintColor(const vrb::Color& aTintColor);
@@ -70,11 +70,10 @@ private:
   VRB_NO_DEFAULTS(VRLayer)
 };
 
+class VRLayerSurface;
+typedef std::shared_ptr<VRLayerSurface> VRLayerSurfacePtr;
 
-class VRLayerQuad;
-typedef std::shared_ptr<VRLayerQuad> VRLayerQuadPtr;
-
-class VRLayerQuad: public VRLayer {
+class VRLayerSurface: public VRLayer {
 public:
   typedef std::function<void()> ResizeDelegate;
   typedef std::function<void(GLenum aTarget, bool aBind)> BindDelegate;
@@ -84,14 +83,13 @@ public:
     FBO,
   };
 
-  static VRLayerQuadPtr Create(const int32_t aWidth, const int32_t aHeight, VRLayerQuad::SurfaceType aSurfaceType);
-
   SurfaceType GetSurfaceType() const;
   int32_t GetWidth() const;
   int32_t GetHeight() const;
   float GetWorldWidth() const;
   float GetWorldHeight() const;
   jobject GetSurface() const;
+  float GetPixelDensity() const;
 
   // Only works with SurfaceType::FBO
   void Bind(GLenum aTarget = GL_FRAMEBUFFER);
@@ -103,6 +101,22 @@ public:
   void SetResizeDelegate(const ResizeDelegate& aDelegate);
   void SetBindDelegate(const BindDelegate& aDelegate);
   void SetSurface(jobject aSurface);
+  void SetPixelDensity(float aDensity);
+protected:
+  struct State;
+  VRLayerSurface(State& aState, LayerType aLayerType);
+  virtual ~VRLayerSurface();
+private:
+  State& m;
+  VRB_NO_DEFAULTS(VRLayerSurface)
+};
+
+class VRLayerQuad;
+typedef std::shared_ptr<VRLayerQuad> VRLayerQuadPtr;
+
+class VRLayerQuad: public VRLayerSurface {
+public:
+  static VRLayerQuadPtr Create(const int32_t aWidth, const int32_t aHeight, VRLayerSurface::SurfaceType aSurfaceType);
 protected:
   struct State;
   VRLayerQuad(State& aState);
@@ -111,6 +125,27 @@ private:
   State& m;
   VRB_NO_DEFAULTS(VRLayerQuad)
 };
+
+
+class VRLayerCylinder;
+typedef std::shared_ptr<VRLayerCylinder> VRLayerCylinderPtr;
+
+class VRLayerCylinder: public VRLayerSurface {
+public:
+  static VRLayerCylinderPtr Create(const int32_t aWidth, const int32_t aHeight, VRLayerSurface::SurfaceType aSurfaceType);
+  float GetRadius() const;
+  float GetCylinderDensity() const;
+  void SetRadius(const float aRadius);
+  void SetCylinderDensity(const float aDensity); // Measured in pixels for a 360 cylinder
+protected:
+  struct State;
+  VRLayerCylinder(State& aState);
+  virtual ~VRLayerCylinder();
+private:
+  State& m;
+  VRB_NO_DEFAULTS(VRLayerCylinder)
+};
+
 
 class VRLayerCube;
 typedef std::shared_ptr<VRLayerCube> VRLayerCubePtr;
