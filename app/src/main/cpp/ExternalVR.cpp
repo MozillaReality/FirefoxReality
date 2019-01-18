@@ -347,7 +347,7 @@ ExternalVR::GetVRState() const {
 }
 
 void
-ExternalVR::PushFramePoses(const vrb::Matrix& aHeadTransform, const std::vector<Controller>& aControllers) {
+ExternalVR::PushFramePoses(const vrb::Matrix& aHeadTransform, const std::vector<Controller>& aControllers, const double aTimestamp) {
   const vrb::Matrix inverseHeadTransform = aHeadTransform.Inverse();
   vrb::Quaternion quaternion(inverseHeadTransform);
   vrb::Vector translation = aHeadTransform.GetTranslation();
@@ -403,6 +403,8 @@ ExternalVR::PushFramePoses(const vrb::Matrix& aHeadTransform, const std::vector<
       memcpy(&(immersiveController.pose.position), position.Data(), sizeof(immersiveController.pose.position));
     }
   }
+
+  m.system.sensorState.timestamp = aTimestamp;
 
   PushSystemState();
 }

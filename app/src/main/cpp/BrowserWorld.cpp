@@ -1033,7 +1033,7 @@ BrowserWorld::DrawImmersive() {
 
   m.device->StartFrame();
   VRB_GL_CHECK(glDepthMask(GL_FALSE));
-  m.externalVR->PushFramePoses(m.device->GetHeadTransform(), m.controllers->GetControllers());
+  m.externalVR->PushFramePoses(m.device->GetHeadTransform(), m.controllers->GetControllers(), m.context->GetTimestamp());
   int32_t surfaceHandle = 0;
   device::EyeRect leftEye, rightEye;
   bool aDiscardFrame = !m.externalVR->WaitFrameResult();
