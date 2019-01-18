@@ -135,8 +135,10 @@ public:
   static VRLayerCylinderPtr Create(const int32_t aWidth, const int32_t aHeight, VRLayerSurface::SurfaceType aSurfaceType);
   float GetRadius() const;
   float GetCylinderDensity() const;
+  const vrb::Matrix& GetUVTransform(device::Eye aEye) const;
   void SetRadius(const float aRadius);
   void SetCylinderDensity(const float aDensity); // Measured in pixels for a 360 cylinder
+  void SetUVTransform(device::Eye aEye, const vrb::Matrix& aTransform);
 protected:
   struct State;
   VRLayerCylinder(State& aState);

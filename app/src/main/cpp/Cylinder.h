@@ -26,10 +26,11 @@ typedef std::shared_ptr<Cylinder> CylinderPtr;
 
 class Cylinder {
 public:
-  static CylinderPtr Create(vrb::CreationContextPtr aContext, const vrb::Vector& aMin, const vrb::Vector& aMax, const VRLayerCylinderPtr& aLayer = nullptr);
-  static CylinderPtr Create(vrb::CreationContextPtr aContext, const float aWorldWidth, const float aWorldHeight, const VRLayerCylinderPtr& aLayer = nullptr);
+  static CylinderPtr Create(vrb::CreationContextPtr aContext, const float aRadius, const float aWorldWidth, const float aWorldHeight, const VRLayerCylinderPtr& aLayer = nullptr);
   void GetTextureSize(int32_t& aWidth, int32_t& aHeight) const;
   void SetTextureSize(int32_t aWidth, int32_t aHeight);
+  void SetTexture(const vrb::TexturePtr& aTexture, int32_t aWidth, int32_t aHeight);
+  void SetMaterial(const vrb::Color& aAmbient, const vrb::Color& aDiffuse, const vrb::Color& aSpecular, const float aSpecularExponent);
   void GetWorldMinAndMax(vrb::Vector& aMin, vrb::Vector& aMax) const;
   const vrb::Vector& GetWorldMin() const;
   const vrb::Vector& GetWorldMax() const;
@@ -39,11 +40,10 @@ public:
   float GetCylinderDensity() const;
   float GetCylinderRadius() const;
   void SetCylinderDensity(const float aDensity);
-  void SetCylinderRadius(const float aRadius);
+  void SetPixelDensity(const float aDensity);
   void SetWorldSize(const float aWidth, const float aHeight) const;
   void SetWorldSize(const vrb::Vector& aMin, const vrb::Vector& aMax) const;
   void SetTintColor(const vrb::Color& aColor);
-  vrb::Vector GetCenterNormal() const;
   vrb::NodePtr GetRoot() const;
   VRLayerCylinderPtr GetLayer() const;
   vrb::TransformPtr GetTransformNode() const;

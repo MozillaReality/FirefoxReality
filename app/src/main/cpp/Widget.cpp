@@ -70,6 +70,9 @@ struct Widget::State {
       if (quad) {
         quad->SetTexture(surface, aTextureWidth, aTextureHeight);
         quad->SetMaterial(vrb::Color(0.4f, 0.4f, 0.4f), vrb::Color(1.0f, 1.0f, 1.0f), vrb::Color(0.0f, 0.0f, 0.0f), 0.0f);
+      } else if (cylinder) {
+        cylinder->SetTexture(surface, aTextureWidth, aTextureHeight);
+        cylinder->SetMaterial(vrb::Color(0.4f, 0.4f, 0.4f), vrb::Color(1.0f, 1.0f, 1.0f), vrb::Color(0.0f, 0.0f, 0.0f), 0.0f);
       }
     }
 
@@ -330,6 +333,9 @@ Widget::SetPlacement(const WidgetPlacementPtr& aPlacement) {
   VRLayerSurfacePtr layer = GetLayer();
   if (layer) {
     layer->SetPixelDensity(aPlacement->density);
+  }
+  if (m.cylinder) {
+    m.cylinder->SetPixelDensity(aPlacement->density);
   }
 }
 

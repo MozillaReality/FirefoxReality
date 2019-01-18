@@ -394,14 +394,6 @@ public:
     ovrLayer.Header.SrcBlend = VRAPI_FRAME_LAYER_BLEND_ONE;
     ovrLayer.Header.DstBlend = VRAPI_FRAME_LAYER_BLEND_ONE_MINUS_SRC_ALPHA;
 
-    const float textureWidth = layer->GetWidth() / layer->GetPixelDensity();
-    const float textureHeight = layer->GetHeight() / layer->GetPixelDensity();
-    const float density = layer->GetCylinderDensity();
-    const float texScaleX = density * 0.5f / textureWidth;
-    const float texBiasX = -texScaleX * (0.5f * (1.0f - 1.0f / texScaleX));
-    const float texScaleY = 0.5f;
-    const float texBiasY = -texScaleY * (0.5f * (1.0f - (1.0f / texScaleY)));
-
     for ( int i = 0; i < VRAPI_FRAME_LAYER_EYE_MAX; i++ ) {
       device::Eye eye = i == 0 ? device::Eye::Left : device::Eye::Right;
       vrb::Matrix modelView = layer->GetView(eye).PostMultiply(layer->GetModelTransform(eye));
@@ -410,10 +402,13 @@ public:
       ovrLayer.Textures[i].ColorSwapChain = swapChain;
       ovrLayer.Textures[i].SwapChainIndex = 0;
 
-      ovrLayer.Textures[i].TextureMatrix.M[0][0] = texScaleX;
-      ovrLayer.Textures[i].TextureMatrix.M[0][2] = texBiasX;
-      ovrLayer.Textures[i].TextureMatrix.M[1][1] = texScaleY;
-      ovrLayer.Textures[i].TextureMatrix.M[1][2] = texBiasY;
+      const vrb::Vector scale = layer->GetUVTransform(eye).GetScale();
+      const vrb::Vector translation = layer->GetUVTransform(eye).GetTranslation();
+
+      ovrLayer.Textures[i].TextureMatrix.M[0][0] = scale.x();
+      ovrLayer.Textures[i].TextureMatrix.M[1][1] = scale.y();
+      ovrLayer.Textures[i].TextureMatrix.M[0][2] = translation.x();
+      ovrLayer.Textures[i].TextureMatrix.M[1][2] = translation.y();
 
       ovrLayer.Textures[i].TextureRect.width = 1.0f;
       ovrLayer.Textures[i].TextureRect.height = 1.0f;

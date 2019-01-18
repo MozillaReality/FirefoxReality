@@ -332,11 +332,16 @@ VRLayerQuad::~VRLayerQuad() {}
 struct VRLayerCylinder::State: public VRLayerSurface::State {
   float radius;
   float density;
+  vrb::Matrix uvTransform[2];
   State():
       radius(1.0f),
       density(4500.0f)
-  {}
+  {
+    uvTransform[0] = vrb::Matrix::Identity();
+    uvTransform[1] = vrb::Matrix::Identity();
+  }
 };
+
 
 VRLayerCylinderPtr
 VRLayerCylinder::Create(const int32_t aWidth, const int32_t aHeight, VRLayerSurface::SurfaceType aSurfaceType) {
@@ -355,6 +360,16 @@ VRLayerCylinder::GetRadius() const {
 float
 VRLayerCylinder::GetCylinderDensity() const {
   return m.density;
+}
+
+const vrb::Matrix&
+VRLayerCylinder::GetUVTransform(device::Eye aEye) const {
+  return m.uvTransform[device::EyeIndex(aEye)];
+}
+
+void
+VRLayerCylinder::SetUVTransform(device::Eye aEye, const vrb::Matrix& aTransform) {
+  m.uvTransform[device::EyeIndex(aEye)] = aTransform;
 }
 
 void
