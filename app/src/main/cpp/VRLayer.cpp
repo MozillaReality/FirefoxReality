@@ -200,7 +200,6 @@ struct VRLayerSurface::State: public VRLayer::State {
   VRLayerQuad::ResizeDelegate resizeDelegate;
   VRLayerQuad::BindDelegate bindDelegate;
   jobject surface;
-  float pixelDensity;
   State():
       surfaceType(VRLayerQuad::SurfaceType::AndroidSurface),
       width(0),
@@ -209,8 +208,7 @@ struct VRLayerSurface::State: public VRLayer::State {
       worldHeight(0),
       boundTarget(GL_FRAMEBUFFER),
       priority(0),
-      surface(nullptr),
-      pixelDensity(1.0f)
+      surface(nullptr)
   {}
 };
 
@@ -241,10 +239,6 @@ VRLayerSurface::GetWorldHeight() const {
 jobject
 VRLayerSurface::GetSurface() const {
   return m.surface;
-}
-
-float VRLayerSurface::GetPixelDensity() const {
-  return m.pixelDensity;
 }
 
 void
@@ -296,11 +290,6 @@ VRLayerSurface::SetSurface(jobject aSurface) {
   m.surface = aSurface;
 }
 
-void
-VRLayerSurface::SetPixelDensity(float aDensity) {
-  m.pixelDensity = aDensity;
-}
-
 VRLayerSurface::VRLayerSurface(State& aState, LayerType aLayerType): VRLayer(aState, aLayerType), m(aState) {
 }
 
@@ -331,11 +320,9 @@ VRLayerQuad::~VRLayerQuad() {}
 
 struct VRLayerCylinder::State: public VRLayerSurface::State {
   float radius;
-  float density;
   vrb::Matrix uvTransform[2];
   State():
-      radius(1.0f),
-      density(4500.0f)
+      radius(1.0f)
   {
     uvTransform[0] = vrb::Matrix::Identity();
     uvTransform[1] = vrb::Matrix::Identity();
@@ -357,11 +344,6 @@ VRLayerCylinder::GetRadius() const {
   return m.radius;
 }
 
-float
-VRLayerCylinder::GetCylinderDensity() const {
-  return m.density;
-}
-
 const vrb::Matrix&
 VRLayerCylinder::GetUVTransform(device::Eye aEye) const {
   return m.uvTransform[device::EyeIndex(aEye)];
@@ -375,11 +357,6 @@ VRLayerCylinder::SetUVTransform(device::Eye aEye, const vrb::Matrix& aTransform)
 void
 VRLayerCylinder::SetRadius(const float aRadius) {
   m.radius = aRadius;
-}
-
-void
-VRLayerCylinder::SetCylinderDensity(const float aDensity) {
-  m.density = aDensity;
 }
 
 VRLayerCylinder::VRLayerCylinder(State& aState): VRLayerSurface(aState, LayerType::QUAD), m(aState) {

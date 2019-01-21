@@ -32,20 +32,20 @@ struct Cylinder::State {
   vrb::TogglePtr root;
   vrb::TransformPtr transform;
   vrb::GeometryPtr geometry;
-  vrb::Vector worldMin;
-  vrb::Vector worldMax;
   float radius;
-  float cylinderDensity;
-  float pixelDensity;
+  float height;
+  float theta;
+  float textureScaleX;
+  float textureScaleY;
 
   State()
       : textureWidth(0)
       , textureHeight(0)
-      , worldMin(0.0f, 0.0f, 0.0f)
-      , worldMax(0.0f, 0.0f, 0.0f)
       , radius(1.0f)
-      , cylinderDensity(4680.0f)
-      , pixelDensity(1.0f)
+      , height(2.0f)
+      , theta((float)M_PI)
+      , textureScaleX(1.0f)
+      , textureScaleY(1.0f)
   {}
 
   void Initialize() {
@@ -54,35 +54,21 @@ struct Cylinder::State {
     if (layer) {
       textureWidth = layer->GetWidth();
       textureHeight = layer->GetHeight();
-      layer->SetWorldSize(GetWorldWidth(), GetWorldHeight());
-      layer->SetCylinderDensity(cylinderDensity);
       layer->SetRadius(radius);
       layerNode = VRLayerNode::Create(create, layer);
       transform->AddNode(layerNode);
     } else {
-      geometry = CreateCylinderGeometry(radius, 2.0f, (float) M_PI);
+      geometry = CreateCylinderGeometry(radius, height, (float) M_PI);
       transform->AddNode(geometry);
     }
     root = vrb::Toggle::Create(create);
     root->AddNode(transform);
   }
 
-  float GetWorldWidth() const {
-    return worldMax.x() - worldMin.x();
-  }
-
-  float GetWorldHeight() const {
-    return worldMax.y() - worldMin.y();
-  }
-
-  float GetTheta() const {
-    const float width = textureWidth / pixelDensity;
-    return (float)M_PI * width / (cylinderDensity * 0.5f);
-  }
+  const int kRadialSegments = 200;
+  const int kHeightSegments = 1;
 
   vrb::GeometryPtr CreateCylinderGeometry(const float aRadius, const float aHeight, const float aArcLength) {
-    const int kRadialSegments = 40;
-    const int kHeightSegments = 1;
     const float pi = (float) M_PI;
 
     const float startAngle = pi * 0.5f + aArcLength * 0.5f;
@@ -127,20 +113,18 @@ struct Cylinder::State {
 
     for (int x = 0; x < kRadialSegments; ++x) {
       for (int y = 0; y < kHeightSegments; ++y) {
-        const int a = 1 + y * kRadialSegments + x;
-        const int b = 1 + (y + 1) * kRadialSegments + x;
-        const int c = 1 + (y + 1) * kRadialSegments + x + 1;
-        const int d = 1 + y * kRadialSegments + x + 1;
+        const int a = 1 + y * (kRadialSegments + 1) + x;
+        const int b = 1 + (y + 1) * (kRadialSegments + 1) + x;
+        const int c = 1 + (y + 1) * (kRadialSegments + 1) + x + 1;
+        const int d = 1 + y * (kRadialSegments + 1) + x + 1;
 
         indices.clear();
-        indices.push_back(a);
-        indices.push_back(b);
-        indices.push_back(d);
         indices.push_back(b);
         indices.push_back(c);
         indices.push_back(d);
+        indices.push_back(a);
 
-        // update group counte
+        // update group counter
         geometry->AddFace(indices, indices, indices);
       }
     }
@@ -154,8 +138,8 @@ struct Cylinder::State {
     return geometry;
   }
 
-  void updateTextureScale() {
-    const float texScaleX = cylinderDensity * 0.5f / (textureWidth / pixelDensity);
+  void updateTextureLayout() {
+    const float texScaleX = (float)M_PI / theta;
     const float texBiasX = -texScaleX * (0.5f * (1.0f - 1.0f / texScaleX));
     const float texScaleY = layer ? 0.5f  : 1.0f;
     const float texBiasY = -texScaleY * (0.5f * (1.0f - (1.0f / texScaleY)));
@@ -167,16 +151,30 @@ struct Cylinder::State {
     }
     if (geometry) {
       geometry->GetRenderState()->SetUVTransform(transform);
+      int32_t segments = (int32_t)ceilf(kRadialSegments * fmin(1.0f, 1.0f / texScaleX));
+      if (segments % 2 != 0) {
+        segments++;
+      }
+      const int32_t indicesPerSegment = 6;
+      const int32_t start = (kRadialSegments - segments) / 2;
+      geometry->SetRenderRange(start * indicesPerSegment, segments * indicesPerSegment);
     }
   }
 };
 
 CylinderPtr
-Cylinder::Create(vrb::CreationContextPtr aContext, const float aRadius, const float aWorldWidth, const float aWorldHeight, const VRLayerCylinderPtr& aLayer) {
+Cylinder::Create(vrb::CreationContextPtr aContext, const float aRadius, const float aHeight, const VRLayerCylinderPtr& aLayer) {
   CylinderPtr result = std::make_shared<vrb::ConcreteClass<Cylinder, Cylinder::State> >(aContext);
-  result->m.worldMin = vrb::Vector(-aWorldWidth * 0.5f, -aWorldHeight * 0.5f, 0.0f);
-  result->m.worldMax = vrb::Vector(aWorldWidth * 0.5f, aWorldHeight * 0.5f, 0.0f);
   result->m.radius = aRadius;
+  result->m.height = aHeight;
+  result->m.layer = aLayer;
+  result->m.Initialize();
+  return result;
+}
+
+CylinderPtr
+Cylinder::Create(vrb::CreationContextPtr aContext, const VRLayerCylinderPtr& aLayer) {
+  CylinderPtr result = std::make_shared<vrb::ConcreteClass<Cylinder, Cylinder::State> >(aContext);
   result->m.layer = aLayer;
   result->m.Initialize();
   return result;
@@ -184,8 +182,8 @@ Cylinder::Create(vrb::CreationContextPtr aContext, const float aRadius, const fl
 
 void
 Cylinder::GetTextureSize(int32_t& aWidth, int32_t& aHeight) const {
-  aWidth = m.textureWidth;
-  aHeight = m.textureHeight;
+  aWidth = (int32_t)(m.textureWidth * m.textureScaleX);
+  aHeight = (int32_t)(m.textureHeight * m.textureScaleY);
 }
 
 void
@@ -195,7 +193,7 @@ Cylinder::SetTextureSize(int32_t aWidth, int32_t aHeight) {
   if (m.layer) {
     m.layer->Resize(aWidth, aHeight);
   }
-  m.updateTextureScale();
+  m.updateTextureLayout();
 }
 
 void
@@ -205,7 +203,13 @@ Cylinder::SetTexture(const vrb::TexturePtr& aTexture, int32_t aWidth, int32_t aH
   if (m.geometry) {
     m.geometry->GetRenderState()->SetTexture(aTexture);
   }
-  m.updateTextureScale();
+  m.updateTextureLayout();
+}
+
+void
+Cylinder::SetTextureScale(const float aScaleX, const float aScaleY) {
+  m.textureScaleX = aScaleX;
+  m.textureScaleY = aScaleY;
 }
 
 void
@@ -215,42 +219,11 @@ Cylinder::SetMaterial(const vrb::Color& aAmbient, const vrb::Color& aDiffuse, co
   }
 }
 
-
 void
-Cylinder::GetWorldMinAndMax(vrb::Vector& aMin, vrb::Vector& aMax) const {
-  aMin = m.worldMin;
-  aMax = m.worldMax;
-}
-
-const vrb::Vector&
-Cylinder::GetWorldMin() const {
-  return m.worldMin;
-}
-
-const vrb::Vector&
-Cylinder::GetWorldMax() const {
-  return m.worldMax;
-}
-
-float
-Cylinder::GetWorldWidth() const {
-  return  m.GetWorldWidth();
-}
-
-float
-Cylinder::GetWorldHeight() const {
-  return m.GetWorldHeight();
-}
-
-void
-Cylinder::GetWorldSize(float& aWidth, float& aHeight) const {
-  aWidth = m.worldMax.x() - m.worldMin.x();
-  aHeight = m.worldMax.y() - m.worldMin.y();
-}
-
-float
-Cylinder::GetCylinderDensity() const {
-  return m.cylinderDensity;
+Cylinder::SetLightsEnabled(const bool aEnabled) {
+  if (m.geometry) {
+    m.geometry->GetRenderState()->SetLightsEnabled(aEnabled);
+  }
 }
 
 float
@@ -258,42 +231,20 @@ Cylinder::GetCylinderRadius() const {
   return m.radius;
 }
 
-void
-Cylinder::SetCylinderDensity(const float aDensity) {
-  m.cylinderDensity = aDensity;
-  if (m.layer) {
-    m.layer->SetCylinderDensity(aDensity);
-  }
-  m.updateTextureScale();
+float
+Cylinder::GetCylinderHeight() const {
+  return m.height;
+}
+
+float
+Cylinder::GetCylinderTheta() const {
+  return m.theta;
 }
 
 void
-Cylinder::SetPixelDensity(const float aDensity) {
-  m.pixelDensity = aDensity;
-  if (m.layer) {
-    m.layer->SetPixelDensity(aDensity);
-  }
-  m.updateTextureScale();
-}
-
-void
-Cylinder::SetWorldSize(const float aWidth, const float aHeight) const {
-  vrb::Vector min = vrb::Vector(-aWidth * 0.5f, -aHeight * 0.5f, 0.0f);
-  vrb::Vector max = vrb::Vector(aWidth * 0.5f, aHeight * 0.5f, 0.0f);
-  SetWorldSize(min, max);
-}
-
-void
-Cylinder::SetWorldSize(const vrb::Vector& aMin, const vrb::Vector& aMax) const {
-  if (m.worldMin == aMin && m.worldMax == aMax) {
-    return;
-  }
-  m.worldMin = aMin;
-  m.worldMax = aMax;
-
-  if (m.layer) {
-    m.layer->SetWorldSize(GetWorldWidth(), GetWorldHeight());
-  }
+Cylinder::SetCylinderTheta(const float aAngleLength) {
+  m.theta = aAngleLength;
+  m.updateTextureLayout();
 }
 
 void
@@ -341,9 +292,9 @@ Cylinder::TestIntersection(const vrb::Vector& aStartPoint, const vrb::Vector& aD
   start = start - direction * 1000.0f;
 
   const float radius = this->GetCylinderRadius();
-  const float height = radius * 2.0f;
-  const vrb::Vector A(0.0f, -height * 0.5f, 0.0f); // Cylinder bottom center
-  const vrb::Vector B(0.0f, height * 0.5f, 0.0f); // Cylinder top center
+
+  const vrb::Vector A(0.0f, -m.height * 0.5f, 0.0f); // Cylinder bottom center
+  const vrb::Vector B(0.0f, m.height * 0.5f, 0.0f); // Cylinder top center
 
   const vrb::Vector AB = B - A;
   const vrb::Vector AO = start - A;
@@ -367,9 +318,7 @@ Cylinder::TestIntersection(const vrb::Vector& aStartPoint, const vrb::Vector& aD
   const vrb::Vector projection = A + AB * (AB.Dot(intersection - A) / ab2); // intersection projected onto cylinder axis
 
   // Height test
-  if ((projection - A).Magnitude() + (B - projection).Magnitude() > AB.Magnitude()) {
-    return false;
-  }
+  const bool insideHeight = (projection - A).Magnitude() + (B - projection).Magnitude() <= AB.Magnitude();
 
   // Normal Test
   const vrb::Vector normal = (projection - intersection).Normalize();
@@ -379,9 +328,9 @@ Cylinder::TestIntersection(const vrb::Vector& aStartPoint, const vrb::Vector& aD
   }
 
   // Cylinder theta angle test
-  const float maxTheta = m.GetTheta();
+  const float maxTheta = m.theta;
   const float hitTheta = (float)M_PI - acosf(fabsf(intersection.x()) / radius) * 2.0f;
-  aIsInside = hitTheta <= maxTheta && fabs(intersection.y()) <= radius;
+  aIsInside = insideHeight && hitTheta <= maxTheta && fabs(intersection.y()) <= radius;
 
   vrb::Vector result = intersection;
   // Clamp to keep pointer in cylinder surface.
@@ -414,7 +363,7 @@ Cylinder::ConvertToQuadCoordinates(const vrb::Vector& point, float& aX, float& a
   }
 
   const float hitTheta = (float)M_PI - acosf(fabsf(intersection.x()) / radius) * 2.0f;
-  const float maxTheta = m.GetTheta();
+  const float maxTheta = m.theta;
   float ratioTheta = hitTheta / maxTheta * 0.5f;
   float ratioX;
   if (intersection.x() > 0.0f) {
@@ -440,6 +389,36 @@ Cylinder::ConvertToQuadCoordinates(const vrb::Vector& point, float& aX, float& a
     aX = ratioX * m.textureWidth;
     aY = ratioY * m.textureHeight;
   }
+}
+
+void
+Cylinder::ConvertFromQuadCoordinates(const float aX, const float aY, vrb::Vector& aWorldPoint, vrb::Vector& aNormal) {
+  const float ratioX = aX / m.textureWidth;
+  const float ratioY = aY / m.textureHeight;
+  const float radius = GetCylinderRadius();
+  const float pi = (float) M_PI;
+  float targetTheta;
+  const float maxTheta = m.theta;
+  if (ratioX > 0.5f) {
+    targetTheta = (ratioX - 0.5f) * maxTheta;
+  } else {
+    targetTheta = -maxTheta *  (0.5f - ratioX);
+  }
+
+  const float angle = pi * 0.5f - targetTheta;
+  const float x = radius * cosf(angle);
+  const float z = -radius * sinf(angle);
+  float y;
+  if (ratioY > 0.5f) {
+    y =  radius * (ratioY - 0.5f) * 2.0f;
+  } else {
+    y = -radius * (0.5f - ratioY) * 2.0f;
+  }
+
+  vrb::Vector targetPoint(x, y, z);
+  aNormal = (vrb::Vector(0.0f, y, 0.0f) - targetPoint).Normalize();
+
+  aWorldPoint = m.transform->GetWorldTransform().MultiplyPosition(targetPoint);
 }
 
 float Cylinder::DistanceToBackPlane(const vrb::Vector &aStartPoint, const vrb::Vector &aDirection) const {

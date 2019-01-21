@@ -30,8 +30,11 @@ struct Widget::State {
   vrb::RenderContextWeak context;
   std::string name;
   uint32_t handle;
+  vrb::Vector min;
+  vrb::Vector max;
   QuadPtr quad;
   CylinderPtr cylinder;
+  float cylinderDensity;
   vrb::TogglePtr root;
   vrb::TransformPtr transform;
   vrb::TextureSurfacePtr surface;
@@ -44,6 +47,7 @@ struct Widget::State {
       : handle(0)
       , resizing(false)
       , toggleState(false)
+      , cylinderDensity(4680.0f)
   {}
 
   void Initialize(const int aHandle, const int32_t aTextureWidth, const int32_t aTextureHeight,
@@ -105,16 +109,29 @@ struct Widget::State {
     return quad ? (VRLayerSurfacePtr) quad->GetLayer() : cylinder->GetLayer();
   }
 
+  float WorldWidth() const {
+    return max.x() - min.x();
+  }
+
+  float WorldHeight() const {
+    return max.y() - min.y();
+  }
+
   void UpdateCylinderMatrix() {
-    float w, h;
-    cylinder->GetWorldSize(w, h);
+    float w = WorldWidth();
+    float h = WorldHeight();
     int32_t textureWidth, textureHeight;
     cylinder->GetTextureSize(textureWidth, textureHeight);
 
     const float radius = cylinder->GetCylinderRadius();
-    const float density = cylinder->GetCylinderDensity();
-    const float heightScale = (float)textureHeight/placement->density * (float)M_PI / density;
-    const float scale = 0.5f * h / (radius * heightScale);
+    const float surfaceWidth = (float)textureWidth / placement->density;
+    const float surfaceHeight = (float)textureHeight / placement->density;
+    // Cylinder density measures the pixels for a 360 cylinder
+    // Oculus recommends 4680px density, which is 13 pixels per degree.
+    const float theta = (float)M_PI * surfaceWidth / (cylinderDensity * 0.5f);
+    cylinder->SetCylinderTheta(theta);
+    const float heightScale = surfaceHeight * (float)M_PI / cylinderDensity;
+    const float scale = h / (cylinder->GetCylinderHeight() * heightScale);
     vrb::Matrix scaleMatrix = vrb::Matrix::Identity();
     scaleMatrix.ScaleInPlace(vrb::Vector(radius * scale, radius * scale * heightScale, radius * scale));
     vrb::Matrix translation = vrb::Matrix::Translation(vrb::Vector(0.0f, 0.0f, radius * scale));
@@ -132,7 +149,6 @@ struct Widget::State {
     } else {
       cylinder->SetTransform(translation.PostMultiply(scaleMatrix));
     }
-
   }
 };
 
@@ -140,14 +156,17 @@ WidgetPtr
 Widget::Create(vrb::RenderContextPtr& aContext, const int aHandle,
                const int32_t aTextureWidth, const int32_t aTextureHeight,const QuadPtr& aQuad) {
   WidgetPtr result = std::make_shared<vrb::ConcreteClass<Widget, Widget::State> >(aContext);
+  aQuad->GetWorldMinAndMax(result->m.min, result->m.max);
   result->m.Initialize(aHandle, aTextureWidth, aTextureHeight, aQuad, nullptr);
   return result;
 }
 
 WidgetPtr
-Widget::Create(vrb::RenderContextPtr& aContext, const int aHandle,
+Widget::Create(vrb::RenderContextPtr& aContext, const int aHandle, const float aWorldWidth, const float aWorldHeight,
                const int32_t aTextureWidth, const int32_t aTextureHeight, const CylinderPtr& aCylinder) {
   WidgetPtr result = std::make_shared<vrb::ConcreteClass<Widget, Widget::State> >(aContext);
+  result->m.min = vrb::Vector(-aWorldWidth * 0.5f, -aWorldHeight * 0.5f, 0.0f);
+  result->m.max = vrb::Vector(aWorldWidth *0.5f, aWorldHeight * 0.5f, 0.0f);
   result->m.Initialize(aHandle, aTextureWidth, aTextureHeight, nullptr, aCylinder);
   return result;
 }
@@ -198,11 +217,8 @@ Widget::SetSurfaceTextureSize(int32_t aWidth, int32_t aHeight) {
 
 void
 Widget::GetWidgetMinAndMax(vrb::Vector& aMin, vrb::Vector& aMax) const {
-  if (m.quad) {
-    m.quad->GetWorldMinAndMax(aMin, aMax);
-  } else {
-    m.cylinder->GetWorldMinAndMax(aMin, aMax);
-  }
+  aMin = m.min;
+  aMax = m.max;
 }
 
 void
@@ -211,25 +227,26 @@ Widget::SetWorldWidth(float aWorldWidth) const {
   this->GetSurfaceTextureSize(width, height);
   const float aspect = (float)width / (float) height;
   const float worldHeight = aWorldWidth / aspect;
+
+  m.min = vrb::Vector(-aWorldWidth * 0.5f, -worldHeight * 0.5f, 0.0f);
+  m.max = vrb::Vector(aWorldWidth *0.5f, worldHeight * 0.5f, 0.0f);
+
   if (m.quad) {
     m.quad->SetWorldSize(aWorldWidth, worldHeight);
-  } else {
-    m.cylinder->SetWorldSize(aWorldWidth, worldHeight);
   }
+  if (m.cylinder) {
+    m.UpdateCylinderMatrix();
+  }
+
   if (m.resizing && m.resizer) {
-    vrb::Vector min(-aWorldWidth * 0.5f, -worldHeight * 0.5f, 0.0f);
-    vrb::Vector max(aWorldWidth *0.5f, worldHeight * 0.5f, 0.0f);
-    m.resizer->SetSize(min, max);
+    m.resizer->SetSize(m.min, m.max);
   }
 }
 
 void
 Widget::GetWorldSize(float& aWidth, float& aHeight) const {
-  if (m.quad) {
-    m.quad->GetWorldSize(aWidth, aHeight);
-  } else {
-    m.cylinder->GetWorldSize(aWidth, aHeight);
-  }
+  aWidth = m.max.x() - m.min.x();
+  aHeight = m.max.y() - m.min.y();
 }
 
 bool
@@ -240,7 +257,7 @@ Widget::TestControllerIntersection(const vrb::Vector& aStartPoint, const vrb::Ve
   }
 
   bool clamp = !m.resizing;
-  bool result = false;
+  bool result;
   if (m.quad) {
     result = m.quad->TestIntersection(aStartPoint, aDirection, aResult, aNormal, clamp, aIsInWidget, aDistance);
   } else {
@@ -330,12 +347,8 @@ Widget::SetPlacement(const WidgetPlacementPtr& aPlacement) {
       m.root->ToggleAll(m.toggleState);
   }
   m.placement = aPlacement;
-  VRLayerSurfacePtr layer = GetLayer();
-  if (layer) {
-    layer->SetPixelDensity(aPlacement->density);
-  }
   if (m.cylinder) {
-    m.cylinder->SetPixelDensity(aPlacement->density);
+    m.UpdateCylinderMatrix();
   }
 }
 
@@ -351,7 +364,7 @@ Widget::StartResize() {
       return;
     }
     vrb::CreationContextPtr create = render->GetRenderThreadCreationContext();
-    m.resizer = WidgetResizer::Create(create, worldMin, worldMax);
+    m.resizer = WidgetResizer::Create(create, this);
     m.transform->InsertNode(m.resizer->GetRoot(), 0);
   }
   m.resizing = true;
@@ -384,10 +397,13 @@ void
 Widget::HandleResize(const vrb::Vector& aPoint, bool aPressed, bool& aResized, bool &aResizeEnded) {
   m.resizer->HandleResizeGestures(aPoint, aPressed, aResized, aResizeEnded);
   if (aResized || aResizeEnded) {
+
+    m.min = m.resizer->GetCurrentMin();
+    m.max = m.resizer->GetCurrentMax();
     if (m.quad) {
-      m.quad->SetWorldSize(m.resizer->GetCurrentMin(), m.resizer->GetCurrentMax());
-    } else {
-      m.cylinder->SetWorldSize(m.resizer->GetCurrentMin(), m.resizer->GetCurrentMax());
+      m.quad->SetWorldSize(m.min, m.max);
+    } else if (m.cylinder) {
+      m.UpdateCylinderMatrix();
     }
   }
 }
@@ -408,8 +424,7 @@ Widget::SetCurvatureRatio(const float aRatio) {
   const float minDensity = 2000.0f;
   const float maxDensity = 8000.0f;
   const float t = 1.0f - aRatio;
-  const float density = minDensity + (maxDensity - minDensity) * t;
-  m.cylinder->SetCylinderDensity(density);
+  m.cylinderDensity = minDensity + (maxDensity - minDensity) * t;
 
   m.UpdateCylinderMatrix();
 }

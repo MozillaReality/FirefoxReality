@@ -89,7 +89,6 @@ public:
   float GetWorldWidth() const;
   float GetWorldHeight() const;
   jobject GetSurface() const;
-  float GetPixelDensity() const;
 
   // Only works with SurfaceType::FBO
   void Bind(GLenum aTarget = GL_FRAMEBUFFER);
@@ -101,7 +100,6 @@ public:
   void SetResizeDelegate(const ResizeDelegate& aDelegate);
   void SetBindDelegate(const BindDelegate& aDelegate);
   void SetSurface(jobject aSurface);
-  void SetPixelDensity(float aDensity);
 protected:
   struct State;
   VRLayerSurface(State& aState, LayerType aLayerType);
@@ -134,10 +132,8 @@ class VRLayerCylinder: public VRLayerSurface {
 public:
   static VRLayerCylinderPtr Create(const int32_t aWidth, const int32_t aHeight, VRLayerSurface::SurfaceType aSurfaceType);
   float GetRadius() const;
-  float GetCylinderDensity() const;
   const vrb::Matrix& GetUVTransform(device::Eye aEye) const;
   void SetRadius(const float aRadius);
-  void SetCylinderDensity(const float aDensity); // Measured in pixels for a 360 cylinder
   void SetUVTransform(device::Eye aEye, const vrb::Matrix& aTransform);
 protected:
   struct State;

@@ -327,7 +327,7 @@ public class SettingsStore {
 
     public boolean getLayersEnabled() {
         if (BuildConfig.FLAVOR_platform.equalsIgnoreCase("oculusvr")) {
-            return true;
+            return false;
         }
         return false;
     }
