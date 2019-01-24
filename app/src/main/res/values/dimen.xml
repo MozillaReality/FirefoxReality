@@ -10,7 +10,7 @@
     <item name="browser_children_z_distance" format="float" type="dimen">1.5</item>
 
     <!-- Navigation bar -->
-    <dimen name="navigation_bar_width">800dp</dimen>
+    <dimen name="navigation_bar_width">720dp</dimen>
     <dimen name="navigation_bar_height">44dp</dimen>
     <dimen name="url_bar_item_width">24dp</dimen>
     <dimen name="url_bar_last_item_width">44dp</dimen>

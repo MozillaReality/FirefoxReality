@@ -416,17 +416,11 @@ Widget::HoverExitResize() {
 }
 
 void
-Widget::SetCurvatureRatio(const float aRatio) {
-  if (!m.cylinder) {
-    return;
+Widget::SetCylinderDensity(const float aDensity) {
+  m.cylinderDensity = aDensity;
+  if (m.cylinder) {
+    m.UpdateCylinderMatrix();
   }
-
-  const float minDensity = 2000.0f;
-  const float maxDensity = 8000.0f;
-  const float t = 1.0f - aRatio;
-  m.cylinderDensity = minDensity + (maxDensity - minDensity) * t;
-
-  m.UpdateCylinderMatrix();
 }
 
 Widget::Widget(State& aState, vrb::RenderContextPtr& aContext) : m(aState) {

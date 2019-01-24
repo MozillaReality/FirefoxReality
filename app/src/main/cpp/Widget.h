@@ -67,7 +67,7 @@ public:
   bool IsResizing() const;
   void HandleResize(const vrb::Vector& aPoint, bool aPressed, bool& aResized, bool &aResizeEnded);
   void HoverExitResize();
-  void SetCurvatureRatio(const float aRatio);
+  void SetCylinderDensity(const float aDensity);
 protected:
   struct State;
   Widget(State& aState, vrb::RenderContextPtr& aContext);

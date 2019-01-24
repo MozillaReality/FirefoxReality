@@ -151,7 +151,7 @@ struct BrowserWorld::State {
   DrawableListPtr drawList;
   CameraPtr leftCamera;
   CameraPtr rightCamera;
-  float curvatureRatio;
+  float cylinderDensity;
   float nearClip;
   float farClip;
   JNIEnv* env;
@@ -169,7 +169,7 @@ struct BrowserWorld::State {
   SplashAnimationPtr splashAnimation;
   VRVideoPtr vrVideo;
 
-  State() : paused(true), glInitialized(false), modelsLoaded(false), env(nullptr), curvatureRatio(0.0f), nearClip(0.1f),
+  State() : paused(true), glInitialized(false), modelsLoaded(false), env(nullptr), cylinderDensity(0.0f), nearClip(0.1f),
             farClip(300.0f), activity(nullptr), windowsInitialized(false), exitImmersiveRequested(false), loaderDelay(0) {
     context = RenderContext::Create();
     create = context->GetRenderThreadCreationContext();
@@ -712,7 +712,7 @@ BrowserWorld::AddWidget(int32_t aHandle, const WidgetPlacementPtr& aPlacement) {
   const float worldHeight = worldWidth / aspect;
 
   WidgetPtr widget;
-  if (aPlacement->cylinder && m.device) {
+  if (aPlacement->cylinder && m.cylinderDensity > 0 && m.device) {
     VRLayerCylinderPtr layer = m.device->CreateLayerCylinder(textureWidth, textureHeight, VRLayerQuad::SurfaceType::AndroidSurface);
     CylinderPtr cylinder = Cylinder::Create(m.create, layer);
     widget = Widget::Create(m.context, aHandle, textureWidth, textureHeight, worldWidth, worldHeight, cylinder);
@@ -755,7 +755,7 @@ BrowserWorld::UpdateWidget(int32_t aHandle, const WidgetPlacementPtr& aPlacement
   }
 
   widget->SetPlacement(aPlacement);
-  widget->SetCurvatureRatio(m.curvatureRatio);
+  widget->SetCylinderDensity(m.cylinderDensity);
   widget->ToggleWidget(aPlacement->visible);
   widget->SetSurfaceTextureSize((int32_t)(ceilf(aPlacement->width * aPlacement->density)),
                                 (int32_t)(ceilf(aPlacement->height * aPlacement->density)));
@@ -930,10 +930,10 @@ BrowserWorld::ResetUIYaw() {
 }
 
 void
-BrowserWorld::SetCurvatureRatio(const float aRatio) {
-  m.curvatureRatio = aRatio;
+BrowserWorld::SetCylinderDensity(const float aDensity) {
+  m.cylinderDensity = aDensity;
   for (WidgetPtr& widget: m.widgets) {
-    widget->SetCurvatureRatio(aRatio);
+    widget->SetCylinderDensity(aDensity);
   }
 }
 
@@ -1291,9 +1291,9 @@ JNI_METHOD(void, resetUIYawNative)
   crow::BrowserWorld::Instance().ResetUIYaw();
 }
 
-JNI_METHOD(void, setCurvatureRatioNative)
-(JNIEnv* aEnv, jobject, jfloat aRatio) {
-  crow::BrowserWorld::Instance().SetCurvatureRatio(aRatio);
+JNI_METHOD(void, setCylinderDensityNative)
+(JNIEnv* aEnv, jobject, jfloat aDensity) {
+  crow::BrowserWorld::Instance().SetCylinderDensity(aDensity);
 }
 
 

@@ -47,7 +47,6 @@ import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
 import org.mozilla.vrbrowser.ui.OffscreenDisplay;
 import org.mozilla.vrbrowser.ui.widgets.BookmarkListener;
 import org.mozilla.vrbrowser.ui.views.BookmarksView;
-import org.mozilla.vrbrowser.ui.widgets.CurvatureWidget;
 import org.mozilla.vrbrowser.ui.widgets.KeyboardWidget;
 import org.mozilla.vrbrowser.ui.widgets.NavigationBarWidget;
 import org.mozilla.vrbrowser.ui.widgets.RootWidget;
@@ -186,6 +185,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         queueRunnable(() -> createOffscreenDisplay());
         final String tempPath = getCacheDir().getAbsolutePath();
         queueRunnable(() -> setTemporaryFilePath(tempPath));
+        setCylinderDensity(SettingsStore.getInstance(this).getCylinderDensity());
         initializeWorld();
 
         // Setup the search engine
@@ -236,10 +236,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         mTray.addListeners(new TrayListener[]{mWindowWidget, mNavigationBar});
         mBookmarksView.addListeners(new BookmarkListener[]{mWindowWidget, mNavigationBar, mTray});
 
-        CurvatureWidget curvature = new CurvatureWidget(this);
-        curvature.setParentWidget(mTray.getHandle());
-
-        addWidgets(Arrays.asList(mRootWidget, mWindowWidget, mNavigationBar, mKeyboard, mTray, curvature));
+        addWidgets(Arrays.asList(mRootWidget, mWindowWidget, mNavigationBar, mKeyboard, mTray));
     }
 
     @Override
@@ -987,9 +984,8 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         queueRunnable(this::resetUIYawNative);
     }
 
-    @Override
-    public void setCurvatureRatio(final float aRatio) {
-        queueRunnable(() -> setCurvatureRatioNative(aRatio));
+    public void setCylinderDensity(final float aDensity) {
+        queueRunnable(() -> setCylinderDensityNative(aDensity));
     }
 
     private native void addWidgetNative(int aHandle, WidgetPlacement aPlacement);
@@ -1008,5 +1004,5 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     private native void resetUIYawNative();
     private native void setControllersVisibleNative(boolean aVisible);
     private native void runCallbackNative(long aCallback);
-    private native void setCurvatureRatioNative(float aRatio);
+    private native void setCylinderDensityNative(float aDensity);
 }

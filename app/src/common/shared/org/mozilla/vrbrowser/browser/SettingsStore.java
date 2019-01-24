@@ -55,6 +55,7 @@ public class SettingsStore {
     public final static float BROWSER_WORLD_HEIGHT_DEFAULT = 2.25f;
     public final static int MSAA_DEFAULT_LEVEL = 1;
     public final static boolean AUDIO_ENABLED = false;
+    public final static float CYLINDER_DENSITY_ENABLED_DEFAULT = 4680.0f;
 
     // Enable telemetry by default (opt-out).
     private final static boolean enableCrashReportingByDefault = false;
@@ -327,7 +328,7 @@ public class SettingsStore {
 
     public boolean getLayersEnabled() {
         if (BuildConfig.FLAVOR_platform.equalsIgnoreCase("oculusvr")) {
-            return false;
+            return true;
         }
         return false;
     }
@@ -361,13 +362,13 @@ public class SettingsStore {
         editor.commit();
     }
 
-    public float getCurvatureRatio() {
-        return mPrefs.getFloat("curvature",  4680.0f / 8000.0f);
+    public float getCylinderDensity() {
+        return mPrefs.getFloat(mContext.getString(R.string.settings_key_cylinder_density),  0);
     }
 
-    public void setCurvatureRatio(float aRatio) {
+    public void setCylinderDensity(float aDensity) {
         SharedPreferences.Editor editor = mPrefs.edit();
-        editor.putFloat("curvature", aRatio);
+        editor.putFloat(mContext.getString(R.string.settings_key_cylinder_density), aDensity);
         editor.commit();
     }
 }
