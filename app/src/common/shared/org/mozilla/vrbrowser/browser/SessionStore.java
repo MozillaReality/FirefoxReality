@@ -332,25 +332,28 @@ public class SessionStore implements ContentBlocking.Delegate, GeckoSession.Navi
         State state = new State();
         state.mSettings = aSettings;
 
+        GeckoSessionSettings geckoSettings = new GeckoSessionSettings.Builder()
+            .useMultiprocess(aSettings.multiprocess)
+            .usePrivateMode(aSettings.privateMode)
+            .useTrackingProtection(aSettings.trackingProtection)
+            .build();
+
         if (aSettings.servo) {
             if (isServoAvailable()) {
                 state.mSession = createServoSession(mContext);
             } else {
                 Log.e(LOGTAG, "Attempt to create a ServoSession. Servo hasn't been enable at build time. Using a GeckoSession instead.");
-                state.mSession = new GeckoSession();
+                state.mSession = new GeckoSession(geckoSettings);
             }
         } else {
-            state.mSession = new GeckoSession();
+            state.mSession = new GeckoSession(geckoSettings);
         }
 
         int result = state.mSession.hashCode();
         mSessions.put(result, state);
 
-        state.mSession.getSettings().setBoolean(GeckoSessionSettings.USE_MULTIPROCESS, aSettings.multiprocess);
-        state.mSession.getSettings().setBoolean(GeckoSessionSettings.USE_PRIVATE_MODE, aSettings.privateMode);
-        state.mSession.getSettings().setBoolean(GeckoSessionSettings.USE_TRACKING_PROTECTION, aSettings.trackingProtection);
-        state.mSession.getSettings().setBoolean(GeckoSessionSettings.SUSPEND_MEDIA_WHEN_INACTIVE, aSettings.suspendMediaWhenInactive);
-        state.mSession.getSettings().setInt(GeckoSessionSettings.USER_AGENT_MODE, aSettings.userAgentMode);
+        state.mSession.getSettings().setSuspendMediaWhenInactive(aSettings.suspendMediaWhenInactive);
+        state.mSession.getSettings().setUserAgentMode(aSettings.userAgentMode);
         state.mSession.setNavigationDelegate(this);
         state.mSession.setProgressDelegate(this);
         state.mSession.setPromptDelegate(this);
@@ -388,7 +391,7 @@ public class SessionStore implements ContentBlocking.Delegate, GeckoSession.Navi
     }
 
     private void pushSession(int aSessionId) {
-        boolean isPrivateMode  = mCurrentSession.getSettings().getBoolean(GeckoSessionSettings.USE_PRIVATE_MODE);
+        boolean isPrivateMode  = mCurrentSession.getSettings().getUsePrivateMode();
         if (isPrivateMode)
             mPrivateSessionsStack.push(aSessionId);
         else
@@ -396,7 +399,7 @@ public class SessionStore implements ContentBlocking.Delegate, GeckoSession.Navi
     }
 
     private Integer popSession() {
-        boolean isPrivateMode  = mCurrentSession.getSettings().getBoolean(GeckoSessionSettings.USE_PRIVATE_MODE);
+        boolean isPrivateMode  = mCurrentSession.getSettings().getUsePrivateMode();
         if (isPrivateMode)
             return mPrivateSessionsStack.pop();
         else
@@ -404,7 +407,7 @@ public class SessionStore implements ContentBlocking.Delegate, GeckoSession.Navi
     }
 
     private Integer peekSession() {
-        boolean isPrivateMode  = mCurrentSession.getSettings().getBoolean(GeckoSessionSettings.USE_PRIVATE_MODE);
+      boolean isPrivateMode  = mCurrentSession.getSettings().getUsePrivateMode();
         if (isPrivateMode)
             return mPrivateSessionsStack.peek();
         else
@@ -449,7 +452,7 @@ public class SessionStore implements ContentBlocking.Delegate, GeckoSession.Navi
         ArrayList<Integer> result = new ArrayList<>();
         for (Integer sessionId : mSessions.keySet()) {
             GeckoSession session = getSession(sessionId);
-            if (session != null && session.getSettings().getBoolean(GeckoSessionSettings.USE_PRIVATE_MODE) == aUsingPrivateMode) {
+            if (session != null && session.getSettings().getUsePrivateMode() == aUsingPrivateMode) {
                 result.add(sessionId);
             }
         }
@@ -753,7 +756,7 @@ public class SessionStore implements ContentBlocking.Delegate, GeckoSession.Navi
         if (mCurrentSession == null)
             return;
 
-        boolean isPrivateMode = mCurrentSession.getSettings().getBoolean(GeckoSessionSettings.USE_PRIVATE_MODE);
+        boolean isPrivateMode = mCurrentSession.getSettings().getUsePrivateMode();
         if (!isPrivateMode) {
             if (mPreviousSessionId == SessionStore.NO_SESSION_ID) {
                 mPreviousSessionId = getCurrentSessionId();
@@ -781,7 +784,7 @@ public class SessionStore implements ContentBlocking.Delegate, GeckoSession.Navi
 
     public void setUaMode(int mode) {
         if (mCurrentSession != null) {
-            mCurrentSession.getSettings().setInt(GeckoSessionSettings.USER_AGENT_MODE, mode);
+            mCurrentSession.getSettings().setUserAgentMode(mode);
             mCurrentSession.reload();
         }
     }
@@ -790,7 +793,7 @@ public class SessionStore implements ContentBlocking.Delegate, GeckoSession.Navi
         if (mCurrentSession == null)
             return;
 
-        boolean isPrivateMode  = mCurrentSession.getSettings().getBoolean(GeckoSessionSettings.USE_PRIVATE_MODE);
+        boolean isPrivateMode  = mCurrentSession.getSettings().getUsePrivateMode();
         if (isPrivateMode) {
             int privateSessionId = getCurrentSessionId();
             setCurrentSession(mPreviousSessionId);
@@ -810,7 +813,7 @@ public class SessionStore implements ContentBlocking.Delegate, GeckoSession.Navi
 
     public boolean isCurrentSessionPrivate() {
         if (mCurrentSession != null)
-            return mCurrentSession.getSettings().getBoolean(GeckoSessionSettings.USE_PRIVATE_MODE);
+            return mCurrentSession.getSettings().getUsePrivateMode();
 
         return false;
     }
@@ -876,9 +879,10 @@ public class SessionStore implements ContentBlocking.Delegate, GeckoSession.Navi
                         mCurrentSession.close();
 
                         int oldSessionId = getCurrentSessionId();
-                        int sessionId = createSession();
+                        SessionStore.SessionSettings settings = new SessionStore.SessionSettings();
+                        settings.multiprocess = enabled;
+                        int sessionId = createSession(settings);
                         GeckoSession session = getSession(sessionId);
-                        session.getSettings().setBoolean(GeckoSessionSettings.USE_MULTIPROCESS, enabled);
                         session.restoreState(value);
                         setCurrentSession(sessionId);
                         removeSession(oldSessionId);
@@ -969,7 +973,7 @@ public class SessionStore implements ContentBlocking.Delegate, GeckoSession.Navi
         Log.d(LOGTAG, "onLoadRequest: " + aRequest.uri);
         if (mFirstOnLoadRequest && (aSession == mCurrentSession)) {
             Log.d(LOGTAG, "Testing for UA override");
-            aSession.getSettings().setString(GeckoSessionSettings.USER_AGENT_OVERRIDE, mUserAgentOverride.lookupOverride(aRequest.uri));
+            aSession.getSettings().setUserAgentOverride(mUserAgentOverride.lookupOverride(aRequest.uri));
             mFirstOnLoadRequest = false;
         }
         if (PRIVATE_BROWSING_URI.equalsIgnoreCase(aRequest.uri)) {
@@ -1033,7 +1037,7 @@ public class SessionStore implements ContentBlocking.Delegate, GeckoSession.Navi
         pushSession(getCurrentSessionId());
 
         int sessionId;
-        boolean isPreviousPrivateMode = mCurrentSession.getSettings().getBoolean(GeckoSessionSettings.USE_PRIVATE_MODE);
+        boolean isPreviousPrivateMode = mCurrentSession.getSettings().getUsePrivateMode();
         if (isPreviousPrivateMode) {
             SessionStore.SessionSettings settings = new SessionStore.SessionSettings();
             settings.privateMode = true;

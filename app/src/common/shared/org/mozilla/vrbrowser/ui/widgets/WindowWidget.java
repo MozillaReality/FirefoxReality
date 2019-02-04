@@ -475,7 +475,7 @@ public class WindowWidget extends UIWidget implements SessionStore.SessionChange
         callSurfaceChanged();
         aSession.getTextInput().setView(this);
 
-        boolean isPrivateMode  = aSession.getSettings().getBoolean(GeckoSessionSettings.USE_PRIVATE_MODE);
+        boolean isPrivateMode  = aSession.getSettings().getUsePrivateMode();
         if (isPrivateMode)
             setPrivateBrowsingEnabled(true);
         else
