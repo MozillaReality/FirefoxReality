@@ -151,8 +151,8 @@ struct ExternalVR::State {
     memset(&browser, 0, sizeof(mozilla::gfx::VRBrowserState));
     data.version = mozilla::gfx::kVRExternalVersion;
     data.size = sizeof(mozilla::gfx::VRExternalShmem);
-    system.displayState.mIsConnected = true;
-    system.displayState.mIsMounted = true;
+    system.displayState.isConnected = true;
+    system.displayState.isMounted = true;
     const vrb::Matrix identity = vrb::Matrix::Identity();
     memcpy(&(system.sensorState.leftViewMatrix), identity.Data(), sizeof(system.sensorState.leftViewMatrix));
     memcpy(&(system.sensorState.rightViewMatrix), identity.Data(), sizeof(system.sensorState.rightViewMatrix));
@@ -179,7 +179,7 @@ struct ExternalVR::State {
       firstPresentingFrame = true;
     }
     if (wasPresenting && !IsPresenting()) {
-      lastFrameId = browser.layerState[0].layer_stereo_immersive.mFrameId;
+      lastFrameId = browser.layerState[0].layer_stereo_immersive.frameId;
       waitingForExit = false;
     }
   }
@@ -207,9 +207,9 @@ ExternalVR::SetDeviceName(const std::string& aName) {
   if (aName.length() == 0) {
     return;
   }
-  strncpy(m.system.displayState.mDisplayName, aName.c_str(),
+  strncpy(m.system.displayState.displayName, aName.c_str(),
           mozilla::gfx::kVRDisplayNameMaxLen - 1);
-  m.system.displayState.mDisplayName[mozilla::gfx::kVRDisplayNameMaxLen - 1] = '\0';
+  m.system.displayState.displayName[mozilla::gfx::kVRDisplayNameMaxLen - 1] = '\0';
 }
 
 void
@@ -237,8 +237,8 @@ ExternalVR::SetCapabilityFlags(const device::CapabilityFlags aFlags) {
     result |= static_cast<uint16_t>(mozilla::gfx::VRDisplayCapabilityFlags::Cap_MountDetection);
   }
   m.deviceCapabilities = aFlags;
-  m.system.displayState.mCapabilityFlags = static_cast<mozilla::gfx::VRDisplayCapabilityFlags>(result);
-  m.system.sensorState.flags = m.system.displayState.mCapabilityFlags;
+  m.system.displayState.capabilityFlags = static_cast<mozilla::gfx::VRDisplayCapabilityFlags>(result);
+  m.system.sensorState.flags = m.system.displayState.capabilityFlags;
 }
 
 void
@@ -249,10 +249,10 @@ ExternalVR::SetFieldOfView(const device::Eye aEye, const double aLeftDegrees,
   mozilla::gfx::VRDisplayState::Eye which = (aEye == device::Eye::Right
                                              ? mozilla::gfx::VRDisplayState::Eye_Right
                                              : mozilla::gfx::VRDisplayState::Eye_Left);
-  m.system.displayState.mEyeFOV[which].upDegrees = aTopDegrees;
-  m.system.displayState.mEyeFOV[which].rightDegrees = aRightDegrees;
-  m.system.displayState.mEyeFOV[which].downDegrees = aBottomDegrees;
-  m.system.displayState.mEyeFOV[which].leftDegrees = aLeftDegrees;
+  m.system.displayState.eyeFOV[which].upDegrees = aTopDegrees;
+  m.system.displayState.eyeFOV[which].rightDegrees = aRightDegrees;
+  m.system.displayState.eyeFOV[which].downDegrees = aBottomDegrees;
+  m.system.displayState.eyeFOV[which].leftDegrees = aLeftDegrees;
 }
 
 void
@@ -260,16 +260,16 @@ ExternalVR::SetEyeOffset(const device::Eye aEye, const float aX, const float aY,
   mozilla::gfx::VRDisplayState::Eye which = (aEye == device::Eye::Right
                                              ? mozilla::gfx::VRDisplayState::Eye_Right
                                              : mozilla::gfx::VRDisplayState::Eye_Left);
-  m.system.displayState.mEyeTranslation[which].x = aX;
-  m.system.displayState.mEyeTranslation[which].y = aY;
-  m.system.displayState.mEyeTranslation[which].z = aZ;
+  m.system.displayState.eyeTranslation[which].x = aX;
+  m.system.displayState.eyeTranslation[which].y = aY;
+  m.system.displayState.eyeTranslation[which].z = aZ;
   m.eyeOffsets[device::EyeIndex(aEye)].Set(aX, aY, aZ);
 }
 
 void
 ExternalVR::SetEyeResolution(const int32_t aWidth, const int32_t aHeight) {
-  m.system.displayState.mEyeResolution.width = aWidth;
-  m.system.displayState.mEyeResolution.height = aHeight;
+  m.system.displayState.eyeResolution.width = aWidth;
+  m.system.displayState.eyeResolution.height = aHeight;
 }
 
 void
@@ -298,13 +298,13 @@ ExternalVR::SetCompositorEnabled(bool aEnabled) {
   if (aEnabled) {
     VRBrowser::ResumeCompositor();
   } else {
-    // Set mSuppressFrames to avoid a deadlock between the compositor sync pause call and the gfxVRExternal SubmitFrame result wait.
-    m.system.displayState.mSuppressFrames = true;
-    m.system.displayState.mLastSubmittedFrameId = 0;
+    // Set suppressFrames to avoid a deadlock between the compositor sync pause call and the gfxVRExternal SubmitFrame result wait.
+    m.system.displayState.suppressFrames = true;
+    m.system.displayState.lastSubmittedFrameId = 0;
     m.lastFrameId = 0;
     PushSystemState();
     VRBrowser::PauseCompositor();
-    m.system.displayState.mSuppressFrames = false;
+    m.system.displayState.suppressFrames = false;
     PushSystemState();
   }
 }
@@ -356,7 +356,7 @@ ExternalVR::PushFramePoses(const vrb::Matrix& aHeadTransform, const std::vector<
   memcpy(&(m.system.sensorState.pose.position), translation.Data(),
          sizeof(m.system.sensorState.pose.position));
   m.system.sensorState.inputFrameID++;
-  m.system.displayState.mLastSubmittedFrameId = m.lastFrameId;
+  m.system.displayState.lastSubmittedFrameId = m.lastFrameId;
 
   vrb::Matrix leftView = vrb::Matrix::Position(-m.eyeOffsets[device::EyeIndex(device::Eye::Left)]).PostMultiply(inverseHeadTransform);
   vrb::Matrix rightView = vrb::Matrix::Position(-m.eyeOffsets[device::EyeIndex(device::Eye::Right)]).PostMultiply(inverseHeadTransform);
@@ -414,17 +414,17 @@ ExternalVR::WaitFrameResult() {
   // browserMutex is locked in wait.lock().
   m.PullBrowserStateWhileLocked();
   while (true) {
-    if (!IsPresenting() || m.browser.layerState[0].layer_stereo_immersive.mFrameId != m.lastFrameId) {
+    if (!IsPresenting() || m.browser.layerState[0].layer_stereo_immersive.frameId != m.lastFrameId) {
       m.firstPresentingFrame = false;
-      m.system.displayState.mLastSubmittedFrameSuccessful = true;
-      m.system.displayState.mLastSubmittedFrameId = m.browser.layerState[0].layer_stereo_immersive.mFrameId;
-      // VRB_LOG("RequestFrame BREAK %llu",  m.browser.layerState[0].layer_stereo_immersive.mFrameId);
+      m.system.displayState.lastSubmittedFrameSuccessful = true;
+      m.system.displayState.lastSubmittedFrameId = m.browser.layerState[0].layer_stereo_immersive.frameId;
+      // VRB_LOG("RequestFrame BREAK %llu",  m.browser.layerState[0].layer_stereo_immersive.frameId);
       break;
     }
     if (m.firstPresentingFrame) {
       return true; // Do not block to show loading screen until the first frame arrives.
     }
-    // VRB_LOG("RequestFrame ABOUT TO WAIT FOR FRAME %llu %llu",m.browser.layerState[0].layer_stereo_immersive.mFrameId, m.lastFrameId);
+    // VRB_LOG("RequestFrame ABOUT TO WAIT FOR FRAME %llu %llu",m.browser.layerState[0].layer_stereo_immersive.frameId, m.lastFrameId);
     const float kConditionTimeout = 0.1f;
     // Wait causes the current thread to block until the condition variable is notified or the timeout happens.
     // Waiting for the condition variable releases the mutex atomically. So GV can modify the browser data.
@@ -436,7 +436,7 @@ ExternalVR::WaitFrameResult() {
     // browserMutex lock is reacquired again after the condition variable wait exits.
     m.PullBrowserStateWhileLocked();
   }
-  m.lastFrameId = m.browser.layerState[0].layer_stereo_immersive.mFrameId;
+  m.lastFrameId = m.browser.layerState[0].layer_stereo_immersive.frameId;
   return true;
 }
 
@@ -449,16 +449,16 @@ ExternalVR::CompleteEnumeration()
 
 void
 ExternalVR::GetFrameResult(int32_t& aSurfaceHandle, device::EyeRect& aLeftEye, device::EyeRect& aRightEye) const {
-  aSurfaceHandle = (int32_t)m.browser.layerState[0].layer_stereo_immersive.mTextureHandle;
-  mozilla::gfx::VRLayerEyeRect& left = m.browser.layerState[0].layer_stereo_immersive.mLeftEyeRect;
-  mozilla::gfx::VRLayerEyeRect& right = m.browser.layerState[0].layer_stereo_immersive.mRightEyeRect;
+  aSurfaceHandle = (int32_t)m.browser.layerState[0].layer_stereo_immersive.textureHandle;
+  mozilla::gfx::VRLayerEyeRect& left = m.browser.layerState[0].layer_stereo_immersive.leftEyeRect;
+  mozilla::gfx::VRLayerEyeRect& right = m.browser.layerState[0].layer_stereo_immersive.rightEyeRect;
   aLeftEye = device::EyeRect(left.x, left.y, left.width, left.height);
   aRightEye = device::EyeRect(right.x, right.y, right.width, right.height);
 }
 
 void
 ExternalVR::StopPresenting() {
-  m.system.displayState.mPresentingGeneration++;
+  m.system.displayState.presentingGeneration++;
   PushSystemState();
   m.waitingForExit = true;
 }
