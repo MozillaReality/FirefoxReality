@@ -121,6 +121,9 @@ namespace crow {
 
 struct ExternalVR::State {
   static ExternalVR::State * sState;
+  pthread_mutex_t* browserMutex;
+  pthread_cond_t* browserCond;
+  mozilla::gfx::VRBrowserState* sourceBrowserState;
   mozilla::gfx::VRExternalShmem data;
   mozilla::gfx::VRSystemState system;
   mozilla::gfx::VRBrowserState browser;
@@ -133,16 +136,20 @@ struct ExternalVR::State {
 
   State() : deviceCapabilities(0) {
     pthread_mutex_init(&data.systemMutex, nullptr);
-    pthread_mutex_init(&data.browserMutex, nullptr);
+    pthread_mutex_init(&data.geckoMutex, nullptr);
+    pthread_mutex_init(&data.servoMutex, nullptr);
     pthread_cond_init(&data.systemCond, nullptr);
-    pthread_cond_init(&data.browserCond, nullptr);
+    pthread_cond_init(&data.geckoCond, nullptr);
+    pthread_cond_init(&data.servoCond, nullptr);
   }
 
   ~State() {
     pthread_mutex_destroy(&(data.systemMutex));
-    pthread_mutex_destroy(&(data.browserMutex));
+    pthread_mutex_destroy(&(data.geckoMutex));
+    pthread_mutex_destroy(&(data.servoMutex));
     pthread_cond_destroy(&(data.systemCond));
-    pthread_cond_destroy(&(data.browserCond));
+    pthread_cond_destroy(&(data.geckoCond));
+    pthread_cond_destroy(&(data.servoCond));
   }
 
   void Reset() {
@@ -160,6 +167,7 @@ struct ExternalVR::State {
     lastFrameId = 0;
     firstPresentingFrame = false;
     waitingForExit = false;
+    SetSourceBrowser(VRBrowserType::Gecko);
   }
 
   static ExternalVR::State& Instance() {
@@ -172,7 +180,7 @@ struct ExternalVR::State {
 
   void PullBrowserStateWhileLocked() {
     const bool wasPresenting = IsPresenting();
-    memcpy(&browser, &data.browserState, sizeof(mozilla::gfx::VRBrowserState));
+    memcpy(&browser, sourceBrowserState, sizeof(mozilla::gfx::VRBrowserState));
 
 
     if ((!wasPresenting && IsPresenting()) || browser.navigationTransitionActive) {
@@ -186,6 +194,18 @@ struct ExternalVR::State {
 
   bool IsPresenting() const {
     return browser.presentationActive || browser.navigationTransitionActive || browser.layerState[0].type == mozilla::gfx::VRLayerType::LayerType_Stereo_Immersive;
+  }
+
+  void SetSourceBrowser(VRBrowserType aBrowser) {
+    if (aBrowser == VRBrowserType::Gecko) {
+      browserCond = &data.geckoCond;
+      browserMutex = &data.geckoMutex;
+      sourceBrowserState = &data.geckoState;
+    } else {
+      browserCond = &data.servoCond;
+      browserMutex = &data.servoMutex;
+      sourceBrowserState = &data.servoState;
+    }
   }
 };
 
@@ -283,10 +303,15 @@ ExternalVR::PushSystemState() {
 
 void
 ExternalVR::PullBrowserState() {
-  Lock lock(m.data.browserMutex);
+  Lock lock(*m.browserMutex);
   if (lock.IsLocked()) {
    m.PullBrowserStateWhileLocked();
   }
+}
+
+void
+ExternalVR::SetSourceBrowser(VRBrowserType aBrowser) {
+  m.SetSourceBrowser(aBrowser);
 }
 
 void
@@ -409,7 +434,7 @@ ExternalVR::PushFramePoses(const vrb::Matrix& aHeadTransform, const std::vector<
 
 bool
 ExternalVR::WaitFrameResult() {
-  Wait wait(m.data.browserMutex, m.data.browserCond);
+  Wait wait(*m.browserMutex, *m.browserCond);
   wait.Lock();
   // browserMutex is locked in wait.lock().
   m.PullBrowserStateWhileLocked();

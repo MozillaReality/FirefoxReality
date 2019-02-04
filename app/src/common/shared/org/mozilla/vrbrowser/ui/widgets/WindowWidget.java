@@ -31,6 +31,7 @@ import org.mozilla.vrbrowser.ui.widgets.prompts.ChoicePromptWidget;
 import org.mozilla.vrbrowser.ui.widgets.prompts.ConfirmPromptWidget;
 import org.mozilla.vrbrowser.ui.widgets.prompts.TextPromptWidget;
 
+import static org.mozilla.vrbrowser.utils.ServoUtils.isInstanceOfServoSession;
 
 public class WindowWidget extends UIWidget implements SessionStore.SessionChangeListener,
         GeckoSession.ContentDelegate, GeckoSession.PromptDelegate, TrayListener, BookmarkListener {
@@ -468,6 +469,8 @@ public class WindowWidget extends UIWidget implements SessionStore.SessionChange
             oldSession.releaseDisplay(mDisplay);
             mDisplay = null;
         }
+
+        mWidgetManager.setIsServoSession(isInstanceOfServoSession(aSession));
 
         mSessionId = aId;
         mDisplay = aSession.acquireDisplay();
