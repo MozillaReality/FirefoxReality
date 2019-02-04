@@ -20,6 +20,7 @@ import android.view.inputmethod.ExtractedTextRequest;
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoProfile;
 import org.mozilla.geckoview.AllowOrDeny;
+import org.mozilla.geckoview.ContentBlocking;
 import org.mozilla.geckoview.MediaElement;
 import org.mozilla.geckoview.GeckoResult;
 import org.mozilla.geckoview.GeckoRuntime;
@@ -57,8 +58,8 @@ import static org.mozilla.vrbrowser.utils.ServoUtils.createServoSession;
 import static org.mozilla.vrbrowser.utils.ServoUtils.isInstanceOfServoSession;
 import static org.mozilla.vrbrowser.utils.ServoUtils.isServoAvailable;
 
-public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSession.ProgressDelegate,
-        GeckoSession.ContentDelegate, GeckoSession.TextInputDelegate, GeckoSession.TrackingProtectionDelegate,
+public class SessionStore implements ContentBlocking.Delegate, GeckoSession.NavigationDelegate,
+        GeckoSession.ProgressDelegate, GeckoSession.ContentDelegate, GeckoSession.TextInputDelegate, 
         GeckoSession.PromptDelegate, GeckoSession.MediaDelegate, SharedPreferences.OnSharedPreferenceChangeListener {
 
     private static SessionStore mInstance;
@@ -160,7 +161,9 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
             vrPrefsWorkAround(aContext, aExtras);
             GeckoRuntimeSettings.Builder runtimeSettingsBuilder = new GeckoRuntimeSettings.Builder();
             runtimeSettingsBuilder.crashHandler(CrashReporterService.class);
-            runtimeSettingsBuilder.trackingProtectionCategories(GeckoSession.TrackingProtectionDelegate.CATEGORY_AD | GeckoSession.TrackingProtectionDelegate.CATEGORY_SOCIAL | GeckoSession.TrackingProtectionDelegate.CATEGORY_ANALYTIC);
+            runtimeSettingsBuilder.contentBlocking((new ContentBlocking.Settings.Builder())
+                .categories(ContentBlocking.AT_AD | ContentBlocking.AT_SOCIAL | ContentBlocking.AT_ANALYTIC)
+                .build());
             runtimeSettingsBuilder.consoleOutput(SettingsStore.getInstance(aContext).isConsoleLogsEnabled());
             runtimeSettingsBuilder.displayDensityOverride(SettingsStore.getInstance(aContext).getDisplayDensity());
             runtimeSettingsBuilder.remoteDebuggingEnabled(SettingsStore.getInstance(aContext).isRemoteDebuggingEnabled());
@@ -354,7 +357,7 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
         state.mSession.setContentDelegate(this);
         state.mSession.getTextInput().setDelegate(this);
         state.mSession.setPermissionDelegate(mPermissionDelegate);
-        state.mSession.setTrackingProtectionDelegate(this);
+        state.mSession.setContentBlockingDelegate(this);
         state.mSession.setMediaDelegate(this);
         for (SessionChangeListener listener: mSessionChangeListeners) {
             listener.onNewSession(state.mSession, result);
@@ -372,7 +375,7 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
             session.getTextInput().setDelegate(null);
             session.setPromptDelegate(null);
             session.setPermissionDelegate(null);
-            session.setTrackingProtectionDelegate(null);
+            session.setContentBlockingDelegate(null);
             session.setMediaDelegate(null);
             mSessions.remove(aSessionId);
             for (SessionChangeListener listener: mSessionChangeListeners) {
@@ -1272,21 +1275,21 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
     }
 
     @Override
-    public void onTrackerBlocked(GeckoSession session, String uri, int categories) {
-        if ((categories & GeckoSession.TrackingProtectionDelegate.CATEGORY_AD) != 0) {
-          Log.i(LOGTAG, "Blocking Ad: " + uri);
+    public void onContentBlocked(final GeckoSession session, final ContentBlocking.BlockEvent event) {
+        if ((event.categories & ContentBlocking.AT_AD) != 0) {
+          Log.i(LOGTAG, "Blocking Ad: " + event.uri);
         }
 
-        if ((categories & GeckoSession.TrackingProtectionDelegate.CATEGORY_ANALYTIC) != 0) {
-            Log.i(LOGTAG, "Blocking Analytic: " + uri);
+        if ((event.categories & ContentBlocking.AT_ANALYTIC) != 0) {
+            Log.i(LOGTAG, "Blocking Analytic: " + event.uri);
         }
 
-        if ((categories & GeckoSession.TrackingProtectionDelegate.CATEGORY_CONTENT) != 0) {
-            Log.i(LOGTAG, "Blocking Content: " + uri);
+        if ((event.categories & ContentBlocking.AT_CONTENT) != 0) {
+            Log.i(LOGTAG, "Blocking Content: " + event.uri);
         }
 
-        if ((categories & GeckoSession.TrackingProtectionDelegate.CATEGORY_SOCIAL) != 0) {
-            Log.i(LOGTAG, "Blocking Social: " + uri);
+        if ((event.categories & ContentBlocking.AT_SOCIAL) != 0) {
+            Log.i(LOGTAG, "Blocking Social: " + event.uri);
         }
     }
 
