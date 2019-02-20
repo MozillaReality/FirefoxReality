@@ -15,6 +15,7 @@
 #include "vrb/Geometry.h"
 #include "vrb/RenderState.h"
 #include "vrb/SurfaceTextureFactory.h"
+#include "vrb/TextureGL.h"
 #include "vrb/TextureSurface.h"
 #include "vrb/Toggle.h"
 #include "vrb/Transform.h"
@@ -27,7 +28,7 @@ struct ResizeBar;
 
 typedef std::shared_ptr<ResizeBar> ResizeBarPtr;
 
-static const float kBarSize = 0.04f;
+static const float kBarSize = 0.07f;
 static const float kHandleRadius = 0.08f;
 static const vrb::Vector kMinResize(1.5f, 1.5f, 0.0f);
 static const vrb::Vector kMaxResize(8.0f, 4.5f, 0.0f);
@@ -60,7 +61,7 @@ struct ResizeBar {
     Quad,
     Cylinder
   };
-  static ResizeBarPtr Create(vrb::CreationContextPtr& aContext, const vrb::Vector& aCenter, const vrb::Vector& aScale, const ResizeBar::Mode aMode) {
+  static ResizeBarPtr Create(vrb::CreationContextPtr& aContext, const vrb::Vector& aCenter, const vrb::Vector& aScale, const vrb::TextureGLPtr aTexture, const ResizeBar::Mode aMode) {
     auto result = std::make_shared<ResizeBar>();
     result->center = aCenter;
     result->scale = aScale;
@@ -69,10 +70,20 @@ struct ResizeBar {
     if (aMode == ResizeBar::Mode::Cylinder) {
       result->cylinder = Cylinder::Create(aContext, 1.0f, kBarSize);
       result->cylinder->SetLightsEnabled(false);
+      result->cylinder->SetTexture(aTexture, aTexture->GetWidth(), aTexture->GetHeight());
       result->transform->AddNode(result->cylinder->GetRoot());
     } else {
       result->geometry = Quad::CreateGeometry(aContext, -max, max);
       result->geometry->GetRenderState()->SetLightsEnabled(false);
+      if (aScale.y() > 0.0f) { // Rotate UVS so alpha gradient is vertical
+        vrb::VertexArrayPtr array = result->geometry->GetVertexArray();
+        array->SetUV(3, vrb::Vector(0.0f, 1.0f, 0));
+        array->SetUV(0, vrb::Vector(1.0f, 1.0f, 0));
+        array->SetUV(1, vrb::Vector(1.0f, 0.0f, 0));
+        array->SetUV(2, vrb::Vector(0.0f, 0.0f, 0));
+      }
+      vrb::TexturePtr texture = aTexture;
+      result->geometry->GetRenderState()->SetTexture(texture);
       result->transform->AddNode(result->geometry);
     }
 
@@ -115,69 +126,65 @@ struct ResizeHandle {
     Both
   };
 
-  static ResizeHandlePtr Create(vrb::CreationContextPtr& aContext, const vrb::Vector& aCenter, ResizeMode aResizeMode, const std::vector<ResizeBarPtr>& aAttachedBars) {
+  static ResizeHandlePtr Create(vrb::CreationContextPtr& aContext, const vrb::Vector& aCenter, const vrb::TextureGLPtr aTexture, ResizeMode aResizeMode, const std::vector<ResizeBarPtr>& aAttachedBars) {
     auto result = std::make_shared<ResizeHandle>();
     result->center = aCenter;
     result->resizeMode = aResizeMode;
     result->attachedBars = aAttachedBars;
     vrb::Vector max(kHandleRadius, kHandleRadius, 0.0f);
-    result->geometry = ResizeHandle::CreateGeometry(aContext);
+    result->geometry = Quad::CreateGeometry(aContext, -max, max);
+    result->geometry->GetRenderState()->SetTexture(aTexture);
     result->transform = vrb::Transform::Create(aContext);
-    result->transform->AddNode(result->geometry);
     result->resizeState = ResizeState ::Default;
-    UpdateResizeMaterial(result->geometry->GetRenderState(), result->resizeState);
+    result->CreateOverlays(aContext);
+    result->transform->AddNode(result->geometry);
+    result->UpdateResizeMaterials();
     return result;
+  }
+
+  vrb::TransformPtr CreateOverlay(vrb::CreationContextPtr& aContext, const vrb::Vector& aPosition) {
+    const float size = kBarSize * 0.25f;
+    vrb::Vector max(size, size, 0.0f);
+    vrb::GeometryPtr geometry = Quad::CreateGeometry(aContext, -max, max);
+    vrb::TransformPtr transform = vrb::Transform::Create(aContext);
+    overlays.push_back(geometry);
+    transform->AddNode(geometry);
+    const float r = kHandleRadius * 0.76f;
+    transform->SetTransform(vrb::Matrix::Translation(vrb::Vector(-r + 2.0f * r * aPosition.x(), -r + 2.0f * r * aPosition.y(), 0.0f)));
+    return transform;
+  }
+
+  void CreateOverlays(vrb::CreationContextPtr& aContext) {
+    if (center.x() > 0.0f && center.y() != 0.5f) {
+      transform->AddNode(CreateOverlay(aContext, vrb::Vector(0.0f, 0.5f, 0.0f)));
+    }
+    if (center.x() < 1.0f && center.y() != 0.5f) {
+      transform->AddNode(CreateOverlay(aContext, vrb::Vector(1.0f, 0.5f, 0.0f)));
+    }
+    if (center.y() > 0.0f && center.x() != 0.5f) {
+      transform->AddNode(CreateOverlay(aContext, vrb::Vector(0.5f, 0.0f, 0.0f)));
+    }
+    if (center.y() < 1.0f && center.x() != 0.5f) {
+      transform->AddNode(CreateOverlay(aContext, vrb::Vector(0.5f, 1.0f, 0.0f)));
+    }
+  }
+
+  void UpdateResizeMaterials() {
+    UpdateResizeMaterial(geometry->GetRenderState(), resizeState);
+    for (const vrb::GeometryPtr& overlay: overlays) {
+     UpdateResizeMaterial(overlay->GetRenderState(), resizeState);
+    }
   }
 
   void SetResizeState(ResizeState aState) {
     if (resizeState != aState) {
       resizeState = aState;
-      UpdateResizeMaterial(geometry->GetRenderState(), resizeState);
+      UpdateResizeMaterials();
     }
 
     for (const ResizeBarPtr& bar: attachedBars) {
       bar->SetResizeState(aState);
     }
-  }
-
-  static vrb::GeometryPtr CreateGeometry(vrb::CreationContextPtr& aContext) {
-    vrb::VertexArrayPtr array = vrb::VertexArray::Create(aContext);
-    array->AppendVertex(vrb::Vector(0.0f, 0.0f, 0.0f));
-    array->AppendNormal(vrb::Vector(0.0f, 0.0f, 1.0f));
-
-    std::vector<int> index;
-    std::vector<int> normalIndex;
-
-    const int kSides = 30;
-    double delta = 2.0 * M_PI / kSides;
-    for (int i = 0; i < kSides; ++i) {
-      const double angle = delta * i;
-      array->AppendVertex(vrb::Vector(kHandleRadius * (float)cos(angle), kHandleRadius * (float)sin(angle), 0.0f));
-      if (i > 0) {
-        index.push_back(1);
-        index.push_back(i + 1);
-        index.push_back(i + 2);
-        normalIndex.push_back(1);
-        normalIndex.push_back(1);
-        normalIndex.push_back(1);
-      }
-    }
-
-    index.push_back(1);
-    index.push_back(array->GetVertexCount());
-    index.push_back(2);
-    normalIndex.push_back(1);
-    normalIndex.push_back(1);
-    normalIndex.push_back(1);
-
-    vrb::GeometryPtr geometry = vrb::Geometry::Create(aContext);
-    vrb::RenderStatePtr state = vrb::RenderState::Create(aContext);
-    state->SetLightsEnabled(false);
-    geometry->SetVertexArray(array);
-    geometry->SetRenderState(state);
-    geometry->AddFace(index, index, normalIndex);
-
-    return geometry;
   }
 
   vrb::Vector center;
@@ -187,6 +194,7 @@ struct ResizeHandle {
   vrb::TransformPtr transform;
   ResizeState resizeState;
   float touchRatio;
+  std::vector<vrb::GeometryPtr> overlays;
 };
 
 struct WidgetResizer::State {
@@ -223,45 +231,48 @@ struct WidgetResizer::State {
 
     vrb::Vector horizontalSize(0.0f, 0.5f, 0.0f);
     vrb::Vector verticalSize(0.5f, 0.0f, 0.0f);
+    vrb::TextureGLPtr barTexture = create->LoadTexture("resize_bar.png", true);
     ResizeBar::Mode mode = widget->GetCylinder() ? ResizeBar::Mode::Cylinder : ResizeBar::Mode::Quad;
-    ResizeBarPtr leftTop = CreateResizeBar(vrb::Vector(0.0f, 0.75f, 0.0f), horizontalSize, ResizeBar::Mode::Quad);
-    ResizeBarPtr leftBottom = CreateResizeBar(vrb::Vector(0.0f, 0.25f, 0.0f), horizontalSize, ResizeBar::Mode::Quad);
-    ResizeBarPtr rightTop = CreateResizeBar(vrb::Vector(1.0f, 0.75f, 0.0f), horizontalSize, ResizeBar::Mode::Quad);
-    ResizeBarPtr rightBottom = CreateResizeBar(vrb::Vector(1.0f, 0.25f, 0.0f), horizontalSize, ResizeBar::Mode::Quad);
-    ResizeBarPtr topLeft = CreateResizeBar(vrb::Vector(0.25f, 1.0f, 0.0f), verticalSize, mode);
-    ResizeBarPtr topRight = CreateResizeBar(vrb::Vector(0.75f, 1.0f, 0.0f), verticalSize, mode);
-    ResizeBarPtr bottomLeft = CreateResizeBar(vrb::Vector(0.25f, 0.0f, 0.0f), verticalSize, mode);
-    ResizeBarPtr bottomRight = CreateResizeBar(vrb::Vector(0.75f, 0.0f, 0.0f), verticalSize, mode);
+    ResizeBarPtr leftTop = CreateResizeBar(vrb::Vector(0.0f, 0.75f, 0.0f), horizontalSize, barTexture, ResizeBar::Mode::Quad);
+    ResizeBarPtr leftBottom = CreateResizeBar(vrb::Vector(0.0f, 0.25f, 0.0f), horizontalSize, barTexture, ResizeBar::Mode::Quad);
+    ResizeBarPtr rightTop = CreateResizeBar(vrb::Vector(1.0f, 0.75f, 0.0f), horizontalSize, barTexture, ResizeBar::Mode::Quad);
+    ResizeBarPtr rightBottom = CreateResizeBar(vrb::Vector(1.0f, 0.25f, 0.0f), horizontalSize, barTexture, ResizeBar::Mode::Quad);
+    ResizeBarPtr topLeft = CreateResizeBar(vrb::Vector(0.25f, 1.0f, 0.0f), verticalSize, barTexture, mode);
+    ResizeBarPtr topRight = CreateResizeBar(vrb::Vector(0.75f, 1.0f, 0.0f), verticalSize, barTexture, mode);
+    ResizeBarPtr bottomLeft = CreateResizeBar(vrb::Vector(0.25f, 0.0f, 0.0f), verticalSize, barTexture, mode);
+    ResizeBarPtr bottomRight = CreateResizeBar(vrb::Vector(0.75f, 0.0f, 0.0f), verticalSize, barTexture, mode);
 
-    CreateResizeHandle(vrb::Vector(0.0f, 1.0f, 0.0f), ResizeHandle::ResizeMode::Both, {leftTop, topLeft});
-    CreateResizeHandle(vrb::Vector(1.0f, 1.0f, 0.0f), ResizeHandle::ResizeMode::Both, {rightTop, topRight});
-    //CreateResizeHandle(vrb::Vector(0.0f, 0.0f, 0.0f), ResizeHandle::ResizeMode::Both, {leftBottom, bottomLeft});
-    //CreateResizeHandle(vrb::Vector(1.0f, 0.0f, 0.0f), ResizeHandle::ResizeMode::Both, {rightBottom, bottomRight}, 1.0f);
-    CreateResizeHandle(vrb::Vector(0.5f, 1.0f, 0.0f), ResizeHandle::ResizeMode::Horizontal, {topLeft, topRight});
-    //CreateResizeHandle(vrb::Vector(0.5f, 0.0f, 0.0f), ResizeHandle::ResizeMode::Horizontal, {bottomLeft, bottomRight});
-    CreateResizeHandle(vrb::Vector(0.0f, 0.5f, 0.0f), ResizeHandle::ResizeMode::Vertical, {leftTop, leftBottom});
-    CreateResizeHandle(vrb::Vector(1.0f, 0.5f, 0.0f), ResizeHandle::ResizeMode::Vertical, {rightTop, rightBottom});
+    vrb::TextureGLPtr handleTexture = create->LoadTexture("resize_handle.png", true);
+
+    CreateResizeHandle(vrb::Vector(0.0f, 1.0f, 0.0f), handleTexture, ResizeHandle::ResizeMode::Both, {leftTop, topLeft});
+    CreateResizeHandle(vrb::Vector(1.0f, 1.0f, 0.0f), handleTexture, ResizeHandle::ResizeMode::Both, {rightTop, topRight});
+    //CreateResizeHandle(vrb::Vector(0.0f, 0.0f, 0.0f), handleTexture, ResizeHandle::ResizeMode::Both, {leftBottom, bottomLeft});
+    //CreateResizeHandle(vrb::Vector(1.0f, 0.0f, 0.0f), handleTexture, ResizeHandle::ResizeMode::Both, {rightBottom, bottomRight}, 1.0f);
+    CreateResizeHandle(vrb::Vector(0.5f, 1.0f, 0.0f), handleTexture, ResizeHandle::ResizeMode::Horizontal, {topLeft, topRight});
+    //CreateResizeHandle(vrb::Vector(0.5f, 0.0f, 0.0f), handleTexture, ResizeHandle::ResizeMode::Horizontal, {bottomLeft, bottomRight});
+    CreateResizeHandle(vrb::Vector(0.0f, 0.5f, 0.0f), handleTexture, ResizeHandle::ResizeMode::Vertical, {leftTop, leftBottom});
+    CreateResizeHandle(vrb::Vector(1.0f, 0.5f, 0.0f), handleTexture, ResizeHandle::ResizeMode::Vertical, {rightTop, rightBottom});
 
     Layout();
   }
 
-  ResizeBarPtr CreateResizeBar(const vrb::Vector& aCenter, vrb::Vector aScale, const ResizeBar::Mode aMode) {
+  ResizeBarPtr CreateResizeBar(const vrb::Vector& aCenter, vrb::Vector aScale, const vrb::TextureGLPtr aTexture, const ResizeBar::Mode aMode) {
     vrb::CreationContextPtr create = context.lock();
     if (!create) {
       return nullptr;
     }
-    ResizeBarPtr result = ResizeBar::Create(create, aCenter, aScale, aMode);
+    ResizeBarPtr result = ResizeBar::Create(create, aCenter, aScale, aTexture, aMode);
     resizeBars.push_back(result);
     root->AddNode(result->transform);
     return result;
   }
 
-  ResizeHandlePtr CreateResizeHandle(const vrb::Vector& aCenter, ResizeHandle::ResizeMode aResizeMode, const std::vector<ResizeBarPtr>& aBars, const float aTouchRatio = 2.0f) {
+  ResizeHandlePtr CreateResizeHandle(const vrb::Vector& aCenter, const vrb::TextureGLPtr aTexture, ResizeHandle::ResizeMode aResizeMode, const std::vector<ResizeBarPtr>& aBars, const float aTouchRatio = 2.0f) {
     vrb::CreationContextPtr create = context.lock();
     if (!create) {
       return nullptr;
     }
-    ResizeHandlePtr result = ResizeHandle::Create(create, aCenter, aResizeMode, aBars);
+    ResizeHandlePtr result = ResizeHandle::Create(create, aCenter, aTexture, aResizeMode, aBars);
     result->touchRatio = aTouchRatio;
     resizeHandles.push_back(result);
     root->InsertNode(result->transform, 0);
@@ -300,8 +311,8 @@ struct WidgetResizer::State {
     const float height = WorldHeight();
 
     for (ResizeBarPtr& bar: resizeBars) {
-      float targetWidth = bar->scale.x() > 0.0f ? (bar->scale.x() * fabsf(width)) + kBarSize : kBarSize;
-      float targetHeight = bar->scale.y() > 0.0f ? (bar->scale.y() * fabs(height)) + kBarSize : kBarSize;
+      float targetWidth = bar->scale.x() > 0.0f ? (bar->scale.x() * fabsf(width)) + kBarSize * 0.5f : kBarSize;
+      float targetHeight = bar->scale.y() > 0.0f ? (bar->scale.y() * fabs(height)) - kBarSize * 0.5f : kBarSize;
       vrb::Matrix matrix = vrb::Matrix::Position(vrb::Vector(min.x() + width * bar->center.x(), min.y() + height * bar->center.y(), 0.005f));
       matrix.ScaleInPlace(vrb::Vector(targetWidth / kBarSize, targetHeight / kBarSize, 1.0f));
       bar->transform->SetTransform(matrix);
@@ -324,8 +335,8 @@ struct WidgetResizer::State {
     vrb::Matrix modelView = widget->GetTransformNode()->GetWorldTransform().AfineInverse();
 
     for (ResizeBarPtr& bar: resizeBars) {
-      float targetWidth = bar->scale.x() > 0.0f ? (bar->scale.x() * fabsf(width)) + kBarSize : kBarSize;
-      float targetHeight = bar->scale.y() > 0.0f ? (bar->scale.y() * fabs(height)) + kBarSize : kBarSize;
+      float targetWidth = bar->scale.x() > 0.0f ? (bar->scale.x() * fabsf(width)) + kBarSize * 0.5f : kBarSize;
+      float targetHeight = bar->scale.y() > 0.0f ? (bar->scale.y() * fabs(height)) - kBarSize * 0.5f : kBarSize;
       const float pointerAngle = (float)M_PI * 0.5f + theta * 0.5f - theta * bar->center.x();
       vrb::Matrix rotation = vrb::Matrix::Rotation(vrb::Vector(-cosf(pointerAngle), 0.0f, sinf(pointerAngle)));
       if (bar->cylinder) {
