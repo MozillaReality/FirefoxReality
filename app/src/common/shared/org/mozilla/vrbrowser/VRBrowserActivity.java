@@ -989,6 +989,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         queueRunnable(this::resetUIYawNative);
     }
 
+    @Override
     public void setCylinderDensity(final float aDensity) {
         queueRunnable(() -> setCylinderDensityNative(aDensity));
     }
