@@ -18,3 +18,15 @@ allprojects {
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
+
+if (gradle.hasProperty('geckoViewLocalArm') || gradle.hasProperty('geckoViewLocalX86')) {
+    throw new GradleException("geckoViewLocal{Arm,X86} are deprecated: use geckoViewLocalTopsrcdir and geckoViewLocalTopobjdir")
+}
+
+if (gradle.hasProperty('geckoViewLocalTopsrcdir')) {
+    if (gradle.hasProperty('geckoViewLocalTopobjdir')) {
+        ext.topobjdir = gradle.geckoViewLocalTopobjdir
+    }
+    ext.topsrcdir = gradle.geckoViewLocalTopsrcdir
+    apply from: "${topsrcdir}/substitute-geckoview-local.gradle"
+}

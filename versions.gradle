@@ -41,9 +41,9 @@ versions.kotlin = "1.2.71"
 def deps = [:]
 
 def gecko_view = [:]
-gecko_view.nightly_armv7a = "org.mozilla.geckoview:geckoview-nightly-armeabi-v7a:$versions.gecko_view"
-gecko_view.nightly_arm64 = "org.mozilla.geckoview:geckoview-nightly-arm64-v8a:$versions.gecko_view"
-gecko_view.nightly_x86 = "org.mozilla.geckoview:geckoview-nightly-x86:$versions.gecko_view"
+gecko_view.nightly_armv7a = "org.mozilla.geckoview:geckoview-nightly-armeabi-v7a:$versions.gecko_view@aar"
+gecko_view.nightly_arm64 = "org.mozilla.geckoview:geckoview-nightly-arm64-v8a:$versions.gecko_view@aar"
+gecko_view.nightly_x86 = "org.mozilla.geckoview:geckoview-nightly-x86:$versions.gecko_view@aar"
 deps.gecko_view = gecko_view
 
 def android_components = [:]

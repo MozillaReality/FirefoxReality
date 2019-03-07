@@ -98,11 +98,11 @@ Make certain to set the build flavor to `wavevrDebug` in Android Studio before b
 
 ## Using a custom GeckoView
 
-Create a file called `user.properties` in the top-level project directory. Add a variable called `geckoViewLocalArm` and `geckoViewLocalX86` and set it to the location of your locally built AAR:
+Create a file called `user.properties` in the top-level project directory. Add a variable called `geckoViewLocalTopsrcdir` and, optionally, `geckoViewLocalTopobjdir` and set them to your local mozilla-central topsrcdir and topobjdir, respectively:
 
 ```ini
-geckoViewLocalArm=/path/to/your/build/geckoview-nightly-armeabi-v7a-64.0.20180924100359.aar
-geckoViewLocalX86=/path/to/your/build/geckoview-nightly-x86-64.0.20180924100359.aar
+geckoViewLocalTopsrcdir=/path/to/your/topsrcdir
+geckoViewLocalTopobjdir=/path/to/your/topobjdir
 ```
 
 ## Install dev and production builds on device simultaneously

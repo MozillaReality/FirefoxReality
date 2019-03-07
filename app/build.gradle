@@ -324,20 +324,13 @@ if (findProject(':wavesdk')) {
     }
 }
 
-if (findProject(':geckoview-local')) {
-    dependencies {
-        implementation project(':geckoview-local')
-    }
-} else {
-    dependencies {
-        // To see what the latest geckoview-nightly version is go here:
-        // https://maven.mozilla.org/?prefix=maven2/org/mozilla/geckoview/geckoview-nightly-armeabi-v7a/
-        armImplementation deps.gecko_view.nightly_armv7a
-        arm64Implementation deps.gecko_view.nightly_arm64
-        x86Implementation deps.gecko_view.nightly_x86
-    }
+dependencies {
+    // To see what the latest geckoview-nightly version is go here:
+    // https://maven.mozilla.org/?prefix=maven2/org/mozilla/geckoview/geckoview-nightly-armeabi-v7a/
+    armImplementation deps.gecko_view.nightly_armv7a
+    arm64Implementation deps.gecko_view.nightly_arm64
+    x86Implementation deps.gecko_view.nightly_x86
 }
-
 
 // -------------------------------------------------------------------------------------------------
 //  Dynamically set versionCode (See tools/build/versionCode.gradle
