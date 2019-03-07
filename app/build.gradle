@@ -476,21 +476,25 @@ if (findProject(':wavesdk')) {
     }
 }
 
-if (findProject(':geckoview-local')) {
-    dependencies {
-        implementation project(':geckoview-local')
-        implementation deps.snakeyaml
-    }
-} else {
-    dependencies {
-        // To see what the latest geckoview-nightly version is go here:
-        // https://maven.mozilla.org/?prefix=maven2/org/mozilla/geckoview/geckoview-nightly-armeabi-v7a/
-        armImplementation deps.gecko_view.nightly_armv7a
-        arm64Implementation deps.gecko_view.nightly_arm64
-        x86_64Implementation deps.gecko_view.nightly_x86_64
-    }
+dependencies {
+    // To see what the latest geckoview-nightly version is go here:
+    // https://maven.mozilla.org/?prefix=maven2/org/mozilla/geckoview/geckoview-nightly-armeabi-v7a/
+    armImplementation deps.gecko_view.nightly_armv7a
+    arm64Implementation deps.gecko_view.nightly_arm64
+    x86_64Implementation deps.gecko_view.nightly_x86_64
 }
 
+if (gradle.hasProperty('geckoViewLocalArm') || gradle.hasProperty('geckoViewLocalX86')) {
+    throw new GradleException("geckoViewLocal{Arm,X86} are deprecated: use geckoViewLocalTopsrcdir and geckoViewLocalTopobjdir")
+}
+
+if (gradle.hasProperty('geckoViewLocalTopsrcdir')) {
+    if (gradle.hasProperty('geckoViewLocalTopobjdir')) {
+        ext.topobjdir = gradle.geckoViewLocalTopobjdir
+    }
+    ext.topsrcdir = gradle.geckoViewLocalTopsrcdir
+    apply from: "${topsrcdir}/substitute-local-geckoview.gradle"
+}
 
 // -------------------------------------------------------------------------------------------------
 //  Dynamically set versionCode (See tools/build/versionCode.gradle
