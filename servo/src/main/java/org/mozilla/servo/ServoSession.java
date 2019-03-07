@@ -6,10 +6,10 @@ import android.graphics.Rect;
 import android.util.Log;
 import android.view.Surface;
 
-import org.mozilla.gecko.GeckoVRManager;
 import org.mozilla.geckoview.GeckoDisplay;
 import org.mozilla.geckoview.GeckoRuntime;
 import org.mozilla.geckoview.GeckoSession;
+import org.mozilla.geckoview.GeckoVRManager;
 import org.mozilla.servoview.Servo;
 import org.mozilla.servoview.ServoSurface;
 
