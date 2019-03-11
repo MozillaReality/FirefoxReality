@@ -736,6 +736,7 @@ public class SessionStore implements ContentBlocking.Delegate, GeckoSession.Navi
                 out.write(("pref(\"gl.msaa-level\"," + msaaLevel + ");\n").getBytes());
             }
             addOptionalPref(out, "dom.vr.require-gesture", aExtras);
+            addOptionalPref(out, "media.autoplay.enabled.user-gestures-needed", aExtras);
             addOptionalPref(out, "privacy.reduceTimerPrecision", aExtras);
         } catch (FileNotFoundException e) {
             Log.e(LOGTAG, "Unable to create file: '" + prefFileName + "' got exception: " + e.toString());
