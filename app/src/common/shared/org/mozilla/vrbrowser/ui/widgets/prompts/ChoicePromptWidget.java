@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Typeface;
 import android.os.Handler;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.util.SparseBooleanArray;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -20,6 +21,7 @@ import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.geckoview.GeckoSession.PromptDelegate.Choice;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.audio.AudioEngine;
+import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -149,8 +151,7 @@ public class ChoicePromptWidget extends PromptWidget {
 
     @Override
     public void show() {
-        super.show();
-
+        show(true);
         for (int i = 0; i < mListItems.length; i++) {
             mList.setItemChecked(i, mListItems[i].mChoice.selected);
         }
@@ -165,6 +166,10 @@ public class ChoicePromptWidget extends PromptWidget {
         mListItems = getWrappedChoices(choices);
         mAdapter = new ChoiceAdapter(getContext(), R.layout.prompt_choice_item, mListItems);
         mList.setAdapter(mAdapter);
+        int height = WidgetPlacement.dpDimension(getContext(), R.dimen.prompt_choice_min_height);
+        height += choices.length * 20;
+        height = Math.min(height, WidgetPlacement.dpDimension(getContext(), R.dimen.prompt_choice_max_height));
+        mWidgetPlacement.height = height;
     }
 
     public void setMenuType(int type) {
