@@ -736,8 +736,13 @@ public class SessionStore implements ContentBlocking.Delegate, GeckoSession.Navi
                 out.write(("pref(\"gl.msaa-level\"," + msaaLevel + ");\n").getBytes());
             }
             addOptionalPref(out, "dom.vr.require-gesture", aExtras);
-            addOptionalPref(out, "media.autoplay.enabled.user-gestures-needed", aExtras);
             addOptionalPref(out, "privacy.reduceTimerPrecision", aExtras);
+            if (aExtras != null && aExtras.getBoolean("media.autoplay.enabled", false)) {
+                // Enable playing audios without gesture (used for gfx automated testing)
+                out.write("pref(\"media.autoplay.enabled.user-gestures-needed\", false);\n".getBytes());
+                out.write("pref(\"media.autoplay.enabled.ask-permission\", false);\n".getBytes());
+                out.write("pref(\"media.autoplay.default\", 0);\n".getBytes());
+            }
         } catch (FileNotFoundException e) {
             Log.e(LOGTAG, "Unable to create file: '" + prefFileName + "' got exception: " + e.toString());
         } catch (IOException e) {
