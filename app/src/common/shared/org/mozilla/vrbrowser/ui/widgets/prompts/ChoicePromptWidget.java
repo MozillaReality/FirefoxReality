@@ -31,6 +31,7 @@ import androidx.annotation.NonNull;
 public class ChoicePromptWidget extends PromptWidget {
 
     private static final int DIALOG_CLOSE_DELAY = 250;
+    private static final int LISTVIEW_ITEM_HEIGHT = 20;
 
     private AudioEngine mAudio;
     private ListView mList;
@@ -167,7 +168,7 @@ public class ChoicePromptWidget extends PromptWidget {
         mAdapter = new ChoiceAdapter(getContext(), R.layout.prompt_choice_item, mListItems);
         mList.setAdapter(mAdapter);
         int height = WidgetPlacement.dpDimension(getContext(), R.dimen.prompt_choice_min_height);
-        height += choices.length * 20;
+        height += choices.length * LISTVIEW_ITEM_HEIGHT;
         height = Math.min(height, WidgetPlacement.dpDimension(getContext(), R.dimen.prompt_choice_max_height));
         mWidgetPlacement.height = height;
     }
