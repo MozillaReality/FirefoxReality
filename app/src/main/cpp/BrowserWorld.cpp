@@ -123,7 +123,7 @@ SurfaceObserver::SurfaceTextureDestroyed(const std::string& aName) {
 
 void
 SurfaceObserver::SurfaceTextureCreationError(const std::string& aName, const std::string& aReason) {
-
+  
 }
 
 } // namespace
