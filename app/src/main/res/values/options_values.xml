@@ -6,7 +6,6 @@
         <item>@string/developer_options_env_offworld</item>
         <item>@string/developer_options_env_underwater</item>
         <item>@string/developer_options_env_winter</item>
-        <item>@string/developer_options_env_meadow</item>
         <item>@string/developer_options_env_cave</item>
     </string-array>
 
@@ -15,7 +14,6 @@
         <item>offworld</item>
         <item>underwater</item>
         <item>winter</item>
-        <item>meadow</item>
         <item>cave</item>
     </string-array>
 
@@ -24,7 +22,6 @@
         <item>@drawable/environment_offworld</item>
         <item>@drawable/environment_underwater</item>
         <item>@drawable/environment_winter</item>
-        <item>@drawable/environment_meadow</item>
         <item>@drawable/environment_cave</item>
     </array>
 
