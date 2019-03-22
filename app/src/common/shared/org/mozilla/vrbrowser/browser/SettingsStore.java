@@ -36,8 +36,6 @@ public class SettingsStore {
     private SharedPreferences mPrefs;
 
     // Developer options default values
-    public final static boolean REMOTE_DEBUGGING_DEFAULT = false;
-    public final static boolean CONSOLE_LOGS_DEFAULT = false;
     public final static boolean ENV_OVERRIDE_DEFAULT = false;
     public final static boolean MULTIPROCESS_DEFAULT = false;
     public final static boolean TRACKING_DEFAULT = true;
@@ -58,6 +56,9 @@ public class SettingsStore {
     public final static int MSAA_DEFAULT_LEVEL = 1;
     public final static boolean AUDIO_ENABLED = false;
     public final static float CYLINDER_DENSITY_ENABLED_DEFAULT = 4680.0f;
+
+    private final static boolean REMOTE_DEBUGGING_DEFAULT = false;
+    private final static boolean CONSOLE_LOGS_DEFAULT = false;
 
     // Enable telemetry by default (opt-out).
     private final static boolean enableCrashReportingByDefault = false;
@@ -116,9 +117,23 @@ public class SettingsStore {
         return mPrefs.getString(mContext.getString(R.string.settings_key_geolocation_data), "");
     }
 
+    public boolean isDeveloperModeEnabled() {
+        if (BuildConfig.FLAVOR_platform == "oculusvr") {
+            return android.provider.Settings.Global.getInt(mContext.getContentResolver(),
+                    "vrmode_developer_mode", 0) != 0;
+        } else {
+            return android.provider.Settings.Secure.getInt(mContext.getContentResolver(),
+                    android.provider.Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0) != 0;
+        }
+    }
+
+    public boolean isRemoteDebuggingEnabledByDefault() {
+        return isDeveloperModeEnabled() || REMOTE_DEBUGGING_DEFAULT;
+    }
+
     public boolean isRemoteDebuggingEnabled() {
         return mPrefs.getBoolean(
-                mContext.getString(R.string.settings_key_remote_debugging), REMOTE_DEBUGGING_DEFAULT);
+                mContext.getString(R.string.settings_key_remote_debugging), isRemoteDebuggingEnabledByDefault());
     }
 
     public void setRemoteDebuggingEnabled(boolean isEnabled) {
@@ -127,9 +142,13 @@ public class SettingsStore {
         editor.commit();
     }
 
+    public boolean isConsoleLogsEnabledByDefault() {
+        return isDeveloperModeEnabled() || CONSOLE_LOGS_DEFAULT;
+    }
+
     public boolean isConsoleLogsEnabled() {
         return mPrefs.getBoolean(
-                mContext.getString(R.string.settings_key_console_logs), CONSOLE_LOGS_DEFAULT);
+                mContext.getString(R.string.settings_key_console_logs), isConsoleLogsEnabledByDefault());
     }
 
     public void setConsoleLogsEnabled(boolean isEnabled) {

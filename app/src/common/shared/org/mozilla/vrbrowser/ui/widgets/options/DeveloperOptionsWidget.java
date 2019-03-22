@@ -199,13 +199,13 @@ public class DeveloperOptionsWidget extends UIWidget implements
 
     private OnClickListener mResetListener = (view) -> {
         boolean restart = false;
-        if (mRemoteDebuggingSwitch.isChecked() != SettingsStore.REMOTE_DEBUGGING_DEFAULT) {
-            setRemoteDebugging(SettingsStore.REMOTE_DEBUGGING_DEFAULT, true);
+        if (mRemoteDebuggingSwitch.isChecked() != SettingsStore.getInstance(getContext()).isRemoteDebuggingEnabledByDefault()) {
+            setRemoteDebugging(SettingsStore.getInstance(getContext()).isRemoteDebuggingEnabledByDefault(), true);
             restart = true;
         }
 
-        if (mConsoleLogsSwitch.isChecked() != SettingsStore.CONSOLE_LOGS_DEFAULT) {
-            setConsoleLogs(SettingsStore.CONSOLE_LOGS_DEFAULT, true);
+        if (mConsoleLogsSwitch.isChecked() != SettingsStore.getInstance(getContext()).isConsoleLogsEnabledByDefault()) {
+            setConsoleLogs(SettingsStore.getInstance(getContext()).isConsoleLogsEnabledByDefault(), true);
         }
         if (mMultiprocessSwitch.isChecked() != SettingsStore.MULTIPROCESS_DEFAULT) {
             setMultiprocess(SettingsStore.MULTIPROCESS_DEFAULT, true);
