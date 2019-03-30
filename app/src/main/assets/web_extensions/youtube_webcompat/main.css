@@ -1,3 +1,5 @@
-div.alert-with-button-renderer {
-	display:none;
+/* To hide harmless warning about 360° video playback. */
+div.alert-with-button-renderer,
+ytm-alert-with-button-renderer {
+  display: none;
 }
