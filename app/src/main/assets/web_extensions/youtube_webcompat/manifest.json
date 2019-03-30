@@ -6,7 +6,8 @@
   "content_scripts": [
     {
       "matches": [
-        "*://*.youtube.com/*"
+        "*://*.youtube.com/*",
+        "*://*.youtube-nocookie.com/*"
       ],
       "css": [
         "main.css"
@@ -14,7 +15,8 @@
       "js": [
         "main.js"
       ],
-      "run_at": "document_end"
+      "run_at": "document_start",
+      "all_frames": true
     }
   ]
 }

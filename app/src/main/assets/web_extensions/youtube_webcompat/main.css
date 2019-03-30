@@ -1,5 +1,6 @@
-/* To hide harmless warning about 360° video playback. */
-div.alert-with-button-renderer,
-ytm-alert-with-button-renderer {
+/* To hide harmless warnings. */
+.alert-with-button-renderer, .ytm-alert-with-button-renderer, ytm-alert-with-button-renderer,
+.ytp-ad-module, ytp-ad-module
+.ytp-generic-popup, ytp-generic-popup {
   display: none;
 }
