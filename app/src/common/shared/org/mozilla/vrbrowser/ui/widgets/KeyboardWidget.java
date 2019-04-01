@@ -42,10 +42,11 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
     private static int MAX_CHARS_PER_LINE_SHORT = 7;
 
     private CustomKeyboardView mKeyboardview;
+    private CustomKeyboardView mKeyboardNumericView;
     private CustomKeyboardView mPopupKeyboardview;
     private CustomKeyboard mKeyboardQuerty;
-    private CustomKeyboard mKeyboardSymbols1;
-    private CustomKeyboard mKeyboardSymbols2;
+    private CustomKeyboard mKeyboardSymbols;
+    private CustomKeyboard mKeyboardNumeric;
     private Drawable mShiftOnIcon;
     private Drawable mShiftOffIcon;
     private Drawable mCapsLockOnIcon;
@@ -85,12 +86,13 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
         mWidgetManager.addFocusChangeListener(this);
 
         mKeyboardview = findViewById(R.id.keyboard);
+        mKeyboardNumericView = findViewById(R.id.keyboardNumeric);
         mPopupKeyboardview = findViewById(R.id.popupKeyboard);
         mPopupKeyboardLayer = findViewById(R.id.popupKeyboardLayer);
 
         mKeyboardQuerty = new CustomKeyboard(aContext.getApplicationContext(), R.xml.keyboard_qwerty);
-        mKeyboardSymbols1 = new CustomKeyboard(aContext.getApplicationContext(), R.xml.keyboard_symbols);
-        mKeyboardSymbols2 = new CustomKeyboard(aContext.getApplicationContext(), R.xml.keyboard_symbols2);
+        mKeyboardSymbols = new CustomKeyboard(aContext.getApplicationContext(), R.xml.keyboard_symbols);
+        mKeyboardNumeric = new CustomKeyboard(aContext.getApplicationContext(), R.xml.keyboard_numeric);
 
         mKeyboardview.setPreviewEnabled(false);
         mKeyboardview.setKeyboard(mKeyboardQuerty);
@@ -105,65 +107,44 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
         mPopupKeyboardview.setKeyboardHoveredPadding(0);
         mPopupKeyboardview.setKeyboardPressedPadding(0);
 
-        setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                mPopupKeyboardview.setVisibility(View.GONE);
-                mPopupKeyboardLayer.setVisibility(View.GONE);
-            }
+        mKeyboardNumericView.setPreviewEnabled(false);
+
+        setOnClickListener(view -> {
+            mPopupKeyboardview.setVisibility(View.GONE);
+            mPopupKeyboardLayer.setVisibility(View.GONE);
         });
 
         int[] featuredKeys = {' ', Keyboard.KEYCODE_DELETE, Keyboard.KEYCODE_DONE, Keyboard.KEYCODE_CANCEL, CustomKeyboard.KEYCODE_VOICE_INPUT, CustomKeyboard.KEYCODE_SYMBOLS_CHANGE};
         mKeyboardview.setFeaturedKeyBackground(R.drawable.keyboard_featured_key_background, featuredKeys);
 
-        mKeyboardview.setOnKeyListener(new View.OnKeyListener() {
-            @Override
-            public boolean onKey(View view, int i, KeyEvent keyEvent) {
-                return false;
-            }
-        });
-        mPopupKeyboardview.setOnKeyListener(new View.OnKeyListener() {
-            @Override
-            public boolean onKey(View view, int i, KeyEvent keyEvent) {
-                return false;
-            }
-        });
+        mKeyboardview.setOnKeyListener((view, i, keyEvent) -> false);
+        mPopupKeyboardview.setOnKeyListener((view, i, keyEvent) -> false);
+        mKeyboardNumericView.setOnKeyListener((view, i, keyEvent) -> false);
         mKeyboardview.setOnKeyboardActionListener(this);
         mPopupKeyboardview.setOnKeyboardActionListener(this);
+        mKeyboardNumericView.setOnKeyboardActionListener(this);
 
         mShiftOnIcon = getResources().getDrawable(R.drawable.ic_icon_keyboard_shift_on, getContext().getTheme());
         mShiftOffIcon = getResources().getDrawable(R.drawable.ic_icon_keyboard_shift_off, getContext().getTheme());
         mCapsLockOnIcon = getResources().getDrawable(R.drawable.ic_icon_keyboard_caps, getContext().getTheme());
         mCloseKeyboardButton = findViewById(R.id.keyboardCloseButton);
-        mCloseKeyboardButton.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                dismiss();
-            }
-        });
+        mCloseKeyboardButton.setOnClickListener(v -> dismiss());
 
         mKeyboardPopupLeftMargin = getResources().getDimensionPixelSize(R.dimen.keyboard_popup_left_margin);
         mKeyboardPopupTopMargin  = getResources().getDimensionPixelSize(R.dimen.keyboard_key_pressed_padding) * 2;
 
-        mPopupKeyboardLayer.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                mPopupKeyboardview.setVisibility(View.GONE);
-                mPopupKeyboardLayer.setVisibility(View.GONE);
-            }
+        mPopupKeyboardLayer.setOnClickListener(view -> {
+            mPopupKeyboardview.setVisibility(View.GONE);
+            mPopupKeyboardLayer.setVisibility(View.GONE);
         });
 
         mKeyboardview.setKeyboard(mKeyboardQuerty);
         mKeyboardview.setVisibility(View.VISIBLE);
+        mKeyboardNumericView.setKeyboard(mKeyboardNumeric);
         mPopupKeyboardview.setVisibility(View.GONE);
         mPopupKeyboardLayer.setVisibility(View.GONE);
 
-        mBackHandler = new Runnable() {
-            @Override
-            public void run() {
-                onDismiss();
-            }
-        };
+        mBackHandler = () -> onDismiss();
 
         SessionStore.get().addTextInputListener(this);
     }
@@ -204,7 +185,7 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
     private void resetKeyboardLayout() {
         ((CustomKeyboard)mKeyboardview.getKeyboard()).setImeOptions(mEditorInfo.imeOptions);
         if ((mEditorInfo.inputType & EditorInfo.TYPE_CLASS_NUMBER) == EditorInfo.TYPE_CLASS_NUMBER)
-            mKeyboardview.setKeyboard(mKeyboardSymbols1);
+            mKeyboardview.setKeyboard(mKeyboardSymbols);
         else
             mKeyboardview.setKeyboard(mKeyboardQuerty);
     }
@@ -338,9 +319,6 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
         switch (primaryCode) {
             case Keyboard.KEYCODE_MODE_CHANGE:
                 handleModeChange();
-                break;
-            case CustomKeyboard.KEYCODE_SYMBOLS_CHANGE:
-                handleSymbolsChange();
                 break;
             case Keyboard.KEYCODE_SHIFT:
                 mIsCapsLock = mIsLongPress || mIsMultiTap;
@@ -483,12 +461,7 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
 
     private void handleModeChange() {
         Keyboard current = mKeyboardview.getKeyboard();
-        mKeyboardview.setKeyboard(current == mKeyboardQuerty ? mKeyboardSymbols1 : mKeyboardQuerty);
-    }
-
-    private void handleSymbolsChange() {
-        Keyboard current = mKeyboardview.getKeyboard();
-        mKeyboardview.setKeyboard(current == mKeyboardSymbols1 ? mKeyboardSymbols2 : mKeyboardSymbols1);
+        mKeyboardview.setKeyboard(current == mKeyboardQuerty ? mKeyboardSymbols : mKeyboardQuerty);
     }
 
     private void handleKey(int primaryCode, int[] keyCodes) {
