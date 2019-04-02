@@ -14,13 +14,12 @@
                 android:layout_width="@dimen/keyboard_alphabetic_width"
                 android:layout_height="match_parent"
                 android:padding="20dp"
-                android:layout_gravity="left"
                 android:background="@drawable/keyboard_background">
 
                 <org.mozilla.vrbrowser.ui.views.CustomKeyboardView
                     android:id="@+id/keyboard"
                     android:layout_width="match_parent"
-                    android:layout_height="@dimen/keyboard_height"
+                    android:layout_height="match_parent"
                     android:layout_gravity="center"
                     android:background="@null"
                     android:keyBackground="@drawable/keyboard_key_background"
@@ -31,22 +30,23 @@
                 <ImageView
                     android:id="@+id/popupKeyboardLayer"
                     android:layout_width="match_parent"
-                    android:layout_height="@dimen/keyboard_height"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="center"
                     android:background="@color/void_color"
                     android:alpha="0.5"
-                    android:visibility="gone"/>
+                    android:visibility="visible"/>
+
 
                 <org.mozilla.vrbrowser.ui.views.CustomKeyboardView
                     android:id="@+id/popupKeyboard"
-                    android:layout_width="match_parent"
-                    android:layout_height="@dimen/keyboard_height"
-                    android:layout_gravity="center"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
                     android:background="@null"
                     android:keyBackground="@drawable/keyboard_key_background"
                     android:shadowColor="@android:color/transparent"
                     android:shadowRadius="0.0"
                     android:verticalCorrection="0dp"
-                    android:visibility="gone"/>
+                    android:visibility="visible"/>
             </RelativeLayout>
 
             <Space
@@ -54,16 +54,24 @@
                 android:layout_height="0dp"
                 android:layout_weight="1" />
 
-            <org.mozilla.vrbrowser.ui.views.CustomKeyboardView
+            <RelativeLayout
                 android:layout_width="@dimen/keyboard_numeric_width"
-                android:layout_height="@dimen/keyboard_height"
+                android:layout_height="match_parent"
                 android:padding="20dp"
-                android:background="@drawable/keyboard_background"
-                android:id="@+id/keyboardNumeric"
-                android:keyBackground="@drawable/keyboard_key_background"
-                android:shadowColor="@android:color/transparent"
-                android:shadowRadius="0.0"
-                android:verticalCorrection="0dp"/>
+                android:background="@drawable/keyboard_background">
+
+                <org.mozilla.vrbrowser.ui.views.CustomKeyboardView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/keyboard_background"
+                    android:id="@+id/keyboardNumeric"
+                    android:keyBackground="@drawable/keyboard_key_background"
+                    android:shadowColor="@android:color/transparent"
+                    android:shadowRadius="0.0"
+                    android:verticalCorrection="0dp"/>
+
+
+            </RelativeLayout>
 
         </LinearLayout>
 
