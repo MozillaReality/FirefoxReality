@@ -32,7 +32,7 @@
                     android:layout_height="match_parent"
                     android:layout_gravity="center"
                     android:layout_margin="20dp"
-                    android:background="@color/void_color"
+                    android:background="@color/asphalt"
                     android:alpha="0.5"
                     android:visibility="visible"/>
 
@@ -71,12 +71,12 @@
             android:id="@+id/keyboardCloseButton"
             android:layout_width="36dp"
             android:layout_height="36dp"
-            app:tintColorList="@drawable/keyboard_button_icon"
+            app:tintColorList="@drawable/url_button_icon_color"
             android:padding="10dp"
             android:src="@drawable/ic_icon_exit"
             android:scaleType="fitCenter"
             android:layout_marginLeft="240dp"
-            android:background="@drawable/keyboard_key_close_background"/>
+            android:background="@drawable/keyboard_key_background"/>
 
     </RelativeLayout>
 
