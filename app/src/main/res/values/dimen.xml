@@ -29,7 +29,7 @@
     <dimen name="keyboard_key_width">36dp</dimen>
     <dimen name="keyboard_key_height">36dp</dimen>
     <dimen name="keyboard_key_rounded_corner">18dp</dimen>
-    <dimen name="keyboard_key_space_width">246dp</dimen>
+    <dimen name="keyboard_key_space_width">216dp</dimen>
     <dimen name="keyboard_key_backspace_width">54dp</dimen>
     <dimen name="keyboard_key_enter_width">72dp</dimen>
     <dimen name="keyboard_key_enter_margin">4dp</dimen>

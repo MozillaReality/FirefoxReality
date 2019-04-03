@@ -48,7 +48,8 @@
     </Row>
 
     <Row>
-        <Key android:codes="-2" android:keyLabel="%&amp;=" android:keyEdgeFlags="left" android:horizontalGap="@dimen/keyboard_left_margin"/>
+        <Key android:codes="-2" android:keyLabel="%&amp;=" android:keyEdgeFlags="left"/>
+        <Key android:codes="-11" android:keyIcon="@drawable/ic_icon_microphone_keyboard" android:keyEdgeFlags="left" />
         <Key android:codes="32" android:keyLabel="" android:keyWidth="@dimen/keyboard_key_space_width" android:isRepeatable="true"/>
         <Key android:codes="46" android:keyLabel="."/>
         <Key android:codes="95" android:keyLabel="_"/>

@@ -27,13 +27,13 @@ import org.mozilla.vrbrowser.browser.SessionStore;
 import org.mozilla.vrbrowser.input.CustomKeyboard;
 import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
 import org.mozilla.vrbrowser.ui.views.CustomKeyboardView;
-import org.mozilla.vrbrowser.ui.views.UIButton;
+import org.mozilla.vrbrowser.ui.widgets.dialogs.VoiceSearchWidget;
 
 import androidx.annotation.NonNull;
 
 
 public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKeyboardActionListener,
-        GeckoSession.TextInputDelegate, WidgetManagerDelegate.FocusChangeListener {
+        GeckoSession.TextInputDelegate, WidgetManagerDelegate.FocusChangeListener, VoiceSearchWidget.VoiceSearchDelegate {
 
     private static final String LOGTAG = "VRB";
 
@@ -53,6 +53,7 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
     private UIWidget mBrowserWidget;
     private InputConnection mInputConnection;
     private EditorInfo mEditorInfo = new EditorInfo();
+    private VoiceSearchWidget mVoiceSearchWidget;
 
     private int mKeyWidth;
     private int mKeyboardPopupTopMargin;
@@ -61,6 +62,7 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
     private boolean mIsMultiTap;
     private boolean mIsCapsLock;
     private ImageView mPopupKeyboardLayer;
+    private boolean mIsInVoiceInput = false;
 
     public KeyboardWidget(Context aContext) {
         super(aContext);
@@ -147,6 +149,11 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
 
         mBackHandler = () -> onDismiss();
 
+        mVoiceSearchWidget = createChild(VoiceSearchWidget.class, false);
+        mVoiceSearchWidget.setPlacementForKeyboard(this.getHandle());
+        mVoiceSearchWidget.setDelegate(this); // VoiceSearchDelegate
+        mVoiceSearchWidget.setDelegate(() -> exitVoiceInputMode()); // DismissDelegate
+
         SessionStore.get().addTextInputListener(this);
     }
 
@@ -215,6 +222,7 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
     }
 
     public void dismiss() {
+        exitVoiceInputMode();
        if (mFocusedView != null && mFocusedView != mBrowserWidget) {
            mFocusedView.clearFocus();
        }
@@ -501,8 +509,14 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
     }
 
     private void handleVoiceInput() {
-        mKeyboardView.setVisibility(View.GONE);
+        if (mIsInVoiceInput) {
+            return;
+        }
+        mIsInVoiceInput = true;
         TelemetryWrapper.voiceInputEvent();
+        mVoiceSearchWidget.show(false);
+        mWidgetPlacement.visible = false;
+        mWidgetManager.updateWidget(this);
     }
 
     private void postInputCommand(Runnable aRunnable) {
@@ -578,5 +592,34 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
     @Override
     public void onGlobalFocusChanged(View oldFocus, View newFocus) {
         updateFocusedView(newFocus);
+    }
+
+
+    // VoiceSearch Delegate
+    @Override
+    public void OnVoiceSearchResult(String aTranscription, float confidance) {
+        if (aTranscription != null && !aTranscription.isEmpty()) {
+            handleText(aTranscription);
+        }
+        exitVoiceInputMode();
+    }
+
+    @Override
+    public void OnVoiceSearchCanceled() {
+        exitVoiceInputMode();
+    }
+
+    @Override
+    public void OnVoiceSearchError() {
+        exitVoiceInputMode();
+    }
+
+    private void exitVoiceInputMode() {
+        if (mIsInVoiceInput) {
+            mVoiceSearchWidget.hide(REMOVE_WIDGET);
+            mWidgetPlacement.visible = true;
+            mWidgetManager.updateWidget(this);
+            mIsInVoiceInput = false;
+        }
     }
 }
