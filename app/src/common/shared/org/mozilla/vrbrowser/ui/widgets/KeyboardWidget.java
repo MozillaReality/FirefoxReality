@@ -276,7 +276,7 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
 
             if (rightAligned) {
                 params.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
-                params.rightMargin = mKeyboardView.getWidth() - popupKey.x - mKeyWidth;
+                params.rightMargin = mKeyboardView.getWidth() - popupKey.x - mKeyWidth - mKeyboardNumericView.getPaddingRight();
                 if (popupCharacters.length() > maxCharsPerLine) {
                     popupCharacters.insert(maxCharsPerLine - 1, popupCharacters.charAt(0));
                     popupCharacters.replace(0,1, String.valueOf(popupCharacters.charAt(popupCharacters.length()-1)));
@@ -287,7 +287,7 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
             } else {
                 params.leftMargin = popupKey.x;
             }
-            params.topMargin = popupKey.y + mKeyboardPopupTopMargin;
+            params.topMargin = popupKey.y + mKeyboardPopupTopMargin + mKeyboardView.getPaddingTop();
 
             CustomKeyboard popupKeyboard = new CustomKeyboard(getContext(), popupKey.popupResId,
                     popupCharacters, maxCharsPerLine, 0);

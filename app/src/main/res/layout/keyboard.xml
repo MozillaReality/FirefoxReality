@@ -12,16 +12,15 @@
             android:orientation="horizontal">
             <RelativeLayout
                 android:layout_width="@dimen/keyboard_alphabetic_width"
-                android:layout_height="match_parent"
-                android:padding="20dp"
-                android:background="@drawable/keyboard_background">
+                android:layout_height="match_parent">
 
                 <org.mozilla.vrbrowser.ui.views.CustomKeyboardView
                     android:id="@+id/keyboard"
+                    android:padding="20dp"
+                    android:background="@drawable/keyboard_background"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_gravity="center"
-                    android:background="@null"
                     android:keyBackground="@drawable/keyboard_key_background"
                     android:shadowColor="@android:color/transparent"
                     android:shadowRadius="0.0"
@@ -32,6 +31,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_gravity="center"
+                    android:layout_margin="20dp"
                     android:background="@color/void_color"
                     android:alpha="0.5"
                     android:visibility="visible"/>
@@ -54,24 +54,16 @@
                 android:layout_height="0dp"
                 android:layout_weight="1" />
 
-            <RelativeLayout
+            <org.mozilla.vrbrowser.ui.views.CustomKeyboardView
+                android:id="@+id/keyboardNumeric"
                 android:layout_width="@dimen/keyboard_numeric_width"
                 android:layout_height="match_parent"
                 android:padding="20dp"
-                android:background="@drawable/keyboard_background">
-
-                <org.mozilla.vrbrowser.ui.views.CustomKeyboardView
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:background="@drawable/keyboard_background"
-                    android:id="@+id/keyboardNumeric"
-                    android:keyBackground="@drawable/keyboard_key_background"
-                    android:shadowColor="@android:color/transparent"
-                    android:shadowRadius="0.0"
-                    android:verticalCorrection="0dp"/>
-
-
-            </RelativeLayout>
+                android:background="@drawable/keyboard_background"
+                android:keyBackground="@drawable/keyboard_key_background"
+                android:shadowColor="@android:color/transparent"
+                android:shadowRadius="0.0"
+                android:verticalCorrection="0dp"/>
 
         </LinearLayout>
 
