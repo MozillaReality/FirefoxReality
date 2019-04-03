@@ -112,7 +112,10 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
             mPopupKeyboardLayer.setVisibility(View.GONE);
         });
 
-        int[] featuredKeys = {' ', Keyboard.KEYCODE_DELETE, Keyboard.KEYCODE_DONE, Keyboard.KEYCODE_CANCEL, CustomKeyboard.KEYCODE_VOICE_INPUT, CustomKeyboard.KEYCODE_SYMBOLS_CHANGE};
+        int[] featuredKeys = {
+            ' ', Keyboard.KEYCODE_DELETE, Keyboard.KEYCODE_DONE, Keyboard.KEYCODE_CANCEL, Keyboard.KEYCODE_MODE_CHANGE,
+            CustomKeyboard.KEYCODE_VOICE_INPUT, CustomKeyboard.KEYCODE_SYMBOLS_CHANGE
+        };
         mKeyboardView.setFeaturedKeyBackground(R.drawable.keyboard_featured_key_background, featuredKeys);
 
         mKeyboardView.setOnKeyListener((view, i, keyEvent) -> false);
