@@ -68,6 +68,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 
+import androidx.annotation.IntDef;
 import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
 
@@ -775,7 +776,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     // VideoAvailabilityListener
     @Override
     public void onVideoAvailabilityChanged(boolean aVideosAvailable) {
-        queueRunnable(() -> setCPULevelNative(aVideosAvailable));
+        queueRunnable(() -> setCPULevelNative(aVideosAvailable ? CPU_LEVEL_HIGH : CPU_LEVEL_NORMAL));
     }
 
     // WidgetManagerDelegate
@@ -1051,7 +1052,12 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     private native void setControllersVisibleNative(boolean aVisible);
     private native void runCallbackNative(long aCallback);
     private native void setCylinderDensityNative(float aDensity);
-    private native void setCPULevelNative(boolean aHighLevel);
+    private native void setCPULevelNative(@CPULevelFlags int aCPULevel);
     private native void setIsServo(boolean aIsServo);
     private native void updateFoveatedLevelNative(int appLevel, int webVRLevel);
+
+    @IntDef(value = { CPU_LEVEL_NORMAL, CPU_LEVEL_HIGH})
+    private @interface CPULevelFlags {}
+    private static final int CPU_LEVEL_NORMAL = 0;
+    private static final int CPU_LEVEL_HIGH = 1;
 }

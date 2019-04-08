@@ -959,8 +959,8 @@ BrowserWorld::SetCylinderDensity(const float aDensity) {
 }
 
 void
-BrowserWorld::SetCPULevel(const bool aHighLevel) {
-  m.device->SetCPULevel(aHighLevel ? device::CPULevel::High : device::CPULevel::Normal);
+BrowserWorld::SetCPULevel(const device::CPULevel aLevel) {
+  m.device->SetCPULevel(aLevel);
 }
 
 void
@@ -1353,8 +1353,8 @@ JNI_METHOD(void, runCallbackNative)
 }
 
 JNI_METHOD(void, setCPULevelNative)
-(JNIEnv* aEnv, jobject, jboolean aHighLevel) {
-  crow::BrowserWorld::Instance().SetCPULevel(aHighLevel);
+(JNIEnv* aEnv, jobject, int aCPULevel) {
+  crow::BrowserWorld::Instance().SetCPULevel(static_cast<crow::device::CPULevel>(aCPULevel));
 }
 
 JNI_METHOD(void, setIsServo)
