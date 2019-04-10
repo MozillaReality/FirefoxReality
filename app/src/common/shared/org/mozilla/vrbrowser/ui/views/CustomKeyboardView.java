@@ -801,7 +801,7 @@ public class CustomKeyboardView extends View implements View.OnClickListener {
                 if (label.length() > 1 && key.codes.length < 2) {
                     paint.setTextSize(mLabelTextSize);
                     paint.setTypeface(Typeface.DEFAULT_BOLD);
-                    descent = 0.0f;
+                    descent = mLabelTextSize * 0.1f;
 
                 } else {
                     paint.setTextSize(mKeyTextSize);

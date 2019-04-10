@@ -31,7 +31,7 @@ public class CustomKeyboard extends Keyboard {
     }
 
 
-    public CustomKeyboard (Context context, int layoutTemplateResId, CharSequence characters, int columns, int horizontalPadding) {
+    public CustomKeyboard (Context context, int layoutTemplateResId, CharSequence characters, int columns, int horizontalPadding, int verticalGap) {
         this(context, layoutTemplateResId);
 
         mMaxColums = columns;
@@ -44,7 +44,7 @@ public class CustomKeyboard extends Keyboard {
         int mDefaultWidth = getParentFieldInt(this, "mDefaultWidth");
         int mDefaultHeight = getParentFieldInt(this, "mDefaultHeight");
         int mDefaultHorizontalGap = getParentFieldInt(this, "mDefaultHorizontalGap");
-        int mDefaultVerticalGap = getParentFieldInt(this, "mDefaultVerticalGap");
+        int mDefaultVerticalGap = verticalGap >= 0 ? verticalGap : getParentFieldInt(this, "mDefaultVerticalGap");
         int mDisplayWidth = getParentFieldInt(this, "mDisplayWidth");
         ArrayList<Row> rows = null;
         Object rowsObj = getParentFieldObject(this, "rows");

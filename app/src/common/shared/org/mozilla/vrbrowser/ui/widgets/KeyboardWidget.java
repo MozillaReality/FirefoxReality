@@ -293,12 +293,12 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
                     popupCharacters.reverse();
                 }
             } else {
-                params.leftMargin = popupKey.x;
+                params.leftMargin = popupKey.x + mKeyboardNumericView.getPaddingLeft();
             }
             params.topMargin = popupKey.y + mKeyboardPopupTopMargin + mKeyboardView.getPaddingTop();
 
             CustomKeyboard popupKeyboard = new CustomKeyboard(getContext(), popupKey.popupResId,
-                    popupCharacters, maxCharsPerLine, 0);
+                    popupCharacters, maxCharsPerLine, 0, getContext().getResources().getDimensionPixelSize(R.dimen.keyboard_vertical_gap));
             mPopupKeyboardview.setKeyboard(popupKeyboard);
             mPopupKeyboardview.setLayoutParams(params);
             mPopupKeyboardview.setShifted(mIsCapsLock);

@@ -20,24 +20,24 @@
     <item name="keyboard_y_distance_from_browser" format="float" type="dimen">-0.18</item>
     <item name="keyboard_z_distance_from_browser" format="float" type="dimen">2.0</item>
     <item name="keyboard_world_rotation" format="float" type="dimen">-35.0</item>
-    <dimen name="keyboard_width">676dp</dimen>
+    <dimen name="keyboard_width">672dp</dimen>
     <dimen name="keyboard_height">216dp</dimen>
     <dimen name="keyboard_alphabetic_width">516dp</dimen>
     <dimen name="keyboard_numeric_width">156dp</dimen>
     <dimen name="keyboard_horizontal_gap">4dp</dimen>
     <dimen name="keyboard_vertical_gap">4dp</dimen>
-    <dimen name="keyboard_key_width">36dp</dimen>
-    <dimen name="keyboard_key_height">36dp</dimen>
+    <dimen name="keyboard_key_width">34dp</dimen>
+    <dimen name="keyboard_key_height">34dp</dimen>
     <dimen name="keyboard_key_rounded_corner">18dp</dimen>
-    <dimen name="keyboard_key_space_width">216dp</dimen>
-    <dimen name="keyboard_key_backspace_width">54dp</dimen>
+    <dimen name="keyboard_key_space_width">186dp</dimen>
+    <dimen name="keyboard_key_backspace_width">50dp</dimen>
     <dimen name="keyboard_key_enter_width">72dp</dimen>
     <dimen name="keyboard_key_enter_margin">4dp</dimen>
     <dimen name="keyboard_left_margin">20dp</dimen>
     <dimen name="keyboard_key_text_size">14dp</dimen>
     <dimen name="keyboard_key_longtext_size">12dp</dimen>
-    <dimen name="keyboard_key_hovered_padding">0.8dp</dimen>
-    <dimen name="keyboard_key_pressed_padding">1dp</dimen>
+    <dimen name="keyboard_key_hovered_padding">0dp</dimen>
+    <dimen name="keyboard_key_pressed_padding">0dp</dimen>
 
     <!-- Permission PromptWidget -->
     <item name="permission_world_width" format="float" type="dimen">1.6</item>

@@ -8,7 +8,6 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:paddingTop="20dp"
             android:orientation="horizontal">
             <RelativeLayout
                 android:layout_width="@dimen/keyboard_alphabetic_width"
@@ -69,6 +68,7 @@
 
         <org.mozilla.vrbrowser.ui.views.UIButton
             android:id="@+id/keyboardCloseButton"
+            android:visibility="gone"
             android:layout_width="36dp"
             android:layout_height="36dp"
             app:tintColorList="@drawable/url_button_icon_color"
