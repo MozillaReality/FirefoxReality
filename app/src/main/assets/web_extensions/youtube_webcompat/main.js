@@ -26,7 +26,7 @@
     hd: false,
     quality: 1440,
     log: qs.get('mozDebug') ? getTruthyQS('mozDebug') : true,
-    retryAttempts: parseInt(qs.get('retryAttempts') || qs.get('retryattempts') || '5', 10),
+    retryAttempts: parseInt(qs.get('retryAttempts') || qs.get('retryattempts') || '10', 10),
     retryTimeout: parseInt(qs.get('retryTimeout') || qs.get('retrytimeout') || '500', 10)
   };
 
@@ -45,21 +45,42 @@
       attempts = 1;
     }
     if (attempts >= prefs.retryAttempts) {
+      logError(`Giving up trying to increase resolution after ${prefs.retryAttempts} attempts.`);
       return;
     }
 
-    const player = document.getElementById('movie_player');
-    if (state !== 1 || !player) {
+    let player = document.getElementById('movie_player');
+    let reason = 'unknown';
+    if (state !== 1) {
+      reason = 'invalid state';
+    } else if (!player) {
+      reason = 'player not found';
+    } else if (!player.wrappedJSObject) {
+      reason = 'player.wrappedJSObject not found';
+      player = null;
+    } else if (!player.wrappedJSObject.getAvailableQualityLevels) {
+      reason = 'player.wrappedJSObject.getAvailableQualityLevels not found';
+      player = null;
+    }
+
+    if (!player) {
+      logWarn(`Cannot find player because ${reason}. attempts: ${attempts}`);
       attempts++;
       retryTimeout = setTimeout(() => {
         ytImprover(state, attempts);
-      }, prefs.retryInterval);
+      }, prefs.retryTimeout);
       return;
     }
 
+    player = player.wrappedJSObject;
+
     const levels = player.getAvailableQualityLevels();
     if (!levels || !levels.length) {
-      logWarn('Cannot read `player.getAvailableQualityLevels()`');
+      logWarn(`Cannot read 'player.getAvailableQualityLevels()' attempts: ${attempts}`);
+      attempts++;
+      retryTimeout = setTimeout(() => {
+        ytImprover(state, attempts);
+      }, prefs.retryTimeout);
       return;
     }
 
@@ -149,6 +170,8 @@
     try {
       player.setPlaybackQualityRange(newBestQuality, newBestQuality);
     } catch (e) {
+      logError(`Failed to call 'player.setPlaybackQualityRange(${newBestQuality}, ${newBestQuality})' with exception: `, e);
+      return;
     }
 
     log(`Changed quality from "${currentQuality}" to "${newBestQuality}"`);
