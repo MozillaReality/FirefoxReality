@@ -66,10 +66,10 @@
     clearTimeout(retryTimeout);
     ytImprover.completed = true;
 
-    const prefs.qualities = [
+    prefs.qualities = [
       'highres', 'h2880', 'hd2160', 'hd1440', 'hd1080', 'hd720', 'large', 'medium', 'small', 'tiny', 'auto'
     ];
-    const prefs.qualityLabels = {
+    prefs.qualityLabels = {
       '4320': 'highres', // 8K / 4320p / QUHD
       '2880': 'hd2880', // 5K / 2880p / UHD+
       '2160': 'hd2160', // 4K / 2160p / UHD
