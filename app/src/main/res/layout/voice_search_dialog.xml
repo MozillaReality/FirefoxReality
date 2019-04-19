@@ -82,6 +82,7 @@
         android:id="@+id/voiceSearchSearching"
         android:layout_width="100dp"
         android:layout_height="100dp"
+        android:background="@color/asphalt"
         android:src="@drawable/ic_voice_search_searching"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
