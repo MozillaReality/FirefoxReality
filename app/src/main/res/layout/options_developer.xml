@@ -95,6 +95,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_alignParentBottom="true"
+            android:soundEffectsEnabled="false"
             app:buttonText="@string/developer_options_reset_button"
             app:description="@string/developer_options_reset" />
     </RelativeLayout>
