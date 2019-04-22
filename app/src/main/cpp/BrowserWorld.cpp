@@ -290,8 +290,8 @@ BrowserWorld::State::ChangeControllerFocus(const Controller& aController) {
 
 static inline float
 ScaleScrollDelta(const float aValue, const double aStartTime, const double aCurrentTime) {
-  const float kMaxDelta = 3.0f; // in seconds
-  const float kMinScale = 0.2f;
+  const float kMaxDelta = 2.0f; // in seconds
+  const float kMinScale = 0.15f;
   float result = 0.0f;
   const double deltaTime = aCurrentTime - aStartTime;
   float scale = float(deltaTime / kMaxDelta);
@@ -300,7 +300,7 @@ ScaleScrollDelta(const float aValue, const double aStartTime, const double aCurr
   } else if (scale < kMinScale) {
     scale = kMinScale;
   }
-  return aValue * scale * scale;
+  return aValue * scale;
 }
 
 void
