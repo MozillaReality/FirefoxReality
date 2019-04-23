@@ -116,7 +116,7 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
 
         int[] featuredKeys = {
             ' ', Keyboard.KEYCODE_DELETE, Keyboard.KEYCODE_DONE, Keyboard.KEYCODE_CANCEL, Keyboard.KEYCODE_MODE_CHANGE,
-            CustomKeyboard.KEYCODE_VOICE_INPUT, CustomKeyboard.KEYCODE_SYMBOLS_CHANGE
+            CustomKeyboard.KEYCODE_VOICE_INPUT, CustomKeyboard.KEYCODE_SYMBOLS_CHANGE, CustomKeyboard.KEYCODE_LANGUAGE_CHANGE,
         };
         mKeyboardView.setFeaturedKeyBackground(R.drawable.keyboard_featured_key_background, featuredKeys);
 
@@ -344,8 +344,7 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
             case CustomKeyboard.KEYCODE_VOICE_INPUT:
                 handleVoiceInput();
                 break;
-            case CustomKeyboard.KEYCODE_STRING_COM:
-                handleText(".com");
+            case CustomKeyboard.KEYCODE_LANGUAGE_CHANGE:
                 break;
             default:
                 if (!mIsLongPress) {
