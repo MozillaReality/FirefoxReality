@@ -670,13 +670,18 @@ struct DeviceDelegateOculusVR::State {
 
     reorientCount = vrapi_GetSystemStatusInt(&java, VRAPI_SYS_STATUS_RECENTER_COUNT);
 
-    vrapi_SetPropertyInt(&java, VRAPI_BLOCK_REMOTE_BUTTONS_WHEN_NOT_EMULATING_HMT, 0);
+    // Reorient the headset after controller recenter.
+    vrapi_SetPropertyInt(&java, VRAPI_REORIENT_HMD_ON_CONTROLLER_RECENTER, 1);
+
+    // UPDATE: As of SDK 1.22 VRAPI_BLOCK_REMOTE_BUTTONS_WHEN_NOT_EMULATING_HMT and
+    // VRAPI_EAT_NATIVE_GAMEPAD_EVENTS seem to have no effect.
+    //
+    // vrapi_SetPropertyInt(&java, VRAPI_BLOCK_REMOTE_BUTTONS_WHEN_NOT_EMULATING_HMT, 0);
+    // The following is no longer true as of SDK 1.22
     // This needs to be set to 0 so that the volume buttons work. I'm not sure why since the
     // docs in the header indicate that setting this to false (0) means you have to
     // handle the gamepad events yourself.
-    vrapi_SetPropertyInt(&java, VRAPI_EAT_NATIVE_GAMEPAD_EVENTS, 0);
-    // Reorient the headset after controller recenter.
-    vrapi_SetPropertyInt(&java, VRAPI_REORIENT_HMD_ON_CONTROLLER_RECENTER, 1);
+    // vrapi_SetPropertyInt(&java, VRAPI_EAT_NATIVE_GAMEPAD_EVENTS, 0);
 
     const int type = vrapi_GetSystemPropertyInt(&java, VRAPI_SYS_PROP_DEVICE_TYPE);
     if ((type >= VRAPI_DEVICE_TYPE_OCULUSGO_START ) && (type <= VRAPI_DEVICE_TYPE_OCULUSGO_END)) {
@@ -941,12 +946,15 @@ struct DeviceDelegateOculusVR::State {
         trackpadPressed = (state[i].controllerState.Buttons & ovrButton_Enter) != 0;
         trackpadTouched = (bool)state[i].controllerState.TrackpadStatus;
 
+        // UPDATE: As of SDK 1.22, it no longer works and VRAPI_EAT_NATIVE_GAMEPAD_EVENTS has been commented
+        // out and we are watching for the back button again.
+        //
         // For Oculus Go, by setting vrapi_SetPropertyInt(&java, VRAPI_EAT_NATIVE_GAMEPAD_EVENTS, 0);
         // The app will receive onBackPressed when the back button is pressed on the controller.
         // So there is no need to check for it here. Leaving code commented out for reference
         // in the case that the back button stops working again due to Oculus Mobile API change.
-        // const bool backPressed = (controllerState.Buttons & ovrButton_Back) != 0;
-        // controller->SetButtonState(0, ControllerDelegate::BUTTON_APP, -1, backPressed, backPressed);
+        const bool backPressed = (state[i].controllerState.Buttons & ovrButton_Back) != 0;
+        controller->SetButtonState(0, ControllerDelegate::BUTTON_APP, -1, backPressed, backPressed);
         trackpadX = state[i].controllerState.TrackpadPosition.x / (float)state[i].controllerCapabilities.TrackpadMaxX;
         trackpadY = state[i].controllerState.TrackpadPosition.y / (float)state[i].controllerCapabilities.TrackpadMaxY;
 
@@ -962,7 +970,6 @@ struct DeviceDelegateOculusVR::State {
       controller->SetButtonState(i, ControllerDelegate::BUTTON_TRIGGER, 1, triggerPressed, triggerTouched,
                                  state[i].controllerState.IndexTrigger);
       controller->SetButtonState(i, ControllerDelegate::BUTTON_TOUCHPAD, 0, trackpadPressed, trackpadTouched);
-
       controller->SetAxes(i, axes, kNumAxes);
     }
   }
