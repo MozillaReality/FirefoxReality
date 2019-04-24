@@ -297,6 +297,8 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
             widget.onPause();
         }
         mConnectivityReceiver.unregister(this);
+        // Reset so the dialog will show again on resume.
+        mConnectionAvailable = true;
         super.onPause();
     }
 

@@ -41,4 +41,4 @@ public class ConnectivityReceiver extends BroadcastReceiver {
         NetworkInfo activeNetworkInfo = manager.getActiveNetworkInfo();
         return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
-};
+}
