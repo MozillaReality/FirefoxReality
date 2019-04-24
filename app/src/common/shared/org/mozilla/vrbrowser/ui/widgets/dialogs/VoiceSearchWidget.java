@@ -296,9 +296,7 @@ public class VoiceSearchWidget extends UIWidget implements WidgetManagerDelegate
         mVoiceSearchText2.setVisibility(View.GONE);
         mVoiceSearchText3.setVisibility(View.INVISIBLE);
         mVoiceSearchInput.setVisibility(View.INVISIBLE);
-        if (DeviceType.getType() != DeviceType.OculusQuest) {
-            mVoiceSearchSearching.startAnimation(mSearchingAnimation);
-        }
+        mVoiceSearchSearching.startAnimation(mSearchingAnimation);
         mVoiceSearchSearching.setVisibility(View.VISIBLE);
     }
 
