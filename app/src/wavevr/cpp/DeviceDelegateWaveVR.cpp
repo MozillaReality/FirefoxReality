@@ -38,11 +38,13 @@ struct Controller {
   WVR_DeviceType type;
   bool enabled;
   bool touched;
+  bool is6DoF;
   Controller()
       : index(-1)
       , type(WVR_DeviceType_Controller_Right)
       , enabled(false)
       , touched(false)
+      , is6DoF(false)
   {}
 };
 
@@ -98,6 +100,7 @@ struct DeviceDelegateWaveVR::State {
       } else {
         controllers[index].type = WVR_DeviceType_Controller_Left;
       }
+      controllers[index].is6DoF = WVR_GetDegreeOfFreedom(controllers[index].type) == WVR_NumDoF_6DoF;
     }
     reorientMatrix = vrb::Matrix::Identity();
   }
@@ -199,7 +202,13 @@ struct DeviceDelegateWaveVR::State {
       delegate->SetButtonCount(index, 2); // For immersive mode
       delegate->SetButtonState(index, ControllerDelegate::BUTTON_TOUCHPAD, 0, touchpadPressed, touchpadTouched);
       delegate->SetButtonState(index, ControllerDelegate::BUTTON_TRIGGER, 1, bumperPressed, bumperPressed);
+      if (controller.is6DoF) {
+        const bool gripPressed = WVR_GetInputButtonState(controller.type, WVR_InputId_Alias1_Grip);
+        delegate->SetButtonState(index, ControllerDelegate::BUTTON_OTHERS, 2, gripPressed,
+                                 gripPressed);
+      }
       delegate->SetButtonState(index, ControllerDelegate::BUTTON_APP, -1, menuPressed, menuPressed);
+
 
       const int32_t kNumAxes = 2;
       float immersiveAxes[kNumAxes] = { 0.0f, 0.0f };
@@ -312,7 +321,8 @@ DeviceDelegateWaveVR::SetControllerDelegate(ControllerDelegatePtr& aController) 
     return;
   }
   for (int32_t index = 0; index < kMaxControllerCount; index++) {
-    m.delegate->CreateController(index, 0, "HTC Vive Focus Controller");
+    const bool is6DoF = m.controllers[index].is6DoF;
+    m.delegate->CreateController(index, is6DoF ? 1 : 0, is6DoF ? "HTC Vive Focus Plus Controller" : "HTC Vive Focus Controller");
     m.delegate->SetLeftHanded(index, m.controllers[index].type == WVR_DeviceType_Controller_Left);
   }
 }
@@ -324,14 +334,18 @@ DeviceDelegateWaveVR::ReleaseControllerDelegate() {
 
 int32_t
 DeviceDelegateWaveVR::GetControllerModelCount() const {
-  return 1;
+  return 2;
 }
 
 const std::string
 DeviceDelegateWaveVR::GetControllerModelName(const int32_t aModelIndex) const {
-  // FIXME: Need Focus based controller
-  static const std::string name("vr_controller_focus.obj");
-  return aModelIndex == 0 ? name : "";
+  if (aModelIndex == 0) {
+    return "vr_controller_focus.obj";
+  } else if (aModelIndex == 1) {
+    return "focus_plus.obj";
+  }
+
+  return "";
 }
 
 void
