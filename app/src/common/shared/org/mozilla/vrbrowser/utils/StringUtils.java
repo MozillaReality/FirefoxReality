@@ -17,4 +17,8 @@ public class StringUtils {
         configuration.setLocale(locale);
         return context.createConfigurationContext(configuration).getResources().getString(id);
     }
+
+    public static String removeSpaces(@NonNull String aText) {
+        return aText.replaceAll("\\s", "");
+    }
 }

@@ -37,6 +37,7 @@ import org.mozilla.vrbrowser.ui.views.CustomKeyboardView;
 import org.mozilla.vrbrowser.ui.widgets.dialogs.VoiceSearchWidget;
 import org.mozilla.vrbrowser.ui.keyboards.ChinesePinyinKeyboard;
 import org.mozilla.vrbrowser.ui.keyboards.EnglishKeyboard;
+import org.mozilla.vrbrowser.utils.StringUtils;
 
 import java.util.ArrayList;
 import java.util.regex.Pattern;
@@ -561,6 +562,12 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
         }
 
         if (mCurrentKeyboard.usesComposingText()) {
+            CharSequence seq = mInputConnection.getSelectedText(0);
+            String selected = seq != null ? seq.toString() : "";
+            if (selected.length() > 0 && StringUtils.removeSpaces(selected).contains(mComposingText)) {
+                // Clean composing text if the text is selected.
+                mComposingText = "";
+            }
             mComposingText += aText;
         } else {
             final InputConnection connection = mInputConnection;
@@ -767,7 +774,7 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
             return;
         }
         if (mCurrentKeyboard.usesComposingText()) {
-            String code = aItem.code.replaceAll("\\s","");
+            String code = StringUtils.removeSpaces(aItem.code);
             mComposingText = mComposingText.replaceFirst(Pattern.quote(code), "");
             mComposingText = mComposingText.trim();
 

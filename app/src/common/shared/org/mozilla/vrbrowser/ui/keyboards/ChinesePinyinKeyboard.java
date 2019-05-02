@@ -9,6 +9,8 @@ import com.readystatesoftware.sqliteasset.SQLiteAssetHelper;
 
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.input.CustomKeyboard;
+import org.mozilla.vrbrowser.utils.StringUtils;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -105,10 +107,10 @@ public class ChinesePinyinKeyboard extends BaseKeyboard {
 
         CandidatesResult result = new CandidatesResult();
         result.words = words;
-        result.action = endsWithSpace ?  CandidatesResult.Action.AUTO_COMPOSE : CandidatesResult.Action.SHOW_CANDIDATES;
+        result.action = endsWithSpace ? CandidatesResult.Action.AUTO_COMPOSE : CandidatesResult.Action.SHOW_CANDIDATES;
         result.composing = aComposingText;
         if (result.words.size() > 0) {
-            String codeWithoutSpaces = result.words.get(0).code.replaceAll("\\s","");
+            String codeWithoutSpaces = StringUtils.removeSpaces(result.words.get(0).code);
             result.composing = aComposingText.replaceFirst(Pattern.quote(codeWithoutSpaces), result.words.get(0).code);
         }
 
@@ -145,12 +147,14 @@ public class ChinesePinyinKeyboard extends BaseKeyboard {
                 // Move latin char fallbacks to the end of the list
                 aCandidates.remove(i);
                 aCandidates.add(candidate);
-                i--;n--;
+                i--;
+                n--;
             } else if (candidate.value.matches("^[A-Z]$") && !candidate.code.contains(candidate.value)) {
                 // Move uppercase latin char fallback to the end only when generated via lowercase input.
                 aCandidates.remove(i);
                 aCandidates.add(candidate);
-                i--;n--;
+                i--;
+                n--;
             } else if (candidate.value.matches(".*[a-z]+$")) {
                 // Discard latin char fallback at the end of chinese char fallbacks
                 candidate.value = candidate.value.replaceAll("[a-z]+$", "").trim();
@@ -187,9 +191,9 @@ public class ChinesePinyinKeyboard extends BaseKeyboard {
     @Override
     public String getSpaceKeyText(String aComposingText) {
         if (aComposingText == null || aComposingText.trim().isEmpty()) {
-            return "空格";
+            return mContext.getString(R.string.pinyin_spacebar_space);
         } else {
-            return "选定";
+            return mContext.getString(R.string.pinyin_spacebar_selection);
         }
     }
 
@@ -198,7 +202,7 @@ public class ChinesePinyinKeyboard extends BaseKeyboard {
         if (aComposingText == null || aComposingText.trim().isEmpty()) {
             return super.getEnterKeyText(aIMEOptions, aComposingText);
         } else {
-            return "确认";
+            return mContext.getString(R.string.pinyin_enter_completion);
         }
     }
 
