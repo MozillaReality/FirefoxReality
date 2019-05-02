@@ -477,8 +477,14 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
     private void handleBackspace(final boolean isLongPress) {
         final InputConnection connection = mInputConnection;
         if (mComposingText.length() > 0) {
-            mComposingText = mComposingText.substring(0, mComposingText.length() - 1);
-            mComposingText = mComposingText.trim();
+            CharSequence selectedText = mInputConnection.getSelectedText(0);
+            if (selectedText != null && selectedText.length() > 0) {
+                // Clean composing text if selected when backspace is clicked
+                mComposingText = "";
+            } else {
+                mComposingText = mComposingText.substring(0, mComposingText.length() - 1);
+                mComposingText = mComposingText.trim();
+            }
             updateCandidates();
             return;
         }
