@@ -243,6 +243,15 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
                 ((TextView)mFocusedView).addTextChangedListener(this);
             }
         } else {
+            if (mComposingText.length() > 0 && mInputConnection != null) {
+                mComposingText = "";
+                // Clear composited text when the keyboard is dismissed
+                final InputConnection input = mInputConnection;
+                postInputCommand(() -> {
+                    displayComposingText("");
+                    mInputConnection.finishComposingText();
+                });
+            }
             mInputConnection = null;
         }
 
