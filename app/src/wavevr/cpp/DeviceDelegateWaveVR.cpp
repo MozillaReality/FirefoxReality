@@ -196,10 +196,15 @@ struct DeviceDelegateWaveVR::State {
         }
         continue;
       } else if (!controller.enabled) {
+        device::CapabilityFlags flags = device::Orientation;
+        if (controller.is6DoF) {
+          flags |= device::Position;
+        }
         controller.enabled = true;
         delegate->SetEnabled(index, true);
         delegate->SetVisible(index, true);
-        delegate->SetCapabilityFlags(index, device::Orientation);
+
+        delegate->SetCapabilityFlags(index, flags);
       }
 
       const bool bumperPressed = WVR_GetInputButtonState(controller.type, WVR_InputId_Alias1_Digital_Trigger)
@@ -563,7 +568,7 @@ DeviceDelegateWaveVR::StartFrame() {
         hand = ElbowModel::HandEnum::Left;
       }
       controllerTransform = m.elbow->GetTransform(hand, hmd, controllerTransform);
-    } else {
+    } else if (m.renderMode == device::RenderMode::StandAlone){
       controllerTransform.TranslateInPlace(kAverageHeight);
     }
     m.delegate->SetTransform(controller.index, controllerTransform);
