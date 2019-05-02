@@ -536,6 +536,7 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
             // Finish current compositing
             mComposingText = "";
             postInputCommand(() -> {
+                displayComposingText(StringUtils.removeSpaces(mComposingDisplayText));
                 mInputConnection.finishComposingText();
                 postUICommand(this::updateCandidates);
             });
