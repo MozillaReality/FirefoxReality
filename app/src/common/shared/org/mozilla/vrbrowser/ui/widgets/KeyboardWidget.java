@@ -712,10 +712,12 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
     private void updateSpecialKeyLabels() {
         String spaceText = mCurrentKeyboard.getSpaceKeyText(mComposingText);
         String enterText = mCurrentKeyboard.getEnterKeyText(mEditorInfo.imeOptions, mComposingText);
+        String modeChangeText = mCurrentKeyboard.getModeChangeKeyText();
         boolean changed = mCurrentKeyboard.getAlphabeticKeyboard().setSpaceKeyLabel(spaceText);
         changed |= mCurrentKeyboard.getAlphabeticKeyboard().setEnterKeyLabel(enterText);
         mKeyboardSymbols.setSpaceKeyLabel(spaceText);
         mKeyboardSymbols.setEnterKeyLabel(enterText);
+        mKeyboardSymbols.setModeChangeKeyLabel(modeChangeText);
         if (changed) {
             mKeyboardView.invalidateAllKeys();
         }
@@ -840,8 +842,7 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
         }
         if (mCurrentKeyboard.usesComposingText()) {
             String code = StringUtils.removeSpaces(aItem.code);
-            mComposingText = mComposingText.replaceFirst(Pattern.quote(code), "");
-            mComposingText = mComposingText.trim();
+            mComposingText = mCurrentKeyboard.getComposingText(mComposingText, code).trim();
 
             postInputCommand(() -> {
                 displayComposingText(aItem.value);
