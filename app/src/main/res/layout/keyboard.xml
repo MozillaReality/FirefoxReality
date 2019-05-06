@@ -9,7 +9,7 @@
             android:id="@+id/keyboardContainer"
             android:layout_width="match_parent"
             android:layout_height="@dimen/keyboard_height"
-            android:layout_marginTop="@dimen/autocompletion_widget_line_height"
+            android:layout_marginTop="37dp"
             android:orientation="horizontal">
             <RelativeLayout
                 android:layout_width="@dimen/keyboard_alphabetic_width"

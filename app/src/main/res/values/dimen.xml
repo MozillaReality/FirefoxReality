@@ -23,7 +23,7 @@
     <dimen name="keyboard_width">674dp</dimen>
     <dimen name="keyboard_height">188dp</dimen>
     <dimen name="keyboard_alphabetic_width">526dp</dimen>
-    <dimen name="keyboard_numeric_width">148dp</dimen>
+    <dimen name="keyboard_numeric_width">144dp</dimen>
     <dimen name="keyboard_horizontal_gap">4dp</dimen>
     <dimen name="keyboard_vertical_gap">4dp</dimen>
     <dimen name="keyboard_key_width">36dp</dimen>
@@ -38,7 +38,7 @@
     <dimen name="keyboard_key_longtext_size">12dp</dimen>
     <dimen name="keyboard_key_hovered_padding">0dp</dimen>
     <dimen name="keyboard_key_pressed_padding">0dp</dimen>
-    <dimen name="keyboard_autocompletion_padding">3dp</dimen>
+    <dimen name="keyboard_autocompletion_padding">4dp</dimen>
     <!-- Permission PromptWidget -->
     <item name="permission_world_width" format="float" type="dimen">1.6</item>
     <dimen name="permission_width">320dp</dimen>
