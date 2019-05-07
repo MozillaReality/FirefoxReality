@@ -6,7 +6,17 @@ You can find us on Twitter [@MozillaReality](https://twitter.com/mozillareality)
 
 [![Task Status](https://github.taskcluster.net/v1/repository/MozillaReality/FirefoxReality/master/badge.svg)](https://github.taskcluster.net/v1/repository/MozillaReality/FirefoxReality/master/latest) [Build results](https://github.taskcluster.net/v1/repository/MozillaReality/FirefoxReality/master/latest)
 
-## Bleeding-edge developer APKs
+## Download Developer APKs
+
+**[Download](https://fxr.glitch.me/)** [bleeding-edge](https://github.com/MozillaReality/FirefoxReality/commits/master) developer APKs for Firefox Reality:
+
+- [Oculus Go (`oculusvr`)](https://fxr.glitch.me/oculusvr)
+- [HTC VIVE Focus (`wavevr`)](https://fxr.glitch.me/wavevr)
+- [Google Daydream (`googlevr`)](https://fxr.glitch.me/googlevr)
+- [Snapdragon VR (`svr`)](https://fxr.glitch.me/svr)
+- [No API / Android Emulator for PC (`noapi`)](https://fxr.glitch.me/noapi)
+
+### Advanced
 
 1. Load [this TaskCluster URL](https://github.taskcluster.net/v1/repository/MozillaReality/FirefoxReality/master/latest).
 2. Click the `Firefox Reality for Android - Build - Master update →` link.
