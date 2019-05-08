@@ -679,6 +679,7 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
     private void updateCandidates() {
         if (mInputConnection == null || !mCurrentKeyboard.supportsAutoCompletion()) {
             setAutoCompletionVisible(false);
+            updateSpecialKeyLabels();
             return;
         }
 
@@ -715,9 +716,9 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
         String modeChangeText = mCurrentKeyboard.getModeChangeKeyText();
         boolean changed = mCurrentKeyboard.getAlphabeticKeyboard().setSpaceKeyLabel(spaceText);
         changed |= mCurrentKeyboard.getAlphabeticKeyboard().setEnterKeyLabel(enterText);
+        changed |= mKeyboardSymbols.setModeChangeKeyLabel(modeChangeText);
         mKeyboardSymbols.setSpaceKeyLabel(spaceText);
         mKeyboardSymbols.setEnterKeyLabel(enterText);
-        mKeyboardSymbols.setModeChangeKeyLabel(modeChangeText);
         if (changed) {
             mKeyboardView.invalidateAllKeys();
         }

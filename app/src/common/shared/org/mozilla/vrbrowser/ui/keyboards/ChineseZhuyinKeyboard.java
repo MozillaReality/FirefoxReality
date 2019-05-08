@@ -141,7 +141,7 @@ public class ChineseZhuyinKeyboard extends BaseKeyboard {
 
     @Override
     public String getKeyboardTitle() {
-        return mContext.getString(R.string.settings_language_traditional_chinese);
+        return StringUtils.getStringByLocale(mContext, R.string.settings_language_traditional_chinese, getLocale());
     }
 
     @Override
