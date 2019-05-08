@@ -11,7 +11,7 @@ You can find us on Twitter [@MozillaReality](https://twitter.com/mozillareality)
 **[Download](https://fxr.glitch.me/)** [bleeding-edge](https://github.com/MozillaReality/FirefoxReality/commits/master) developer (_debug_) APKs for Firefox Reality:
 
 - [Oculus Go (`oculusvr`)](https://fxr.glitch.me/oculusvr)
-- [HTC VIVE Focus (`wavevr`)](https://fxr.glitch.me/wavevr)
+- [HTC VIVE Focus & Pico G2 (`wavevr`)](https://fxr.glitch.me/wavevr)
 - [Google Daydream (`googlevr`)](https://fxr.glitch.me/googlevr)
 - [Snapdragon VR (`svr`)](https://fxr.glitch.me/svr)
 - [No API / Android Emulator for PC (`noapi`)](https://fxr.glitch.me/noapi)
@@ -24,7 +24,7 @@ You can find us on Twitter [@MozillaReality](https://twitter.com/mozillareality)
 
 ## L10n
 
-Whenever a new string is added to a localizable strings file (strings.xml ,localpages.xml, ...) a string description must be provided as a comment above the new string. Also the project STRs wiki page must be updated with a key description, steps to reproduce and the expected results.
+Whenever a new string is added to a localizable strings file (strings.xml, localpages.xml, …) a string description must be provided as a comment above the new string. Also the project STRs wiki page must be updated with a key description, steps to reproduce and the expected results.
 The L10n wiki page can be found [here](https://github.com/MozillaReality/FirefoxReality/wiki/L10n).
 
 ## Setup instructions
