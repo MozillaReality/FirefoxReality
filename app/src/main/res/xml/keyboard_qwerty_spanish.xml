@@ -15,7 +15,7 @@
         <Key android:codes="105" android:keyLabel="i" android:popupCharacters="iíìĭîǐï" android:popupKeyboard="@xml/keyboard_popup" />
         <Key android:codes="111" android:keyLabel="o" android:popupCharacters="oøǿöȫóò" android:popupKeyboard="@xml/keyboard_popup" />
         <Key android:codes="112" android:keyLabel="p" android:popupCharacters="pṕṗᵽ" android:popupKeyboard="@xml/keyboard_popup" />
-        <Key android:codes="95" android:keyLabel="_"/>
+        <Key android:codes="58" android:keyLabel=":"/>
         <Key android:codes="-5" android:keyIcon="@drawable/ic_icon_keyboard_backspace" android:isRepeatable="true" android:keyWidth="@dimen/keyboard_key_backspace_width" />
     </Row>
 
@@ -29,7 +29,7 @@
         <Key android:codes="106" android:keyLabel="j" android:popupCharacters="jĵɈɉj̇̃" android:popupKeyboard="@xml/keyboard_popup"/>
         <Key android:codes="107" android:keyLabel="k" android:popupCharacters="kƙꝁḱǩḳķ" android:popupKeyboard="@xml/keyboard_popup"/>
         <Key android:codes="108" android:keyLabel="l" android:popupCharacters="lĺłľḹl̃ļ" android:popupKeyboard="@xml/keyboard_popup" />
-        <Key android:codes="58" android:keyLabel=":"/>
+        <Key android:keyOutputText="ñ" android:keyLabel="ñ" />
         <Key android:codes="-4" android:keyLabel="@string/keyboard_enter_label" android:keyWidth="@dimen/keyboard_key_enter_width"  />
     </Row>
 
@@ -49,7 +49,7 @@
     </Row>
 
     <Row>
-        <Key android:codes="-2" android:keyLabel="@string/keyboard_symbol" android:keyEdgeFlags="left"/>
+        <Key android:codes="-2" android:keyLabel="%&amp;=" android:keyEdgeFlags="left"/>
         <Key android:codes="-12" android:keyIcon="@drawable/ic_icon_keyboard_globe" />
         <Key android:codes="32" android:keyLabel="" android:keyWidth="@dimen/keyboard_key_space_width" android:isRepeatable="true"/>
         <Key android:codes="44" android:keyLabel=","/>
