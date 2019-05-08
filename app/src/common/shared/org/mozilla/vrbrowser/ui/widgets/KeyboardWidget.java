@@ -33,6 +33,7 @@ import org.mozilla.vrbrowser.browser.SessionStore;
 import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.input.CustomKeyboard;
 import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
+import org.mozilla.vrbrowser.ui.keyboards.GermanKeyboard;
 import org.mozilla.vrbrowser.ui.keyboards.KeyboardInterface;
 import org.mozilla.vrbrowser.ui.views.AutoCompletionView;
 import org.mozilla.vrbrowser.ui.views.CustomKeyboardView;
@@ -118,6 +119,7 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
 
         mKeyboards = new ArrayList<>();
         mKeyboards.add(new EnglishKeyboard(aContext));
+        mKeyboards.add(new GermanKeyboard(aContext));
         mKeyboards.add(new ChinesePinyinKeyboard(aContext));
         setDefaultKeyboard();
 
