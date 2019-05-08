@@ -12,7 +12,7 @@ You can find us on Twitter [@MozillaReality](https://twitter.com/mozillareality)
 
 - [Oculus Go (`oculusvr`)](https://fxr.glitch.me/oculusvr)
 - [HTC VIVE Focus & Pico G2 (`wavevr`)](https://fxr.glitch.me/wavevr)
-- [Google Daydream (`googlevr`)](https://fxr.glitch.me/googlevr)
+- [Lenovo Mirage with Google Daydream (`googlevr`)](https://fxr.glitch.me/googlevr)
 - [Snapdragon VR (`svr`)](https://fxr.glitch.me/svr)
 - [No API / Android Emulator for PC (`noapi`)](https://fxr.glitch.me/noapi)
 
