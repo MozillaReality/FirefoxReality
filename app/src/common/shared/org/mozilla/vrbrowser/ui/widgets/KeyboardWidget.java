@@ -34,7 +34,9 @@ import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.input.CustomKeyboard;
 import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
 import org.mozilla.vrbrowser.ui.keyboards.FrenchKeyboard;
+import org.mozilla.vrbrowser.ui.keyboards.ChineseZhuyinKeyboard;
 import org.mozilla.vrbrowser.ui.keyboards.KeyboardInterface;
+import org.mozilla.vrbrowser.ui.keyboards.SpanishKeyboard;
 import org.mozilla.vrbrowser.ui.views.AutoCompletionView;
 import org.mozilla.vrbrowser.ui.views.CustomKeyboardView;
 import org.mozilla.vrbrowser.ui.views.LanguageSelectorView;
@@ -120,7 +122,9 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
         mKeyboards = new ArrayList<>();
         mKeyboards.add(new EnglishKeyboard(aContext));
         mKeyboards.add(new FrenchKeyboard(aContext));
+        mKeyboards.add(new SpanishKeyboard(aContext));
         mKeyboards.add(new ChinesePinyinKeyboard(aContext));
+        mKeyboards.add(new ChineseZhuyinKeyboard(aContext));
         setDefaultKeyboard();
 
         mKeyboardSymbols = new CustomKeyboard(aContext.getApplicationContext(), R.xml.keyboard_symbols);
@@ -434,7 +438,7 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
 
     @Override
     public void onText(CharSequence text) {
-
+        handleText(text.toString());
     }
 
     @Override
@@ -679,6 +683,7 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
     private void updateCandidates() {
         if (mInputConnection == null || !mCurrentKeyboard.supportsAutoCompletion()) {
             setAutoCompletionVisible(false);
+            updateSpecialKeyLabels();
             return;
         }
 
@@ -712,8 +717,10 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
     private void updateSpecialKeyLabels() {
         String spaceText = mCurrentKeyboard.getSpaceKeyText(mComposingText);
         String enterText = mCurrentKeyboard.getEnterKeyText(mEditorInfo.imeOptions, mComposingText);
+        String modeChangeText = mCurrentKeyboard.getModeChangeKeyText();
         boolean changed = mCurrentKeyboard.getAlphabeticKeyboard().setSpaceKeyLabel(spaceText);
         changed |= mCurrentKeyboard.getAlphabeticKeyboard().setEnterKeyLabel(enterText);
+        changed |= mKeyboardSymbols.setModeChangeKeyLabel(modeChangeText);
         mKeyboardSymbols.setSpaceKeyLabel(spaceText);
         mKeyboardSymbols.setEnterKeyLabel(enterText);
         if (changed) {
@@ -840,8 +847,7 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
         }
         if (mCurrentKeyboard.usesComposingText()) {
             String code = StringUtils.removeSpaces(aItem.code);
-            mComposingText = mComposingText.replaceFirst(Pattern.quote(code), "");
-            mComposingText = mComposingText.trim();
+            mComposingText = mCurrentKeyboard.getComposingText(mComposingText, code).trim();
 
             postInputCommand(() -> {
                 displayComposingText(aItem.value);
