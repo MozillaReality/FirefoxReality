@@ -42,7 +42,7 @@
     <dimen name="keyboard_key_longtext_size">12dp</dimen>
     <dimen name="keyboard_key_hovered_padding">0dp</dimen>
     <dimen name="keyboard_key_pressed_padding">0dp</dimen>
-    <dimen name="keyboard_autocompletion_padding">4dp</dimen>
+    <dimen name="keyboard_layout_padding">4dp</dimen>
     <!-- Permission PromptWidget -->
     <item name="permission_world_width" format="float" type="dimen">1.6</item>
     <dimen name="permission_width">320dp</dimen>

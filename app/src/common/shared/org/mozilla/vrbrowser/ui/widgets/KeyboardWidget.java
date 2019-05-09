@@ -209,7 +209,7 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
         aPlacement.width = getKeyboardWidth(WidgetPlacement.dpDimension(context, R.dimen.keyboard_alphabetic_width));
         aPlacement.height = WidgetPlacement.dpDimension(context, R.dimen.keyboard_height);
         aPlacement.height += WidgetPlacement.dpDimension(context, R.dimen.autocompletion_widget_line_height);
-        aPlacement.height += WidgetPlacement.dpDimension(context, R.dimen.keyboard_autocompletion_padding);
+        aPlacement.height += WidgetPlacement.dpDimension(context, R.dimen.keyboard_layout_padding);
         aPlacement.parentAnchorX = 0.5f;
         aPlacement.parentAnchorY = 0.0f;
         aPlacement.anchorX = 0.5f;
@@ -225,12 +225,11 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
 
     private int getKeyboardWidth(float aAlphabeticWidth) {
         float width = aAlphabeticWidth;
-        width += WidgetPlacement.dpDimension(getContext(), R.dimen.keyboard_autocompletion_padding);
+        width += WidgetPlacement.dpDimension(getContext(), R.dimen.keyboard_layout_padding) * 2;
         width += WidgetPlacement.dpDimension(getContext(), R.dimen.keyboard_numeric_width);
-        Log.e("VRB", "Mangu " + width);
+        width += WidgetPlacement.dpDimension(getContext(), R.dimen.keyboard_key_width); // Close button
         return (int) width;
     }
-
 
     public void setBrowserWidget(UIWidget aWidget) {
         mBrowserWidget = aWidget;
