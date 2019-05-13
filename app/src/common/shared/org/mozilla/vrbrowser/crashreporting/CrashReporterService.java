@@ -28,7 +28,7 @@ public class CrashReporterService extends JobIntentService {
     private static final int JOB_ID = 1000;
     // Threshold used to fix Infinite restart loop on startup crashes.
     // See https://github.com/MozillaReality/FirefoxReality/issues/651
-    private static final long MIN_RESTART_INTERVAL_MS = 3000;
+    public static final long MIN_RESTART_INTERVAL_MS = 3000;
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -53,7 +53,7 @@ public class CrashReporterService extends JobIntentService {
             }
 
             if (fatal) {
-                Log.d(LOGTAG, "======> NATIVE CRASH PARENT" + intent);
+                Log.d(LOGTAG, "======> NATIVE CRASH PARENT " + intent);
                 final int pid = Process.myPid();
                 final ActivityManager activityManager = (ActivityManager) this.getSystemService(Context.ACTIVITY_SERVICE);
                 if (activityManager == null) {
@@ -71,6 +71,7 @@ public class CrashReporterService extends JobIntentService {
                     }
 
                     if (!otherProcessesFound) {
+                        SettingsStore.getInstance(getBaseContext()).setLatestCrashRestartTime(System.currentTimeMillis());
                         intent.setClass(CrashReporterService.this, VRBrowserActivity.class);
                         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                         startActivity(intent);
