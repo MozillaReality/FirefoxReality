@@ -1,31 +1,28 @@
-(function () {
-  // If missing, inject a `<meta name="viewport">` tag to trigger YouTube's mobile layout.
-  window.addEventListener('load', () => {
-    let viewport = document.head.querySelector('meta[name="viewport"]');
-    if (!viewport) {
-      viewport = document.createElement('meta');
-      viewport.name = 'viewport';
-      viewport.content = 'width=device-width, initial-scale=1';
-      document.head.appendChild(viewport);
-    }
+const CUSTOM_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12) AppleWebKit/602.1.21 (KHTML, like Gecko) Version/9.2 Safari/602.1.21';
+const LOGTAG = '[firefoxreality:webcompat:youtube]';
+
+try {
+  // Note: Like Oculus Browser, we intentionally use this `User-Agent` string for YouTube to force the most optimal
+  // layout available for playback in a mobile VR browser.
+  Object.defineProperty(navigator, 'userAgent', {
+    get: () => CUSTOM_USER_AGENT
   });
 
-  const LOGTAG = '[firefoxreality:webcompat]'
-  const qs = new URLSearchParams(window.location.search);
-  let retryTimeout = null;
-
-  function getTruthyQS (key) {
-    if (!qs || !qs.has(key)) {
-      return false;
-    }
-    const valueLower = (qs.get('key') || '').trim().toLowerCase();
-    return valueLower === '' || valueLower === '1' || valueLower === 'true' || valueLower === 'yes' || valueLower === 'on';
+  // If missing, inject a `<meta name="viewport">` tag to trigger YouTube's mobile layout.
+  let viewportEl = document.querySelector('meta[name="viewport"]');
+  if (!viewportEl) {
+    document.documentElement.insertAdjacentHTML('afterbegin',
+      `<meta name="viewport" content="width=device-width, initial-scale=1" data-fxr-injected>`);
   }
+
+  let is360 = null;
+  let qs = new URLSearchParams(window.location.search);
+  let retryTimeout = null;
 
   const prefs = {
     hd: false,
     quality: 1440,
-    log: qs.get('mozDebug') ? getTruthyQS('mozDebug') : true,
+    log: qs.get('debug') !== '0' && qs.get('mozdebug') !== '0' && qs.get('mozDebug') !== '0',
     retryAttempts: parseInt(qs.get('retryAttempts') || qs.get('retryattempts') || '10', 10),
     retryTimeout: parseInt(qs.get('retryTimeout') || qs.get('retrytimeout') || '500', 10)
   };
@@ -35,6 +32,52 @@
   const log = (...args) => printLog && console.log(LOGTAG, ...args);
   const logError = (...args) => printLog && console.error(LOGTAG, ...args);
   const logWarn = (...args) => printLog && console.warn(LOGTAG, ...args);
+
+  window.addEventListener('click', evt => {
+    if (is360 && evt.target.closest('#movie_player') && !evt.target.closest('.ytp-chrome-bottom')) {
+      document.getElementById('movie_player').requestFullscreen();
+    }
+  });
+
+  window.addEventListener('load', () => {
+    viewportEl = document.querySelector('meta[name="viewport"]:not([data-fxr-injected])');
+    if (viewportEl) {
+      viewportEl.parentNode.removeChild(viewportEl);
+    }
+    const disclaimerEl = document.querySelector('.yt-alert-message');
+    is360 = disclaimerEl ? disclaimerEl.textContent.includes('360') : false;
+    if (is360) {
+      ytImprover360();
+    }
+  });
+
+  function ytImprover360 () {
+    if (!is360) {
+      return;
+    }
+
+    qs = new URLSearchParams(window.location.search);
+
+    const currentProjection = (qs.get('mozVideoProjection') || '').toLowerCase();
+    let newUrl;
+    if (currentProjection !== '360' && currentProjection !== '360_auto') {
+      qs.set('mozVideoProjection', '360_auto');
+      newUrl = getNewUrl(qs);
+    }
+
+    if (newUrl && window.location.pathname + window.location.search !== newUrl) {
+      window.history.replaceState({}, document.title, newUrl);
+      return newUrl;
+    }
+  }
+
+  function getNewUrl (qs) {
+    let newUrl = `${window.location.pathname}`;
+    if (qs) {
+      newUrl = `${newUrl}?${qs}`;
+    }
+    return newUrl;
+  }
 
   const ytImprover = window.ytImprover = (state, attempts) => {
     if (ytImprover.completed) {
@@ -178,7 +221,7 @@
   };
 
   if (window.location.pathname.startsWith('/watch')) {
-    const onYouTubePlayerReady = window.onYouTubePlayerReady = evt => {
+    window.onYouTubePlayerReady = evt => {
       log('`onYouTubePlayerReady` called');
       window.ytImprover(1);
       evt.addEventListener('onStateChange', 'ytImprover');
@@ -194,4 +237,6 @@
 
     ytImprover(1);
   }
-})();
+} catch (err) {
+  console.error(LOGTAG, 'Encountered error:', err);
+}
