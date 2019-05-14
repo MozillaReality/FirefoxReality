@@ -1,9 +1,16 @@
 const CUSTOM_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12) AppleWebKit/602.1.21 (KHTML, like Gecko) Version/9.2 Safari/602.1.21';
 const LOGTAG = '[firefoxreality:webcompat:youtube]';
+const YT_SELECTORS = {
+  disclaimer: '.yt-alert-message, yt-alert-message',
+  moviePlayer: '#movie_player'
+};
+const YT_PATHS = {
+  watch: '/watch'
+};
 
 try {
-  // Note: Like Oculus Browser, we intentionally use this `User-Agent` string for YouTube to force the most optimal
-  // layout available for playback in a mobile VR browser.
+  // Note: À la Oculus Browser, we intentionally use this particular `User-Agent` string
+  // for YouTube to force the most optimal, high-resolution layout available for playback in a mobile VR browser.
   Object.defineProperty(navigator, 'userAgent', {
     get: () => CUSTOM_USER_AGENT
   });
@@ -22,7 +29,7 @@ try {
   const prefs = {
     hd: false,
     quality: 1440,
-    log: qs.get('debug') !== '0' && qs.get('mozdebug') !== '0' && qs.get('mozDebug') !== '0',
+    log: qs.get('mozDebug') !== '0' && qs.get('mozdebug') !== '0' && qs.get('debug') !== '0',
     retryAttempts: parseInt(qs.get('retryAttempts') || qs.get('retryattempts') || '10', 10),
     retryTimeout: parseInt(qs.get('retryTimeout') || qs.get('retrytimeout') || '500', 10)
   };
@@ -33,25 +40,48 @@ try {
   const logError = (...args) => printLog && console.error(LOGTAG, ...args);
   const logWarn = (...args) => printLog && console.warn(LOGTAG, ...args);
 
-  window.addEventListener('click', evt => {
-    if (is360 && evt.target.closest('#movie_player') && !evt.target.closest('.ytp-chrome-bottom')) {
-      document.getElementById('movie_player').requestFullscreen();
-    }
-  });
+  const onNavigate = (delayTime = 500) => setTimeout(() => {
+    ytImprover360();
+
+    ytImprover.completed = false;
+    ytImprover(1);
+  }, delayTime);
 
   window.addEventListener('load', () => {
     viewportEl = document.querySelector('meta[name="viewport"]:not([data-fxr-injected])');
     if (viewportEl) {
       viewportEl.parentNode.removeChild(viewportEl);
     }
-    const disclaimerEl = document.querySelector('.yt-alert-message');
-    is360 = disclaimerEl ? disclaimerEl.textContent.includes('360') : false;
-    if (is360) {
-      ytImprover360();
+
+    onNavigate(0);
+  });
+
+  window.addEventListener('pushstate', onNavigate);
+
+  window.addEventListener('popstate', onNavigate);
+
+  window.addEventListener('click', evt => {
+    if (!window.location.pathname.startsWith(YT_PATHS.watch)) {
+      return;
+    }
+    if (is360 && evt.target.closest(YT_SELECTORS.moviePlayer) && !evt.target.closest('.ytp-chrome-bottom')) {
+      const playerEl = document.querySelector(YT_SELECTORS.moviePlayer);
+      if (!playerEl) {
+        return;
+      }
+      playerEl.requestFullscreen();
     }
   });
 
   function ytImprover360 () {
+    if (!window.location.pathname.startsWith(YT_PATHS.watch)) {
+      is360 = false;
+      return;
+    }
+
+    const disclaimerEl = document.querySelector(YT_SELECTORS.disclaimer);
+    is360 = disclaimerEl ? disclaimerEl.textContent.includes('360') : false;
+
     if (!is360) {
       return;
     }
@@ -59,12 +89,18 @@ try {
     qs = new URLSearchParams(window.location.search);
 
     const currentProjection = (qs.get('mozVideoProjection') || '').toLowerCase();
-    let newUrl;
-    if (currentProjection !== '360' && currentProjection !== '360_auto') {
-      qs.set('mozVideoProjection', '360_auto');
-      newUrl = getNewUrl(qs);
+    qs.delete('mozVideoProjection');
+    switch (currentProjection) {
+      case '360':
+        qs.set('mozVideoProjection', '360');
+        break;
+      case '360_auto':
+      default:
+        qs.set('mozVideoProjection', '360_auto');
+        break;
     }
 
+    const newUrl = getNewUrl(qs);
     if (newUrl && window.location.pathname + window.location.search !== newUrl) {
       window.history.replaceState({}, document.title, newUrl);
       return newUrl;
@@ -80,6 +116,10 @@ try {
   }
 
   const ytImprover = window.ytImprover = (state, attempts) => {
+    if (!window.location.pathname.startsWith(YT_PATHS.watch)) {
+      ytImprover.completed = true;
+      return;
+    }
     if (ytImprover.completed) {
       return;
     }
@@ -92,7 +132,7 @@ try {
       return;
     }
 
-    let player = document.getElementById('movie_player');
+    let player = document.querySelector(YT_SELECTORS.moviePlayer);
     let reason = 'unknown';
     if (state !== 1) {
       reason = 'invalid state';
@@ -220,23 +260,20 @@ try {
     log(`Changed quality from "${currentQuality}" to "${newBestQuality}"`);
   };
 
-  if (window.location.pathname.startsWith('/watch')) {
-    window.onYouTubePlayerReady = evt => {
-      log('`onYouTubePlayerReady` called');
-      window.ytImprover(1);
-      evt.addEventListener('onStateChange', 'ytImprover');
-    };
+  window.onYouTubePlayerReady = evt => {
+    log('`onYouTubePlayerReady` called');
+    window.ytImprover(1);
+    evt.addEventListener('onStateChange', 'ytImprover');
+    ytImprover360();
+  };
 
-    window.addEventListener('spfready', () => {
-      log('`spfready` event fired');
-      if (typeof window.ytplayer === 'object' && window.ytplayer.config) {
-        log('`window.ytplayer.config.args.jsapicallback` set');
-        window.ytplayer.config.args.jsapicallback = 'onYouTubePlayerReady';
-      }
-    });
-
-    ytImprover(1);
-  }
+  window.addEventListener('spfready', () => {
+    log('`spfready` event fired');
+    if (typeof window.ytplayer === 'object' && window.ytplayer.config) {
+      log('`window.ytplayer.config.args.jsapicallback` set');
+      window.ytplayer.config.args.jsapicallback = 'onYouTubePlayerReady';
+    }
+  });
 } catch (err) {
   console.error(LOGTAG, 'Encountered error:', err);
 }
