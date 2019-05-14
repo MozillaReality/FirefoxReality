@@ -138,7 +138,7 @@
 
     <!-- This string is used to label a button in the 'Settings' dialog window that, when pressed,
         opens a dialog box that contains display-related settings: window size, pixel density, etc. -->
-    <string name="settings_display">Mostrar</string>
+    <string name="settings_display">Opciones de visualización</string>
 
     <!-- This string is used to label a button in the 'Settings' dialog window that, when pressed,
          opens a dialog box that contains controller-related options: pointer color and scroll direction. -->
