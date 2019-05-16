@@ -1,0 +1,41 @@
+/* temporary debug styles */
+html,
+.outer_wrap {
+  background-color: gray;
+}
+
+html[data-fxr-is-360="false"] {
+  background-color: red !important;
+}
+
+html[data-fxr-is-360="true"] {
+  background-color: green !important;
+}
+
+html[data-fxr-is-360="true"][data-fxr-video-page-layout],
+html[data-fxr-is-360="true"][data-fxr-video-page-layout] body,
+html[data-fxr-is-360="true"][data-fxr-video-page-layout] .player,
+html[data-fxr-is-360="true"][data-fxr-video-page-layout] .fallback {
+  border: 1px solid green;
+}
+
+html[data-fxr-is-360="true"][data-fxr-video-page-layout],
+html[data-fxr-is-360="true"][data-fxr-video-page-layout] body,
+html[data-fxr-is-360="true"][data-fxr-video-page-layout] .player,
+html[data-fxr-is-360="true"][data-fxr-video-page-layout] .fallback {
+  background-color: transparent;
+}
+
+html[data-fxr-is-360="true"][data-fxr-video-page-layout="embed"] .vp-placeholder {
+  background: transparent;
+}
+
+.player.loading {
+  opacity: 0;
+}
+
+/* Hide "Download Vimeo app for Android" toast message that doesn't make sense for Firefox Reality (but does for Firefox for Android). */
+.app_banner_container,
+.app_banner {
+  display: none !important;
+}
