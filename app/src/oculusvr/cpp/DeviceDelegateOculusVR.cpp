@@ -1110,6 +1110,30 @@ DeviceDelegateOculusVR::RegisterImmersiveDisplay(ImmersiveDisplayPtr aDisplay) {
   m.UpdatePerspective();
 }
 
+void
+DeviceDelegateOculusVR::SetImmersiveSize(const uint32_t aEyeWidth, const uint32_t aEyeHeight) {
+  uint32_t recommendedWidth, recommendedHeight;
+  m.GetImmersiveRenderSize(recommendedWidth, recommendedHeight);
+
+  const uint32_t maxWidth = recommendedWidth * 2;
+  const uint32_t maxHeight = recommendedHeight * 2;
+  const uint32_t minWidth = recommendedWidth / 2;
+  const uint32_t minHeight = recommendedHeight / 2;
+
+  const uint32_t targetWidth = (uint32_t) fmaxf(fminf(aEyeWidth, maxWidth), minWidth);
+  const uint32_t targetHeight = (uint32_t) fmaxf(fminf(aEyeHeight, maxHeight), minHeight);
+
+  if (targetWidth != m.renderWidth || targetHeight != m.renderHeight) {
+    m.renderWidth = targetWidth;
+    m.renderHeight = targetHeight;
+    vrb::RenderContextPtr render = m.context.lock();
+    for (int i = 0; i < VRAPI_EYE_COUNT; ++i) {
+      m.eyeSwapChains[i]->Init(render, m.renderMode, m.renderWidth, m.renderHeight);
+    }
+    VRB_LOG("Resize immersive mode swapChain: %dx%d", targetWidth, targetHeight);
+  }
+}
+
 vrb::CameraPtr
 DeviceDelegateOculusVR::GetCamera(const device::Eye aWhich) {
   const int32_t index = device::EyeIndex(aWhich);

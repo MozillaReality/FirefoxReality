@@ -75,6 +75,7 @@ struct DeviceDelegateGoogleVR::State {
   gvr_swap_chain* swapChain;
   gvr_frame* frame;
   gvr_sizei maxRenderSize;
+  gvr_sizei webvrSize;
   gvr_sizei frameBufferSize;
   vrb::RenderContextWeak context;
   float near;
@@ -162,11 +163,12 @@ struct DeviceDelegateGoogleVR::State {
     if (aMode != renderMode) {
       renderMode = aMode;
       reorientMatrix = vrb::Matrix::Identity();
+      webvrSize = GetRecommendedImmersiveModeSize();
       CreateSwapChain();
     }
   }
 
-  gvr_sizei GetImmersiveModeSize() {
+  gvr_sizei GetRecommendedImmersiveModeSize() {
     // GVR SDK states that thee maximum effective render target size can be very large.
     // Most applications need to scale down to compensate.
     // Half pixel sizes are used by scaling each dimension by sqrt(2)/2 ~= 7/10ths.
@@ -185,7 +187,7 @@ struct DeviceDelegateGoogleVR::State {
     gvr_buffer_spec* spec = GVR_CHECK(gvr_buffer_spec_create(gvr));
     gvr_sizei size = maxRenderSize;
     if (renderMode == device::RenderMode::Immersive) {
-      size = GetImmersiveModeSize();
+      size = webvrSize;
       GVR_CHECK(gvr_buffer_spec_set_size(spec, size));
       GVR_CHECK(gvr_buffer_spec_set_samples(spec, 0));
       GVR_CHECK(gvr_buffer_spec_set_color_format(spec, GVR_COLOR_FORMAT_RGBA_8888));
@@ -394,10 +396,26 @@ DeviceDelegateGoogleVR::RegisterImmersiveDisplay(ImmersiveDisplayPtr aDisplay) {
   m.immersiveDisplay->SetDeviceName("Daydream");
   m.immersiveDisplay->SetCapabilityFlags(device::Position | device::Orientation | device::Present | device::StageParameters);
   m.immersiveDisplay->SetSittingToStandingTransform(vrb::Matrix::Translation(kAverageHeight));
-  gvr_sizei size = m.GetImmersiveModeSize();
+  gvr_sizei size = m.GetRecommendedImmersiveModeSize();
   m.immersiveDisplay->SetEyeResolution(size.width / 2, size.height);
   m.immersiveDisplay->CompleteEnumeration();
   m.UpdateCameras();
+}
+
+void
+DeviceDelegateGoogleVR::SetImmersiveSize(const uint32_t aEyeWidth, const uint32_t aEyeHeight) {
+  gvr_sizei recommendedSize = m.GetRecommendedImmersiveModeSize();
+
+  const auto minWidth = (uint32_t) recommendedSize.width / 2;
+  const auto minHeight = (uint32_t) recommendedSize.height / 2;
+  const auto targetWidth = (uint32_t) fmaxf(fminf(aEyeWidth, m.maxRenderSize.width), minWidth);
+  const auto targetHeight = (uint32_t) fmaxf(fminf(aEyeHeight, m.maxRenderSize.height), minHeight);
+
+  if (targetWidth != m.frameBufferSize.width || targetHeight != m.frameBufferSize.height) {
+    m.webvrSize.width = targetWidth;
+    m.webvrSize.height = targetHeight;
+    m.CreateSwapChain();
+  }
 }
 
 GestureDelegateConstPtr
@@ -548,6 +566,7 @@ void
 DeviceDelegateGoogleVR::InitializeGL() {
   gvr_initialize_gl(m.gvr);
   m.maxRenderSize =  GVR_CHECK(gvr_get_maximum_effective_render_target_size(m.gvr));
+  m.webvrSize = m.GetRecommendedImmersiveModeSize();
   m.CreateSwapChain();
   m.InitializeControllers();
   VRB_GL_CHECK(glEnable(GL_DEPTH_TEST));
