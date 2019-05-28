@@ -12,6 +12,7 @@ import org.mozilla.vrbrowser.input.CustomKeyboard;
 import org.mozilla.vrbrowser.utils.StringUtils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -27,6 +28,9 @@ public class ChinesePinyinKeyboard extends BaseKeyboard {
     private DBHelper mDB;
     private HashMap<String, KeyMap> mKeymaps = new HashMap<>();
     private HashMap<String, KeyMap> mExtraKeymaps = new HashMap<>();
+    private List<Character> mAutocompleteEndings = Arrays.asList(
+            ' ', '，', '。','!','?','ー'
+    );
 
     public ChinesePinyinKeyboard(Context aContext) {
         super(aContext);
@@ -45,14 +49,13 @@ public class ChinesePinyinKeyboard extends BaseKeyboard {
     @Nullable
     @Override
     public CandidatesResult getCandidates(String aComposingText) {
-        if (aComposingText == null) {
+        if (StringUtils.isEmpty(aComposingText)) {
             return null;
         }
 
-        // Autocomplete when space is clicked
-        boolean autocomponse = aComposingText.endsWith(" ")
-                               || aComposingText.endsWith("，")
-                               || aComposingText.endsWith("。");
+        // Autocomplete when special characters are clicked
+        char lastChar = aComposingText.charAt(aComposingText.length() - 1);
+        boolean autocomponse = mAutocompleteEndings.indexOf(lastChar) >= 0;
 
         aComposingText = aComposingText.replaceAll("\\s","");
         if (aComposingText.isEmpty()) {

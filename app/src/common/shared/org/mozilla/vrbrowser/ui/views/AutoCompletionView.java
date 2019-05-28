@@ -27,10 +27,12 @@ public class AutoCompletionView extends FrameLayout {
     private LinearLayout mExtendContent;
     private ScrollView mScrollView;
     private View mSeparator;
-    private int mKeyWidth;
+    private View mExtendButtonSeparator;
+    private int mMinKeyWidth;
     private int mKeyHeight;
     private int mLineWidth;
     private int mLineHeight;
+    private int mItemPadding;
     private UIButton mExtendButton;
     private int mExtendedHeight;
     private ArrayList<Words> mExtraItems = new ArrayList<>();
@@ -61,6 +63,7 @@ public class AutoCompletionView extends FrameLayout {
         inflate(aContext, R.layout.autocompletion_bar, this);
         mFirstLine = findViewById(R.id.autoCompletionFirstLine);
         mSeparator = findViewById(R.id.autoCompletionSeparator);
+        mExtendButtonSeparator = findViewById(R.id.extendButtonSeparator);
         mScrollView = findViewById(R.id.autoCompletionScroll);
         mExtendButton = findViewById(R.id.extendButton);
         mExtendButton.setTintColorList(R.drawable.main_button_icon_color);
@@ -72,9 +75,11 @@ public class AutoCompletionView extends FrameLayout {
                 enterExtend();
             }
         });
-        mKeyWidth = mKeyHeight = WidgetPlacement.pixelDimension(getContext(), R.dimen.autocompletion_widget_button_size);
+        mMinKeyWidth = WidgetPlacement.pixelDimension(getContext(), R.dimen.autocompletion_widget_min_item_width);
+        mKeyHeight = WidgetPlacement.pixelDimension(getContext(), R.dimen.autocompletion_widget_item_height);
         mLineWidth = WidgetPlacement.pixelDimension(getContext(), R.dimen.autocompletion_widget_line_width);
         mLineHeight = WidgetPlacement.pixelDimension(getContext(), R.dimen.autocompletion_widget_line_height);
+        mItemPadding = WidgetPlacement.pixelDimension(getContext(), R.dimen.autocompletion_widget_item_padding);
         mExtendedHeight = mLineHeight * 6;
         setFocusable(false);
     }
@@ -90,15 +95,15 @@ public class AutoCompletionView extends FrameLayout {
     private UITextButton createButton(Words aWords, OnClickListener aHandler) {
         UITextButton key = new UITextButton(getContext());
         key.setTintColorList(R.drawable.main_button_icon_color);
-        key.setBackground(getContext().getDrawable(R.drawable.keyboard_key_background));
+        key.setBackground(getContext().getDrawable(R.drawable.autocompletion_item_background));
         if (aHandler != null) {
             key.setOnClickListener(aHandler);
         }
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, mKeyHeight);
-        key.setMinWidth(mKeyWidth);
+        key.setMinWidth(mMinKeyWidth);
         params.gravity = CENTER_VERTICAL;
         key.setLayoutParams(params);
-        key.setPadding(10, 20, 10, 0);
+        key.setPadding(mItemPadding, 20, mItemPadding, 0);
         key.setIncludeFontPadding(false);
         key.setText(aWords.value);
         key.setTextAlignment(TEXT_ALIGNMENT_CENTER);
@@ -121,18 +126,23 @@ public class AutoCompletionView extends FrameLayout {
         if (aItems == null || aItems.size() == 0) {
             exitExtend();
             mExtendButton.setVisibility(View.GONE);
+            mExtendButtonSeparator.setVisibility(View.GONE);
             return;
         }
 
         int n = 0;
         int currentWidth = 0;
+        int extendButtonWidth =  mExtendButton.getWidth();
 
         for (Words item : aItems) {
             UITextButton textBtn = createButton(item, clickHandler);
+            if (n == 0) {
+                textBtn.setBackground(getContext().getDrawable(R.drawable.autocompletion_item_background_first));
+            }
             textBtn.measure(MeasureSpec.UNSPECIFIED, MeasureSpec.UNSPECIFIED);
             currentWidth += textBtn.getMeasuredWidth();
 
-            if (currentWidth < mLineWidth) {
+            if (currentWidth < (mLineWidth - extendButtonWidth)) {
                 mFirstLine.addView(textBtn);
             } else {
                 mExtraItems.add(item);
@@ -141,6 +151,7 @@ public class AutoCompletionView extends FrameLayout {
         }
 
         mExtendButton.setVisibility(currentWidth >= mLineWidth ? View.VISIBLE : View.GONE);
+        mExtendButtonSeparator.setVisibility(mExtendButton.getVisibility());
     }
 
     public boolean isExtended() {
@@ -161,13 +172,14 @@ public class AutoCompletionView extends FrameLayout {
         int index = 0;
         int currentWidth = 0;
         LinearLayout current = createRow();
+        int padding = mScrollView.getPaddingStart() + mScrollView.getPaddingEnd();
 
         for (Words item: mExtraItems) {
             UITextButton textBtn = createButton(item, clickHandler);
             textBtn.measure(MeasureSpec.UNSPECIFIED, MeasureSpec.UNSPECIFIED);
             currentWidth += textBtn.getMeasuredWidth();
 
-            if (currentWidth < mLineWidth) {
+            if (currentWidth < (mLineWidth - padding)) {
                 current.addView(textBtn);
                 index++;
             } else {
