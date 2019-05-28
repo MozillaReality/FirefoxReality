@@ -193,6 +193,8 @@ public class AutoCompletionView extends FrameLayout {
             layoutExtendedItems();
         }
 
+        mExtendButton.setScaleY(-1);
+
         RelativeLayout.LayoutParams params = (RelativeLayout.LayoutParams) getLayoutParams();
         params.height = mExtendedHeight;
         setLayoutParams(params);
@@ -208,6 +210,7 @@ public class AutoCompletionView extends FrameLayout {
         mIsExtended = false;
         mScrollView.setVisibility(View.GONE);
         mSeparator.setVisibility(View.GONE);
+        mExtendButton.setScaleY(1);
         RelativeLayout.LayoutParams params = (RelativeLayout.LayoutParams) getLayoutParams();
         params.height = WidgetPlacement.pixelDimension(getContext(), R.dimen.autocompletion_widget_line_height);
         setLayoutParams(params);

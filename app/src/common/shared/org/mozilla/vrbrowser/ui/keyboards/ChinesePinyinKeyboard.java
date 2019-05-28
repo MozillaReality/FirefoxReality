@@ -36,7 +36,7 @@ public class ChinesePinyinKeyboard extends BaseKeyboard {
     @Override
     public CustomKeyboard getAlphabeticKeyboard() {
         if (mKeyboard == null) {
-            mKeyboard = new CustomKeyboard(mContext.getApplicationContext(), R.xml.keyboard_qwerty);
+            mKeyboard = new CustomKeyboard(mContext.getApplicationContext(), R.xml.keyboard_qwerty_pinyin);
             loadDatabase();
         }
         return mKeyboard;
@@ -50,7 +50,9 @@ public class ChinesePinyinKeyboard extends BaseKeyboard {
         }
 
         // Autocomplete when space is clicked
-        boolean endsWithSpace = aComposingText.endsWith(" ");
+        boolean autocomponse = aComposingText.endsWith(" ")
+                               || aComposingText.endsWith("，")
+                               || aComposingText.endsWith("。");
 
         aComposingText = aComposingText.replaceAll("\\s","");
         if (aComposingText.isEmpty()) {
@@ -107,7 +109,7 @@ public class ChinesePinyinKeyboard extends BaseKeyboard {
 
         CandidatesResult result = new CandidatesResult();
         result.words = words;
-        result.action = endsWithSpace ? CandidatesResult.Action.AUTO_COMPOSE : CandidatesResult.Action.SHOW_CANDIDATES;
+        result.action = autocomponse ? CandidatesResult.Action.AUTO_COMPOSE : CandidatesResult.Action.SHOW_CANDIDATES;
         result.composing = aComposingText;
         if (result.words.size() > 0) {
             String codeWithoutSpaces = StringUtils.removeSpaces(result.words.get(0).code);
