@@ -418,13 +418,10 @@ DeviceDelegateWaveVR::SetImmersiveSize(const uint32_t aEyeWidth, const uint32_t 
   uint32_t recommendedWidth, recommendedHeight;
   WVR_GetRenderTargetSize(&recommendedWidth, &recommendedHeight);
 
-  const uint32_t maxWidth = recommendedWidth * 2;
-  const uint32_t maxHeight = recommendedHeight * 2;
-  const uint32_t minWidth = recommendedWidth / 2;
-  const uint32_t minHeight = recommendedHeight / 2;
+  uint32_t targetWidth = m.renderWidth;
+  uint32_t targetHeight = m.renderHeight;
 
-  const auto targetWidth = (uint32_t) fmaxf(fminf(aEyeWidth, maxWidth), minWidth);
-  const auto targetHeight = (uint32_t) fmaxf(fminf(aEyeHeight, maxHeight), minHeight);
+  DeviceUtils::GetTargetImmersiveSize(aEyeWidth, aEyeHeight, recommendedWidth, recommendedHeight, targetWidth, targetHeight);
 
   if (targetWidth != m.renderWidth || targetHeight != m.renderHeight) {
     m.renderWidth = targetWidth;

@@ -1115,14 +1115,10 @@ DeviceDelegateOculusVR::SetImmersiveSize(const uint32_t aEyeWidth, const uint32_
   uint32_t recommendedWidth, recommendedHeight;
   m.GetImmersiveRenderSize(recommendedWidth, recommendedHeight);
 
-  const uint32_t maxWidth = recommendedWidth * 2;
-  const uint32_t maxHeight = recommendedHeight * 2;
-  const uint32_t minWidth = recommendedWidth / 2;
-  const uint32_t minHeight = recommendedHeight / 2;
+  uint32_t targetWidth = m.renderWidth;
+  uint32_t targetHeight = m.renderHeight;
 
-  const uint32_t targetWidth = (uint32_t) fmaxf(fminf(aEyeWidth, maxWidth), minWidth);
-  const uint32_t targetHeight = (uint32_t) fmaxf(fminf(aEyeHeight, maxHeight), minHeight);
-
+  DeviceUtils::GetTargetImmersiveSize(aEyeWidth, aEyeHeight, recommendedWidth, recommendedHeight, targetWidth, targetHeight);
   if (targetWidth != m.renderWidth || targetHeight != m.renderHeight) {
     m.renderWidth = targetWidth;
     m.renderHeight = targetHeight;

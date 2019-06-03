@@ -406,10 +406,11 @@ void
 DeviceDelegateGoogleVR::SetImmersiveSize(const uint32_t aEyeWidth, const uint32_t aEyeHeight) {
   gvr_sizei recommendedSize = m.GetRecommendedImmersiveModeSize();
 
-  const auto minWidth = (uint32_t) recommendedSize.width / 2;
-  const auto minHeight = (uint32_t) recommendedSize.height / 2;
-  const auto targetWidth = (uint32_t) fmaxf(fminf(aEyeWidth, m.maxRenderSize.width), minWidth);
-  const auto targetHeight = (uint32_t) fmaxf(fminf(aEyeHeight, m.maxRenderSize.height), minHeight);
+  auto targetWidth = (uint32_t)  m.frameBufferSize.width;
+  auto targetHeight = (uint32_t) m.frameBufferSize.height;
+
+  DeviceUtils::GetTargetImmersiveSize(aEyeWidth, aEyeHeight, (uint32_t) recommendedSize.width, (uint32_t) recommendedSize.height,
+                                      (uint32_t) m.maxRenderSize.width, (uint32_t) m.maxRenderSize.height, targetWidth, targetHeight);
 
   if (targetWidth != m.frameBufferSize.width || targetHeight != m.frameBufferSize.height) {
     m.webvrSize.width = targetWidth;
