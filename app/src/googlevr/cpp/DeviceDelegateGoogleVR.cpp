@@ -412,11 +412,9 @@ DeviceDelegateGoogleVR::SetImmersiveSize(const uint32_t aEyeWidth, const uint32_
   DeviceUtils::GetTargetImmersiveSize(aEyeWidth, aEyeHeight, (uint32_t) recommendedSize.width, (uint32_t) recommendedSize.height,
                                       (uint32_t) m.maxRenderSize.width, (uint32_t) m.maxRenderSize.height, targetWidth, targetHeight);
 
-  if (targetWidth != m.frameBufferSize.width || targetHeight != m.frameBufferSize.height) {
-    m.webvrSize.width = targetWidth;
-    m.webvrSize.height = targetHeight;
-    m.CreateSwapChain();
-  }
+  // The new swapChain is recreated in the next StartFrame call.
+  m.webvrSize.width = targetWidth;
+  m.webvrSize.height = targetHeight;
 }
 
 GestureDelegateConstPtr
@@ -490,6 +488,10 @@ DeviceDelegateGoogleVR::ProcessEvents() {
 
 void
 DeviceDelegateGoogleVR::StartFrame() {
+  if (m.renderMode == device::RenderMode::Immersive &&
+      (m.webvrSize.width != m.frameBufferSize.width || m.webvrSize.height != m.frameBufferSize.height)) {
+      m.CreateSwapChain();
+  }
   gvr_clock_time_point when = GVR_CHECK(gvr_get_time_point_now());
   // 50ms into the future is what GVR docs recommends using for head rotation prediction.
   when.monotonic_system_time_nanos += 50000000;
