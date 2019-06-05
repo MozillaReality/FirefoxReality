@@ -18,6 +18,12 @@ html[data-fxr-is-360="true"][data-fxr-video-page-layout~="detail"] .fallback {
   opacity: 0;
 }
 
+/* Fix black screen issue.
+   More info: https://github.com/MozillaReality/FirefoxReality/issues/1299 */
+.vp-canvas-effect {
+   display:none;
+}
+
 /* To properly overlay the canvas video from `?canvas=1` on a video-embed page.
    Example: https://player.vimeo.com/video/241734384?canvas=1 */
 html[data-fxr-is-360="true"][data-fxr-video-page-layout="embed"] .vp-placeholder {
