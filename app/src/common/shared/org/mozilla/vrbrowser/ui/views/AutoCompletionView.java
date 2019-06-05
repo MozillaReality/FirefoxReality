@@ -138,6 +138,7 @@ public class AutoCompletionView extends FrameLayout {
             UITextButton textBtn = createButton(item, clickHandler);
             if (n == 0) {
                 textBtn.setBackground(getContext().getDrawable(R.drawable.autocompletion_item_background_first));
+                textBtn.setTintColorList(R.drawable.autocompletion_item_active_color);
             }
             textBtn.measure(MeasureSpec.UNSPECIFIED, MeasureSpec.UNSPECIFIED);
             currentWidth += textBtn.getMeasuredWidth();
