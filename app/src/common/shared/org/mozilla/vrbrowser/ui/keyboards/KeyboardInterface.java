@@ -34,6 +34,7 @@ public interface KeyboardInterface {
     default @Nullable CandidatesResult getCandidates(String aComposingText) { return null; }
     default @Nullable String overrideAddText(String aTextBeforeCursor, String aNextText) { return null; }
     default @Nullable String overrideBackspace(String aTextBeforeCursor) { return null; }
+    default @Nullable CandidatesResult getEmojiCandidates(String aComposingText) { return null; }
     default boolean supportsAutoCompletion() { return false; }
     default boolean usesComposingText() { return false; }
     default boolean usesTextOverride() { return false; }

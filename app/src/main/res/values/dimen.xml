@@ -69,7 +69,7 @@
 
     <!-- Lang Selector -->
     <dimen name="lang_selector_first_col_item_width">100dp</dimen>
-    <dimen name="lang_selector_second_col_item_width">130dp</dimen>
+    <dimen name="lang_selector_second_col_item_width">135dp</dimen>
 
     <!-- Common values for menu style widgets -->
     <dimen name="menu_item_height">88dp</dimen>

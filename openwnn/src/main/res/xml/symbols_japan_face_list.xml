@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ Copyright (C) 2008-2012  OMRON SOFTWARE Co., Ltd.
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+<!--symbols -->
+<keystring>
+<string value="(--;)"/>
+<string value="(-.-)"/>
+<string value="(-_-)"/>
+<string value="(-_-;)"/>
+<string value="(^-^;"/>
+<string value="(^^;"/>
+<string value="(^_^;)"/>
+<string value="(^o^;)"/>
+<string value="(・・;)"/>
+<string value="(汗)"/>
+<string value="f(^^;"/>
+<string value="f(^_^;"/>
+<string value=":-p"/>
+<string value="(怒)"/>
+<string value="(&gt;_&lt;)"/>
+<string value="(*_*)"/>
+<string value=";-)"/>
+<string value="(..)"/>
+<string value="(__)"/>
+<string value="(;_;)"/>
+<string value="(;o;)"/>
+<string value="(T-T)"/>
+<string value="(TT)"/>
+<string value="(T_T)"/>
+<string value="(ToT)"/>
+<string value="(^-^)"/>
+<string value="(^^)"/>
+<string value="(^_^)"/>
+<string value="X-&lt;"/>
+<string value="(^-^)/"/>
+<string value="(^-^)v"/>
+<string value="(^.^)"/>
+<string value="(^^)/"/>
+<string value="(^^)d"/>
+<string value="(^^)v"/>
+<string value="(^_^)/"/>
+<string value="(^_^)v"/>
+<string value="(^o^)"/>
+<string value="(^o^)/"/>
+<string value="(^o^)v"/>
+<string value="(^q^)"/>
+<string value=":-)"/>
+<string value=":->"/>
+<string value="f(^_^)"/>
+<string value="＼(^-^)／"/>
+<string value="＼(^^)／"/>
+<string value="＼(^_^)／"/>
+<string value="＼(^o^)／"/>
+<string value=":-O"/>
+<string value=":-("/>
+<string value=":-&lt;"/>
+<string value="m(__)m"/>
+<string value="(*^^*)"/>
+<string value="(笑)"/>
+<string value="(爆)"/>
+<string value="(照)"/>
+<string value="(泣)"/>
+<string value="(涙)"/>
+<string value="(眠)"/>
+</keystring>

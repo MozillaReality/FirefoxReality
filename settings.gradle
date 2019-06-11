@@ -1,4 +1,4 @@
-include ':app'
+include ':app', ':openwnn'
 
 def wavebuild = new File('third_party/wavesdk/build.gradle')
 
