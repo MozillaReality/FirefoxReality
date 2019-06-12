@@ -332,7 +332,7 @@ repositories {
 
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
-    implementation project(path: ':openwnn')
+    implementation deps.openwnn
 
     // Common
     // implementation deps.google_vr.sdk_audio
