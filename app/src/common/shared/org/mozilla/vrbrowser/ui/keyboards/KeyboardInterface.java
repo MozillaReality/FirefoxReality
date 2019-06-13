@@ -44,4 +44,5 @@ public interface KeyboardInterface {
     String getSpaceKeyText(String aComposingText);
     String getEnterKeyText(int aIMEOptions, String aComposingText);
     String getModeChangeKeyText();
+    default @Nullable void clear() {}
 }

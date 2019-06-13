@@ -280,6 +280,7 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
             mWidgetManager.updateWidget(this);
         }
 
+        mCurrentKeyboard.clear();
         updateCandidates();
         updateSpecialKeyLabels();
     }
@@ -960,6 +961,7 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
         if (!mInternalDeleteHint && mCurrentKeyboard.usesComposingText() && mComposingText.length() > 0 && mTextBefore.length() > 0 && aEditable.toString().length() == 0) {
             // Text has been cleared externally (e.g. URLBar text clear button)
             mComposingText = "";
+            mCurrentKeyboard.clear();
             updateCandidates();
         }
         mInternalDeleteHint = false;

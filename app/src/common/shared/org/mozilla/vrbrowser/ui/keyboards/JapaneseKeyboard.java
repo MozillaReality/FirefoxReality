@@ -47,6 +47,14 @@ public class JapaneseKeyboard extends BaseKeyboard {
 
     public JapaneseKeyboard(Context aContext) {
         super(aContext);
+
+        mConverter = new OpenWnnEngineJAJP();
+        ((OpenWnnEngineJAJP) mConverter).setKeyboardType(OpenWnnEngineJAJP.KEYBOARD_QWERTY);
+        ((OpenWnnEngineJAJP) mConverter).setDictionary(OpenWnnEngineJAJP.DIC_LANG_JP);
+        mConverter.init();
+
+        mPreConverter = new Romkan();
+        mComposingText = new ComposingText();
     }
 
     @NonNull
@@ -54,13 +62,8 @@ public class JapaneseKeyboard extends BaseKeyboard {
     public CustomKeyboard getAlphabeticKeyboard() {
         if (mKeyboard == null) {
             mKeyboard = new CustomKeyboard(mContext.getApplicationContext(), R.xml.keyboard_qwerty_japanese);
-
-            mConverter = new OpenWnnEngineJAJP();
-            mConverter.init();
-
-            mPreConverter = new Romkan();
-            mComposingText = new ComposingText();
         }
+
         return mKeyboard;
     }
 
@@ -197,6 +200,11 @@ public class JapaneseKeyboard extends BaseKeyboard {
     @Override
     public String getModeChangeKeyText() {
         return mContext.getString(R.string.japanese_keyboard_mode_change);
+    }
+
+    @Override
+    public void clear() {
+        mConverter.init();
     }
 
 }
