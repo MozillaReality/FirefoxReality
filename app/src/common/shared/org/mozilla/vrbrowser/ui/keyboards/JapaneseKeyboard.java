@@ -171,7 +171,7 @@ public class JapaneseKeyboard extends BaseKeyboard {
 
     @Override
     public String getKeyboardTitle() {
-        return StringUtils.getStringByLocale(mContext, R.string.settings_language_traditional_chinese, getLocale());
+        return StringUtils.getStringByLocale(mContext, R.string.settings_language_japanese, getLocale());
     }
 
     @Override
