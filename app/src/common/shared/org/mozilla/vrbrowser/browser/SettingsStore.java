@@ -5,12 +5,16 @@ import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.StrictMode;
 import android.preference.PreferenceManager;
+import android.util.Log;
 
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.mozilla.geckoview.GeckoSessionSettings;
 import org.mozilla.telemetry.TelemetryHolder;
 import org.mozilla.vrbrowser.BuildConfig;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
+import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
 import org.mozilla.vrbrowser.utils.DeviceType;
 import org.mozilla.vrbrowser.utils.LocaleUtils;
 import org.mozilla.vrbrowser.utils.StringUtils;
@@ -520,6 +524,41 @@ public class SettingsStore {
         SharedPreferences.Editor editor = mPrefs.edit();
         editor.putBoolean(mContext.getString(R.string.settings_key_notifications), isEnabled);
         editor.commit();
+    }
+
+
+    public void restoreKeyboardMove(WidgetPlacement aPlacement) {
+        try {
+            String value = mPrefs.getString(mContext.getString(R.string.settings_key_keyboard_move), null);
+            if (StringUtils.isEmpty(value)) {
+                return;
+            }
+            JSONObject json = new JSONObject(value);
+            aPlacement.translationX = (float)json.optDouble("x", aPlacement.translationX);
+            aPlacement.translationY = (float)json.optDouble("y", aPlacement.translationY);
+            aPlacement.translationZ = (float)json.optDouble("z", aPlacement.translationZ);
+            aPlacement.rotation = (float)json.optDouble("r", aPlacement.rotation);
+        }
+        catch (JSONException ex) {
+            Log.e(LOGTAG, "Error restoring keyboard move: " + ex.toString());
+        }
+    }
+
+    public void saveKeyboardMove(WidgetPlacement aPlacement) {
+        try {
+            SharedPreferences.Editor editor = mPrefs.edit();
+            JSONObject json = new JSONObject();
+            json.put("x", aPlacement.translationX);
+            json.put("y", aPlacement.translationY);
+            json.put("z", aPlacement.translationZ);
+            json.put("r", aPlacement.rotation);
+            editor.putString(mContext.getString(R.string.settings_key_keyboard_move), json.toString());
+            editor.commit();
+        }
+        catch (JSONException ex) {
+            Log.e(LOGTAG, "Error saving keyboard move: " + ex.toString());
+        }
+
     }
 }
 

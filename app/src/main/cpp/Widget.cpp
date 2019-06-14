@@ -294,9 +294,9 @@ Widget::ConvertToWidgetCoordinates(const vrb::Vector& point, float& aX, float& a
   }
 }
 
-void
-Widget::ConvertToWorldCoordinates(const vrb::Vector& aPoint, vrb::Vector& aResult) const {
-  aResult = m.transform->GetTransform().MultiplyPosition(aPoint);
+vrb::Vector
+Widget::ConvertToWorldCoordinates(const vrb::Vector& aLocalPoint) const {
+  return m.transform->GetTransform().MultiplyPosition(aLocalPoint);
 }
 
 const vrb::Matrix
