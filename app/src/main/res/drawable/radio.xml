@@ -9,7 +9,12 @@
         android:state_checked="false"
         android:state_pressed="true" />
     <item
-        android:drawable="@drawable/radio_hover"
+        android:drawable="@drawable/radio_checked_hover"
+        android:state_checked="true"
+        android:state_hovered="true" />
+    <item
+        android:drawable="@drawable/radio_unchecked_hover"
+        android:state_checked="false"
         android:state_hovered="true" />
     <item
         android:drawable="@drawable/radio_on"
