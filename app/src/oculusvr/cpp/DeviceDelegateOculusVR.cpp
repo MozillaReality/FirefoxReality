@@ -30,8 +30,13 @@
 #include "VrApi_Helpers.h"
 #include "VrApi_Input.h"
 #include "VrApi_SystemUtils.h"
+#include "OVR_Platform.h"
+#include "OVR_Message.h"
 
 #include "VRBrowser.h"
+
+#define OCULUS_6DOF_APP_ID "2180252408763702"
+#define OCULUS_3DOF_APP_ID "2208418715853974"
 
 namespace crow {
 
@@ -599,6 +604,7 @@ struct DeviceDelegateOculusVR::State {
   vrb::RenderContextWeak context;
   android_app* app = nullptr;
   bool initialized = false;
+  bool platformSDKInitialized = false;
   bool layersEnabled = true;
   ovrJava java = {};
   ovrMobile* ovr = nullptr;
@@ -686,15 +692,34 @@ struct DeviceDelegateOculusVR::State {
     // Reorient the headset after controller recenter.
     vrapi_SetPropertyInt(&java, VRAPI_REORIENT_HMD_ON_CONTROLLER_RECENTER, 1);
 
+    const char * appId = OCULUS_6DOF_APP_ID;
+
     const int type = vrapi_GetSystemPropertyInt(&java, VRAPI_SYS_PROP_DEVICE_TYPE);
     if ((type >= VRAPI_DEVICE_TYPE_OCULUSGO_START ) && (type <= VRAPI_DEVICE_TYPE_OCULUSGO_END)) {
       VRB_DEBUG("Detected Oculus Go");
       deviceType = device::OculusGo;
+      appId = OCULUS_3DOF_APP_ID;
     } else if ((type >= VRAPI_DEVICE_TYPE_OCULUSQUEST_START) && (type <= VRAPI_DEVICE_TYPE_OCULUSQUEST_END)) {
       VRB_DEBUG("Detected Oculus Quest");
       deviceType = device::OculusQuest;
+    } else if ((type >= VRAPI_DEVICE_TYPE_GEARVR_START) && (type <= VRAPI_DEVICE_TYPE_GEARVR_END)) {
+      VRB_DEBUG("Detected Gear VR");
+      appId = OCULUS_3DOF_APP_ID;
     } else {
       VRB_DEBUG("Detected Unknown Oculus device");
+    }
+
+    ovrRequest result = ovr_PlatformInitializeAndroidAsynchronous(appId, java.ActivityObject, java.Env);
+
+    if (ovrPlatformInitialize_Success != result) {
+      // Initialization failed which means either the oculus service isn’t on the machine or they’ve hacked their DLL.
+      VRB_LOG("ovr_PlatformInitializeAndroidAsynchronous failed: %d", (int32_t)result);
+#if STORE_BUILD == 1
+      exit((int32_t) result);
+#endif
+    } else {
+      VRB_LOG("ovr_PlatformInitializeAndroidAsynchronous succeeded");
+      ovr_Entitlement_GetIsViewerEntitled();
     }
   }
 
@@ -1217,7 +1242,30 @@ DeviceDelegateOculusVR::SetCPULevel(const device::CPULevel aLevel) {
 
 void
 DeviceDelegateOculusVR::ProcessEvents() {
+  if (m.platformSDKInitialized) {
+    return;
+  }
 
+  ovrMessageHandle message;
+  while ((message = ovr_PopMessage()) != nullptr) {
+    switch (ovr_Message_GetType(message)) {
+      case ovrMessage_Entitlement_GetIsViewerEntitled:
+        m.platformSDKInitialized = true;
+        if (ovr_Message_IsError(message)) {
+          VRB_LOG("User is not entitled");
+#if STORE_BUILD == 1
+          ovrErrorHandle error = ovr_Message_GetError(message);
+          exit(ovr_Error_GetCode(error));
+#endif
+        }
+        else {
+          VRB_LOG("User is entitled");
+        }
+        break;
+      default:
+        break;
+    }
+  }
 }
 
 void
