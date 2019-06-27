@@ -7,6 +7,7 @@
 #include "DeviceUtils.h"
 #include "ElbowModel.h"
 #include "BrowserEGLContext.h"
+#include "VRBrowser.h"
 #include "VRLayer.h"
 
 #include <android_native_app_glue.h>
@@ -715,7 +716,7 @@ struct DeviceDelegateOculusVR::State {
       // Initialization failed which means either the oculus service isn’t on the machine or they’ve hacked their DLL.
       VRB_LOG("ovr_PlatformInitializeAndroidAsynchronous failed: %d", (int32_t)result);
 #if STORE_BUILD == 1
-      exit((int32_t) result);
+      VRBrowser::HaltActivity(0);
 #endif
     } else {
       VRB_LOG("ovr_PlatformInitializeAndroidAsynchronous succeeded");
@@ -1254,6 +1255,9 @@ DeviceDelegateOculusVR::ProcessEvents() {
         ovrPlatformInitializeResult result = ovr_PlatformInitialize_GetResult(handle);
         if (result == ovrPlatformInitialize_Success) {
           VRB_DEBUG("OVR Platform Initialized.");
+        } else {
+          VRB_ERROR("OVR Platform Initialize failed: %s", ovrPlatformInitializeResult_ToString(result));
+          VRBrowser::HaltActivity(0);
         }
       }
         break;
@@ -1262,8 +1266,7 @@ DeviceDelegateOculusVR::ProcessEvents() {
         if (ovr_Message_IsError(message)) {
           VRB_LOG("User is not entitled");
 #if STORE_BUILD == 1
-          ovrErrorHandle error = ovr_Message_GetError(message);
-          exit(ovr_Error_GetCode(error));
+          VRBrowser::HaltActivity(0);
 #endif
         }
         else {

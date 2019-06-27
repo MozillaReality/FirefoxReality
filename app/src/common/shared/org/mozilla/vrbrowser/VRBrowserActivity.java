@@ -836,6 +836,12 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         runOnUiThread(() -> DeviceType.setType(aType));
     }
 
+    @Keep
+    @SuppressWarnings("unused")
+    private void haltActivity(final int aReason) {
+        runOnUiThread(this::finish);
+    }
+
     void createOffscreenDisplay() {
         int[] ids = new int[1];
         GLES20.glGenTextures(1, ids, 0);
