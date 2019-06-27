@@ -711,7 +711,7 @@ struct DeviceDelegateOculusVR::State {
 
     ovrRequest result = ovr_PlatformInitializeAndroidAsynchronous(appId, java.ActivityObject, java.Env);
 
-    if (ovrPlatformInitialize_Success != result) {
+    if (invalidRequestID == result) {
       // Initialization failed which means either the oculus service isn’t on the machine or they’ve hacked their DLL.
       VRB_LOG("ovr_PlatformInitializeAndroidAsynchronous failed: %d", (int32_t)result);
 #if STORE_BUILD == 1
@@ -1249,6 +1249,14 @@ DeviceDelegateOculusVR::ProcessEvents() {
   ovrMessageHandle message;
   while ((message = ovr_PopMessage()) != nullptr) {
     switch (ovr_Message_GetType(message)) {
+      case ovrMessage_PlatformInitializeAndroidAsynchronous: {
+        ovrPlatformInitializeHandle handle = ovr_Message_GetPlatformInitialize(message);
+        ovrPlatformInitializeResult result = ovr_PlatformInitialize_GetResult(handle);
+        if (result == ovrPlatformInitialize_Success) {
+          VRB_DEBUG("OVR Platform Initialized.");
+        }
+      }
+        break;
       case ovrMessage_Entitlement_GetIsViewerEntitled:
         m.platformSDKInitialized = true;
         if (ovr_Message_IsError(message)) {

@@ -93,7 +93,7 @@ add_custom_command(TARGET native-lib POST_BUILD
         )
 add_custom_command(TARGET native-lib POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
-        ${CMAKE_SOURCE_DIR}/../third_party/OVRPlatformSDK/Android/Libs/${ANDROID_ABI}/libovrplatformloader.so
+        ${CMAKE_SOURCE_DIR}/../third_party/OVRPlatformSDK/Android/libs/${ANDROID_ABI}/libovrplatformloader.so
         ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libovrplatformloader.so
         )
 endif()
@@ -126,7 +126,7 @@ set_target_properties(oculusvr-lib PROPERTIES IMPORTED_LOCATION
 
 add_library(ovrplatform-lib SHARED IMPORTED)
 set_target_properties(ovrplatform-lib PROPERTIES IMPORTED_LOCATION
-                      ${CMAKE_SOURCE_DIR}/../third_party/OVRPlatformSDK/Android/Libs/${ANDROID_ABI}/libovrplatformloader.so )
+                      ${CMAKE_SOURCE_DIR}/../third_party/OVRPlatformSDK/Android/libs/${ANDROID_ABI}/libovrplatformloader.so )
 
 add_library(googlevr-lib SHARED IMPORTED)
 set_target_properties(googlevr-lib PROPERTIES IMPORTED_LOCATION
