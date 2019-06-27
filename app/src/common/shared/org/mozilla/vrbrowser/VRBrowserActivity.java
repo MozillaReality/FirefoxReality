@@ -839,7 +839,16 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     @Keep
     @SuppressWarnings("unused")
     private void haltActivity(final int aReason) {
-        runOnUiThread(this::finish);
+        runOnUiThread(() -> {
+            if (mWindowWidget != null) {
+                mWindowWidget.showAlert(getString(R.string.not_entitled_title), getString(R.string.not_entitled_message, getString(R.string.app_name)), new GeckoSession.PromptDelegate.AlertCallback() {
+                    @Override
+                    public void dismiss() {
+                        VRBrowserActivity.this.finish();
+                    }
+                });
+            }
+        });
     }
 
     void createOffscreenDisplay() {
