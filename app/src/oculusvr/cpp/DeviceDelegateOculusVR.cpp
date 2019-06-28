@@ -1257,7 +1257,9 @@ DeviceDelegateOculusVR::ProcessEvents() {
           VRB_DEBUG("OVR Platform Initialized.");
         } else {
           VRB_ERROR("OVR Platform Initialize failed: %s", ovrPlatformInitializeResult_ToString(result));
+#if STORE_BUILD == 1
           VRBrowser::HaltActivity(0);
+#endif
         }
       }
         break;
