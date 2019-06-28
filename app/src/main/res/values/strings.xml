@@ -696,7 +696,7 @@
 
     <!-- This string is displayed in the title of the alert dialog shown when the user does not have permission to run the application on the device. -->
     <string name="not_entitled_title">Unable To Run</string>
-    <!-- This string is displaye in the message body of the alert dialog shown when the user does not have permission to run the application on the device.
+    <!-- This string is displayed in the message body of the alert dialog shown when the user does not have permission to run the application on the device.
          '%1$s' will be replace at runtime with the app's name. -->
-    <string name="not_entitled_message">%1$s does not have permission to run on this device.</string>
+    <string name="not_entitled_message">%1$s does not have permission to run on this device and will now exit.</string>
 </resources>
