@@ -43,8 +43,7 @@ import androidx.annotation.NonNull;
 import static org.mozilla.vrbrowser.utils.ServoUtils.isInstanceOfServoSession;
 
 public class WindowWidget extends UIWidget implements SessionChangeListener,
-        GeckoSession.ContentDelegate, GeckoSession.PromptDelegate, TrayListener, BookmarkListener,
-        VideoAvailabilityListener {
+        GeckoSession.ContentDelegate, GeckoSession.PromptDelegate, VideoAvailabilityListener {
 
     private static final String LOGTAG = "VRB";
 
@@ -55,6 +54,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     private int mHeight;
     private int mHandle;
     private WidgetPlacement mWidgetPlacement;
+    private TopBarWidget mTopBar;
     private WidgetManagerDelegate mWidgetManager;
     private ChoicePromptWidget mChoicePrompt;
     private AlertPromptWidget mAlertPrompt;
@@ -70,18 +70,18 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     private boolean mIsInVRVideoMode;
     private boolean mSaveResizeChanges;
     private View mView;
-    private BookmarksView mBookmarksView;
     private Point mLastMouseClickPos;
     private SessionStore mSessionStore;
     private int mWindowId;
+    private Windows.WindowPlacement mWindowPlacement = Windows.WindowPlacement.FRONT;
 
-    public WindowWidget(Context aContext, int windowId) {
+    public WindowWidget(Context aContext, int windowId, boolean privateMode) {
         super(aContext);
         mWidgetManager = (WidgetManagerDelegate) aContext;
         mBorderWidth = SettingsStore.getInstance(aContext).getTransparentBorderWidth();
 
         mWindowId = windowId;
-        mSessionStore = SessionManager.get().createSessionStore(mWindowId);
+        mSessionStore = SessionManager.get().createSessionStore(mWindowId, privateMode);
         mSessionStore.addSessionChangeListener(this);
         mSessionStore.addPromptListener(this);
         mSessionStore.addContentListener(this);
@@ -92,6 +92,8 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         mWidgetPlacement = new WidgetPlacement(aContext);
         initializeWidgetPlacement(mWidgetPlacement);
 
+        mTopBar = new TopBarWidget(aContext);
+        mTopBar.attachToWindow(this);
         handleResizeEvent(SettingsStore.getInstance(getContext()).getBrowserWorldWidth(),
                 SettingsStore.getInstance(getContext()).getBrowserWorldHeight());
         mSaveResizeChanges = true;
@@ -154,10 +156,6 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
 
             unsetView(mView);
         }
-    }
-
-    public void setBookmarksView(BookmarksView view) {
-        mBookmarksView = view;
     }
 
     public void setView(View view) {
@@ -254,6 +252,14 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         mWidgetManager.updateWidget(this);
     }
 
+    public void setWindowPlacement(@NonNull Windows.WindowPlacement aPlacement) {
+        mWindowPlacement = aPlacement;
+    }
+
+    public @NonNull Windows.WindowPlacement getWindowPlacement() {
+        return mWindowPlacement;
+    }
+
     @Override
     public void resizeByMultiplier(float aspect, float multiplier) {
         float worldWidth = WidgetPlacement.floatDimension(getContext(), R.dimen.window_world_width);
@@ -299,6 +305,10 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
 
     public SessionStore getSessionStore() {
         return mSessionStore;
+    }
+
+    public TopBarWidget getTopBar() {
+        return mTopBar;
     }
 
     @Override
@@ -708,36 +718,6 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     @Override
     public GeckoResult<AllowOrDeny> onPopupRequest(final GeckoSession session, final String targetUri) {
         return GeckoResult.fromValue(AllowOrDeny.ALLOW);
-    }
-
-    // BookmarkListener
-
-    @Override
-    public void onBookmarksHidden() {
-        unsetView(mBookmarksView);
-    }
-
-    // TrayListener
-
-    @Override
-    public void onBookmarksClicked() {
-        SessionStore sessionStore = SessionManager.get().getSessionStore(mWindowId);
-        if (mBookmarksView.getVisibility() == View.VISIBLE) {
-            unsetView(mBookmarksView);
-            sessionStore.goBack();
-
-        } else {
-            sessionStore.newSession();
-            setView(mBookmarksView);
-        }
-    }
-
-    @Override
-    public void onPrivateBrowsingClicked() {
-        if (mBookmarksView.getVisibility() == VISIBLE) {
-            SessionStore sessionStore = SessionManager.get().getSessionStore(mWindowId);
-            sessionStore.goBack();
-        }
     }
 
     // GeckoSession.ContentDelegate
