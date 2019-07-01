@@ -220,6 +220,21 @@ public class NavigationURLBar extends FrameLayout {
         syncViews();
     }
 
+    public boolean isInBookmarkMode() {
+        return mIsBookmarkMode;
+    }
+
+    private void setBookmarkEnabled(boolean aEnabled) {
+        if (mBookmarkEnabled != aEnabled) {
+            mBookmarkEnabled = aEnabled;
+            mBookmarkButton.setVisibility(aEnabled ? View.VISIBLE : View.GONE);
+            ViewGroup.LayoutParams params = mMicrophoneButton.getLayoutParams();
+            params.width = (int) getResources().getDimension(aEnabled ? R.dimen.url_bar_item_width : R.dimen.url_bar_last_item_width);
+            mMicrophoneButton.setLayoutParams(params);
+            mMicrophoneButton.setBackgroundResource(aEnabled ? R.drawable.url_button : R.drawable.url_button_end);
+        }
+    }
+
     private void handleBookmarkClick() {
         if (mAudio != null) {
             mAudio.playSound(AudioEngine.Sound.CLICK);

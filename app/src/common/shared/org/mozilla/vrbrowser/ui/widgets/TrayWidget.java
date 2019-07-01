@@ -14,6 +14,8 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
 
+import androidx.annotation.NonNull;
+
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.audio.AudioEngine;
@@ -43,6 +45,7 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Bookm
     private boolean mKeyboardVisible;
     private boolean mTrayVisible = true;
     private SessionStore mSessionStore;
+    private WindowWidget mAttachedWindow;
 
     public TrayWidget(Context aContext) {
         super(aContext);
@@ -76,8 +79,6 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Bookm
 
             notifyPrivateBrowsingClicked();
             view.requestFocusFromTouch();
-
-            mSessionStore.enterPrivateMode();
         });
 
         mSettingsButton = findViewById(R.id.settingsButton);
@@ -101,6 +102,18 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Bookm
 
             notifyBookmarksClicked();
             view.requestFocusFromTouch();
+        });
+
+        UIButton addWindowButton = findViewById(R.id.addwindowButton);
+        addWindowButton.setOnHoverListener(mButtonScaleHoverListener);
+        addWindowButton.setOnClickListener(view -> {
+            if (mAudio != null) {
+                mAudio.playSound(AudioEngine.Sound.CLICK);
+            }
+
+            view.requestFocusFromTouch();
+
+            notifyAddWindowClicked();
         });
 
         mAudio = AudioEngine.fromContext(aContext);
@@ -181,11 +194,15 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Bookm
     }
 
     private void notifyBookmarksClicked() {
-        mTrayListeners.forEach(trayListener -> trayListener.onBookmarksClicked());
+        mTrayListeners.forEach(TrayListener::onBookmarksClicked);
     }
 
     private void notifyPrivateBrowsingClicked() {
-        mTrayListeners.forEach(trayListener -> trayListener.onPrivateBrowsingClicked());
+        mTrayListeners.forEach(TrayListener::onPrivateBrowsingClicked);
+    }
+
+    private void notifyAddWindowClicked() {
+        mTrayListeners.forEach(TrayListener::onAddWindowClicked);
     }
 
     @Override
@@ -239,19 +256,21 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Bookm
     }
 
     @Override
-    public void detachFromWindow(WindowWidget window) {
-        removeListeners(new TrayListener[]{window});
-
+    public void detachFromWindow() {
         if (mSessionStore != null) {
             mSessionStore.removeSessionChangeListener(this);
+            mSessionStore = null;
         }
     }
 
     @Override
-    public void attachToWindow(WindowWidget window) {
-        addListeners(new TrayListener[]{window});
+    public void attachToWindow(@NonNull WindowWidget aWindow) {
+        if (mAttachedWindow == aWindow) {
+            return;
+        }
+        mAttachedWindow = aWindow;
 
-        mSessionStore = window.getSessionStore();
+        mSessionStore = aWindow.getSessionStore();
         if (mSessionStore != null) {
             mSessionStore.addSessionChangeListener(this);
             handleSessionState();
@@ -347,13 +366,13 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Bookm
     // BookmarkListener
 
     @Override
-    public void onBookmarksShown() {
+    public void onBookmarksShown(WindowWidget aWindow) {
         mBookmarksButton.setTooltip(getResources().getString(R.string.close_bookmarks_tooltip));
         mBookmarksButton.setActiveMode(true);
     }
 
     @Override
-    public void onBookmarksHidden() {
+    public void onBookmarksHidden(WindowWidget aWindow) {
         mBookmarksButton.setTooltip(getResources().getString(R.string.open_bookmarks_tooltip));
         mBookmarksButton.setActiveMode(false);
     }
