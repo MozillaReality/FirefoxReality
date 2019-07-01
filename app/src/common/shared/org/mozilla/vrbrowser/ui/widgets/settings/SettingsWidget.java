@@ -20,11 +20,12 @@ import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.BuildConfig;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.audio.AudioEngine;
-import org.mozilla.vrbrowser.browser.SessionStore;
+import org.mozilla.vrbrowser.browser.engine.SessionManager;
+import org.mozilla.vrbrowser.browser.engine.SessionStore;
+import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.ui.views.HoneycombButton;
 import org.mozilla.vrbrowser.ui.widgets.UIWidget;
 import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
@@ -217,13 +218,8 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
     }
 
     private void onSettingsReportClick() {
-        String url = SessionStore.get().getCurrentUri();
-
-        GeckoSession session = SessionStore.get().getCurrentSession();
-        if (session == null) {
-            int sessionId = SessionStore.get().createSession();
-            SessionStore.get().setCurrentSession(sessionId);
-        }
+        SessionStore sessionStore = SessionManager.get().getActiveStore();
+        String url = sessionStore.getCurrentUri();
 
         try {
             if (url == null) {
@@ -231,9 +227,9 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
                 url = "";
             } else if (url.startsWith("jar:") || url.startsWith("resource:") || url.startsWith("about:")) {
                 url = "";
-            } else if (SessionStore.get().isHomeUri(url)) {
+            } else if (sessionStore.isHomeUri(url)) {
                 // Use the original URL (without any hash).
-                url = SessionStore.get().getHomeUri();
+                url = sessionStore.getHomeUri();
             }
 
             url = URLEncoder.encode(url, "UTF-8");
@@ -241,7 +237,8 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
         } catch (UnsupportedEncodingException e) {
             Log.e(LOGTAG, "Cannot encode URL");
         }
-        SessionStore.get().loadUri(getContext().getString(R.string.private_report_url, url));
+
+        sessionStore.newSessionWithUrl(getContext().getString(R.string.private_report_url, url));
 
         hide(REMOVE_WIDGET);
     }

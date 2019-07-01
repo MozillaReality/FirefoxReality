@@ -10,7 +10,8 @@ import android.view.View;
 
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.audio.AudioEngine;
-import org.mozilla.vrbrowser.browser.SessionStore;
+import org.mozilla.vrbrowser.browser.engine.SessionManager;
+import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.ui.views.UIButton;
 import org.mozilla.vrbrowser.ui.views.settings.ButtonSetting;
@@ -128,7 +129,7 @@ class DeveloperOptionsView extends SettingsView {
         SettingsStore.getInstance(getContext()).setRemoteDebuggingEnabled(value);
 
         if (doApply) {
-            SessionStore.get().setRemoteDebugging(value);
+            SessionManager.get().setRemoteDebugging(value);
         }
     }
 
@@ -140,7 +141,7 @@ class DeveloperOptionsView extends SettingsView {
         SettingsStore.getInstance(getContext()).setConsoleLogsEnabled(value);
 
         if (doApply) {
-            SessionStore.get().setConsoleOutputEnabled(value);
+            SessionManager.get().setConsoleOutputEnabled(value);
         }
     }
 
@@ -152,7 +153,7 @@ class DeveloperOptionsView extends SettingsView {
         SettingsStore.getInstance(getContext()).setMultiprocessEnabled(value);
 
         if (doApply) {
-            SessionStore.get().setMultiprocess(value);
+            SessionManager.get().getActiveStore().setMultiprocess(value);
         }
     }
 
@@ -172,7 +173,7 @@ class DeveloperOptionsView extends SettingsView {
         SettingsStore.getInstance(getContext()).setServoEnabled(value);
 
         if (doApply) {
-            SessionStore.get().setServo(value);
+            SessionManager.get().getActiveStore().setServo(value);
         }
     }
 

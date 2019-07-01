@@ -10,6 +10,9 @@ import android.view.MotionEvent;
 import android.view.Surface;
 
 public interface Widget {
+
+    int NO_WINDOW_ID = -1;
+
     void onPause();
     void onResume();
     void setSurfaceTexture(SurfaceTexture aTexture, final int aWidth, final int aHeight);
@@ -28,4 +31,6 @@ public interface Widget {
     boolean isDialog();
     void setVisible(boolean aVisible);
     void resizeByMultiplier(float aspect, float multiplier);
+    default void detachFromWindow(WindowWidget window) {}
+    default void attachToWindow(WindowWidget window) {}
 }
