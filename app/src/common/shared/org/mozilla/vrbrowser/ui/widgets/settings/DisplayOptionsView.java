@@ -333,7 +333,7 @@ class DisplayOptionsView extends SettingsView {
         SettingsStore.getInstance(getContext()).setUaMode(checkId);
 
         if (doApply) {
-            SessionManager.get().getActiveStore().setUaMode((Integer)mUaModeRadio.getValueForId(checkId));
+            SessionManager.get().setUaMode((Integer)mUaModeRadio.getValueForId(checkId));
         }
     }
 
