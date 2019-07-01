@@ -30,7 +30,8 @@ import org.mozilla.geckoview.GeckoSessionSettings;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.audio.AudioEngine;
 import org.mozilla.vrbrowser.browser.BookmarksStore;
-import org.mozilla.vrbrowser.browser.SessionStore;
+import org.mozilla.vrbrowser.browser.engine.SessionManager;
+import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.search.SearchEngineWrapper;
 import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
@@ -71,6 +72,7 @@ public class NavigationURLBar extends FrameLayout {
     private boolean mBookmarkEnabled = true;
     private boolean mIsContextButtonsEnabled = true;
     private UIThreadExecutor mUIThreadExecutor = new UIThreadExecutor();
+    private SessionStore mSessionStore;
 
     private Unit domainAutocompleteFilter(String text) {
         if (mURL != null) {
@@ -101,6 +103,8 @@ public class NavigationURLBar extends FrameLayout {
 
     private void initialize(Context aContext) {
         mAudio = AudioEngine.fromContext(aContext);
+
+        mSessionStore = SessionManager.get().getActiveStore();
 
         // Inflate this data binding layout
         inflate(aContext, R.layout.navigation_url, this);
@@ -168,14 +172,16 @@ public class NavigationURLBar extends FrameLayout {
         // Bookmarks
         mBookmarkButton = findViewById(R.id.bookmarkButton);
         mBookmarkButton.setOnClickListener(v -> handleBookmarkClick());
-
-        setURL("");
         mIsBookmarkMode = false;
 
         // Prevent the URL TextEdit to get focus when user touches something outside of it
         setFocusable(true);
         setClickable(true);
         syncViews();
+    }
+
+    public void setSessionStore(SessionStore sessionStore) {
+        mSessionStore = sessionStore;
     }
 
     public void onPause() {
@@ -219,14 +225,14 @@ public class NavigationURLBar extends FrameLayout {
             mAudio.playSound(AudioEngine.Sound.CLICK);
         }
 
-        String url = SessionStore.get().getCurrentUri();
+        String url = mSessionStore.getCurrentUri();
         if (StringUtils.isEmpty(url)) {
             return;
         }
-        BookmarksStore bookmarkStore = SessionStore.get().getBookmarkStore();
+        BookmarksStore bookmarkStore = SessionManager.get().getBookmarkStore();
         bookmarkStore.isBookmarked(url).thenAcceptAsync(bookmarked -> {
             if (!bookmarked) {
-                bookmarkStore.addBookmark(url, SessionStore.get().getCurrentTitle());
+                bookmarkStore.addBookmark(url, mSessionStore.getCurrentTitle());
                 setBookmarked(true);
             } else {
                 // Delete
@@ -258,7 +264,7 @@ public class NavigationURLBar extends FrameLayout {
         if (StringUtils.isEmpty(aURL)) {
             setBookmarked(false);
         } else {
-           SessionStore.get().getBookmarkStore().isBookmarked(aURL).thenAcceptAsync(this::setBookmarked, mUIThreadExecutor);
+            SessionManager.get().getBookmarkStore().isBookmarked(aURL).thenAcceptAsync(this::setBookmarked, mUIThreadExecutor);
         }
 
         int index = -1;
@@ -271,9 +277,9 @@ public class NavigationURLBar extends FrameLayout {
             }
             if (aURL.startsWith("jar:"))
                 return;
-            else if (aURL.startsWith("resource:") || SessionStore.get().isHomeUri(aURL))
+            else if (aURL.startsWith("resource:") || mSessionStore.isHomeUri(aURL))
                 aURL = "";
-            else if (aURL.startsWith("data:") && SessionStore.get().isCurrentSessionPrivate())
+            else if (aURL.startsWith("data:") && mSessionStore.isPrivateMode())
                 aURL = "";
             else
                 index = aURL.indexOf("://");
@@ -434,9 +440,8 @@ public class NavigationURLBar extends FrameLayout {
             TelemetryWrapper.urlBarEvent(false);
         }
 
-        if (SessionStore.get().getCurrentUri() != url) {
-            SessionStore.get().getHistoryStore().addHistory(url, VisitType.TYPED);
-            SessionStore.get().loadUri(url);
+        if (mSessionStore.getCurrentUri() != url) {
+            mSessionStore.loadUri(url);
 
             if (mDelegate != null) {
                 mDelegate.onHideSearchPopup();

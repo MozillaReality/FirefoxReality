@@ -363,4 +363,5 @@ public abstract class UIWidget extends FrameLayout implements Widget {
     protected float getWorldWidth() {
         return mWorldWidth;
     }
+
 }
