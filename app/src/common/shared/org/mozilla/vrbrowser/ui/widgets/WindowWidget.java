@@ -7,6 +7,7 @@ package org.mozilla.vrbrowser.ui.widgets;
 
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
 import android.util.Log;
@@ -27,6 +28,7 @@ import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.browser.SessionStore;
 import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.ui.views.BookmarksView;
+import org.mozilla.vrbrowser.ui.widgets.dialogs.ContextMenuWidget;
 import org.mozilla.vrbrowser.ui.widgets.prompts.AlertPromptWidget;
 import org.mozilla.vrbrowser.ui.widgets.prompts.AuthPromptWidget;
 import org.mozilla.vrbrowser.ui.widgets.prompts.ChoicePromptWidget;
@@ -56,6 +58,7 @@ public class WindowWidget extends UIWidget implements SessionStore.SessionChange
     private TextPromptWidget mTextPrompt;
     private AuthPromptWidget mAuthPrompt;
     private NoInternetWidget mNoInternetToast;
+    private ContextMenuWidget mContextMenu;
     private int mWidthBackup;
     private int mHeightBackup;
     private int mBorderWidth;
@@ -64,6 +67,7 @@ public class WindowWidget extends UIWidget implements SessionStore.SessionChange
     private boolean mSaveResizeChanges;
     private View mView;
     private BookmarksView mBookmarksView;
+    private Point mLastMouseClickPos;
 
     public WindowWidget(Context aContext, int aSessionId) {
         super(aContext);
@@ -85,6 +89,7 @@ public class WindowWidget extends UIWidget implements SessionStore.SessionChange
         handleResizeEvent(SettingsStore.getInstance(getContext()).getBrowserWorldWidth(),
                 SettingsStore.getInstance(getContext()).getBrowserWorldHeight());
         mSaveResizeChanges = true;
+        mLastMouseClickPos = new Point(0, 0);
     }
 
     @Override
@@ -365,11 +370,13 @@ public class WindowWidget extends UIWidget implements SessionStore.SessionChange
 
     @Override
     public void handleTouchEvent(MotionEvent aEvent) {
+        mLastMouseClickPos = new Point((int)aEvent.getX(), (int)aEvent.getY());
+
         if (mView != null) {
             super.handleTouchEvent(aEvent);
 
         } else {
-            if (aEvent.getActionMasked() == MotionEvent.ACTION_UP) {
+            if (aEvent.getActionMasked() == MotionEvent.ACTION_DOWN) {
                 requestFocus();
                 requestFocusFromTouch();
             }
@@ -767,7 +774,14 @@ public class WindowWidget extends UIWidget implements SessionStore.SessionChange
 
     @Override
     public void onContextMenu(GeckoSession session, int screenX, int screenY, ContextElement element) {
+        if (mContextMenu != null) {
+            mContextMenu.hide(REMOVE_WIDGET);
+        }
 
+        mContextMenu = new ContextMenuWidget(getContext());
+        mContextMenu.mWidgetPlacement.parentHandle = getHandle();
+        mContextMenu.setContextElement(mLastMouseClickPos, element);
+        mContextMenu.show();
     }
 
     @Override
