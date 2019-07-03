@@ -216,9 +216,10 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
         aPlacement.height += WidgetPlacement.dpDimension(context, R.dimen.keyboard_layout_padding);
         aPlacement.anchorX = 0.5f;
         aPlacement.anchorY = 0.0f;
+        aPlacement.parentAnchorY = 0.0f;
         aPlacement.translationX = WidgetPlacement.unitFromMeters(context, R.dimen.keyboard_x);
-        aPlacement.translationY = WidgetPlacement.unitFromMeters(context, R.dimen.keyboard_y);
-        aPlacement.translationZ = WidgetPlacement.unitFromMeters(context, R.dimen.keyboard_z);
+        aPlacement.translationY = WidgetPlacement.unitFromMeters(context, R.dimen.keyboard_y) - WidgetPlacement.unitFromMeters(context, R.dimen.window_world_y);
+        aPlacement.translationZ = WidgetPlacement.unitFromMeters(context, R.dimen.keyboard_z) - WidgetPlacement.unitFromMeters(context, R.dimen.window_world_z);
         aPlacement.rotationAxisX = 1.0f;
         aPlacement.rotation = (float)Math.toRadians(WidgetPlacement.floatDimension(context, R.dimen.keyboard_world_rotation));
         aPlacement.worldWidth = WidgetPlacement.floatDimension(context, R.dimen.keyboard_world_width);
@@ -240,6 +241,7 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
             return;
         }
         mAttachedWindow = aWindow;
+        mWidgetPlacement.parentHandle = aWindow.getHandle();
 
         mSessionStore = aWindow.getSessionStore();
         if (mSessionStore != null) {
