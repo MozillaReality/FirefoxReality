@@ -64,7 +64,7 @@ public:
   vrb::TransformPtr GetTransformNode() const;
   const WidgetPlacementPtr& GetPlacement() const;
   void SetPlacement(const WidgetPlacementPtr& aPlacement);
-  void StartResize();
+  void StartResize(const float aAnchorX);
   void FinishResize();
   bool IsResizing() const;
   void HandleResize(const vrb::Vector& aPoint, bool aPressed, bool& aResized, bool &aResizeEnded);

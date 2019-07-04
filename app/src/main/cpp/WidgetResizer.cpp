@@ -237,6 +237,8 @@ struct ResizeHandle {
     result->geometry = ResizeHandle::CreateGeometry(aContext);
     result->transform = vrb::Transform::Create(aContext);
     result->transform->AddNode(result->geometry);
+    result->root = vrb::Toggle::Create(aContext);
+    result->root->AddNode(result->transform);
     result->resizeState = ResizeState ::Default;
     UpdateResizeMaterial(result->geometry->GetRenderState(), result->resizeState);
     return result;
@@ -336,13 +338,22 @@ struct ResizeHandle {
     return geometry;
   }
 
+  void SetVisible(const bool aVisible) {
+    if (visible != aVisible) {
+      root->ToggleAll(aVisible);
+      visible = aVisible;
+    }
+  }
+
   vrb::Vector center;
   ResizeMode resizeMode;
   std::vector<ResizeBarPtr> attachedBars;
   vrb::GeometryPtr geometry;
+  vrb::TogglePtr root;
   vrb::TransformPtr transform;
   ResizeState resizeState;
   float touchRatio;
+  bool visible = true;
 };
 
 struct WidgetResizer::State {
@@ -361,11 +372,13 @@ struct WidgetResizer::State {
   std::vector<ResizeBarPtr> resizeBars;
   ResizeHandlePtr activeHandle;
   bool wasPressed;
+  float anchorX;
 
   State()
       : widget(nullptr)
       , resizing(false)
       , wasPressed(false)
+      , anchorX(0.5f)
   {}
 
   void Initialize() {
@@ -425,7 +438,7 @@ struct WidgetResizer::State {
     ResizeHandlePtr result = ResizeHandle::Create(create, aCenter, aResizeMode, aBars);
     result->touchRatio = aTouchRatio;
     resizeHandles.push_back(result);
-    root->InsertNode(result->transform, 0);
+    root->InsertNode(result->root, 0);
     return result;
   }
 
@@ -525,6 +538,9 @@ struct WidgetResizer::State {
 
   ResizeHandlePtr GetIntersectingHandler(const vrb::Vector& point) {
     for (const ResizeHandlePtr& handle: resizeHandles) {
+      if (!handle->visible) {
+        continue;
+      }
       vrb::Vector worldCenter(min.x() + WorldWidth() * handle->center.x(), min.y() + WorldHeight() * handle->center.y(), 0.0f);
       float distance = (point - worldCenter).Magnitude();
       if (distance < kHandleRadius * handle->touchRatio) {
@@ -601,6 +617,14 @@ WidgetResizer::SetSize(const vrb::Vector& aMin, const vrb::Vector& aMax) {
   m.currentMin = aMin;
   m.currentMax = aMax;
   m.Layout();
+}
+
+void
+WidgetResizer::SetAnchorX(const float aAnchorX) {
+  m.anchorX = aAnchorX;
+  for (ResizeHandlePtr & handle: m.resizeHandles) {
+    handle->SetVisible(aAnchorX == 0.5f || handle->center.x() == 0.5f || handle->center.x() == aAnchorX);
+  }
 }
 
 void
