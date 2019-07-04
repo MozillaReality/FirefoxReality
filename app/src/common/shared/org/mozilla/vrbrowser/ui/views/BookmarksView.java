@@ -8,13 +8,10 @@ package org.mozilla.vrbrowser.ui.views;
 import android.content.Context;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
-import android.view.View;
 import android.widget.FrameLayout;
 
-import org.mozilla.geckoview.AllowOrDeny;
-import org.mozilla.geckoview.GeckoResult;
-import org.mozilla.geckoview.GeckoSession;
-import org.mozilla.geckoview.WebRequestError;
+import androidx.databinding.DataBindingUtil;
+
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.audio.AudioEngine;
 import org.mozilla.vrbrowser.browser.BookmarksStore;
@@ -23,17 +20,9 @@ import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.databinding.BookmarksBinding;
 import org.mozilla.vrbrowser.ui.adapters.BookmarkAdapter;
 import org.mozilla.vrbrowser.ui.callbacks.BookmarkClickCallback;
-import org.mozilla.vrbrowser.ui.widgets.BookmarkListener;
-import org.mozilla.vrbrowser.ui.widgets.WindowWidget;
 import org.mozilla.vrbrowser.utils.UIThreadExecutor;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.databinding.DataBindingUtil;
 
 import mozilla.components.concept.storage.BookmarkNode;
 import mozilla.components.concept.storage.VisitType;
@@ -42,10 +31,8 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
 
     private BookmarksBinding mBinding;
     private BookmarkAdapter mBookmarkAdapter;
-    private List<BookmarkListener> mBookmarkListeners;
     private AudioEngine mAudio;
     private boolean mIgnoreNextListener;
-    private WindowWidget mAttachedWindow;
 
     public BookmarksView(Context aContext) {
         super(aContext);
@@ -63,8 +50,6 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
     }
 
     private void initialize(Context aContext) {
-        mBookmarkListeners = new ArrayList<>();
-
         mAudio = AudioEngine.fromContext(aContext);
 
         LayoutInflater inflater = LayoutInflater.from(aContext);
@@ -81,46 +66,8 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
         setVisibility(GONE);
     }
 
-    public void addListeners(BookmarkListener... listeners) {
-        mBookmarkListeners.addAll(Arrays.asList(listeners));
-    }
-
-    public void removeListeners(BookmarkListener... listeners) {
-        mBookmarkListeners.removeAll(Arrays.asList(listeners));
-    }
-
-    public void detachFromWindow() {
-        if (mAttachedWindow != null) {
-            mAttachedWindow.unsetView(this);
-            notifyBookmarksHidden(mAttachedWindow);
-            mAttachedWindow = null;
-        }
-    }
-
-    public void attachToWindow(@NonNull WindowWidget aWindow) {
-        if (mAttachedWindow == aWindow) {
-            return;
-        }
-        mAttachedWindow = aWindow;
-        mAttachedWindow.setView(this);
-        notifyBookmarksShown(mAttachedWindow);
-    }
-
-    public WindowWidget getAttachedWindow() {
-        return mAttachedWindow;
-    }
-
     public void onDestroy() {
-        mBookmarkListeners.clear();
         SessionManager.get().getBookmarkStore().removeListener(this);
-    }
-
-    private void notifyBookmarksShown(WindowWidget aWindow) {
-        mBookmarkListeners.forEach(listener -> listener.onBookmarksShown(aWindow));
-    }
-
-    private void notifyBookmarksHidden(WindowWidget aWindow) {
-        mBookmarkListeners.forEach(listener -> listener.onBookmarksHidden(aWindow));
     }
 
     private final BookmarkClickCallback mBookmarkClickCallback = new BookmarkClickCallback() {

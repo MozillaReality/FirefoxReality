@@ -10,7 +10,6 @@ import android.graphics.Canvas;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
-import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
@@ -19,16 +18,19 @@ import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import org.mozilla.geckoview.AllowOrDeny;
 import org.mozilla.geckoview.GeckoDisplay;
 import org.mozilla.geckoview.GeckoResult;
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.browser.SessionChangeListener;
+import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.browser.VideoAvailabilityListener;
 import org.mozilla.vrbrowser.browser.engine.SessionManager;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
-import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.ui.views.BookmarksView;
 import org.mozilla.vrbrowser.ui.widgets.dialogs.ContextMenuWidget;
 import org.mozilla.vrbrowser.ui.widgets.prompts.AlertPromptWidget;
@@ -37,12 +39,13 @@ import org.mozilla.vrbrowser.ui.widgets.prompts.ChoicePromptWidget;
 import org.mozilla.vrbrowser.ui.widgets.prompts.ConfirmPromptWidget;
 import org.mozilla.vrbrowser.ui.widgets.prompts.TextPromptWidget;
 
-import androidx.annotation.NonNull;
+import java.util.ArrayList;
 
 import static org.mozilla.vrbrowser.utils.ServoUtils.isInstanceOfServoSession;
 
 public class WindowWidget extends UIWidget implements SessionChangeListener,
-        GeckoSession.ContentDelegate, GeckoSession.PromptDelegate, VideoAvailabilityListener {
+        GeckoSession.ContentDelegate, GeckoSession.PromptDelegate,
+        GeckoSession.NavigationDelegate, VideoAvailabilityListener {
 
     private static final String LOGTAG = "VRB";
 
@@ -72,6 +75,8 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     private Point mLastMouseClickPos;
     private SessionStore mSessionStore;
     private int mWindowId;
+    private BookmarksView mBookmarksView;
+    private ArrayList<BookmarkListener> mBookmarksListeners;
     private Windows.WindowPlacement mWindowPlacement = Windows.WindowPlacement.FRONT;
 
     public WindowWidget(Context aContext, int windowId, boolean privateMode) {
@@ -85,7 +90,11 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         mSessionStore.addPromptListener(this);
         mSessionStore.addContentListener(this);
         mSessionStore.addVideoAvailabilityListener(this);
+        mSessionStore.addNavigationListener(this);
         mSessionStore.newSession();
+
+        mBookmarksView  = new BookmarksView(aContext);
+        mBookmarksListeners = new ArrayList<>();
 
         mHandle = ((WidgetManagerDelegate)aContext).newWidgetHandle();
         mWidgetPlacement = new WidgetPlacement(aContext);
@@ -147,17 +156,22 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
 
     @Override
     protected void onDismiss() {
-        if (mView != null) {
+        if (isBookmarksVisible()) {
+            switchBookmarks();
+
+        } else {
             SessionStore activeStore = SessionManager.get().getSessionStore(mWindowId);
             if (activeStore.canGoBack()) {
                 activeStore.goBack();
             }
-
-            unsetView(mView);
         }
     }
 
-    public void setView(View view) {
+    public void onDestroy() {
+        mBookmarksView.onDestroy();
+    }
+
+    private void setView(View view) {
         pauseCompositor();
         mView = view;
         removeView(view);
@@ -177,7 +191,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         postInvalidate();
     }
 
-    public void unsetView(View view) {
+    private void unsetView(View view) {
         if (mView != null && mView == view) {
             mView = null;
             removeView(view);
@@ -196,6 +210,31 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
             mWidgetManager.updateWidget(this);
             mWidgetManager.popWorldBrightness(this);
             mWidgetManager.popBackHandler(mBackHandler);
+        }
+    }
+
+    public boolean isBookmarksVisible() {
+        return (mView != null);
+    }
+
+    public void addBookmarksListener(@NonNull BookmarkListener listener) {
+        mBookmarksListeners.add(listener);
+    }
+
+    public void removeBookmarksListener(@NonNull BookmarkListener listener) {
+        mBookmarksListeners.remove(listener);
+    }
+
+    public void switchBookmarks() {
+        if (mView == null) {
+            setView(mBookmarksView);
+            for (BookmarkListener listener : mBookmarksListeners)
+                listener.onBookmarksShown(this);
+
+        } else {
+            unsetView(mBookmarksView);
+            for (BookmarkListener listener : mBookmarksListeners)
+                listener.onBookmarksHidden(this);
         }
     }
 
@@ -457,6 +496,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         mSessionStore.removePromptListener(this);
         mSessionStore.removeContentListener(this);
         mSessionStore.removeVideoAvailabilityListener(this);
+        mSessionStore.removeNavigationListener(this);
         GeckoSession session = mSessionStore.getSession(mSessionId);
         if (session == null) {
             return;
@@ -745,6 +785,20 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         mWidgetManager.setCPULevel(aVideosAvailable ?
                 WidgetManagerDelegate.CPU_LEVEL_HIGH :
                 WidgetManagerDelegate.CPU_LEVEL_NORMAL);
+    }
+
+    // GeckoSession.NavigationDelegate
+
+    @Override
+    public void onLocationChange(@NonNull GeckoSession session, @Nullable String url) {
+        if (isBookmarksVisible())
+            switchBookmarks();
+    }
+
+    @Nullable
+    @Override
+    public GeckoResult<AllowOrDeny> onLoadRequest(@NonNull GeckoSession session, @NonNull LoadRequest request) {
+        return GeckoResult.ALLOW;
     }
 
 }

@@ -20,7 +20,6 @@ import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.audio.AudioEngine;
 import org.mozilla.vrbrowser.browser.SessionChangeListener;
-import org.mozilla.vrbrowser.browser.engine.SessionManager;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.ui.views.UIButton;
 import org.mozilla.vrbrowser.ui.widgets.settings.SettingsWidget;
@@ -261,6 +260,8 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Bookm
             mSessionStore.removeSessionChangeListener(this);
             mSessionStore = null;
         }
+        if (mAttachedWindow != null)
+            mAttachedWindow.removeBookmarksListener(this);
     }
 
     @Override
@@ -268,13 +269,21 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Bookm
         if (mAttachedWindow == aWindow) {
             return;
         }
+        detachFromWindow();
+
         mAttachedWindow = aWindow;
+        mAttachedWindow.addBookmarksListener(this);
 
         mSessionStore = aWindow.getSessionStore();
         if (mSessionStore != null) {
             mSessionStore.addSessionChangeListener(this);
             handleSessionState();
         }
+
+        if (mAttachedWindow.isBookmarksVisible())
+            onBookmarksShown(aWindow);
+        else
+            onBookmarksHidden(aWindow);
     }
 
     // SessionStore.SessionChangeListener
