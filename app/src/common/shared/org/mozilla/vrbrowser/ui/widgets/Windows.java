@@ -347,7 +347,6 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
                 placement.rotationAxisX = 0;
                 placement.rotationAxisY = 0;
                 placement.rotationAxisZ = 0;
-                placement.parentHandle = -1;
                 break;
             case LEFT:
                 placement.anchorX = 1.0f;
@@ -359,7 +358,6 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
                 placement.translationX = -WidgetPlacement.dpDimension(mContext, R.dimen.multi_window_padding);
                 placement.translationY = 0.0f;
                 placement.translationZ = 0.0f;
-                placement.parentHandle = getFrontWindow().getHandle();
                 break;
             case RIGHT:
                 placement.anchorX = 0.0f;
@@ -371,13 +369,25 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
                 placement.translationX = WidgetPlacement.dpDimension(mContext, R.dimen.multi_window_padding);
                 placement.translationY = 0.0f;
                 placement.translationZ = 0.0f;
-                placement.parentHandle = getFrontWindow().getHandle();
         }
     }
 
     private void updateViews() {
-        updateTopBars();
         WindowWidget frontWindow = getFrontWindow();
+        WindowWidget leftWindow = getLeftWindow();
+        WindowWidget rightWindow = getRightWindow();
+        // Make sure that left or right window have the correct parent
+        if (frontWindow != null && leftWindow != null) {
+            leftWindow.getPlacement().parentHandle = frontWindow.getHandle();
+        }
+        if (frontWindow != null &&  rightWindow != null) {
+            rightWindow.getPlacement().parentHandle = frontWindow.getHandle();
+        }
+        if (frontWindow != null) {
+            frontWindow.getPlacement().parentHandle = -1;
+        }
+
+        updateTopBars();
         ArrayList<WindowWidget> windows = getCurrentWindows();
         // Sort windows so frontWindow is the first one. Required for proper native matrix updates.
         windows.sort((o1, o2) -> o1 == frontWindow ? -1 : 0);
