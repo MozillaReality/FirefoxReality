@@ -719,7 +719,6 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
 
     @Override
     public void onContextMenu(GeckoSession session, int screenX, int screenY, ContextElement element) {
-    @Override
         if (mContextMenu != null) {
             mContextMenu.hide(REMOVE_WIDGET);
         }
@@ -729,6 +728,8 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         mContextMenu.setContextElement(mLastMouseClickPos, element);
         mContextMenu.show();
     }
+
+    @Override
     public void onFirstComposite(GeckoSession session) {
         if (mFirstDrawCallback != null) {
             mFirstDrawCallback.run();

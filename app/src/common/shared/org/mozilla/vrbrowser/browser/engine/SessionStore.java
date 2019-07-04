@@ -38,7 +38,6 @@ import org.mozilla.vrbrowser.utils.InternalPages;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.Map;
@@ -972,6 +971,15 @@ public class SessionStore implements ContentBlocking.Delegate, GeckoSession.Navi
         if (mCurrentSession == aSession) {
             for (GeckoSession.ContentDelegate listener : mContentListeners) {
                 listener.onFullScreen(aSession, aFullScreen);
+            }
+        }
+    }
+
+    @Override
+    public void onContextMenu(@NonNull GeckoSession session, int screenX, int screenY, @NonNull ContextElement element) {
+        if (mCurrentSession == session) {
+            for (GeckoSession.ContentDelegate listener : mContentListeners) {
+                listener.onContextMenu(session, screenX, screenY, element);
             }
         }
     }

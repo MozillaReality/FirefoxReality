@@ -14,7 +14,6 @@ import android.view.ViewTreeObserver;
 
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.R;
-import org.mozilla.vrbrowser.browser.SessionStore;
 import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.ui.callbacks.ContextMenuClickCallback;
 import org.mozilla.vrbrowser.ui.views.ContextMenu;
@@ -112,7 +111,7 @@ public class ContextMenuWidget extends UIWidget implements WidgetManagerDelegate
     }
 
     private final ContextMenuClickCallback mContextMenuClickCallback = contextMenuNode -> {
-        SessionStore.get().loadUri(mContextElement.linkUri);
+        mWidgetManager.openNewWindow(mContextElement.linkUri);
         hide(REMOVE_WIDGET);
     };
 
