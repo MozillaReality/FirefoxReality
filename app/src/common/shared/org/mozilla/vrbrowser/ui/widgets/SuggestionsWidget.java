@@ -114,7 +114,7 @@ public class SuggestionsWidget extends UIWidget implements WidgetManagerDelegate
 
     @Override
     public void show(@ShowFlags int aShowFlags) {
-        super.show(CLEAR_FOCUS);
+        super.show(aShowFlags);
         mList.startAnimation(mScaleUpAnimation);
     }
 

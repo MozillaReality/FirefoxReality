@@ -881,7 +881,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
 
                     if (!mPopup.isVisible()) {
                         mPopup.updatePlacement((int)WidgetPlacement.convertPixelsToDp(getContext(), mURLBar.getWidth()));
-                        mPopup.show(REQUEST_FOCUS);
+                        mPopup.show(CLEAR_FOCUS);
                     }
                 }
         );
