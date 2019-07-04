@@ -444,9 +444,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         mWidgetPlacement.height = (int) ((aWorldHeight * defaultHeight) / worldHeight) + mBorderWidth * 2;
         mWidgetPlacement.worldWidth = aWorldWidth;
         mWidgetManager.updateWidget(this);
-        if (mSaveResizeChanges) {
-            saveCurrentSize();
-        }
+        mWidgetManager.updateVisibleWidgets();
     }
 
     @Override
