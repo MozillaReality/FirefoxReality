@@ -317,6 +317,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
         mPrivateWindows.remove(aWindow);
         aWindow.getTopBar().setVisible(false);
         aWindow.getTopBar().setDelegate((TopBarWidget.Delegate) null);
+        aWindow.releaseWidget();
     }
 
     private void setWindowVisible(WindowWidget aWindow, boolean aVisible) {

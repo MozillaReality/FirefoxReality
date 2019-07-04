@@ -109,9 +109,6 @@ public class SessionManager implements GeckoSession.PermissionDelegate {
             store.unregisterListeners();
             store.shutdown();
         }
-
-        if (mRuntime != null)
-            mRuntime.shutdown();
     }
 
     public void setActiveStore(int storeId) {

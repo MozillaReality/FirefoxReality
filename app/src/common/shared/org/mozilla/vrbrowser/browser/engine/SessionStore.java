@@ -123,6 +123,10 @@ public class SessionStore implements ContentBlocking.Delegate, GeckoSession.Navi
     }
 
     protected void shutdown() {
+        for (Map.Entry<Integer, SessionState> session : mSessions.entrySet()) {
+            session.getValue().mSession.close();
+        }
+
         mSessions.clear();
         mSessionsStack.clear();
 

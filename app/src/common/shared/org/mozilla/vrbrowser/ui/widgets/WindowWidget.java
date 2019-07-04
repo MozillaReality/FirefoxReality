@@ -141,6 +141,8 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         } else {
             clearFocus();
         }
+
+        mSessionStore.setActive(true);
     }
 
     @Override
@@ -152,6 +154,8 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         mWidgetManager.updateWidget(this);
 
         clearFocus();
+
+        mSessionStore.setActive(false);
     }
 
     @Override
