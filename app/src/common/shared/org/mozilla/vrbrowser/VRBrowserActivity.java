@@ -1253,6 +1253,13 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         queueRunnable(() -> setCPULevelNative(aCPULevel));
     }
 
+    @Override
+    public void openNewWindow(String uri) {
+        WindowWidget newWindow = mWindows.addWindow();
+        if (newWindow != null)
+            newWindow.getSessionStore().newSessionWithUrl(uri);
+    }
+
     private native void addWidgetNative(int aHandle, WidgetPlacement aPlacement);
     private native void updateWidgetNative(int aHandle, WidgetPlacement aPlacement);
     private native void removeWidgetNative(int aHandle);
