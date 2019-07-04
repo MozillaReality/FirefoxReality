@@ -5,15 +5,12 @@ import android.content.Context;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.browser.SettingsStore;
-import org.mozilla.vrbrowser.ui.views.BookmarksView;
 import org.mozilla.vrbrowser.utils.InternalPages;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 
 public class Windows implements TrayListener, TopBarWidget.Delegate {
     private Context mContext;
@@ -21,7 +18,6 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
     private Delegate mDelegate;
     private ArrayList<WindowWidget> mRegularWindows;
     private ArrayList<WindowWidget> mPrivateWindows;
-    private BookmarksView mBookmarksView;
     private WindowWidget mFocusedWindow;
     private static int sIndex;
     private boolean mPrivateMode = false;
@@ -50,7 +46,6 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
         mWidgetManager = (WidgetManagerDelegate) aContext;
         mRegularWindows = new ArrayList<>();
         mPrivateWindows = new ArrayList<>();
-        mBookmarksView  = new BookmarksView(aContext);
         restoreWindows();
     }
 
@@ -214,7 +209,12 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
     }
 
     public void onDestroy() {
-        mBookmarksView.onDestroy();
+        for (WindowWidget window: mRegularWindows) {
+            window.onDestroy();
+        }
+        for (WindowWidget window: mPrivateWindows) {
+            window.onDestroy();
+        }
     }
 
     public boolean isInPrivateMode() {
@@ -261,10 +261,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
         if (mFocusedWindow == null) {
             return false;
         }
-        if (mBookmarksView.getAttachedWindow() == mFocusedWindow) {
-            onBookmarksClicked();
-            return true;
-        } else if (mFocusedWindow.getSessionStore().canGoBack()) {
+        if (mFocusedWindow.getSessionStore().canGoBack()) {
             mFocusedWindow.getSessionStore().goBack();
             return true;
         } else if (isInPrivateMode()) {
@@ -273,10 +270,6 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
         }
 
         return false;
-    }
-
-    public BookmarksView getBookmarksView() {
-        return mBookmarksView;
     }
 
     private void showMaxWindowsMessage() {
@@ -324,17 +317,11 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
         mPrivateWindows.remove(aWindow);
         aWindow.getTopBar().setVisible(false);
         aWindow.getTopBar().setDelegate((TopBarWidget.Delegate) null);
-        if (mBookmarksView.getAttachedWindow() == aWindow) {
-            mBookmarksView.detachFromWindow();
-        }
     }
 
     private void setWindowVisible(WindowWidget aWindow, boolean aVisible) {
         aWindow.setVisible(aVisible);
         aWindow.getTopBar().setVisible(aVisible);
-        if (!aVisible && aWindow == mBookmarksView.getAttachedWindow()) {
-            mBookmarksView.detachFromWindow();
-        }
     }
 
     private void placeWindow(WindowWidget aWindow, WindowPlacement aPosition) {
@@ -394,6 +381,8 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
         for (WindowWidget window: getCurrentWindows()) {
             mWidgetManager.updateWidget(window);
             mWidgetManager.updateWidget(window.getTopBar());
+            window.switchBookmarks();
+            window.switchBookmarks();
         }
     }
 
@@ -429,11 +418,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
     // Tray Listener
     @Override
     public void onBookmarksClicked() {
-        if (mBookmarksView.getParent() != null) {
-            mBookmarksView.detachFromWindow();
-        } else if (mFocusedWindow != null) {
-            mBookmarksView.attachToWindow(mFocusedWindow);
-        }
+        mFocusedWindow.switchBookmarks();
     }
 
     @Override

@@ -368,6 +368,8 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
             mSessionStore.removeContentListener(this);
             mSessionStore = null;
         }
+        if (mAttachedWindow != null)
+            mAttachedWindow.removeBookmarksListener(this);
         mAttachedWindow = null;
     }
 
@@ -380,6 +382,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
 
         mWidgetPlacement.parentHandle = aWindow.getHandle();
         mAttachedWindow = aWindow;
+        mAttachedWindow.addBookmarksListener(this);
 
         mSessionStore = aWindow.getSessionStore();
         if (mSessionStore != null) {
@@ -657,7 +660,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
 
     @Override
     public void onLocationChange(GeckoSession session, String url) {
-        if (mURLBar != null) {
+        if (mURLBar != null && !mAttachedWindow.isBookmarksVisible()) {
             Log.d(LOGTAG, "Got location change");
             mURLBar.setURL(url);
             mReloadButton.setEnabled(true);

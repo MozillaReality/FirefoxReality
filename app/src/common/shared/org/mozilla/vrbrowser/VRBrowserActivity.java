@@ -53,13 +53,9 @@ import org.mozilla.vrbrowser.input.MotionEventGenerator;
 import org.mozilla.vrbrowser.search.SearchEngineWrapper;
 import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
 import org.mozilla.vrbrowser.ui.OffscreenDisplay;
-import org.mozilla.vrbrowser.ui.views.BookmarksView;
-import org.mozilla.vrbrowser.ui.widgets.BookmarkListener;
 import org.mozilla.vrbrowser.ui.widgets.KeyboardWidget;
 import org.mozilla.vrbrowser.ui.widgets.NavigationBarWidget;
 import org.mozilla.vrbrowser.ui.widgets.RootWidget;
-import org.mozilla.vrbrowser.ui.widgets.TopBarWidget;
-import org.mozilla.vrbrowser.ui.widgets.TrayListener;
 import org.mozilla.vrbrowser.ui.widgets.TrayWidget;
 import org.mozilla.vrbrowser.ui.widgets.UIWidget;
 import org.mozilla.vrbrowser.ui.widgets.VideoProjectionMenuWidget;
@@ -75,7 +71,6 @@ import org.mozilla.vrbrowser.utils.ServoUtils;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -281,7 +276,6 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         });
 
         // Add widget listeners
-        mWindows.getBookmarksView().addListeners(mNavigationBar, mTray);
         mTray.addListeners(mWindows);
 
         attachToWindow(mWindows.getFocusedWindow(), null);
@@ -293,6 +287,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         mPermissionDelegate.setParentWidgetHandle(aWindow.getHandle());
         mNavigationBar.attachToWindow(aWindow);
         mKeyboard.attachToWindow(aWindow);
+        mTray.attachToWindow(aWindow);
 
         if (aPrevWindow != null) {
             updateWidget(mNavigationBar);
@@ -376,6 +371,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         }
 
         // Remove all widget listeners
+        mTray.removeListeners(mWindows);
         mTray.onDestroy();
         mWindows.onDestroy();
 
