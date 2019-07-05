@@ -301,12 +301,12 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Bookm
                 mPrivateButton.setPrivateMode(isPrivateMode);
                 if (isPrivateMode) {
                     mWidgetManager.pushWorldBrightness(this, WidgetManagerDelegate.DEFAULT_DIM_BRIGHTNESS);
-                    mPrivateButton.setImageResource(R.drawable.ic_icon_private_browsing_on);
+                    mPrivateButton.setImageResource(R.drawable.ic_icon_tray_private_browsing_on_v2);
                 mPrivateButton.setTooltip(getResources().getString(R.string.private_browsing_exit_tooltip));
 
                 } else {
                     mWidgetManager.popWorldBrightness(this);
-                    mPrivateButton.setImageResource(R.drawable.ic_icon_private_browsing);
+                    mPrivateButton.setImageResource(R.drawable.ic_icon_tray_private_browsing_v2);
                 }
                 mPrivateButton.setTooltip(getResources().getString(R.string.private_browsing_enter_tooltip));
             }
