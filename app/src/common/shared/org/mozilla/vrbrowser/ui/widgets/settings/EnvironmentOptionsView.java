@@ -10,9 +10,8 @@ import android.widget.ScrollView;
 
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.audio.AudioEngine;
-import org.mozilla.vrbrowser.browser.engine.SessionManager;
-import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.browser.SettingsStore;
+import org.mozilla.vrbrowser.browser.engine.SessionManager;
 import org.mozilla.vrbrowser.ui.views.UIButton;
 import org.mozilla.vrbrowser.ui.views.settings.ButtonSetting;
 import org.mozilla.vrbrowser.ui.views.settings.ImageRadioGroupSetting;

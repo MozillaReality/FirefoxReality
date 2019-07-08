@@ -12,9 +12,7 @@ import com.google.gson.reflect.TypeToken;
 
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.R;
-import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
-import org.mozilla.vrbrowser.utils.InternalPages;
 
 import java.io.File;
 import java.io.FileReader;
@@ -251,7 +249,8 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
             exitPrivateMode();
         } else if (empty) {
             // Ensure that there is at least one window.
-            addWindow();
+            WindowWidget window = addWindow();
+            window.loadHome();
         }
 
         updateViews();
@@ -353,7 +352,9 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
         }
 
         if (mPrivateWindows.size() == 0) {
-            addWindow();
+            WindowWidget window = addWindow();
+            window.loadHome();
+
         } else {
             focusWindow(getFrontWindow());
         }
@@ -576,12 +577,6 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
     private WindowWidget createWindow() {
         int newWindowId = sIndex++;
         WindowWidget window = new WindowWidget(mContext, newWindowId, mPrivateMode);
-        if (mPrivateMode) {
-            InternalPages.PageResources pageResources = InternalPages.PageResources.create(R.raw.private_mode, R.raw.private_style);
-            window.getSessionStore().getCurrentSession().loadData(InternalPages.createAboutPage(mContext, pageResources), "text/html");
-        } else {
-            window.getSessionStore().loadUri(SettingsStore.getInstance(mContext).getHomepage());
-        }
         getCurrentWindows().add(window);
         window.getTopBar().setDelegate(this);
         window.getSessionStore().addContentListener(this);
@@ -606,7 +601,8 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
 
     @Override
     public void onAddWindowClicked() {
-        addWindow();
+        WindowWidget window = addWindow();
+        window.loadHome();
     }
 
     // TopBarWidget Delegate

@@ -437,6 +437,9 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
             } else if (uri != null) {
                 Log.d(LOGTAG, "Loading URI from intent: " + uri.toString());
                 activeStore.loadUri(uri.toString());
+
+            } else {
+                mWindows.getFocusedWindow().loadHome();
             }
         }
     }

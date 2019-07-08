@@ -1,19 +1,18 @@
 package org.mozilla.vrbrowser;
 
-import org.mozilla.vrbrowser.browser.engine.SessionManager;
-import org.mozilla.vrbrowser.browser.engine.SessionStore;
-import org.mozilla.vrbrowser.db.AppDatabase;
-import org.mozilla.vrbrowser.db.entity.BookmarkEntity;
-import org.mozilla.vrbrowser.model.Bookmark;
-
-import java.util.List;
-
 import androidx.annotation.NonNull;
 import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.LifecycleRegistry;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MediatorLiveData;
+
+import org.mozilla.vrbrowser.browser.engine.SessionManager;
+import org.mozilla.vrbrowser.db.AppDatabase;
+import org.mozilla.vrbrowser.db.entity.BookmarkEntity;
+import org.mozilla.vrbrowser.model.Bookmark;
+
+import java.util.List;
 
 public class DataRepository implements LifecycleOwner {
 
