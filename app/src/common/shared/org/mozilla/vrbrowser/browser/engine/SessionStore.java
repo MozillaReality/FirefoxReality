@@ -86,16 +86,6 @@ public class SessionStore implements ContentBlocking.Delegate, GeckoSession.Navi
         mSessionsStack = new ArrayDeque<>();
         mUsePrivateMode = usePrivateMode;
 
-        mContext = context;
-        mPrefs = PreferenceManager.getDefaultSharedPreferences(mContext);
-
-        if (mUserAgentOverride == null) {
-            mUserAgentOverride = new UserAgentOverride();
-            mUserAgentOverride.loadOverridesFromAssets((Activity)mContext, mContext.getString(R.string.user_agent_override_file));
-        }
-    }
-
-    protected void registerListeners() {
         mNavigationListeners = new LinkedList<>();
         mProgressListeners = new LinkedList<>();
         mContentListeners = new LinkedList<>();
@@ -107,18 +97,13 @@ public class SessionStore implements ContentBlocking.Delegate, GeckoSession.Navi
         if (mPrefs != null) {
             mPrefs.registerOnSharedPreferenceChangeListener(this);
         }
-    }
 
-    protected void unregisterListeners() {
-        mNavigationListeners.clear();
-        mProgressListeners.clear();
-        mContentListeners.clear();
-        mSessionChangeListeners.clear();
-        mTextInputListeners.clear();
-        mVideoAvailabilityListeners.clear();
+        mContext = context;
+        mPrefs = PreferenceManager.getDefaultSharedPreferences(mContext);
 
-        if (mPrefs != null) {
-            mPrefs.unregisterOnSharedPreferenceChangeListener(this);
+        if (mUserAgentOverride == null) {
+            mUserAgentOverride = new UserAgentOverride();
+            mUserAgentOverride.loadOverridesFromAssets((Activity)mContext, mContext.getString(R.string.user_agent_override_file));
         }
     }
 
@@ -129,6 +114,17 @@ public class SessionStore implements ContentBlocking.Delegate, GeckoSession.Navi
 
         mSessions.clear();
         mSessionsStack.clear();
+
+        mNavigationListeners.clear();
+        mProgressListeners.clear();
+        mContentListeners.clear();
+        mSessionChangeListeners.clear();
+        mTextInputListeners.clear();
+        mVideoAvailabilityListeners.clear();
+
+        if (mPrefs != null) {
+            mPrefs.unregisterOnSharedPreferenceChangeListener(this);
+        }
 
         mCurrentSession = null;
         mPreviousGeckoSessionId = NO_SESSION;

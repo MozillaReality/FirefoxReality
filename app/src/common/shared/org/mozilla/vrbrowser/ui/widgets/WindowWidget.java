@@ -167,8 +167,9 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         }
     }
 
-    public void onDestroy() {
+    public void close() {
         releaseWidget();
+        mBookmarksView.onDestroy();
         SessionManager.get().destroySessionStore(mWindowId);
     }
 
@@ -396,7 +397,8 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     }
 
     private void callSurfaceChanged() {
-        mDisplay.surfaceChanged(mSurface, mBorderWidth, mBorderWidth, mWidth - mBorderWidth * 2, mHeight - mBorderWidth * 2);
+        if (mDisplay != null)
+            mDisplay.surfaceChanged(mSurface, mBorderWidth, mBorderWidth, mWidth - mBorderWidth * 2, mHeight - mBorderWidth * 2);
     }
 
     @Override

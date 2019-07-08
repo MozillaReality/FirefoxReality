@@ -123,7 +123,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
         try (Reader reader = new FileReader(file)) {
             Gson gson = new GsonBuilder().create();
             Type type = new TypeToken<WindowsState>() {}.getType();
-            return gson.fromJson(reader, type);
+            restored = gson.fromJson(reader, type);
 
         } catch (IOException e) {
             Log.w(getClass().getCanonicalName(), "Error restoring persistent windows state", e);
@@ -210,7 +210,6 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
         WindowWidget frontWindow = getFrontWindow();
         WindowWidget leftWindow = getLeftWindow();
         WindowWidget rightWindow = getRightWindow();
-
 
         if (leftWindow == aWindow) {
             removeWindow(leftWindow);
@@ -319,10 +318,10 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
         saveState();
 
         for (WindowWidget window: mRegularWindows) {
-            window.onDestroy();
+            window.close();
         }
         for (WindowWidget window: mPrivateWindows) {
-            window.onDestroy();
+            window.close();
         }
     }
 
@@ -471,7 +470,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
         mPrivateWindows.remove(aWindow);
         aWindow.getTopBar().setVisible(false);
         aWindow.getTopBar().setDelegate((TopBarWidget.Delegate) null);
-        aWindow.releaseWidget();
+        aWindow.close();
         updateMaxWindowScales();
     }
 
