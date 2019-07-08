@@ -250,7 +250,8 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
         } else if (empty) {
             // Ensure that there is at least one window.
             WindowWidget window = addWindow();
-            window.loadHome();
+            if (window != null)
+                window.loadHome();
         }
 
         updateViews();
@@ -353,7 +354,8 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
 
         if (mPrivateWindows.size() == 0) {
             WindowWidget window = addWindow();
-            window.loadHome();
+            if (window != null)
+                window.loadHome();
 
         } else {
             focusWindow(getFrontWindow());
@@ -405,12 +407,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
     }
 
     private void showMaxWindowsMessage() {
-        mFocusedWindow.showAlert("", mContext.getString(R.string.max_windows_message, String.valueOf(MAX_WINDOWS)), new GeckoSession.PromptDelegate.AlertCallback() {
-            @Override
-            public void dismiss() {
-
-            }
-        });
+        mFocusedWindow.showMaxWindowsDialog(MAX_WINDOWS);
     }
 
     private ArrayList<WindowWidget> getCurrentWindows() {
@@ -602,7 +599,8 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
     @Override
     public void onAddWindowClicked() {
         WindowWidget window = addWindow();
-        window.loadHome();
+        if (window != null)
+            window.loadHome();
     }
 
     // TopBarWidget Delegate

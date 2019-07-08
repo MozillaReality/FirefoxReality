@@ -35,6 +35,7 @@ import org.mozilla.vrbrowser.browser.engine.SessionManager;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.ui.views.BookmarksView;
 import org.mozilla.vrbrowser.ui.widgets.dialogs.ContextMenuWidget;
+import org.mozilla.vrbrowser.ui.widgets.dialogs.MaxWindowsWidget;
 import org.mozilla.vrbrowser.ui.widgets.prompts.AlertPromptWidget;
 import org.mozilla.vrbrowser.ui.widgets.prompts.AuthPromptWidget;
 import org.mozilla.vrbrowser.ui.widgets.prompts.ChoicePromptWidget;
@@ -63,6 +64,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     private WidgetManagerDelegate mWidgetManager;
     private ChoicePromptWidget mChoicePrompt;
     private AlertPromptWidget mAlertPrompt;
+    private MaxWindowsWidget mMaxWindowsDialog;
     private ConfirmPromptWidget mConfirmPrompt;
     private TextPromptWidget mTextPrompt;
     private AuthPromptWidget mAuthPrompt;
@@ -693,6 +695,13 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         mConfirmPrompt.setButtons(btnMsg);
         mConfirmPrompt.setDelegate(callback);
         mConfirmPrompt.show(REQUEST_FOCUS);
+    }
+
+    public void showMaxWindowsDialog(int maxDialogs) {
+        mMaxWindowsDialog = new MaxWindowsWidget(getContext());
+        mMaxWindowsDialog.mWidgetPlacement.parentHandle = getHandle();
+        mMaxWindowsDialog.setMessage(getContext().getString(R.string.max_windows_message, String.valueOf(maxDialogs)));
+        mMaxWindowsDialog.show();
     }
 
     public void setMaxWindowScale(float aScale) {
