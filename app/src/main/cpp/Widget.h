@@ -64,9 +64,10 @@ public:
   vrb::TransformPtr GetTransformNode() const;
   const WidgetPlacementPtr& GetPlacement() const;
   void SetPlacement(const WidgetPlacementPtr& aPlacement);
-  void StartResize(const float aAnchorX);
+  void StartResize();
   void FinishResize();
   bool IsResizing() const;
+  bool IsResizingActive() const;
   void HandleResize(const vrb::Vector& aPoint, bool aPressed, bool& aResized, bool &aResizeEnded);
   void HoverExitResize();
   void SetCylinderDensity(const float aDensity);

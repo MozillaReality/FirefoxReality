@@ -25,13 +25,13 @@ public:
   static WidgetResizerPtr Create(vrb::CreationContextPtr& aContext, Widget * aWidget);
   vrb::NodePtr GetRoot() const;
   void SetSize(const vrb::Vector& aMin, const vrb::Vector& aMax);
-  void SetAnchorX(const float aAnchorX);
   void ToggleVisible(bool aVisible);
   bool TestIntersection(const vrb::Vector& point) const;
   void HandleResizeGestures(const vrb::Vector& aPoint, bool aPressed, bool& aResized, bool &aResizeEnded);
   void HoverExitResize();
   const vrb::Vector& GetCurrentMin() const;
   const vrb::Vector& GetCurrentMax() const;
+  bool IsActive() const;
 protected:
   struct State;
   WidgetResizer(State& aState, vrb::CreationContextPtr& aContext);
