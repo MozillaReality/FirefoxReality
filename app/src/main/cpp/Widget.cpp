@@ -404,12 +404,11 @@ Widget::SetPlacement(const WidgetPlacementPtr& aPlacement) {
 }
 
 void
-Widget::StartResize(const float aAnchorX) {
+Widget::StartResize() {
   vrb::Vector worldMin, worldMax;
   GetWidgetMinAndMax(worldMin, worldMax);
   if (m.resizer) {
     m.resizer->SetSize(worldMin, worldMax);
-    m.resizer->SetAnchorX(aAnchorX);
   } else {
     vrb::RenderContextPtr render = m.context.lock();
     if (!render) {
@@ -417,7 +416,6 @@ Widget::StartResize(const float aAnchorX) {
     }
     vrb::CreationContextPtr create = render->GetRenderThreadCreationContext();
     m.resizer = WidgetResizer::Create(create, this);
-    m.resizer->SetAnchorX(aAnchorX);
     m.transform->InsertNode(m.resizer->GetRoot(), 0);
   }
   m.resizing = true;
@@ -444,6 +442,11 @@ Widget::FinishResize() {
 bool
 Widget::IsResizing() const {
   return m.resizing;
+}
+
+bool
+Widget::IsResizingActive() const {
+  return m.resizing && m.resizer->IsActive();
 }
 
 void

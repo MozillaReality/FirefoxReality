@@ -4,6 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "WidgetResizer.h"
+#include "WidgetPlacement.h"
 #include "Widget.h"
 #include "Cylinder.h"
 #include "Quad.h"
@@ -372,13 +373,11 @@ struct WidgetResizer::State {
   std::vector<ResizeBarPtr> resizeBars;
   ResizeHandlePtr activeHandle;
   bool wasPressed;
-  float anchorX;
 
   State()
       : widget(nullptr)
       , resizing(false)
       , wasPressed(false)
-      , anchorX(0.5f)
   {}
 
   void Initialize() {
@@ -416,6 +415,7 @@ struct WidgetResizer::State {
     CreateResizeHandle(vrb::Vector(0.0f, 0.5f, 0.0f), ResizeHandle::ResizeMode::Vertical, {leftTop, leftBottom});
     CreateResizeHandle(vrb::Vector(1.0f, 0.5f, 0.0f), ResizeHandle::ResizeMode::Vertical, {rightTop, rightBottom});
 
+    UpdateVisibleHandles();
     Layout();
   }
 
@@ -528,6 +528,17 @@ struct WidgetResizer::State {
     }
   }
 
+  void UpdateVisibleHandles() {
+    float anchorX = 0.5f;
+    if (widget && widget->GetPlacement()) {
+      anchorX = widget->GetPlacement()->anchor.x();
+    }
+    for (ResizeHandlePtr & handle: resizeHandles) {
+      handle->SetVisible(handle->center.x() == 0.5f || (handle->center.x() != anchorX));
+    }
+
+  }
+
   void Layout() {
     if (widget->GetCylinder()) {
       LayoutCylinder();
@@ -561,6 +572,11 @@ struct WidgetResizer::State {
     float originalAspect = originalWidth / originalHeight;
 
     float width = fabsf(point.x()) * 2.0f;
+    if (widget->GetPlacement()->anchor.x() == 1.0f) {
+      width = fabsf(currentMax.x() - point.x());
+    } else if (widget->GetPlacement()->anchor.x() == 0.0f) {
+      width = fabsf(point.x() - currentMin.x());
+    }
     float height = fabsf(point.y() - min.y());
 
     // Calculate resize based on resize mode
@@ -617,14 +633,6 @@ WidgetResizer::SetSize(const vrb::Vector& aMin, const vrb::Vector& aMax) {
   m.currentMin = aMin;
   m.currentMax = aMax;
   m.Layout();
-}
-
-void
-WidgetResizer::SetAnchorX(const float aAnchorX) {
-  m.anchorX = aAnchorX;
-  for (ResizeHandlePtr & handle: m.resizeHandles) {
-    handle->SetVisible(aAnchorX == 0.5f || handle->center.x() == 0.5f || handle->center.x() == aAnchorX);
-  }
 }
 
 void
@@ -713,6 +721,11 @@ WidgetResizer::GetCurrentMin() const {
 const vrb::Vector&
 WidgetResizer::GetCurrentMax() const {
   return m.max;
+}
+
+bool
+WidgetResizer::IsActive() const {
+  return m.activeHandle && m.activeHandle->resizeState == ResizeState::Active;
 }
 
 

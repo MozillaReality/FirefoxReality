@@ -953,13 +953,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
 
     private void startWidgetResize() {
         if (mAttachedWindow != null) {
-            float anchorX = 0.5f;
-            if (mAttachedWindow.getWindowPlacement() == Windows.WindowPlacement.LEFT) {
-                anchorX = 0.0f;
-            } else if (mAttachedWindow.getWindowPlacement() == Windows.WindowPlacement.RIGHT) {
-                anchorX = 1.0f;
-            }
-            mWidgetManager.startWidgetResize(mAttachedWindow, anchorX);
+            mWidgetManager.startWidgetResize(mAttachedWindow);
         }
     }
 

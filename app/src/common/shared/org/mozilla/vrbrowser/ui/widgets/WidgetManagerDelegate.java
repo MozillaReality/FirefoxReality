@@ -46,7 +46,7 @@ public interface WidgetManagerDelegate {
     void updateWidget(@NonNull Widget aWidget);
     void removeWidget(@NonNull Widget aWidget);
     void updateVisibleWidgets();
-    void startWidgetResize(@NonNull Widget aWidget, float anchorX);
+    void startWidgetResize(@NonNull Widget aWidget);
     void finishWidgetResize(@NonNull Widget aWidget);
     void startWidgetMove(@NonNull Widget aWidget, @WidgetMoveBehaviourFlags int aMoveBehaviour);
     void finishWidgetMove();
