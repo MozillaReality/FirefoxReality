@@ -88,8 +88,8 @@ public class ContextMenuWidget extends UIWidget implements WidgetManagerDelegate
                     PointF anchor = anchorForCurrentMousePosition();
                     mWidgetPlacement.anchorX = anchor.x;
                     mWidgetPlacement.anchorY = anchor.y;
-                    mWidgetPlacement.translationX = mMousePos.x * WidgetPlacement.worldToWindowRatio();
-                    mWidgetPlacement.translationY = -(mMousePos.y * WidgetPlacement.worldToWindowRatio());
+                    mWidgetPlacement.translationX = mMousePos.x * WidgetPlacement.worldToWindowRatio(getContext());
+                    mWidgetPlacement.translationY = -(mMousePos.y * WidgetPlacement.worldToWindowRatio(getContext()));
                     mWidgetPlacement.width = (int)(mContextMenu.getWidth()/mWidgetPlacement.density);
                     mWidgetPlacement.height = (int)(mContextMenu.getHeight()/mWidgetPlacement.density);
                     mWidgetManager.updateWidget(ContextMenuWidget.this);

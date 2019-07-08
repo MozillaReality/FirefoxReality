@@ -12,6 +12,7 @@ import android.util.TypedValue;
 
 import androidx.annotation.NonNull;
 
+import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.browser.SettingsStore;
 
 public class WidgetPlacement {
@@ -137,6 +138,8 @@ public class WidgetPlacement {
 
     public static float worldToWindowRatio(){
         return (SettingsStore.BROWSER_WORLD_WIDTH_DEFAULT/SettingsStore.WINDOW_WIDTH_DEFAULT)/ WORLD_DPI_RATIO;
+    public static float worldToWindowRatio(Context aContext){
+        return (WidgetPlacement.floatDimension(aContext, R.dimen.window_world_width) / SettingsStore.WINDOW_WIDTH_DEFAULT)/ WORLD_DPI_RATIO;
     }
 
 }

@@ -33,6 +33,18 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
         WindowPlacement placement;
         SessionStore sessionStore;
         int currentSessionId;
+        int textureWidth;
+        int textureHeight;
+        float worldWidth;
+
+        public void load(WindowWidget aWindow) {
+            placement = aWindow.getWindowPlacement();
+            sessionStore = aWindow.getSessionStore();
+            currentSessionId = aWindow.getSessionStore().getCurrentSessionId();
+            textureWidth = aWindow.getPlacement().width;
+            textureHeight = aWindow.getPlacement().height;
+            worldWidth = aWindow.getPlacement().worldWidth;
+        }
     }
 
     class WindowsState {
@@ -88,16 +100,12 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
             state.regularWindowsState = new ArrayList<>();
             for (WindowWidget window : mRegularWindows) {
                 WindowState windowState = new WindowState();
-                windowState.placement = window.getWindowPlacement();
-                windowState.sessionStore = window.getSessionStore();
-                windowState.currentSessionId = window.getSessionStore().getCurrentSessionId();
+                windowState.load(window);
                 state.regularWindowsState.add(windowState);
             }
             for (WindowWidget window : mPrivateWindows) {
                 WindowState windowState = new WindowState();
-                windowState.placement = window.getWindowPlacement();
-                windowState.sessionStore = window.getSessionStore();
-                windowState.currentSessionId = window.getSessionStore().getCurrentSessionId();
+                windowState.load(window);
                 state.privateWindowsState.add(windowState);
             }
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -181,18 +189,19 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
         return newWindow;
     }
 
-    private WindowWidget addWindow(WindowPlacement placement) {
+    private WindowWidget addWindow(WindowState aState) {
         if (getCurrentWindows().size() >= MAX_WINDOWS) {
             showMaxWindowsMessage();
             return null;
         }
 
         WindowWidget newWindow = createWindow();
-        placeWindow(newWindow, placement);
+        newWindow.getPlacement().width = aState.textureWidth;
+        newWindow.getPlacement().height = aState.textureHeight;
+        newWindow.getPlacement().worldWidth = aState.worldWidth;
+        placeWindow(newWindow, aState.placement);
 
         mWidgetManager.addWidget(newWindow);
-        focusWindow(newWindow);
-        updateViews();
         return newWindow;
     }
 
@@ -409,25 +418,36 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
         WindowsState windowsState = restoreState();
         if (windowsState != null) {
             for (WindowState windowState : windowsState.regularWindowsState) {
-                WindowWidget window = addWindow(windowState.placement);
+                WindowWidget window = addWindow(windowState);
                 window.getSessionStore().restore(windowState.sessionStore, windowState.currentSessionId);
             }
             mPrivateMode = true;
             for (WindowState windowState : windowsState.privateWindowsState) {
-                WindowWidget window = addWindow(windowState.placement);
+                WindowWidget window = addWindow(windowState);
                 window.getSessionStore().restore(windowState.sessionStore, windowState.currentSessionId);
             }
-            mPrivateMode = windowsState.privateMode;
-            if (mPrivateMode) {
+            mPrivateMode = false;
+            if (windowsState.privateMode) {
                 enterPrivateMode();
             }
 
-            focusWindow(getWindowWithPlacement(windowsState.focusedWindowPlacement));
+            WindowWidget windowToFocus = getWindowWithPlacement(windowsState.focusedWindowPlacement);
+            if (windowToFocus == null) {
+                windowToFocus = getFrontWindow();
+                if (windowToFocus == null && getCurrentWindows().size() > 0) {
+                    windowToFocus = getCurrentWindows().get(0);
+                }
+            }
+            if (windowToFocus != null) {
+                focusWindow(windowToFocus);
+            }
 
-        } else {
+        }
+        if (getCurrentWindows().size() == 0) {
             WindowWidget window = addWindow();
             focusWindow(window);
         }
+        updateViews();
     }
 
     private void removeWindow(@NonNull WindowWidget aWindow) {
@@ -446,14 +466,18 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
 
     private void placeWindow(WindowWidget aWindow, WindowPlacement aPosition) {
         WidgetPlacement placement = aWindow.getPlacement();
-        aWindow.initializeWidgetPlacement(placement);
         aWindow.setWindowPlacement(aPosition);
         switch (aPosition) {
             case FRONT:
+                placement.anchorX = 0.5f;
+                placement.anchorY = 0.0f;
                 placement.rotation = 0;
                 placement.rotationAxisX = 0;
                 placement.rotationAxisY = 0;
                 placement.rotationAxisZ = 0;
+                placement.translationX = 0.0f;
+                placement.translationY = WidgetPlacement.unitFromMeters(mContext, R.dimen.window_world_y);
+                placement.translationZ = WidgetPlacement.unitFromMeters(mContext, R.dimen.window_world_z);
                 break;
             case LEFT:
                 placement.anchorX = 1.0f;
