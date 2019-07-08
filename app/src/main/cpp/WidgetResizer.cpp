@@ -53,8 +53,8 @@ static const float kBarSize = 0.04f;
   static const float kBorder = kBarSize * 0.15f;
 #endif
 static const float kHandleRadius = 0.08f;
-static const vrb::Vector kMinResize(1.5f, 1.5f, 0.0f);
-static const vrb::Vector kMaxResize(8.0f, 4.5f, 0.0f);
+static const vrb::Vector kDefaultMinResize(1.5f, 1.5f, 0.0f);
+static const vrb::Vector kDefaultMaxResize(8.0f, 4.5f, 0.0f);
 static vrb::Color kDefaultColor(0x2BD5D5FF);
 static vrb::Color kHoverColor(0xf7ce4dff);
 static vrb::Color kActiveColor(0xf7ce4dff);
@@ -367,6 +367,7 @@ struct WidgetResizer::State {
   vrb::Vector currentMin;
   vrb::Vector currentMax;
   vrb::Vector pointerOffset;
+  vrb::Vector maxSize;
   bool resizing;
   vrb::TogglePtr root;
   std::vector<ResizeHandlePtr> resizeHandles;
@@ -388,6 +389,7 @@ struct WidgetResizer::State {
     root = vrb::Toggle::Create(create);
     currentMin = min;
     currentMax = max;
+    maxSize = kDefaultMaxResize;
 
     vrb::Vector horizontalSize(0.0f, 0.5f, 0.0f);
     vrb::Vector verticalSize(0.5f, 0.0f, 0.0f);
@@ -592,8 +594,8 @@ struct WidgetResizer::State {
     }
 
     // Clamp to max and min resize sizes
-    width = fmaxf(fminf(width, kMaxResize.x()), kMinResize.x());
-    height = fmaxf(fminf(height, kMaxResize.y()), kMinResize.y());
+    width = fmaxf(fminf(width, maxSize.x()), kDefaultMinResize.x());
+    height = fmaxf(fminf(height, maxSize.y()), kDefaultMinResize.y());
     if (keepAspect) {
       height = width / originalAspect;
     }
@@ -633,6 +635,11 @@ WidgetResizer::SetSize(const vrb::Vector& aMin, const vrb::Vector& aMax) {
   m.currentMin = aMin;
   m.currentMax = aMax;
   m.Layout();
+}
+
+void
+WidgetResizer::SetMaxSize(const vrb::Vector& aMaxSize) {
+  m.maxSize = aMaxSize;
 }
 
 void
