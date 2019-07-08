@@ -70,7 +70,6 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     private int mBorderWidth;
     private Runnable mFirstDrawCallback;
     private boolean mIsInVRVideoMode;
-    private boolean mSaveResizeChanges;
     private View mView;
     private Point mLastMouseClickPos;
     private SessionStore mSessionStore;
@@ -102,9 +101,6 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
 
         mTopBar = new TopBarWidget(aContext);
         mTopBar.attachToWindow(this);
-        handleResizeEvent(SettingsStore.getInstance(getContext()).getBrowserWorldWidth(),
-                SettingsStore.getInstance(getContext()).getBrowserWorldHeight());
-        mSaveResizeChanges = true;
         mLastMouseClickPos = new Point(0, 0);
 
         setFocusable(true);
@@ -112,18 +108,16 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
 
     @Override
     protected void initializeWidgetPlacement(WidgetPlacement aPlacement) {
-        Context context = getContext();
-        aPlacement.width = SettingsStore.getInstance(getContext()).getWindowWidth() + mBorderWidth * 2;
+        int windowWidth = SettingsStore.getInstance(getContext()).getWindowWidth();
+        aPlacement.width = windowWidth + mBorderWidth * 2;
         aPlacement.height = SettingsStore.getInstance(getContext()).getWindowHeight() + mBorderWidth * 2;
+        aPlacement.worldWidth = WidgetPlacement.floatDimension(getContext(), R.dimen.window_world_width) *
+                                (float)windowWidth / (float)SettingsStore.WINDOW_WIDTH_DEFAULT;
         aPlacement.density = 1.0f;
-        aPlacement.translationX = 0.0f;
-        aPlacement.translationY = WidgetPlacement.unitFromMeters(context, R.dimen.window_world_y);
-        aPlacement.translationZ = WidgetPlacement.unitFromMeters(context, R.dimen.window_world_z);
-        aPlacement.anchorX = 0.5f;
-        aPlacement.anchorY = 0.0f;
         aPlacement.visible = true;
         aPlacement.cylinder = true;
         aPlacement.textureScale = 1.0f;
+        // Check Windows.placeWindow method for remaining placement set-up
     }
 
     @Override
@@ -333,10 +327,6 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         return mBorderWidth;
     }
 
-    public void setSaveResizeChanges(boolean aSave) {
-        mSaveResizeChanges = aSave;
-    }
-
     public void setActiveWindow() {
         SessionManager.get().setActiveStore(mWindowId);
         mSessionId = mSessionStore.getCurrentSessionId();
@@ -488,11 +478,6 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         mWidgetPlacement.worldWidth = aWorldWidth;
         mWidgetManager.updateWidget(this);
         mWidgetManager.updateVisibleWidgets();
-
-        if (mSaveResizeChanges) {
-            SettingsStore.getInstance(getContext()).setBrowserWorldWidth(aWorldWidth);
-            SettingsStore.getInstance(getContext()).setBrowserWorldHeight(aWorldHeight);
-        }
     }
 
     @Override

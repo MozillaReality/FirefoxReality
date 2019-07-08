@@ -423,7 +423,6 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
             return;
         }
 
-        mAttachedWindow.setSaveResizeChanges(false);
         setFullScreenSize();
         mWidgetManager.pushBackHandler(mFullScreenBackHandler);
         mIsInFullScreenMode = true;
@@ -474,7 +473,6 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
 
         mAttachedWindow.getPlacement().copyFrom(mSizeBeforeFullScreen);
         mWidgetManager.updateWidget(mAttachedWindow);
-        mAttachedWindow.setSaveResizeChanges(true);
 
         mIsInFullScreenMode = false;
         mWidgetManager.popBackHandler(mFullScreenBackHandler);
