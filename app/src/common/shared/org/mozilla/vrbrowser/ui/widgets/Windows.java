@@ -25,7 +25,7 @@ import java.io.Writer;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 
-public class Windows implements TrayListener, TopBarWidget.Delegate {
+public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSession.ContentDelegate {
 
     private static final String WINDOWS_SAVE_FILENAME = "windows_state.json";
 
@@ -63,6 +63,8 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
     private static int sIndex;
     private boolean mPrivateMode = false;
     private static final int MAX_WINDOWS = 3;
+    private WindowWidget mFullscreenWindow;
+    private WindowPlacement mPrevWindowPlacement;
 
     enum WindowPlacement{
         FRONT(0),
@@ -144,6 +146,9 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
     }
 
     public WindowWidget getFocusedWindow() {
+        if (mFullscreenWindow != null) {
+            return mFullscreenWindow;
+        }
         return mFocusedWindow;
     }
 
@@ -151,6 +156,11 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
         if (getCurrentWindows().size() >= MAX_WINDOWS) {
             showMaxWindowsMessage();
             return null;
+        }
+
+        if (mFullscreenWindow != null) {
+            mFullscreenWindow.getSessionStore().exitFullScreen();
+            onFullScreen(mFullscreenWindow.getSessionStore().getCurrentSession(), false);
         }
 
         WindowWidget frontWindow = getFrontWindow();
@@ -382,9 +392,9 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
 
     private void updateMaxWindowScales() {
         float maxScale = 3;
-        if (getCurrentWindows().size() >= 3) {
+        if (mFullscreenWindow == null && getCurrentWindows().size() >= 3) {
             maxScale = 1.5f;
-        } else if (getCurrentWindows().size() == 2) {
+        } else if (mFullscreenWindow == null && getCurrentWindows().size() == 2) {
             maxScale = 2.0f;
         }
 
@@ -416,6 +426,9 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
     }
 
     private WindowWidget getFrontWindow() {
+        if (mFullscreenWindow != null) {
+            return mFullscreenWindow;
+        }
         return getWindowWithPlacement(WindowPlacement.FRONT);
     }
 
@@ -470,6 +483,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
         mPrivateWindows.remove(aWindow);
         aWindow.getTopBar().setVisible(false);
         aWindow.getTopBar().setDelegate((TopBarWidget.Delegate) null);
+        aWindow.getSessionStore().removeContentListener(this);
         aWindow.close();
         updateMaxWindowScales();
     }
@@ -549,7 +563,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
         ArrayList<WindowWidget> windows = getCurrentWindows();
         WindowWidget leftWindow = getLeftWindow();
         WindowWidget rightWindow = getRightWindow();
-        boolean visible = windows.size() > 1 || isInPrivateMode();
+        boolean visible = mFullscreenWindow == null && (windows.size() > 1 || isInPrivateMode());
         for (WindowWidget window: windows) {
             window.getTopBar().setVisible(visible);
             if (visible) {
@@ -570,6 +584,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
         }
         getCurrentWindows().add(window);
         window.getTopBar().setDelegate(this);
+        window.getSessionStore().addContentListener(this);
 
         return window;
     }
@@ -617,6 +632,44 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
         if (window != null) {
             moveWindowRight(window);
         }
+    }
+
+    // Content delegate
+    @Override
+    public void onFullScreen(GeckoSession session, boolean aFullScreen) {
+        WindowWidget window = getWindowWithSession(session);
+        if (window == null) {
+            return;
+        }
+
+        if (aFullScreen) {
+            mFullscreenWindow = window;
+            mPrevWindowPlacement = window.getWindowPlacement();
+            placeWindow(window, WindowPlacement.FRONT);
+            focusWindow(window);
+            for (WindowWidget win: getCurrentWindows()) {
+                setWindowVisible(win, win == mFullscreenWindow);
+            }
+            updateMaxWindowScales();
+            updateViews();
+        } else if (mFullscreenWindow != null) {
+            placeWindow(mFullscreenWindow, mPrevWindowPlacement);
+            mFullscreenWindow = null;
+            for (WindowWidget win : getCurrentWindows()) {
+                setWindowVisible(win, true);
+            }
+            updateMaxWindowScales();
+            updateViews();
+        }
+    }
+
+    private WindowWidget getWindowWithSession(GeckoSession aSession) {
+        for (WindowWidget window: getCurrentWindows()) {
+            if (window.getSessionStore().containsSession(aSession)) {
+                return window;
+            }
+        }
+        return null;
     }
 
 }

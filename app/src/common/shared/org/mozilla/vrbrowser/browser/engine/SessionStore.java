@@ -482,6 +482,10 @@ public class SessionStore implements ContentBlocking.Delegate, GeckoSession.Navi
         return state.mSession;
     }
 
+    public boolean containsSession(GeckoSession aSession) {
+        return getSessionId(aSession) != NO_SESSION;
+    }
+
     private Integer getSessionId(GeckoSession aSession) {
         for (Map.Entry<Integer, SessionState> entry : mSessions.entrySet()) {
             if (entry.getValue().mSession == aSession) {
