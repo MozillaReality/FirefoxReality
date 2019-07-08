@@ -928,11 +928,11 @@ BrowserWorld::RemoveWidget(int32_t aHandle) {
 }
 
 void
-BrowserWorld::StartWidgetResize(int32_t aHandle) {
+BrowserWorld::StartWidgetResize(int32_t aHandle, const vrb::Vector& aMaxSize) {
   ASSERT_ON_RENDER_THREAD();
   WidgetPtr widget = m.GetWidget(aHandle);
   if (widget) {
-    widget->StartResize();
+    widget->StartResize(aMaxSize);
   }
 }
 
@@ -1418,8 +1418,8 @@ JNI_METHOD(void, removeWidgetNative)
 }
 
 JNI_METHOD(void, startWidgetResizeNative)
-(JNIEnv*, jobject, jint aHandle) {
-  crow::BrowserWorld::Instance().StartWidgetResize(aHandle);
+(JNIEnv*, jobject, jint aHandle, jfloat aMaxWidth, jfloat aMaxHeight) {
+  crow::BrowserWorld::Instance().StartWidgetResize(aHandle, vrb::Vector(aMaxWidth, aMaxHeight, 0.0f));
 }
 
 JNI_METHOD(void, finishWidgetResizeNative)

@@ -1036,8 +1036,8 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     }
 
     @Override
-    public void startWidgetResize(final Widget aWidget) {
-        queueRunnable(() -> startWidgetResizeNative(aWidget.getHandle()));
+    public void startWidgetResize(final Widget aWidget, float aMaxWidth, float aMaxHeight) {
+        queueRunnable(() -> startWidgetResizeNative(aWidget.getHandle(), aMaxWidth, aMaxHeight));
     }
 
     @Override
@@ -1265,7 +1265,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     private native void updateWidgetNative(int aHandle, WidgetPlacement aPlacement);
     private native void updateVisibleWidgetsNative();
     private native void removeWidgetNative(int aHandle);
-    private native void startWidgetResizeNative(int aHandle);
+    private native void startWidgetResizeNative(int aHandle, float maxWidth, float maxHeight);
     private native void finishWidgetResizeNative(int aHandle);
     private native void startWidgetMoveNative(int aHandle, int aMoveBehaviour);
     private native void finishWidgetMoveNative();

@@ -183,6 +183,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
             placeWindow(newWindow, WindowPlacement.LEFT);
         }
 
+        updateMaxWindowScales();
         mWidgetManager.addWidget(newWindow);
         focusWindow(newWindow);
         updateViews();
@@ -380,6 +381,19 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
         return false;
     }
 
+    private void updateMaxWindowScales() {
+        float maxScale = 3;
+        if (getCurrentWindows().size() >= 3) {
+            maxScale = 1.5f;
+        } else if (getCurrentWindows().size() == 2) {
+            maxScale = 2.0f;
+        }
+
+        for (WindowWidget window: getCurrentWindows()) {
+            window.setMaxWindowScale(maxScale);
+        }
+    }
+
     private void showMaxWindowsMessage() {
         mFocusedWindow.showAlert("", mContext.getString(R.string.max_windows_message, String.valueOf(MAX_WINDOWS)), new GeckoSession.PromptDelegate.AlertCallback() {
             @Override
@@ -447,6 +461,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
             WindowWidget window = addWindow();
             focusWindow(window);
         }
+        updateMaxWindowScales();
         updateViews();
     }
 
@@ -457,6 +472,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
         aWindow.getTopBar().setVisible(false);
         aWindow.getTopBar().setDelegate((TopBarWidget.Delegate) null);
         aWindow.releaseWidget();
+        updateMaxWindowScales();
     }
 
     private void setWindowVisible(WindowWidget aWindow, boolean aVisible) {

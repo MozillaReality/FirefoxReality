@@ -11,6 +11,7 @@ import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
 import android.util.Log;
+import android.util.Pair;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.Surface;
@@ -78,6 +79,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     private BookmarksView mBookmarksView;
     private ArrayList<BookmarkListener> mBookmarksListeners;
     private Windows.WindowPlacement mWindowPlacement = Windows.WindowPlacement.FRONT;
+    private float mMaxWindowScale = 3;
 
     public WindowWidget(Context aContext, int windowId, boolean privateMode) {
         super(aContext);
@@ -300,14 +302,8 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
 
     @Override
     public void resizeByMultiplier(float aspect, float multiplier) {
-        float worldWidth = WidgetPlacement.floatDimension(getContext(), R.dimen.window_world_width);
-        float worldHeight = worldWidth / aspect;
-        float area = worldWidth * worldHeight * multiplier;
-
-        float targetWidth = (float) Math.sqrt(area * aspect);
-        float targetHeight = (float) Math.sqrt(area / aspect);
-
-        handleResizeEvent(targetWidth, targetHeight);
+        Pair<Float, Float> targetSize = getSizeForScale(multiplier, aspect);
+        handleResizeEvent(targetSize.first, targetSize.second);
     }
 
     public float getCurrentScale() {
@@ -468,14 +464,11 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
 
     @Override
     public void handleResizeEvent(float aWorldWidth, float aWorldHeight) {
-        float worldWidth = WidgetPlacement.floatDimension(getContext(), R.dimen.window_world_width);
-        int defaultWidth = SettingsStore.getInstance(getContext()).getWindowWidth();
-        int defaultHeight = SettingsStore.getInstance(getContext()).getWindowHeight();
-
-        float aspect = (float) defaultWidth / (float) defaultHeight;
-        float worldHeight = worldWidth / aspect;
-        mWidgetPlacement.width = (int) ((aWorldWidth * defaultWidth) / worldWidth) + mBorderWidth * 2;
-        mWidgetPlacement.height = (int) ((aWorldHeight * defaultHeight) / worldHeight) + mBorderWidth * 2;
+        int width = getWindowWidth(aWorldWidth);
+        float aspect = aWorldWidth / aWorldHeight;
+        int height = (int) Math.floor((float)width / aspect);
+        mWidgetPlacement.width = width + mBorderWidth * 2;
+        mWidgetPlacement.height = height + mBorderWidth * 2;
         mWidgetPlacement.worldWidth = aWorldWidth;
         mWidgetManager.updateWidget(this);
         mWidgetManager.updateVisibleWidgets();
@@ -688,6 +681,43 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         mConfirmPrompt.setButtons(btnMsg);
         mConfirmPrompt.setDelegate(callback);
         mConfirmPrompt.show(REQUEST_FOCUS);
+    }
+
+    public void setMaxWindowScale(float aScale) {
+        if (mMaxWindowScale != aScale) {
+            mMaxWindowScale = aScale;
+
+            Pair<Float, Float> maxSize = getSizeForScale(aScale);
+
+            if (mWidgetPlacement.worldWidth > maxSize.first) {
+                float currentAspect = (float) mWidgetPlacement.width / (float) mWidgetPlacement.height;
+                mWidgetPlacement.worldWidth = maxSize.first;
+                mWidgetPlacement.width = getWindowWidth(maxSize.first);
+                mWidgetPlacement.height = (int) Math.ceil((float)mWidgetPlacement.width / currentAspect);
+            }
+        }
+    }
+
+    public float getMaxWindowScale() {
+        return mMaxWindowScale;
+    }
+
+    public @NonNull Pair<Float, Float> getSizeForScale(float aScale) {
+        return getSizeForScale(aScale, SettingsStore.getInstance(getContext()).getWindowAspect());
+    }
+
+    public @NonNull Pair<Float, Float> getSizeForScale(float aScale, float aAspect) {
+        float worldWidth = WidgetPlacement.floatDimension(getContext(), R.dimen.window_world_width) *
+                    (float)SettingsStore.getInstance(getContext()).getWindowWidth() / (float)SettingsStore.WINDOW_WIDTH_DEFAULT;
+        float worldHeight = worldWidth / aAspect;
+        float area = worldWidth * worldHeight * aScale;
+        float targetWidth = (float) Math.sqrt(area * aAspect);
+        float targetHeight = targetWidth / aAspect;
+        return Pair.create(targetWidth, targetHeight);
+    }
+
+    private int getWindowWidth(float aWorldWidth) {
+        return (int) Math.floor(SettingsStore.WINDOW_WIDTH_DEFAULT * aWorldWidth / WidgetPlacement.floatDimension(getContext(), R.dimen.window_world_width));
     }
 
     // PromptDelegate
