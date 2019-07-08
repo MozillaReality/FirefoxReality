@@ -1,8 +1,6 @@
 package org.mozilla.vrbrowser.ui.widgets;
 
 import android.content.Context;
-import android.content.res.Configuration;
-import android.os.Bundle;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -15,7 +13,6 @@ import com.google.gson.reflect.TypeToken;
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.browser.SettingsStore;
-import org.mozilla.vrbrowser.browser.engine.SessionManager;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.utils.InternalPages;
 
@@ -41,6 +38,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
     class WindowsState {
         WindowPlacement focusedWindowPlacement = WindowPlacement.FRONT;
         ArrayList<WindowState> regularWindowsState = new ArrayList<>();
+        ArrayList<WindowState> privateWindowsState = new ArrayList<>();
         boolean privateMode = false;
     }
 
@@ -94,6 +92,13 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
                 windowState.sessionStore = window.getSessionStore();
                 windowState.currentSessionId = window.getSessionStore().getCurrentSessionId();
                 state.regularWindowsState.add(windowState);
+            }
+            for (WindowWidget window : mPrivateWindows) {
+                WindowState windowState = new WindowState();
+                windowState.placement = window.getWindowPlacement();
+                windowState.sessionStore = window.getSessionStore();
+                windowState.currentSessionId = window.getSessionStore().getCurrentSessionId();
+                state.privateWindowsState.add(windowState);
             }
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
             gson.toJson(state, writer);
@@ -407,8 +412,13 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
                 WindowWidget window = addWindow(windowState.placement);
                 window.getSessionStore().restore(windowState.sessionStore, windowState.currentSessionId);
             }
-
-            if (windowsState.privateMode) {
+            mPrivateMode = true;
+            for (WindowState windowState : windowsState.privateWindowsState) {
+                WindowWidget window = addWindow(windowState.placement);
+                window.getSessionStore().restore(windowState.sessionStore, windowState.currentSessionId);
+            }
+            mPrivateMode = windowsState.privateMode;
+            if (mPrivateMode) {
                 enterPrivateMode();
             }
 
