@@ -69,7 +69,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     private int mWidthBackup;
     private int mHeightBackup;
     private int mBorderWidth;
-    Runnable mFirstDrawCallback;
+    private Runnable mFirstDrawCallback;
     private boolean mIsInVRVideoMode;
     private boolean mSaveResizeChanges;
     private View mView;
@@ -173,7 +173,8 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     }
 
     public void onDestroy() {
-        mBookmarksView.onDestroy();
+        releaseWidget();
+        SessionManager.get().destroySessionStore(mWindowId);
     }
 
     private void setView(View view) {
@@ -507,8 +508,6 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
             mDisplay = null;
         }
         session.getTextInput().setView(null);
-
-        SessionManager.get().destroySessionStore(mWindowId);
     }
 
 

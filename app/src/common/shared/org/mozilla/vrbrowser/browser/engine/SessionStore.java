@@ -38,6 +38,7 @@ import org.mozilla.vrbrowser.utils.InternalPages;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.Map;
@@ -59,25 +60,24 @@ public class SessionStore implements ContentBlocking.Delegate, GeckoSession.Navi
     public static final String PRIVATE_BROWSING_URI = "about:privatebrowsing";
     public static final int NO_SESSION = -1;
 
-    private LinkedList<GeckoSession.NavigationDelegate> mNavigationListeners;
-    private LinkedList<GeckoSession.ProgressDelegate> mProgressListeners;
-    private LinkedList<GeckoSession.ContentDelegate> mContentListeners;
-    private LinkedList<SessionChangeListener> mSessionChangeListeners;
-    private LinkedList<GeckoSession.TextInputDelegate> mTextInputListeners;
-    private LinkedList<GeckoSession.PromptDelegate> mPromptListeners;
-    private LinkedList<VideoAvailabilityListener> mVideoAvailabilityListeners;
-    private UserAgentOverride mUserAgentOverride;
+    private transient LinkedList<GeckoSession.NavigationDelegate> mNavigationListeners;
+    private transient LinkedList<GeckoSession.ProgressDelegate> mProgressListeners;
+    private transient LinkedList<GeckoSession.ContentDelegate> mContentListeners;
+    private transient LinkedList<SessionChangeListener> mSessionChangeListeners;
+    private transient LinkedList<GeckoSession.TextInputDelegate> mTextInputListeners;
+    private transient LinkedList<GeckoSession.PromptDelegate> mPromptListeners;
+    private transient LinkedList<VideoAvailabilityListener> mVideoAvailabilityListeners;
+    private transient UserAgentOverride mUserAgentOverride;
 
-    private GeckoSession mCurrentSession;
+    private transient GeckoSession mCurrentSession;
     private HashMap<Integer, SessionState> mSessions;
     private Deque<Integer> mSessionsStack;
-    private GeckoSession.PermissionDelegate mPermissionDelegate;
-    private int mPreviousSessionId = NO_SESSION;
+    private transient GeckoSession.PermissionDelegate mPermissionDelegate;
     private int mPreviousGeckoSessionId = NO_SESSION;
     private String mRegion;
-    private Context mContext;
-    private SharedPreferences mPrefs;
-    private GeckoRuntime mRuntime;
+    private transient Context mContext;
+    private transient SharedPreferences mPrefs;
+    private transient GeckoRuntime mRuntime;
     private boolean mUsePrivateMode;
 
     protected SessionStore(Context context, GeckoRuntime runtime, boolean usePrivateMode) {
@@ -131,7 +131,6 @@ public class SessionStore implements ContentBlocking.Delegate, GeckoSession.Navi
         mSessionsStack.clear();
 
         mCurrentSession = null;
-        mPreviousSessionId = NO_SESSION;
         mPreviousGeckoSessionId = NO_SESSION;
     }
 
@@ -265,6 +264,71 @@ public class SessionStore implements ContentBlocking.Delegate, GeckoSession.Navi
         mVideoAvailabilityListeners.remove(aListener);
     }
 
+    public void restore(SessionStore store, int currentSessionId) {
+        mSessions.clear();
+        mSessionsStack.clear();
+
+        mPreviousGeckoSessionId = store.mPreviousGeckoSessionId;
+        mRegion = store.mRegion;
+        mUsePrivateMode = store.mUsePrivateMode;
+
+        SessionSettings settings = new SessionSettings.Builder()
+                .withDefaultSettings(mContext)
+                .build();
+
+        GeckoSessionSettings geckoSettings = new GeckoSessionSettings.Builder()
+                .useMultiprocess(settings.isMultiprocessEnabled())
+                .usePrivateMode(mUsePrivateMode)
+                .useTrackingProtection(settings.isTrackingProtectionEnabled())
+                .build();
+
+        HashMap<Integer, Integer> oldNewSessionId = new HashMap<>();
+        for (Map.Entry<Integer, SessionState> entry : store.mSessions.entrySet()) {
+            SessionState state = entry.getValue();
+
+            if (settings.isServoEnabled()) {
+                if (isServoAvailable()) {
+                    state.mSession = createServoSession(mContext);
+                } else {
+                    Log.e(LOGTAG, "Attempt to create a ServoSession. Servo hasn't been enable at build time. Using a GeckoSession instead.");
+                    state.mSession = new GeckoSession(geckoSettings);
+                }
+            } else {
+                state.mSession = new GeckoSession(geckoSettings);
+            }
+
+            state.mSession.restoreState(state.mSessionState);
+
+            int newSessionId = state.mSession.hashCode();
+            oldNewSessionId.put(entry.getKey(), newSessionId);
+
+            state.mSession.getSettings().setSuspendMediaWhenInactive(settings.isSuspendMediaWhenInactiveEnabled());
+            state.mSession.getSettings().setUserAgentMode(settings.getUserAgentMode());
+            state.mSession.setNavigationDelegate(this);
+            state.mSession.setProgressDelegate(this);
+            state.mSession.setPromptDelegate(this);
+            state.mSession.setContentDelegate(this);
+            state.mSession.getTextInput().setDelegate(this);
+            state.mSession.setPermissionDelegate(mPermissionDelegate);
+            state.mSession.setContentBlockingDelegate(this);
+            state.mSession.setMediaDelegate(this);
+            for (SessionChangeListener listener: mSessionChangeListeners) {
+                listener.onNewSession(state.mSession, newSessionId);
+            }
+
+            mSessions.put(newSessionId, state);
+
+            if (entry.getKey() == currentSessionId) {
+                setCurrentSession(newSessionId);
+            }
+        }
+
+        for (Iterator<Integer> it = store.mSessionsStack.descendingIterator(); it.hasNext();) {
+            int oldSessionId = it.next();
+            int newSessionId = oldNewSessionId.get(oldSessionId);
+            mSessionsStack.push(newSessionId);
+        }
+    }
 
     private int createSession() {
         SessionSettings settings = new SessionSettings.Builder()
@@ -389,7 +453,9 @@ public class SessionStore implements ContentBlocking.Delegate, GeckoSession.Navi
     }
 
     private void stackSession(int sessionId) {
-        pushSession(getCurrentSessionId());
+        int currentSessionId = getCurrentSessionId();
+        if (currentSessionId != NO_SESSION)
+            pushSession(currentSessionId);
         setCurrentSession(sessionId);
 
         mCurrentSession = null;

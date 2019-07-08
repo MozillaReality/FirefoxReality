@@ -1,18 +1,49 @@
 package org.mozilla.vrbrowser.ui.widgets;
 
 import android.content.Context;
+import android.content.res.Configuration;
+import android.os.Bundle;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.browser.SettingsStore;
+import org.mozilla.vrbrowser.browser.engine.SessionManager;
+import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.utils.InternalPages;
 
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Reader;
+import java.io.Writer;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 
 public class Windows implements TrayListener, TopBarWidget.Delegate {
+
+    private static final String WINDOWS_SAVE_FILENAME = "windows_state.json";
+
+    class WindowState {
+        WindowPlacement placement;
+        SessionStore sessionStore;
+        int currentSessionId;
+    }
+
+    class WindowsState {
+        WindowPlacement focusedWindowPlacement = WindowPlacement.FRONT;
+        ArrayList<WindowState> regularWindowsState = new ArrayList<>();
+        boolean privateMode = false;
+    }
+
     private Context mContext;
     private WidgetManagerDelegate mWidgetManager;
     private Delegate mDelegate;
@@ -46,7 +77,53 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
         mWidgetManager = (WidgetManagerDelegate) aContext;
         mRegularWindows = new ArrayList<>();
         mPrivateWindows = new ArrayList<>();
+
         restoreWindows();
+    }
+
+    private void saveState() {
+        File file = new File(mContext.getFilesDir(), WINDOWS_SAVE_FILENAME);
+        try (Writer writer = new FileWriter(file)) {
+            WindowsState state = new WindowsState();
+            state.privateMode = mPrivateMode;
+            state.focusedWindowPlacement = mFocusedWindow.getWindowPlacement();
+            state.regularWindowsState = new ArrayList<>();
+            for (WindowWidget window : mRegularWindows) {
+                WindowState windowState = new WindowState();
+                windowState.placement = window.getWindowPlacement();
+                windowState.sessionStore = window.getSessionStore();
+                windowState.currentSessionId = window.getSessionStore().getCurrentSessionId();
+                state.regularWindowsState.add(windowState);
+            }
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            gson.toJson(state, writer);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private WindowsState restoreState() {
+        WindowsState restored = null;
+
+        File file = new File(mContext.getFilesDir(), WINDOWS_SAVE_FILENAME);
+        try (Reader reader = new FileReader(file)) {
+            Gson gson = new GsonBuilder().create();
+            Type type = new TypeToken<WindowsState>() {}.getType();
+            return gson.fromJson(reader, type);
+
+        } catch (IOException e) {
+            Log.w(getClass().getCanonicalName(), "Error restoring persistent windows state", e);
+
+        } finally {
+            boolean deleted = file.delete();
+            if (deleted)
+                Log.d(getClass().getCanonicalName(), "Persistent windows state successfully restored");
+            else
+                Log.d(getClass().getCanonicalName(), "Persistent window state couldn't be deleted");
+        }
+
+        return restored;
     }
 
     public void setDelegate(Delegate aDelegate) {
@@ -92,6 +169,21 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
             // Opening a new window from right window
             placeWindow(newWindow, WindowPlacement.LEFT);
         }
+
+        mWidgetManager.addWidget(newWindow);
+        focusWindow(newWindow);
+        updateViews();
+        return newWindow;
+    }
+
+    private WindowWidget addWindow(WindowPlacement placement) {
+        if (getCurrentWindows().size() >= MAX_WINDOWS) {
+            showMaxWindowsMessage();
+            return null;
+        }
+
+        WindowWidget newWindow = createWindow();
+        placeWindow(newWindow, placement);
 
         mWidgetManager.addWidget(newWindow);
         focusWindow(newWindow);
@@ -209,6 +301,8 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
     }
 
     public void onDestroy() {
+        saveState();
+
         for (WindowWidget window: mRegularWindows) {
             window.onDestroy();
         }
@@ -307,8 +401,23 @@ public class Windows implements TrayListener, TopBarWidget.Delegate {
     }
 
     private void restoreWindows() {
-        WindowWidget window = addWindow();
-        focusWindow(window);
+        WindowsState windowsState = restoreState();
+        if (windowsState != null) {
+            for (WindowState windowState : windowsState.regularWindowsState) {
+                WindowWidget window = addWindow(windowState.placement);
+                window.getSessionStore().restore(windowState.sessionStore, windowState.currentSessionId);
+            }
+
+            if (windowsState.privateMode) {
+                enterPrivateMode();
+            }
+
+            focusWindow(getWindowWithPlacement(windowsState.focusedWindowPlacement));
+
+        } else {
+            WindowWidget window = addWindow();
+            focusWindow(window);
+        }
     }
 
     private void removeWindow(@NonNull WindowWidget aWindow) {
