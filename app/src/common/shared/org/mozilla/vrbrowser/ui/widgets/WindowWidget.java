@@ -39,6 +39,7 @@ import org.mozilla.vrbrowser.ui.widgets.prompts.AuthPromptWidget;
 import org.mozilla.vrbrowser.ui.widgets.prompts.ChoicePromptWidget;
 import org.mozilla.vrbrowser.ui.widgets.prompts.ConfirmPromptWidget;
 import org.mozilla.vrbrowser.ui.widgets.prompts.TextPromptWidget;
+import org.mozilla.vrbrowser.utils.InternalPages;
 
 import java.util.ArrayList;
 
@@ -171,6 +172,15 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         releaseWidget();
         mBookmarksView.onDestroy();
         SessionManager.get().destroySessionStore(mWindowId);
+    }
+
+    public void loadHome() {
+        if (mSessionStore.isPrivateMode()) {
+            InternalPages.PageResources pageResources = InternalPages.PageResources.create(R.raw.private_mode, R.raw.private_style);
+            mSessionStore.getCurrentSession().loadData(InternalPages.createAboutPage(getContext(), pageResources), "text/html");
+        } else {
+            mSessionStore.loadUri(SettingsStore.getInstance(getContext()).getHomepage());
+        }
     }
 
     private void setView(View view) {
