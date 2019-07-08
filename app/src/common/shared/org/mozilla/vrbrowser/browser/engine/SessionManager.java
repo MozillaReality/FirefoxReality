@@ -96,7 +96,6 @@ public class SessionManager implements GeckoSession.PermissionDelegate {
     public SessionStore createSessionStore(int storeId, boolean privateMode) {
         SessionStore store = new SessionStore(mContext, mRuntime, privateMode);
         store.setPermissionDelegate(this);
-        store.registerListeners();
         mSessionStores.put(storeId, store);
 
         return store;
@@ -106,7 +105,6 @@ public class SessionManager implements GeckoSession.PermissionDelegate {
         SessionStore store = mSessionStores.remove(storeId);
         if (store != null) {
             store.setPermissionDelegate(null);
-            store.unregisterListeners();
             store.shutdown();
         }
     }

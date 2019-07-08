@@ -15,7 +15,6 @@ import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.audio.AudioEngine;
 import org.mozilla.vrbrowser.browser.SessionChangeListener;
-import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.ui.views.UIButton;
 
 public class TopBarWidget extends UIWidget implements SessionChangeListener, WidgetManagerDelegate.UpdateListener {
@@ -25,7 +24,6 @@ public class TopBarWidget extends UIWidget implements SessionChangeListener, Wid
     private UIButton mMoveRightButton;
     private AudioEngine mAudio;
     private WindowWidget mAttachedWindow;
-    private SessionStore mSessionStore;
     private TopBarWidget.Delegate mDelegate;
     private boolean mVisible;
 
@@ -109,10 +107,6 @@ public class TopBarWidget extends UIWidget implements SessionChangeListener, Wid
 
     @Override
     public void releaseWidget() {
-        if (mSessionStore != null) {
-            mSessionStore.removeSessionChangeListener(this);
-        }
-
         mWidgetManager.removeUpdateListener(this);
 
         super.releaseWidget();
