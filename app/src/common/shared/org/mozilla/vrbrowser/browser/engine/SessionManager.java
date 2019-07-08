@@ -144,7 +144,8 @@ public class SessionManager implements GeckoSession.PermissionDelegate {
     }
 
     public void onDestroy() {
-        for (Map.Entry<Integer, SessionStore> entry : mSessionStores.entrySet()) {
+        HashMap<Integer, SessionStore> sessionStores = new HashMap<>(mSessionStores);
+        for (Map.Entry<Integer, SessionStore> entry : sessionStores.entrySet()) {
             destroySessionStore(entry.getKey());
         }
 
