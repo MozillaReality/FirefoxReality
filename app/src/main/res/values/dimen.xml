@@ -111,7 +111,7 @@
     <dimen name="autocompletion_widget_extended_height">160dp</dimen>
     <dimen name="autocompletion_widget_margin">4dp</dimen>
     <dimen name="autocompletion_widget_min_item_width">56dp</dimen>
-    <dimen name="autocompletion_widget_item_height">36dp</dimen>
+    <dimen name="autocompletion_widget_item_height">34dp</dimen>
     <dimen name="autocompletion_widget_extend_button_width">74dp</dimen>
     <dimen name="autocompletion_widget_item_padding">20dp</dimen>
 
