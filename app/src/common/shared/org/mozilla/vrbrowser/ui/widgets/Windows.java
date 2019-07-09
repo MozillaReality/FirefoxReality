@@ -12,6 +12,7 @@ import com.google.gson.reflect.TypeToken;
 
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.R;
+import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
 
 import java.io.File;
@@ -494,6 +495,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
     private void placeWindow(WindowWidget aWindow, WindowPlacement aPosition) {
         WidgetPlacement placement = aWindow.getPlacement();
         aWindow.setWindowPlacement(aPosition);
+        boolean curved = SettingsStore.getInstance(mContext).getCylinderDensity() > 0;
         switch (aPosition) {
             case FRONT:
                 placement.anchorX = 0.5f;
@@ -511,8 +513,15 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
                 placement.anchorY = 0.0f;
                 placement.parentAnchorX = 0.0f;
                 placement.parentAnchorY = 0.0f;
-                placement.rotationAxisY = 1.0f;
-                placement.rotation = (float) Math.toRadians(WidgetPlacement.floatDimension(mContext, R.dimen.multi_window_angle));
+                placement.rotationAxisX = 0;
+                placement.rotationAxisZ = 0;
+                if (curved) {
+                    placement.rotation = 0;
+                    placement.rotationAxisY = 0;
+                } else {
+                    placement.rotationAxisY = 1.0f;
+                    placement.rotation = (float) Math.toRadians(WidgetPlacement.floatDimension(mContext, R.dimen.multi_window_angle));
+                }
                 placement.translationX = -WidgetPlacement.dpDimension(mContext, R.dimen.multi_window_padding);
                 placement.translationY = 0.0f;
                 placement.translationZ = 0.0f;
@@ -522,8 +531,17 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
                 placement.anchorY = 0.0f;
                 placement.parentAnchorX = 1.0f;
                 placement.parentAnchorY = 0.0f;
-                placement.rotationAxisY = 1.0f;
-                placement.rotation = (float) Math.toRadians(-WidgetPlacement.floatDimension(mContext, R.dimen.multi_window_angle));
+                placement.rotationAxisX = 0;
+                placement.rotationAxisY = 0;
+                placement.rotationAxisZ = 0;
+                if (curved) {
+                    placement.rotation = 0;
+                    placement.rotationAxisY = 0;
+                } else {
+                    placement.rotationAxisY = 1.0f;
+                    placement.rotation = (float) Math.toRadians(-WidgetPlacement.floatDimension(mContext, R.dimen.multi_window_angle));
+                }
+
                 placement.translationX = WidgetPlacement.dpDimension(mContext, R.dimen.multi_window_padding);
                 placement.translationY = 0.0f;
                 placement.translationZ = 0.0f;
@@ -579,6 +597,13 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
         window.getSessionStore().addContentListener(this);
 
         return window;
+    }
+
+    public void onCurvedModeChanged() {
+        for (WindowWidget window: getCurrentWindows()) {
+            placeWindow(window, window.getWindowPlacement());
+        }
+        updateViews();
     }
 
     // Tray Listener
