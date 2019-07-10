@@ -701,7 +701,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         mMaxWindowsDialog = new MaxWindowsWidget(getContext());
         mMaxWindowsDialog.mWidgetPlacement.parentHandle = getHandle();
         mMaxWindowsDialog.setMessage(getContext().getString(R.string.max_windows_message, String.valueOf(maxDialogs)));
-        mMaxWindowsDialog.show();
+        mMaxWindowsDialog.show(REQUEST_FOCUS);
     }
 
     public void setMaxWindowScale(float aScale) {
@@ -813,7 +813,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         mContextMenu = new ContextMenuWidget(getContext());
         mContextMenu.mWidgetPlacement.parentHandle = getHandle();
         mContextMenu.setContextElement(mLastMouseClickPos, element);
-        mContextMenu.show();
+        mContextMenu.show(REQUEST_FOCUS);
     }
 
     @Override
