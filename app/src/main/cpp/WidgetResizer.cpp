@@ -614,9 +614,6 @@ WidgetResizer::TestIntersection(const vrb::Vector& aWorldPoint) const {
     return true;
   }
   const vrb::Vector point = m.ProjectPoint(aWorldPoint);
-  if (m.widget->GetCylinder()) {
-    //point =
-  }
   vrb::Vector extraMin = vrb::Vector(m.min.x() - kBarSize * 0.5f, m.min.y() - kBarSize * 0.5f, 0.0f);
   vrb::Vector extraMax = vrb::Vector(m.max.x() + kBarSize * 0.5f, m.max.y() + kBarSize * 0.5f, 0.0f);
 
