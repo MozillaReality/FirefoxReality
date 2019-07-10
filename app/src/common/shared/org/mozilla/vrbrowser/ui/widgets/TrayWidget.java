@@ -235,7 +235,7 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Bookm
     }
 
     @Override
-    public void show() {
+    public void show(@ShowFlags int aShowFlags) {
         if (!mWidgetPlacement.visible) {
             mWidgetPlacement.visible = true;
             mWidgetManager.addWidget(this);
@@ -341,26 +341,6 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Bookm
             this.show(REQUEST_FOCUS);
         } else {
             this.hide(UIWidget.KEEP_WIDGET);
-        }
-    }
-
-    @Override
-    public void show(@ShowFlags int aShowFlags) {
-        if (!mWidgetPlacement.visible) {
-            mWidgetPlacement.visible = true;
-            mWidgetManager.addWidget(this);
-        }
-    }
-
-    @Override
-    public void hide(@HideFlags int aHideFlags) {
-        if (mWidgetPlacement.visible) {
-            mWidgetPlacement.visible = false;
-            if (aHideFlags == REMOVE_WIDGET) {
-                mWidgetManager.removeWidget(this);
-            } else {
-                mWidgetManager.updateWidget(this);
-            }
         }
     }
 

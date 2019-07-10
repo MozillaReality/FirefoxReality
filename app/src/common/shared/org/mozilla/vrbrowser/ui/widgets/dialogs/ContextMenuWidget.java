@@ -70,14 +70,14 @@ public class ContextMenuWidget extends UIWidget implements WidgetManagerDelegate
     }
 
     @Override
-    public void show() {
+    public void show(@ShowFlags int aShowFlags) {
         mWidgetManager.addFocusChangeListener(ContextMenuWidget.this);
 
         mContextMenu.measure(View.MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED),
                 View.MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
         mWidgetPlacement.width = (int)(mContextMenu.getMeasuredWidth()/mWidgetPlacement.density);
         mWidgetPlacement.height = (int)(mContextMenu.getMeasuredHeight()/mWidgetPlacement.density);
-        super.show();
+        super.show(aShowFlags);
 
         ViewTreeObserver viewTreeObserver = mContextMenu.getViewTreeObserver();
         if (viewTreeObserver.isAlive()) {
