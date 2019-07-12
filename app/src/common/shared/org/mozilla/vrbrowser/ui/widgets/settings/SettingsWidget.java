@@ -8,6 +8,8 @@ package org.mozilla.vrbrowser.ui.widgets.settings;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -22,7 +24,9 @@ import android.widget.TextView;
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.BuildConfig;
 import org.mozilla.vrbrowser.R;
+import org.mozilla.vrbrowser.VRBrowserApplication;
 import org.mozilla.vrbrowser.audio.AudioEngine;
+import org.mozilla.vrbrowser.browser.Services;
 import org.mozilla.vrbrowser.browser.SessionStore;
 import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.ui.views.HoneycombButton;
@@ -39,6 +43,11 @@ import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+
+import mozilla.components.service.fxa.manager.FxaAccountManager;
 
 public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.WorldClickListener, SettingsView.Delegate {
     private static final String LOGTAG = "VRB";
@@ -50,6 +59,8 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
     private int mViewMarginV;
     private int mRestartDialogHandle = -1;
     private int mAlertDialogHandle = -1;
+
+    private AccountsHelper accountHelper = new AccountsHelper(this);
 
     class VersionGestureListener extends GestureDetector.SimpleOnGestureListener {
 
@@ -182,6 +193,16 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
             onSettingsReportClick();
         });
 
+        HoneycombButton fxaButton = findViewById(R.id.fxaButton);
+        fxaButton.setOnClickListener(view ->
+                onTurnOnSyncClick()
+        );
+
+        updateCurrentAccountState();
+
+        // Monitor account state changes.
+        getServices().getAccountManager().register(accountHelper.getAccountObserver());
+
         HoneycombButton developerOptionsButton = findViewById(R.id.developerOptionsButton);
         developerOptionsButton.setOnClickListener(view -> {
             if (mAudio != null) {
@@ -244,12 +265,6 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
     private void onSettingsReportClick() {
         String url = SessionStore.get().getCurrentUri();
 
-        GeckoSession session = SessionStore.get().getCurrentSession();
-        if (session == null) {
-            int sessionId = SessionStore.get().createSession();
-            SessionStore.get().setCurrentSession(sessionId);
-        }
-
         try {
             if (url == null) {
                 // In case the user had no active sessions when reporting, just leave the URL field empty.
@@ -266,9 +281,62 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
         } catch (UnsupportedEncodingException e) {
             Log.e(LOGTAG, "Cannot encode URL");
         }
-        SessionStore.get().loadUri(getContext().getString(R.string.private_report_url, url));
+
+        loadUrl(getContext().getString(R.string.private_report_url, url));
 
         hide(REMOVE_WIDGET);
+    }
+
+    private void onTurnOnSyncClick() {
+        FxaAccountManager manager = getServices().getAccountManager();
+        // If we're already logged-in, and not in a "need to reconnect" state, logout.
+        if (manager.authenticatedAccount() != null && !manager.accountNeedsReauth()) {
+            manager.logoutAsync();
+            return;
+        }
+
+        // Otherwise, obtain an authentication URL and load it in the gecko session.
+        // Recovering from "need to reconnect" state is treated the same as just logging in.
+        CompletableFuture<String> futureUrl = accountHelper.authUrlAsync();
+        if (futureUrl == null) {
+            Log.w(LOGTAG, "Got a 'null' futureUrl");
+            return;
+        }
+
+        Executors.newSingleThreadExecutor().submit(() -> {
+            try {
+                String url = futureUrl.get();
+                if (url == null) {
+                    Log.w(LOGTAG, "Got a 'null' url after resolving futureUrl");
+                    return;
+                }
+                Log.i(LOGTAG, "Got an auth url: " + url);
+
+                // Actually process the url on the main thread.
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    Log.i(LOGTAG, "Loading url...");
+                    loadUrl(url);
+                    hide(REMOVE_WIDGET);
+                });
+            } catch (ExecutionException | InterruptedException e) {
+                Log.e(LOGTAG, "Error obtaining auth url", e);
+            }
+        });
+    }
+
+    // TODO we can also set profile display name, email and authentication problem states.
+    void updateCurrentAccountState() {
+        HoneycombButton fxaButton = findViewById(R.id.fxaButton);
+        FxaAccountManager manager = getServices().getAccountManager();
+        if (manager.authenticatedAccount() != null) {
+            if (manager.accountNeedsReauth()) {
+                ((TextView) fxaButton.findViewById(R.id.settings_button_text)).setText(R.string.settings_accounts_reconnect);
+            } else {
+                ((TextView) fxaButton.findViewById(R.id.settings_button_text)).setText(R.string.settings_accounts_sign_out);
+            }
+        } else {
+            ((TextView) fxaButton.findViewById(R.id.settings_button_text)).setText(R.string.settings_accounts_sign_in);
+        }
     }
 
     private void onDeveloperOptionsClick() {
@@ -435,5 +503,22 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
         widget.setMessage(aMessage);
 
         widget.show(REQUEST_FOCUS);
+    }
+
+    /**
+     * Helper method to load URLs in the current session.
+     */
+    private void loadUrl(String url) {
+        GeckoSession session = SessionStore.get().getCurrentSession();
+        if (session == null) {
+            int sessionId = SessionStore.get().createSession();
+            SessionStore.get().setCurrentSession(sessionId);
+        }
+
+        SessionStore.get().loadUri(url);
+    }
+
+    private Services getServices() {
+        return ((VRBrowserApplication) getContext().getApplicationContext()).getServices();
     }
 }
