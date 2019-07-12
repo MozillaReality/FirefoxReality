@@ -209,6 +209,14 @@
                             app:honeycombButtonText="@string/settings_controller_options"
                             app:honeycombButtonTextSize="@dimen/settings_main_button_text_width" />
 
+                        <!-- TODO use a proper accounts icon -->
+                        <org.mozilla.vrbrowser.ui.views.HoneycombButton
+                            android:id="@+id/fxaButton"
+                            style="?attr/honeycombButtonStyle"
+                            app:honeycombButtonIcon="@drawable/ic_settings_reportissue"
+                            app:honeycombButtonText="@string/settings_accounts_sign_in"
+                            app:honeycombSwitchTextSize="@dimen/settings_main_button_text_width" />
+
                         <org.mozilla.vrbrowser.ui.views.HoneycombButton
                             android:id="@+id/helpButton"
                             style="?attr/honeycombButtonStyle"
