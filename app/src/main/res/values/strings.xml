@@ -699,4 +699,7 @@
     <!-- This string is displayed in the message body of the alert dialog shown when the user does not have permission to run the application on the device.
          '%1$s' will be replace at runtime with the app's name. -->
     <string name="not_entitled_message">%1$s does not have permission to run on this device and will now exit.</string>
+    <string name="performance_unblock_page">Unblock Page</string>
+    <string name="performance_title">Poor Performance Detected</string>
+    <string name="performance_message">The current web page is affecting performance and has been suspended. Reducing the window size can help improve a web page with poor performance.</string>
 </resources>
