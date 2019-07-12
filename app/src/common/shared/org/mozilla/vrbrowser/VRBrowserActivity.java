@@ -29,6 +29,7 @@ import android.view.View;
 import android.view.ViewTreeObserver;
 import android.widget.FrameLayout;
 
+import org.jetbrains.annotations.NotNull;
 import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.geckoview.CrashReporter;
 import org.mozilla.geckoview.GeckoResult;
@@ -75,6 +76,10 @@ import java.util.function.Consumer;
 import androidx.annotation.IntDef;
 import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
+
+import mozilla.components.concept.sync.AccountObserver;
+import mozilla.components.concept.sync.OAuthAccount;
+import mozilla.components.concept.sync.Profile;
 
 public class VRBrowserActivity extends PlatformActivity implements WidgetManagerDelegate, SessionStore.VideoAvailabilityListener {
 
@@ -170,6 +175,23 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         }
     };
 
+    private AccountObserver accountObserver = new AccountObserver() {
+        @Override
+        public void onLoggedOut() {}
+
+        @Override
+        public void onAuthenticated(@NotNull OAuthAccount account) {
+            // Check if we have any new device events (e.g. tabs).
+            account.deviceConstellation().refreshDeviceStateAsync();
+        }
+
+        @Override
+        public void onProfileUpdated(@NotNull Profile profile) {}
+
+        @Override
+        public void onAuthenticationProblems() {}
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         // Fix for infinite restart on startup crashes.
@@ -243,6 +265,12 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         GeolocationWrapper.update(this);
 
         mConnectivityReceiver = new ConnectivityReceiver();
+
+        // Monitor FxA account state.
+        ((VRBrowserApplication) this.getApplicationContext())
+            .getServices()
+            .getAccountManager()
+            .register(accountObserver);
     }
 
     protected void initializeWorld() {
@@ -336,6 +364,17 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         }
         handleConnectivityChange();
         mConnectivityReceiver.register(this, () -> runOnUiThread(() -> handleConnectivityChange()));
+
+        // If we're signed-in, poll for any new device events (e.g. received tabs) on activity resume.
+        // There's no push support right now, so this helps with the perception of speedy tab delivery.
+        OAuthAccount account = ((VRBrowserApplication) this.getApplicationContext())
+                .getServices()
+                .getAccountManager()
+                .authenticatedAccount();
+        if (account != null) {
+            account.deviceConstellation().refreshDeviceStateAsync();
+        }
+
         super.onResume();
     }
 

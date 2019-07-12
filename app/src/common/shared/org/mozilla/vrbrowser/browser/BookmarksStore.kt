@@ -8,27 +8,20 @@ package org.mozilla.vrbrowser.browser
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.future.future
 import mozilla.appservices.places.BookmarkRoot;
-import mozilla.components.browser.storage.sync.PlacesBookmarksStorage
 import mozilla.components.concept.storage.BookmarkNode
-import mozilla.components.concept.storage.BookmarksStorage
+import org.mozilla.vrbrowser.VRBrowserApplication
 import java.util.concurrent.CompletableFuture
 
 class BookmarksStore constructor(aContext: Context) {
-    private var mContext: Context
-    private var mStorage: BookmarksStorage
     private var mListeners = ArrayList<BookmarkListener>()
+
+    private val storage = (aContext.applicationContext as VRBrowserApplication).places.bookmarks
 
     interface BookmarkListener {
         fun onBookmarksUpdated()
-    }
-
-    init {
-        mContext = aContext
-        mStorage = PlacesBookmarksStorage(aContext)
     }
 
     fun addListener(aListener: BookmarkListener) {
@@ -46,24 +39,24 @@ class BookmarksStore constructor(aContext: Context) {
     }
 
     fun getBookmarks(): CompletableFuture<List<BookmarkNode>?> = GlobalScope.future {
-        mStorage.getTree(BookmarkRoot.Mobile.id, true)?.children?.toMutableList()
+        storage.getTree(BookmarkRoot.Mobile.id, true)?.children?.toMutableList()
     }
 
     fun addBookmark(aURL: String, aTitle: String) = GlobalScope.future {
-        mStorage.addItem(BookmarkRoot.Mobile.id, aURL, aTitle, null)
+        storage.addItem(BookmarkRoot.Mobile.id, aURL, aTitle, null)
         notifyListeners()
     }
 
     fun deleteBookmarkByURL(aURL: String) = GlobalScope.future {
         val bookmark = getBookmarkByUrl(aURL)
         if (bookmark != null) {
-            mStorage.deleteNode(bookmark.guid)
+            storage.deleteNode(bookmark.guid)
         }
         notifyListeners()
     }
 
     fun deleteBookmarkById(aId: String) = GlobalScope.future {
-        mStorage.deleteNode(aId)
+        storage.deleteNode(aId)
         notifyListeners()
     }
 
@@ -73,7 +66,7 @@ class BookmarksStore constructor(aContext: Context) {
 
 
     private suspend fun getBookmarkByUrl(aURL: String): BookmarkNode? {
-        val bookmarks: List<BookmarkNode>? = mStorage.getBookmarksWithUrl(aURL)
+        val bookmarks: List<BookmarkNode>? = storage.getBookmarksWithUrl(aURL)
         if (bookmarks == null || bookmarks.isEmpty()) {
             return null
         }

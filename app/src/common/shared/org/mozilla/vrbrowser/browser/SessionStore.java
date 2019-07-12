@@ -30,6 +30,7 @@ import org.mozilla.geckoview.WebExtension;
 import org.mozilla.geckoview.WebRequestError;
 import org.mozilla.vrbrowser.BuildConfig;
 import org.mozilla.vrbrowser.R;
+import org.mozilla.vrbrowser.VRBrowserApplication;
 import org.mozilla.vrbrowser.crashreporting.CrashReporterService;
 import org.mozilla.vrbrowser.geolocation.GeolocationData;
 import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
@@ -1050,6 +1051,8 @@ public class SessionStore implements ContentBlocking.Delegate, GeckoSession.Navi
         String uri = aRequest.uri;
 
         Log.d(LOGTAG, "onLoadRequest: " + uri);
+
+        ((VRBrowserApplication) mContext.getApplicationContext()).getServices().interceptFxaUrl(uri);
 
         String uriOverride = checkYoutubeOverride(uri);
         if (uriOverride != null) {
