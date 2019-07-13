@@ -28,6 +28,7 @@ import java.util.ArrayList
 import androidx.databinding.DataBindingUtil
 
 import mozilla.components.concept.storage.BookmarkNode
+import mozilla.components.concept.storage.BookmarkNodeType
 import java.util.function.Consumer
 
 class BookmarksView(context: Context) : FrameLayout(context), GeckoSession.NavigationDelegate, BookmarksStore.BookmarkListener {
@@ -43,7 +44,14 @@ class BookmarksView(context: Context) : FrameLayout(context), GeckoSession.Navig
         override fun onClick(bookmark: BookmarkNode) {
             mAudio?.playSound(AudioEngine.Sound.CLICK)
 
-            SessionStore.get().loadUri(bookmark.url)
+            when (bookmark.type) {
+                // Ignore clicks on separators.
+                BookmarkNodeType.SEPARATOR -> return
+                // Load regular bookmarks.
+                BookmarkNodeType.ITEM -> SessionStore.get().loadUri(bookmark.url)
+                // TODO: display selected folder contents.
+                BookmarkNodeType.FOLDER -> return
+            }
         }
 
         override fun onDelete(bookmark: BookmarkNode) {
