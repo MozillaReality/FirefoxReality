@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <data>
+        <import type="org.mozilla.vrbrowser.browser.BookmarksStore" />
 
         <variable
             name="item"
