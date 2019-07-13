@@ -9,6 +9,7 @@ import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.FrameLayout
+import android.widget.TextView
 
 import org.mozilla.geckoview.AllowOrDeny
 import org.mozilla.geckoview.GeckoResult
@@ -26,6 +27,7 @@ import org.mozilla.vrbrowser.utils.UIThreadExecutor
 
 import java.util.ArrayList
 import androidx.databinding.DataBindingUtil
+import mozilla.appservices.places.BookmarkRoot
 
 import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.storage.BookmarkNodeType
@@ -40,6 +42,19 @@ class BookmarksView(context: Context) : FrameLayout(context), GeckoSession.Navig
     private val mAudio: AudioEngine? = AudioEngine.fromContext(context)
     private var mIgnoreNextListener: Boolean = false
 
+    private val backButton: UIButton
+    private val currentFolderNameView: TextView
+
+    private val defaultRoot = BookmarkRoot.Mobile.id
+    private val defaultFolderTitleWhenAbsent = context.getString(R.string.bookmarks_title)
+
+    private val rootTitles = mapOf(
+        BookmarkRoot.Mobile.id to context.getString(R.string.bookmarks_title)
+    )
+    private val folderNavigationStack = mutableListOf<FolderOnStack>()
+
+    private data class FolderOnStack(val guid: String, val title: String)
+
     private val mBookmarkClickCallback = object : BookmarkClickCallback {
         override fun onClick(bookmark: BookmarkNode) {
             mAudio?.playSound(AudioEngine.Sound.CLICK)
@@ -49,8 +64,8 @@ class BookmarksView(context: Context) : FrameLayout(context), GeckoSession.Navig
                 BookmarkNodeType.SEPARATOR -> return
                 // Load regular bookmarks.
                 BookmarkNodeType.ITEM -> SessionStore.get().loadUri(bookmark.url)
-                // TODO: display selected folder contents.
-                BookmarkNodeType.FOLDER -> return
+                // Handle folder clicks.
+                BookmarkNodeType.FOLDER -> folderClicked(bookmark)
             }
         }
 
@@ -79,6 +94,10 @@ class BookmarksView(context: Context) : FrameLayout(context), GeckoSession.Navig
         syncBookmarks()
         SessionStore.get().bookmarkStore.addListener(this)
 
+        currentFolderNameView = findViewById(R.id.currentFolderName)
+        backButton = findViewById(R.id.backButton)
+        backButton.setOnClickListener { onBackPressed() }
+
         visibility = View.GONE
     }
 
@@ -91,6 +110,18 @@ class BookmarksView(context: Context) : FrameLayout(context), GeckoSession.Navig
         SessionStore.get().bookmarkStore.removeListener(this)
     }
 
+    fun onBackPressed() {
+        folderNavigationStack.removeAt(folderNavigationStack.lastIndex)
+        syncBookmarks()
+    }
+
+    fun folderClicked(bookmark: BookmarkNode) {
+        folderNavigationStack.add(FolderOnStack(
+            bookmark.guid, bookmark.title ?: defaultFolderTitleWhenAbsent)
+        )
+        syncBookmarks()
+    }
+
     private fun notifyBookmarksShown() {
         mBookmarkListeners.forEach { it.onBookmarksShown() }
     }
@@ -101,12 +132,29 @@ class BookmarksView(context: Context) : FrameLayout(context), GeckoSession.Navig
 
 
     private fun syncBookmarks() {
-        SessionStore.get().bookmarkStore.getBookmarks().thenAcceptAsync(Consumer {
+        val rootToOpen = if (folderNavigationStack.isEmpty()) {
+            defaultRoot
+        } else {
+            folderNavigationStack.last().guid
+        }
+        SessionStore.get().bookmarkStore.getBookmarks(rootToOpen).thenAcceptAsync(Consumer {
             this.showBookmarks(it)
         }, UIThreadExecutor())
     }
 
     private fun showBookmarks(aBookmarks: List<BookmarkNode>?) {
+        currentFolderNameView.text = if (folderNavigationStack.isEmpty()) {
+            rootTitles[defaultRoot]
+        } else {
+            folderNavigationStack.last().title
+        }
+
+        if (folderNavigationStack.isEmpty()) {
+            backButton.visibility = View.GONE
+        } else {
+            backButton.visibility = View.VISIBLE
+        }
+
         if (aBookmarks == null || aBookmarks.isEmpty()) {
             mBinding.isEmpty = true
             mBinding.isLoading = false
