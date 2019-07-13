@@ -3,6 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <data>
+        <import type="org.mozilla.vrbrowser.browser.BookmarksStore" />
 
         <variable
             name="bookmark"
@@ -67,7 +68,7 @@
             android:soundEffectsEnabled="false"
             android:src="@drawable/ic_icon_trash"
             android:tint="@drawable/bookmark_icon_color"
-            android:visibility="visible"
+            app:visibleGone="@{!BookmarksStore.allowDeletion(bookmark.guid)}"
             app:srcCompat="@drawable/ic_icon_trash" />
     </RelativeLayout>
 </layout>
