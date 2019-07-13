@@ -48,9 +48,7 @@ class BookmarksView(context: Context) : FrameLayout(context), GeckoSession.Navig
     private val defaultRoot = BookmarkRoot.Mobile.id
     private val defaultFolderTitleWhenAbsent = context.getString(R.string.bookmarks_title)
 
-    private val rootTitles = mapOf(
-        BookmarkRoot.Mobile.id to context.getString(R.string.bookmarks_title)
-    )
+    private val rootTitles = BookmarksStore.rootTitles(context)
     private val folderNavigationStack = mutableListOf<FolderOnStack>()
 
     private data class FolderOnStack(val guid: String, val title: String)
@@ -155,13 +153,13 @@ class BookmarksView(context: Context) : FrameLayout(context), GeckoSession.Navig
             backButton.visibility = View.VISIBLE
         }
 
-        if (aBookmarks == null || aBookmarks.isEmpty()) {
+        mBinding.isLoading = false
+        // Don't display "no bookmarks" view when we're in an empty folder.
+        if (aBookmarks == null || aBookmarks.isEmpty() && folderNavigationStack.isEmpty()) {
             mBinding.isEmpty = true
-            mBinding.isLoading = false
 
         } else {
             mBinding.isEmpty = false
-            mBinding.isLoading = false
             mBookmarkAdapter.setBookmarkList(aBookmarks)
         }
         mBinding.executePendingBindings()
