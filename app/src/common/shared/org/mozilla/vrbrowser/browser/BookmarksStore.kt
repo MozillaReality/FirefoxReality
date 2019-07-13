@@ -8,6 +8,8 @@ package org.mozilla.vrbrowser.browser
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
+import androidx.lifecycle.ProcessLifecycleOwner
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.future.future
 import mozilla.appservices.places.BookmarkRoot
@@ -15,6 +17,7 @@ import mozilla.components.concept.storage.BookmarkNode
 import org.mozilla.vrbrowser.VRBrowserApplication
 import java.util.concurrent.CompletableFuture
 import mozilla.components.concept.storage.BookmarkNodeType
+import mozilla.components.service.fxa.sync.SyncStatusObserver
 import org.mozilla.vrbrowser.R
 
 const val DESKTOP_ROOT = "fake_desktop_root"
@@ -54,6 +57,24 @@ class BookmarksStore constructor(val context: Context) {
     private val listeners = ArrayList<BookmarkListener>()
     private val storage = (context.applicationContext as VRBrowserApplication).places.bookmarks
     private val titles = rootTitles(context)
+
+    // Bookmarks might have changed during sync, so notify our listeners.
+    private val syncStatusObserver = object : SyncStatusObserver {
+        override fun onStarted() {}
+
+        override fun onIdle() {
+            Log.d("BookmarksStore", "Detected that sync is finished, notifying listeners")
+            notifyListeners()
+        }
+
+        override fun onError(error: Exception?) {}
+    }
+
+    init {
+        (context.applicationContext as VRBrowserApplication).services.accountManager.registerForSyncEvents(
+            syncStatusObserver, ProcessLifecycleOwner.get(), false
+        )
+    }
 
     interface BookmarkListener {
         fun onBookmarksUpdated()
