@@ -37,8 +37,8 @@ class BookmarksStore constructor(val context: Context) {
         listeners.clear()
     }
 
-    fun getBookmarks(): CompletableFuture<List<BookmarkNode>?> = GlobalScope.future {
-        storage.getTree(BookmarkRoot.Mobile.id)?.children?.toMutableList()
+    fun getBookmarks(rootGuid: String): CompletableFuture<List<BookmarkNode>?> = GlobalScope.future {
+        storage.getTree(rootGuid)?.children?.toMutableList()
     }
 
     fun addBookmark(aURL: String, aTitle: String) = GlobalScope.future {
