@@ -23,6 +23,11 @@
 
 namespace crow {
 
+// Ratio between world size and cylinder surface size.
+// It should match the values defined in WindowWidget.
+// 800px is the default window size for a 4m world size.
+float Cylinder::kWorldDensityRatio =  800.0f / 4.0f;
+
 struct Cylinder::State {
   vrb::CreationContextWeak context;
   VRLayerCylinderPtr layer;

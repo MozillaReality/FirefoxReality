@@ -1249,10 +1249,10 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
 
     @Override
     public void setCylinderDensity(final float aDensity) {
-        if (mWindows != null) {
-           mWindows.onCurvedModeChanged();
-        }
         queueRunnable(() -> setCylinderDensityNative(aDensity));
+        if (mWindows != null) {
+            mWindows.onCurvedModeChanged();
+        }
     }
 
     @Override
