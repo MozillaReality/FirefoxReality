@@ -71,6 +71,7 @@ public:
   void HandleResize(const vrb::Vector& aPoint, bool aPressed, bool& aResized, bool &aResizeEnded);
   void HoverExitResize();
   void SetCylinderDensity(const float aDensity);
+  float GetCylinderDensity() const;
 protected:
   struct State;
   Widget(State& aState, vrb::RenderContextPtr& aContext);

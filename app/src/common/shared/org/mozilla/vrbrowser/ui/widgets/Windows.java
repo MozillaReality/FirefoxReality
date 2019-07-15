@@ -496,6 +496,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
         WidgetPlacement placement = aWindow.getPlacement();
         aWindow.setWindowPlacement(aPosition);
         boolean curved = SettingsStore.getInstance(mContext).getCylinderDensity() > 0;
+        Log.e("VRB", "mortimer curved: " + curved);
         switch (aPosition) {
             case FRONT:
                 placement.anchorX = 0.5f;
@@ -516,8 +517,8 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
                 placement.rotationAxisX = 0;
                 placement.rotationAxisZ = 0;
                 if (curved) {
-                    placement.rotation = 0;
                     placement.rotationAxisY = 0;
+                    placement.rotation = 0;
                 } else {
                     placement.rotationAxisY = 1.0f;
                     placement.rotation = (float) Math.toRadians(WidgetPlacement.floatDimension(mContext, R.dimen.multi_window_angle));
@@ -532,11 +533,10 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
                 placement.parentAnchorX = 1.0f;
                 placement.parentAnchorY = 0.0f;
                 placement.rotationAxisX = 0;
-                placement.rotationAxisY = 0;
                 placement.rotationAxisZ = 0;
                 if (curved) {
-                    placement.rotation = 0;
                     placement.rotationAxisY = 0;
+                    placement.rotation = 0;
                 } else {
                     placement.rotationAxisY = 1.0f;
                     placement.rotation = (float) Math.toRadians(-WidgetPlacement.floatDimension(mContext, R.dimen.multi_window_angle));

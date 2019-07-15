@@ -93,12 +93,11 @@ struct ResizeBar {
     if (aMode == ResizeBar::Mode::Cylinder) {
       result->cylinder = Cylinder::Create(aContext, 1.0f, kBarSize, vrb::Color(1.0f, 1.0f, 1.0f, 1.0f), kBorder, vrb::Color(1.0f, 1.0f, 1.0f, 0.0f));
       result->cylinder->SetLightsEnabled(false);
-      if (aScale.x() == 1.0f) {
-        // Fix sticking out border at the bottom of the resize bar (No handles to hide it...)
-        vrb::TextureGLPtr defaultTexture = aContext->GetDefaultTexture();
-        result->cylinder->SetTexture(defaultTexture, defaultTexture->GetWidth(), defaultTexture->GetHeight());
-        result->cylinder->GetRenderState()->SetCustomFragmentShader(sCylinderFragmentShader);
-      }
+      // Fix sticking out borders
+      // Sometimes there is no handle to hide it (e.e. bottom bar and anchor points != 0.5f)
+      vrb::TextureGLPtr defaultTexture = aContext->GetDefaultTexture();
+      result->cylinder->SetTexture(defaultTexture, defaultTexture->GetWidth(), defaultTexture->GetHeight());
+      result->cylinder->GetRenderState()->SetCustomFragmentShader(sCylinderFragmentShader);
       result->transform->AddNode(result->cylinder->GetRoot());
     } else {
       result->geometry = CreateGeometry(aContext, -max, max, aBorder);
@@ -417,7 +416,6 @@ struct WidgetResizer::State {
     CreateResizeHandle(vrb::Vector(0.0f, 0.5f, 0.0f), ResizeHandle::ResizeMode::Vertical, {leftTop, leftBottom});
     CreateResizeHandle(vrb::Vector(1.0f, 0.5f, 0.0f), ResizeHandle::ResizeMode::Vertical, {rightTop, rightBottom});
 
-    UpdateVisibleHandles();
     Layout();
   }
 
@@ -452,21 +450,51 @@ struct WidgetResizer::State {
     return max.y() - min.y();
   }
 
+  // Returns the circle angle of a local point in a cylinder
+  float GetCylinderAngle(const vrb::Vector& aLocalPoint) const {
+    return atan2f(-aLocalPoint.z(), aLocalPoint.x());
+  }
+
   vrb::Vector ProjectPoint(const vrb::Vector& aWorldPoint) const {
-    vrb::Matrix modelView = widget->GetTransformNode()->GetWorldTransform().AfineInverse();
     if (widget->GetCylinder()) {
-      // Map the position in the cylinder to the position it would have on a quad
-      const float radius = widget->GetCylinder()->GetTransformNode()->GetTransform().GetScale().x();
-      float cosAngle = fminf(1.0f, fabsf(aWorldPoint.x()) / radius);
-      const float sign = aWorldPoint.x() > 0 ? 1.0f : -1.0f;
-      const float angle = acosf(cosAngle);
-      const float surfaceArc = (float)M_PI - angle * 2.0f;
-      const float projectedWidth = WorldWidth() * surfaceArc / widget->GetCylinder()->GetCylinderTheta();
-      vrb::Vector point(projectedWidth * 0.5f * sign, aWorldPoint.y(), aWorldPoint.z());
-      vrb::Vector result = modelView.MultiplyPosition(point);
-      result.z() = 0.0f;
-      return result;
+      // For cylinders we want to map the position in the cylinder to the position it would have on a quad.
+      // This way we can reuse the same resize logic between quads and cylinders.
+      // First Convert to world point to local point in the cylinder.
+      vrb::Matrix modelView = widget->GetCylinder()->GetTransformNode()->GetWorldTransform().AfineInverse();
+      vrb::Vector localPoint = modelView.MultiplyPosition(aWorldPoint);
+      const float pointAngle = GetCylinderAngle(localPoint);
+
+      // Ratio used to convert arc length to quad width.
+      const float thetaRatio = widget->GetCylinderDensity() * 0.5f / ((float) M_PI * Cylinder::kWorldDensityRatio);
+
+      float x;
+
+      // Handle different anchor points.
+      const float anchorX = GetAnchorX();
+      if (anchorX == 1.0f) {
+        // Difference between pointer angle and the right anchor point.
+        const float initialTheta = (max.x() - min.x()) / thetaRatio;
+        const float initialAngle = (float)M_PI * 0.5f - initialTheta * 0.5f;
+        const float arc = fabsf(pointAngle - initialAngle);
+        x = max.x() - arc * thetaRatio;
+      } else if (anchorX == 0.0f) {
+        // Difference between pointer angle and the left anchor point.
+        const float initialTheta = (max.x() - min.x()) / thetaRatio;
+        const float initialAngle = (float)M_PI * 0.5f + initialTheta * 0.5f;
+        const float arc = fabsf(initialAngle - pointAngle);
+        x = min.x() + arc * thetaRatio;
+      } else { // Anchor 0.5f
+        // The center of the cylinder is 90º.
+        x  = ((float) M_PI * 0.5f - pointAngle) * thetaRatio;
+      }
+
+
+      // The mapped position on a quad.
+      const float y = WorldHeight() * localPoint.y() * 0.5f;
+      return vrb::Vector(x, y, 0.0f);
     } else {
+      // For quads just convert to world point to local point.
+      vrb::Matrix modelView = widget->GetTransformNode()->GetWorldTransform().AfineInverse();
       return modelView.MultiplyPosition(aWorldPoint);
     }
   }
@@ -499,10 +527,21 @@ struct WidgetResizer::State {
     widget->GetCylinder()->GetTextureSize(textureWidth, textureHeight);
     vrb::Matrix modelView = widget->GetTransformNode()->GetWorldTransform().AfineInverse();
 
+    // Delta for x anchor point != 0.5f.
+    float centerX = 0.0f;
+    const float anchorX = GetAnchorX();
+    if (anchorX == 1.0f) {
+      centerX = min.x() + width * 0.5f;
+    } else if (anchorX == 0.0f) {
+      centerX = max.x() - width * 0.5f;
+    }
+    const float perimeter = 2.0f * radius * (float)M_PI;
+    float angleDelta = centerX / perimeter * 2.0f * (float)M_PI;
+
     for (ResizeBarPtr& bar: resizeBars) {
       float targetWidth = bar->scale.x() > 0.0f ? (bar->scale.x() * fabsf(width)) + kBarSize : kBarSize;
       float targetHeight = bar->scale.y() > 0.0f ? (bar->scale.y() * fabs(height)) + kBarSize : kBarSize;
-      const float pointerAngle = (float)M_PI * 0.5f + theta * 0.5f - theta * bar->center.x();
+      float pointerAngle = (float)M_PI * 0.5f + theta * 0.5f - theta * bar->center.x() + angleDelta;
       vrb::Matrix rotation = vrb::Matrix::Rotation(vrb::Vector(-cosf(pointerAngle), 0.0f, sinf(pointerAngle)));
       if (bar->cylinder) {
         bar->cylinder->SetCylinderTheta(theta * bar->scale.x());
@@ -521,7 +560,7 @@ struct WidgetResizer::State {
     }
 
     for (ResizeHandlePtr& handle: resizeHandles) {
-      const float pointerAngle = (float)M_PI * 0.5f + theta * 0.5f - theta * handle->center.x();
+      const float pointerAngle = (float)M_PI * 0.5f + theta * 0.5f - theta * handle->center.x() + angleDelta;
       vrb::Matrix translation = vrb::Matrix::Position(vrb::Vector(radius * cosf(pointerAngle),
                                                       min.y() + height * handle->center.y(),
                                                       radius - radius * sinf(pointerAngle)));
@@ -531,17 +570,23 @@ struct WidgetResizer::State {
   }
 
   void UpdateVisibleHandles() {
-    float anchorX = 0.5f;
-    if (widget && widget->GetPlacement()) {
-      anchorX = widget->GetPlacement()->anchor.x();
-    }
+    float anchorX = GetAnchorX();
+
     for (ResizeHandlePtr & handle: resizeHandles) {
       handle->SetVisible(handle->center.x() == 0.5f || (handle->center.x() != anchorX));
     }
+  }
 
+  float GetAnchorX() const {
+    if (widget && widget->GetPlacement()) {
+      return  widget->GetPlacement()->anchor.x();
+    }
+
+    return 0.5f;
   }
 
   void Layout() {
+    UpdateVisibleHandles();
     if (widget->GetCylinder()) {
       LayoutCylinder();
     } else {
@@ -575,9 +620,9 @@ struct WidgetResizer::State {
 
     float width = fabsf(point.x()) * 2.0f;
     if (widget->GetPlacement()->anchor.x() == 1.0f) {
-      width = fabsf(currentMax.x() - point.x());
+      width = fabsf(max.x() - point.x());
     } else if (widget->GetPlacement()->anchor.x() == 0.0f) {
-      width = fabsf(point.x() - currentMin.x());
+      width = fabsf(point.x() - min.x());
     }
     float height = fabsf(point.y() - min.y());
 
@@ -604,7 +649,7 @@ struct WidgetResizer::State {
     currentMax = vrb::Vector(width * 0.5f, height * 0.5f, 0.0f);
 
     // Reset world min and max points with the new resize values
-    if (!widget->GetCylinder() || keepAspect) {
+    if (!widget->GetCylinder()) {
       min = currentMin;
       max = currentMax;
     }
@@ -721,12 +766,12 @@ WidgetResizer::HoverExitResize() {
 }
 
 const vrb::Vector&
-WidgetResizer::GetCurrentMin() const {
+WidgetResizer::GetResizeMin() const {
   return m.min;
 }
 
 const vrb::Vector&
-WidgetResizer::GetCurrentMax() const {
+WidgetResizer::GetResizeMax() const {
   return m.max;
 }
 
