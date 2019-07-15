@@ -856,12 +856,13 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         });
     }
 
-
-
     @Keep
     @SuppressWarnings("unused")
     private void handlePoorPerformance() {
         runOnUiThread(() -> {
+            if (!mSettings.isPerformanceMonitorEnabled()) {
+                return;
+            }
             // Don't block poorly performing immersive pages.
             if (mIsPresentingImmersive) {
                 return;
