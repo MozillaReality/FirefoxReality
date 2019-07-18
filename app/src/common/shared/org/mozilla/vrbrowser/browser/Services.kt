@@ -38,8 +38,6 @@ class Services(context: Context, places: Places) {
     // This makes bookmarks storage accessible to background sync workers.
     init {
         // Make sure we get logs out of our android-components.
-        Log.addSink(AndroidLogSink())
-
         GlobalSyncableStoreProvider.configureStore("bookmarks" to places.bookmarks)
         GlobalSyncableStoreProvider.configureStore("history" to places.history)
 

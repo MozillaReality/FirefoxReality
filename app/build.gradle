@@ -405,6 +405,8 @@ dependencies {
     implementation deps.android_components.ui_autocomplete
     implementation deps.android_components.concept_fetch
     implementation deps.android_components.lib_fetch
+    implementation deps.android_components.rusthttp
+    implementation deps.android_components.rustlog
 
     // TODO this should not be necessary at all, see Services.kt
     implementation deps.work.runtime
