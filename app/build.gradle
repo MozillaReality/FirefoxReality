@@ -401,6 +401,7 @@ dependencies {
     implementation deps.android_components.browser_search
     implementation deps.android_components.browser_storage
     implementation deps.android_components.browser_domains
+    implementation deps.android_components.browser_engine_gecko
     implementation deps.android_components.service_accounts
     implementation deps.android_components.ui_autocomplete
     implementation deps.android_components.concept_fetch

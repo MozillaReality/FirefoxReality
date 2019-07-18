@@ -6,17 +6,18 @@
 package org.mozilla.vrbrowser
 
 import android.app.Application
+import mozilla.components.browser.engine.gecko.fetch.GeckoViewFetchClient
 
 import org.mozilla.vrbrowser.browser.Places
 import org.mozilla.vrbrowser.browser.Services
 import org.mozilla.vrbrowser.db.AppDatabase
 import org.mozilla.vrbrowser.telemetry.TelemetryWrapper
 
-import mozilla.components.lib.fetch.httpurlconnection.HttpURLConnectionClient
 import mozilla.components.support.base.log.Log
 import mozilla.components.support.base.log.sink.AndroidLogSink
 import mozilla.components.support.rusthttp.RustHttpConfig
 import mozilla.components.support.rustlog.RustLog
+import org.mozilla.geckoview.GeckoRuntime
 
 class VRBrowserApplication : Application() {
 
@@ -40,7 +41,7 @@ class VRBrowserApplication : Application() {
         RustLog.enable()
 
         // Specify network stack to be used by application-services libraries.
-        RustHttpConfig.setClient(lazy { HttpURLConnectionClient() })
+        RustHttpConfig.setClient(lazy { GeckoViewFetchClient(this, GeckoRuntime()) })
 
         appExecutors = AppExecutors()
         places = Places(this)
