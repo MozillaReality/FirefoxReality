@@ -165,6 +165,7 @@
     <dimen name="dialog_padding_sides">30dp</dimen>
 
     <!-- Text sizes -->
+    <dimen name="text_huge_size">28sp</dimen>
     <dimen name="text_biggest_size">24sp</dimen>
     <dimen name="text_bigger_size">22sp</dimen>
     <dimen name="text_big_size">18sp</dimen>

@@ -40,7 +40,6 @@ public class TooltipWidget extends UIWidget {
         aPlacement.anchorX = 0.5f;
         aPlacement.anchorY = 0.5f;
         aPlacement.translationZ = WidgetPlacement.unitFromMeters(getContext(), R.dimen.tooltip_z_distance);
-//        aPlacement.textureScale = 1.0f;
     }
 
     @Override
