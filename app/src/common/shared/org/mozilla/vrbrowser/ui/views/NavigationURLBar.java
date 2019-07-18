@@ -26,12 +26,15 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 
+import org.mozilla.geckoview.GeckoSessionSettings;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.audio.AudioEngine;
 import org.mozilla.vrbrowser.browser.BookmarksStore;
 import org.mozilla.vrbrowser.browser.SessionStore;
+import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.search.SearchEngineWrapper;
 import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
+import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
 import org.mozilla.vrbrowser.utils.StringUtils;
 import org.mozilla.vrbrowser.utils.UIThreadExecutor;
 import org.mozilla.vrbrowser.utils.UrlUtils;
@@ -50,6 +53,7 @@ import mozilla.components.ui.autocomplete.InlineAutocompleteEditText;
 public class NavigationURLBar extends FrameLayout {
     private InlineAutocompleteEditText mURL;
     private ImageButton mMicrophoneButton;
+    private ImageButton mUAModeButton;
     private ImageView mInsecureIcon;
     private ImageView mLoadingView;
     private Animation mLoadingAnimation;
@@ -141,6 +145,12 @@ public class NavigationURLBar extends FrameLayout {
         mMicrophoneButton = findViewById(R.id.microphoneButton);
         mMicrophoneButton.setTag(R.string.view_id_tag, R.id.microphoneButton);
         mMicrophoneButton.setOnClickListener(mMicrophoneListener);
+
+        mUAModeButton = findViewById(R.id.uaModeButton);
+        mUAModeButton.setTag(R.string.view_id_tag, R.id.uaModeButton);
+        mUAModeButton.setOnClickListener(mUAModeListener);
+        setUAModeButton(SettingsStore.getInstance(aContext).getUaMode());
+
         mURLLeftContainer = findViewById(R.id.urlLeftContainer);
         mInsecureIcon = findViewById(R.id.insecureIcon);
         mLoadingView = findViewById(R.id.loadingView);
@@ -177,7 +187,6 @@ public class NavigationURLBar extends FrameLayout {
         if (mIsLoading) {
             mLoadingView.startAnimation(mLoadingAnimation);
         }
-
     }
 
     public void setDelegate(NavigationURLBarDelegate delegate) {
@@ -205,10 +214,10 @@ public class NavigationURLBar extends FrameLayout {
         if (mBookmarkEnabled != aEnabled) {
             mBookmarkEnabled = aEnabled;
             mBookmarkButton.setVisibility(aEnabled ? View.VISIBLE : View.GONE);
-            ViewGroup.LayoutParams params = mMicrophoneButton.getLayoutParams();
+            ViewGroup.LayoutParams params = mUAModeButton.getLayoutParams();
             params.width = (int) getResources().getDimension(aEnabled ? R.dimen.url_bar_item_width : R.dimen.url_bar_last_item_width);
-            mMicrophoneButton.setLayoutParams(params);
-            mMicrophoneButton.setBackgroundResource(aEnabled ? R.drawable.url_button : R.drawable.url_button_end);
+            mUAModeButton.setLayoutParams(params);
+            mUAModeButton.setBackgroundResource(aEnabled ? R.drawable.url_button : R.drawable.url_button_end);
         }
     }
 
@@ -330,32 +339,46 @@ public class NavigationURLBar extends FrameLayout {
         }
     }
 
+    public void setUAModeButton(int uaMode) {
+        if (uaMode == GeckoSessionSettings.USER_AGENT_MODE_DESKTOP) {
+            mUAModeButton.setImageResource(R.drawable.ic_icon_ua_desktop);
+
+        } else {
+            mUAModeButton.setImageResource(R.drawable.ic_icon_ua_default);
+        }
+    }
+
     public void showVoiceSearch(boolean enabled) {
         if (enabled) {
+            mURL.setPadding(mURL.getPaddingStart(), mURL.getPaddingTop(), WidgetPlacement.convertDpToPixel(getContext(), 100), mURL.getPaddingBottom());
             if (mBookmarkEnabled) {
-                mMicrophoneButton.setBackgroundResource(R.drawable.url_button);
-                mMicrophoneButton.getLayoutParams().width = (int)getContext().getResources().getDimension(R.dimen.url_bar_item_width);
+                mUAModeButton.setBackgroundResource(R.drawable.url_button);
+                mUAModeButton.getLayoutParams().width = (int)getContext().getResources().getDimension(R.dimen.url_bar_item_width);
             }
-            mMicrophoneButton.setImageResource(R.drawable.ic_icon_microphone);
-            mMicrophoneButton.setOnClickListener(mMicrophoneListener);
+
+            setUAModeButton(SettingsStore.getInstance(getContext()).getUaMode());
+            mUAModeButton.setOnClickListener(mUAModeListener);
 
             if (mIsBookmarkMode) {
-                mMicrophoneButton.setVisibility(GONE);
+                mUAModeButton.setVisibility(GONE);
             } else if (mBookmarkEnabled) {
                 mBookmarkButton.setVisibility(VISIBLE);
             }
+            mMicrophoneButton.setVisibility(VISIBLE);
 
         } else if (mURL.hasFocus()){
-            mMicrophoneButton.setImageResource(R.drawable.ic_icon_clear);
-            mMicrophoneButton.setBackgroundResource(R.drawable.url_button_end);
-            mMicrophoneButton.getLayoutParams().width = (int)getContext().getResources().getDimension(R.dimen.url_bar_last_item_width);
-            mMicrophoneButton.setOnClickListener(mClearListener);
+            mURL.setPadding(mURL.getPaddingStart(), mURL.getPaddingTop(), WidgetPlacement.convertDpToPixel(getContext(), 40), mURL.getPaddingBottom());
+            mUAModeButton.setImageResource(R.drawable.ic_icon_clear);
+            mUAModeButton.setBackgroundResource(R.drawable.url_button_end);
+            mUAModeButton.getLayoutParams().width = (int)getContext().getResources().getDimension(R.dimen.url_bar_last_item_width);
+            mUAModeButton.setOnClickListener(mClearListener);
 
             if (mIsBookmarkMode) {
-                mMicrophoneButton.setVisibility(VISIBLE);
+                mUAModeButton.setVisibility(VISIBLE);
             }
 
             mBookmarkButton.setVisibility(GONE);
+            mMicrophoneButton.setVisibility(GONE);
         }
     }
 
@@ -443,6 +466,26 @@ public class NavigationURLBar extends FrameLayout {
         view.requestFocusFromTouch();
         if (mDelegate != null)
             mDelegate.OnVoiceSearchClicked();
+
+        TelemetryWrapper.voiceInputEvent();
+    };
+
+    private OnClickListener mUAModeListener = view -> {
+        if (mAudio != null) {
+            mAudio.playSound(AudioEngine.Sound.CLICK);
+        }
+
+        view.requestFocusFromTouch();
+
+        int uaMode = SessionStore.get().getUaMode();
+        if (uaMode == GeckoSessionSettings.USER_AGENT_MODE_VR) {
+            setUAModeButton(GeckoSessionSettings.USER_AGENT_MODE_DESKTOP);
+            SessionStore.get().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_DESKTOP);
+
+        }else {
+            setUAModeButton(GeckoSessionSettings.USER_AGENT_MODE_VR);
+            SessionStore.get().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_VR);
+        }
 
         TelemetryWrapper.voiceInputEvent();
     };

@@ -924,6 +924,9 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
         if (key == mAppContext.getString(R.string.settings_key_servo)) {
             updateServoButton();
+
+        } else if (key == mAppContext.getString(R.string.settings_key_user_agent_version)) {
+            mURLBar.setUAModeButton(SettingsStore.getInstance(getContext()).getUaMode());
         }
     }
 
