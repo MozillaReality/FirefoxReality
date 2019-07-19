@@ -147,8 +147,6 @@ public class WidgetPlacement {
         return ((widgetWorldWidth/widget.mWidgetPlacement.width)/WORLD_DPI_RATIO);
     }
 
-    public static float worldToWindowRatio(){
-        return (SettingsStore.BROWSER_WORLD_WIDTH_DEFAULT/SettingsStore.WINDOW_WIDTH_DEFAULT)/ WORLD_DPI_RATIO;
     public static float worldToWindowRatio(Context aContext){
         return (WidgetPlacement.floatDimension(aContext, R.dimen.window_world_width) / SettingsStore.WINDOW_WIDTH_DEFAULT)/ WORLD_DPI_RATIO;
     }
