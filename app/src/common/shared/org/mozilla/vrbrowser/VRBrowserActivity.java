@@ -886,21 +886,22 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
             if (mIsPresentingImmersive) {
                 return;
             }
-            if (mWindowWidget == null) {
+            WindowWidget window = mWindows.getFocusedWindow();
+            if (window == null) {
                 return;
             }
-            final String originalUrl = SessionStore.get().getCurrentUri();
+            final String originalUrl = window.getSessionStore().getCurrentUri();
             if (mPoorPerformanceWhiteList.contains(originalUrl)) {
                 return;
             }
-            SessionStore.get().loadUri("about:blank");
+            window.getSessionStore().loadUri("about:blank");
             final String[] buttons = {getString(R.string.ok_button), null, getString(R.string.performance_unblock_page)};
-            mWindowWidget.showButtonPrompt(getString(R.string.performance_title), getString(R.string.performance_message), buttons, new GeckoSession.PromptDelegate.ButtonCallback() {
+            window.showButtonPrompt(getString(R.string.performance_title), getString(R.string.performance_message), buttons, new GeckoSession.PromptDelegate.ButtonCallback() {
                 @Override
                 public void confirm(int button) {
                     if (button == 0) {
                         mPoorPerformanceWhiteList.add(originalUrl);
-                        SessionStore.get().loadUri(originalUrl);
+                        window.getSessionStore().loadUri(originalUrl);
                     }
                 }
             });
