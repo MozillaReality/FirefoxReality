@@ -5,10 +5,13 @@ import android.text.method.LinkMovementMethod;
 import android.text.style.ClickableSpan;
 import android.text.style.URLSpan;
 import android.view.View;
+import android.view.ViewParent;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.core.text.HtmlCompat;
+
+import org.mozilla.vrbrowser.ui.widgets.UIWidget;
 
 public class ViewUtils {
 
@@ -41,19 +44,6 @@ public class ViewUtils {
         text.setText(strBuilder);
         text.setMovementMethod(LinkMovementMethod.getInstance());
     }
-
-}
-
-package org.mozilla.vrbrowser.utils;
-
-import android.view.View;
-import android.view.ViewParent;
-
-import androidx.annotation.NonNull;
-
-import org.mozilla.vrbrowser.ui.widgets.UIWidget;
-
-public class ViewUtils {
 
     public enum TooltipPosition {
         TOP(0), BOTTOM(1);

@@ -52,8 +52,8 @@ import mozilla.components.ui.autocomplete.InlineAutocompleteEditText;
 
 public class NavigationURLBar extends FrameLayout {
     private InlineAutocompleteEditText mURL;
-    private ImageButton mMicrophoneButton;
-    private ImageButton mUAModeButton;
+    private UIButton mMicrophoneButton;
+    private UIButton mUAModeButton;
     private ImageView mInsecureIcon;
     private ImageView mLoadingView;
     private Animation mLoadingAnimation;
@@ -65,7 +65,7 @@ public class NavigationURLBar extends FrameLayout {
     private int mURLWebsiteColor;
     private NavigationURLBarDelegate mDelegate;
     private ShippedDomainsProvider mAutocompleteProvider;
-    private ImageButton mBookmarkButton;
+    private UIButton mBookmarkButton;
     private AudioEngine mAudio;
     private boolean mIsBookmarkMode;
     private boolean mBookmarkEnabled = true;
@@ -356,6 +356,7 @@ public class NavigationURLBar extends FrameLayout {
                 mUAModeButton.getLayoutParams().width = (int)getContext().getResources().getDimension(R.dimen.url_bar_item_width);
             }
 
+            mUAModeButton.setTooltip(getResources().getString(R.string.user_agent_tooltip));
             setUAModeButton(SettingsStore.getInstance(getContext()).getUaMode());
             mUAModeButton.setOnClickListener(mUAModeListener);
 
@@ -369,6 +370,7 @@ public class NavigationURLBar extends FrameLayout {
         } else if (mURL.hasFocus()){
             mURL.setPadding(mURL.getPaddingStart(), mURL.getPaddingTop(), WidgetPlacement.convertDpToPixel(getContext(), 40), mURL.getPaddingBottom());
             mUAModeButton.setImageResource(R.drawable.ic_icon_clear);
+            mUAModeButton.setTooltip(getResources().getString(R.string.clear_tooltip));
             mUAModeButton.setBackgroundResource(R.drawable.url_button_end);
             mUAModeButton.getLayoutParams().width = (int)getContext().getResources().getDimension(R.dimen.url_bar_last_item_width);
             mUAModeButton.setOnClickListener(mClearListener);
