@@ -14,17 +14,17 @@ import android.text.style.ForegroundColorSpan;
 import android.util.AttributeSet;
 import android.util.TypedValue;
 import android.view.GestureDetector;
-import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.view.inputmethod.EditorInfo;
 import android.widget.FrameLayout;
-import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.StringRes;
 
 import org.mozilla.geckoview.GeckoSessionSettings;
 import org.mozilla.vrbrowser.R;
@@ -44,7 +44,6 @@ import java.net.URI;
 import java.net.URL;
 import java.net.URLDecoder;
 
-import androidx.annotation.StringRes;
 import kotlin.Unit;
 import mozilla.components.browser.domains.autocomplete.DomainAutocompleteResult;
 import mozilla.components.browser.domains.autocomplete.ShippedDomainsProvider;
@@ -69,6 +68,7 @@ public class NavigationURLBar extends FrameLayout {
     private AudioEngine mAudio;
     private boolean mIsBookmarkMode;
     private boolean mBookmarkEnabled = true;
+    private boolean mIsContextButtonsEnabled = true;
     private UIThreadExecutor mUIThreadExecutor = new UIThreadExecutor();
 
     private Unit domainAutocompleteFilter(String text) {
@@ -102,7 +102,6 @@ public class NavigationURLBar extends FrameLayout {
         mAudio = AudioEngine.fromContext(aContext);
 
         // Inflate this data binding layout
-        LayoutInflater inflater = LayoutInflater.from(aContext);
         inflate(aContext, R.layout.navigation_url, this);
 
         // Use Domain autocomplete provider from components
@@ -122,6 +121,7 @@ public class NavigationURLBar extends FrameLayout {
 
         mURL.setOnFocusChangeListener((view, focused) -> {
             showVoiceSearch(!focused || (mURL.getText().length() == 0));
+            showContextButtons(!focused && mIsContextButtonsEnabled);
 
             mURL.setSelection(mURL.getText().length(), 0);
         });
@@ -149,7 +149,7 @@ public class NavigationURLBar extends FrameLayout {
         mUAModeButton = findViewById(R.id.uaModeButton);
         mUAModeButton.setTag(R.string.view_id_tag, R.id.uaModeButton);
         mUAModeButton.setOnClickListener(mUAModeListener);
-        setUAModeButton(SettingsStore.getInstance(aContext).getUaMode());
+        setUAMode(SettingsStore.getInstance(aContext).getUaMode());
 
         mURLLeftContainer = findViewById(R.id.urlLeftContainer);
         mInsecureIcon = findViewById(R.id.insecureIcon);
@@ -200,25 +200,17 @@ public class NavigationURLBar extends FrameLayout {
         mIsBookmarkMode = isBookmarkMode;
         if (isBookmarkMode) {
             mMicrophoneButton.setVisibility(GONE);
+            mUAModeButton.setVisibility(GONE);
             mBookmarkButton.setVisibility(GONE);
+
         } else {
             mMicrophoneButton.setVisibility(VISIBLE);
+            mUAModeButton.setVisibility(VISIBLE);
             if (mBookmarkEnabled) {
                 mBookmarkButton.setVisibility(VISIBLE);
             }
         }
         syncViews();
-    }
-
-    private void setBookmarkEnabled(boolean aEnabled) {
-        if (mBookmarkEnabled != aEnabled) {
-            mBookmarkEnabled = aEnabled;
-            mBookmarkButton.setVisibility(aEnabled ? View.VISIBLE : View.GONE);
-            ViewGroup.LayoutParams params = mUAModeButton.getLayoutParams();
-            params.width = (int) getResources().getDimension(aEnabled ? R.dimen.url_bar_item_width : R.dimen.url_bar_last_item_width);
-            mUAModeButton.setLayoutParams(params);
-            mUAModeButton.setBackgroundResource(aEnabled ? R.drawable.url_button : R.drawable.url_button_end);
-        }
     }
 
     private void handleBookmarkClick() {
@@ -301,10 +293,15 @@ public class NavigationURLBar extends FrameLayout {
                     mURL.setText(aURL);
                 }
             }
-            setBookmarkEnabled(aURL.length() > 0 && !aURL.startsWith("about://"));
+            mIsContextButtonsEnabled = aURL.length() > 0 && !aURL.startsWith("about://");
+            showContextButtons(mIsContextButtonsEnabled);
         }
 
         mURL.addTextChangedListener(mURLTextWatcher);
+    }
+
+    private boolean isEmptyUrl(@NonNull String aURL) {
+        return aURL.length() == 0 || aURL.startsWith("about://");
     }
 
     public String getText() {
@@ -339,7 +336,7 @@ public class NavigationURLBar extends FrameLayout {
         }
     }
 
-    public void setUAModeButton(int uaMode) {
+    public void setUAMode(int uaMode) {
         if (uaMode == GeckoSessionSettings.USER_AGENT_MODE_DESKTOP) {
             mUAModeButton.setImageResource(R.drawable.ic_icon_ua_desktop);
 
@@ -348,39 +345,39 @@ public class NavigationURLBar extends FrameLayout {
         }
     }
 
+    private void showContextButtons(boolean aEnabled) {
+        if (mBookmarkEnabled != aEnabled) {
+            mBookmarkEnabled = aEnabled;
+        }
+
+        if (aEnabled) {
+            mMicrophoneButton.setBackgroundResource(R.drawable.url_button);
+            mMicrophoneButton.getLayoutParams().width = (int)getContext().getResources().getDimension(R.dimen.url_bar_item_width);
+            mBookmarkButton.setVisibility(VISIBLE);
+            mUAModeButton.setVisibility(VISIBLE);
+
+        } else {
+            mMicrophoneButton.setBackgroundResource(R.drawable.url_button_end);
+            mMicrophoneButton.getLayoutParams().width = (int)getContext().getResources().getDimension(R.dimen.url_bar_last_item_width);
+            mBookmarkButton.setVisibility(GONE);
+            mUAModeButton.setVisibility(GONE);
+        }
+    }
+
     public void showVoiceSearch(boolean enabled) {
         if (enabled) {
             mURL.setPadding(mURL.getPaddingStart(), mURL.getPaddingTop(), WidgetPlacement.convertDpToPixel(getContext(), 100), mURL.getPaddingBottom());
-            if (mBookmarkEnabled) {
-                mUAModeButton.setBackgroundResource(R.drawable.url_button);
-                mUAModeButton.getLayoutParams().width = (int)getContext().getResources().getDimension(R.dimen.url_bar_item_width);
-            }
 
-            mUAModeButton.setTooltip(getResources().getString(R.string.user_agent_tooltip));
-            setUAModeButton(SettingsStore.getInstance(getContext()).getUaMode());
-            mUAModeButton.setOnClickListener(mUAModeListener);
-
-            if (mIsBookmarkMode) {
-                mUAModeButton.setVisibility(GONE);
-            } else if (mBookmarkEnabled) {
-                mBookmarkButton.setVisibility(VISIBLE);
-            }
-            mMicrophoneButton.setVisibility(VISIBLE);
+            mMicrophoneButton.setImageResource(R.drawable.ic_icon_microphone);
+            mMicrophoneButton.setTooltip(getResources().getString(R.string.voice_search_tooltip));
+            mMicrophoneButton.setOnClickListener(mMicrophoneListener);
 
         } else if (mURL.hasFocus()){
             mURL.setPadding(mURL.getPaddingStart(), mURL.getPaddingTop(), WidgetPlacement.convertDpToPixel(getContext(), 40), mURL.getPaddingBottom());
-            mUAModeButton.setImageResource(R.drawable.ic_icon_clear);
-            mUAModeButton.setTooltip(getResources().getString(R.string.clear_tooltip));
-            mUAModeButton.setBackgroundResource(R.drawable.url_button_end);
-            mUAModeButton.getLayoutParams().width = (int)getContext().getResources().getDimension(R.dimen.url_bar_last_item_width);
-            mUAModeButton.setOnClickListener(mClearListener);
 
-            if (mIsBookmarkMode) {
-                mUAModeButton.setVisibility(VISIBLE);
-            }
-
-            mBookmarkButton.setVisibility(GONE);
-            mMicrophoneButton.setVisibility(GONE);
+            mMicrophoneButton.setImageResource(R.drawable.ic_icon_clear);
+            mMicrophoneButton.setTooltip(getResources().getString(R.string.clear_tooltip));
+            mMicrophoneButton.setOnClickListener(mClearListener);
         }
     }
 
@@ -481,11 +478,11 @@ public class NavigationURLBar extends FrameLayout {
 
         int uaMode = SessionStore.get().getUaMode();
         if (uaMode == GeckoSessionSettings.USER_AGENT_MODE_VR) {
-            setUAModeButton(GeckoSessionSettings.USER_AGENT_MODE_DESKTOP);
+            setUAMode(GeckoSessionSettings.USER_AGENT_MODE_DESKTOP);
             SessionStore.get().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_DESKTOP);
 
         }else {
-            setUAModeButton(GeckoSessionSettings.USER_AGENT_MODE_VR);
+            setUAMode(GeckoSessionSettings.USER_AGENT_MODE_VR);
             SessionStore.get().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_VR);
         }
 
@@ -508,12 +505,9 @@ public class NavigationURLBar extends FrameLayout {
 
         @Override
         public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
-            if (mURL.getText().length() > 0) {
-                showVoiceSearch(false);
-
-            } else {
-                showVoiceSearch(true);
-            }
+            String aURL = mURL.getText().toString();
+            showVoiceSearch(isEmptyUrl(aURL));
+            showContextButtons(isEmptyUrl(aURL) && mIsContextButtonsEnabled);
         }
 
         @Override
