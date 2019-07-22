@@ -47,15 +47,6 @@
     public static android.content.Intent createVoiceRecognizerIntent(java.lang.String);
 }
 
-
-# --------------------------------------------------------------------
-# Keep classes from gecko.
-# --------------------------------------------------------------------
--keepclasseswithmembernames,includedescriptorclasses class * {
-    native <methods>;
-}
--keep class org.mozilla.gecko.mozglue.JNIObject {*;}
-
 # --------------------------------------------------------------------
 # Keep classes from FxR
 # --------------------------------------------------------------------
