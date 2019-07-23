@@ -53,6 +53,12 @@
 -keep class org.mozilla.vrbrowser.ui.widgets.WidgetPlacement {*;}
 
 # --------------------------------------------------------------------
+# Keep classes from HTC SDK
+# --------------------------------------------------------------------
+-keep class com.htc.** {*;}
+-keep class com.qualcomm.** {*;}
+
+# --------------------------------------------------------------------
 # Keep rules for mozillaspeechlibrary dependency
 # --------------------------------------------------------------------
 -keep class cz.msebera.android.httpclient.** {*;}
