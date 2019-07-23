@@ -456,6 +456,7 @@ public class NavigationURLBar extends FrameLayout {
         }
 
         if (mSessionStore.getCurrentUri() != url) {
+            SessionManager.get().getHistoryStore().addHistory(url, VisitType.TYPED);
             mSessionStore.loadUri(url);
 
             if (mDelegate != null) {

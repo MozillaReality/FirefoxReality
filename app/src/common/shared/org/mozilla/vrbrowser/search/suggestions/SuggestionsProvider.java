@@ -4,7 +4,7 @@ import android.content.Context;
 
 import androidx.annotation.NonNull;
 
-import org.mozilla.vrbrowser.browser.SessionStore;
+import org.mozilla.vrbrowser.browser.engine.SessionManager;
 import org.mozilla.vrbrowser.search.SearchEngineWrapper;
 import org.mozilla.vrbrowser.ui.widgets.SuggestionsWidget.SuggestionItem;
 import org.mozilla.vrbrowser.ui.widgets.SuggestionsWidget.SuggestionItem.Type;
@@ -75,7 +75,7 @@ public class SuggestionsProvider {
 
     public CompletableFuture<List<SuggestionItem>> getBookmarkSuggestions(@NonNull List<SuggestionItem> items) {
         CompletableFuture future = new CompletableFuture();
-        SessionStore.get().getBookmarkStore().getBookmarks().thenAcceptAsync((bookmarks) -> {
+        SessionManager.get().getBookmarkStore().getBookmarks().thenAcceptAsync((bookmarks) -> {
             bookmarks.stream().
                     filter(b -> b.getUrl().toLowerCase().contains(mFilterText) ||
                             b.getTitle().toLowerCase().contains(mFilterText))
@@ -95,7 +95,7 @@ public class SuggestionsProvider {
 
     public CompletableFuture<List<SuggestionItem>> getHistorySuggestions(@NonNull final List<SuggestionItem> items) {
         CompletableFuture future = new CompletableFuture();
-        SessionStore.get().getHistoryStore().getHistory().thenAcceptAsync((history) -> {
+        SessionManager.get().getHistoryStore().getHistory().thenAcceptAsync((history) -> {
             history.stream()
                     .filter(h ->
                             h.toLowerCase().contains(mFilterText))

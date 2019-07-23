@@ -44,6 +44,8 @@ import org.mozilla.vrbrowser.utils.InternalPages;
 
 import java.util.ArrayList;
 
+import mozilla.components.concept.storage.VisitType;
+
 import static org.mozilla.vrbrowser.utils.ServoUtils.isInstanceOfServoSession;
 
 public class WindowWidget extends UIWidget implements SessionChangeListener,
@@ -837,6 +839,11 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     @Nullable
     @Override
     public GeckoResult<AllowOrDeny> onLoadRequest(@NonNull GeckoSession session, @NonNull LoadRequest request) {
+        if (request.isRedirect)
+            SessionManager.get().getHistoryStore().addHistory(request.uri, VisitType.EMBED);
+        else if (request.triggerUri != null)
+            SessionManager.get().getHistoryStore().addHistory(request.uri, VisitType.LINK);
+
         return GeckoResult.ALLOW;
     }
 
