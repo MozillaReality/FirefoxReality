@@ -69,6 +69,7 @@ public class SettingsStore {
     public final static int FOVEATED_APP_DEFAULT_LEVEL = 0;
     public final static int FOVEATED_WEBVR_DEFAULT_LEVEL = 0;
     private final static long CRASH_RESTART_DELTA = 2000;
+    public final static boolean AUTOPLAY_ENABLED = false;
 
     // Enable telemetry by default (opt-out).
     private final static boolean enableCrashReportingByDefault = false;

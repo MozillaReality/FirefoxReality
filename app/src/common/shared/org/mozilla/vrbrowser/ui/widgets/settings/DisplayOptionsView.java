@@ -75,10 +75,8 @@ class DisplayOptionsView extends SettingsView {
         setMSAAMode(mMSAARadio.getIdForValue(msaaLevel), false);
 
         mAutoplaySetting = findViewById(R.id.autoplaySwitch);
-        mAutoplaySetting.setChecked(SessionStore.get().getAutoplayEnabled());
-        mAutoplaySetting.setOnCheckedChangeListener((compoundButton, enabled, apply) -> {
-            SessionStore.get().setAutoplayEnabled(enabled);
-        });
+        mAutoplaySetting.setOnCheckedChangeListener(mAutoplayListener);
+        setAutoplay(SessionStore.get().getAutoplayEnabled(), false);
 
         mDefaultHomepageUrl = getContext().getString(R.string.homepage_url);
 
@@ -205,6 +203,10 @@ class DisplayOptionsView extends SettingsView {
         setMSAAMode(checkedId, true);
     };
 
+    private SwitchSetting.OnCheckedChangeListener mAutoplayListener = (compoundButton, enabled, apply) -> {
+        setAutoplay(enabled, true);
+    };
+
     private OnClickListener mHomepageListener = (view) -> {
         if (!mHomepageEdit.getFirstText().isEmpty()) {
             setHomepage(mHomepageEdit.getFirstText());
@@ -300,10 +302,21 @@ class DisplayOptionsView extends SettingsView {
         }
 
         setHomepage(mDefaultHomepageUrl);
+        setAutoplay(SettingsStore.AUTOPLAY_ENABLED, true);
 
         if (restart)
             showRestartDialog();
     };
+
+    private void setAutoplay(boolean value, boolean doApply) {
+        mAutoplaySetting.setOnCheckedChangeListener(null);
+        mAutoplaySetting.setValue(value, false);
+        mAutoplaySetting.setOnCheckedChangeListener(mAutoplayListener);
+
+        if (doApply) {
+            SessionStore.get().setAutoplayEnabled(value);
+        }
+    }
 
     private void setHomepage(String newHomepage) {
         mHomepageEdit.setOnClickListener(null);
