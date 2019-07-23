@@ -26,6 +26,7 @@ import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.audio.AudioEngine;
 import org.mozilla.vrbrowser.browser.Media;
 import org.mozilla.vrbrowser.browser.SessionChangeListener;
+import org.mozilla.vrbrowser.browser.engine.SessionManager;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.search.suggestions.SuggestionsProvider;
@@ -165,8 +166,8 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
 
         mReloadButton.setOnClickListener(v -> {
             v.requestFocusFromTouch();
-            SessionStore.get().getHistoryStore().addHistory(
-                    SessionStore.get().getCurrentUri(),
+            SessionManager.get().getHistoryStore().addHistory(
+                    mAttachedWindow.getSessionStore().getCurrentUri(),
                     VisitType.RELOAD);
             if (mIsLoading) {
                 mSessionStore.stop();
@@ -367,7 +368,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
     @Override
     public void detachFromWindow() {
         if (mIsResizing) {
-            exitResizeMode(false);
+            exitResizeMode(ResizeAction.RESTORE_SIZE);
         }
         if (mIsInFullScreenMode) {
             exitFullScreenMode();
@@ -416,7 +417,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
     }
 
     private void setFullScreenSize() {
-        mSizeBeforeFullScreen.copyFrom(mAttachedWindow.getPlacement());
+        mPlacementBeforeResize.copyFrom(mAttachedWindow.getPlacement());
         final float minScale = WidgetPlacement.floatDimension(getContext(), R.dimen.window_fullscreen_min_scale);
         // Set browser fullscreen size
         float aspect = SettingsStore.getInstance(getContext()).getWindowAspect();
@@ -424,12 +425,12 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         if (media != null && media.getWidth() > 0 && media.getHeight() > 0) {
             aspect = (float)media.getWidth() / (float)media.getHeight();
         }
-        float scale = mWindowWidget.getCurrentScale();
+        float scale = mAttachedWindow.getCurrentScale();
         // Enforce min fullscreen size.
         // If current window area is larger only resize if the aspect changes (e.g. media).
-        if (scale < minScale || aspect != mWindowWidget.getCurrentAspect()) {
+        if (scale < minScale || aspect != mAttachedWindow.getCurrentAspect()) {
+            mAttachedWindow.resizeByMultiplier(aspect, Math.max(scale, minScale));
         }
-            mWindowWidget.resizeByMultiplier(aspect, Math.max(scale, minScale));
     }
 
     private void enterFullScreenMode() {
@@ -485,7 +486,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
             }
         }, 50);
 
-        mAttachedWindow.getPlacement().copyFrom(mSizeBeforeFullScreen);
+        mAttachedWindow.getPlacement().copyFrom(mPlacementBeforeResize);
         mWidgetManager.updateWidget(mAttachedWindow);
 
         mIsInFullScreenMode = false;
@@ -506,7 +507,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
             return;
         }
         mIsResizing = true;
-        mPlacementBeforeResize.copyFrom(mWindowWidget.getPlacement());
+        mPlacementBeforeResize.copyFrom(mAttachedWindow.getPlacement());
         startWidgetResize();
         AnimationHelper.fadeIn(mResizeModeContainer, AnimationHelper.FADE_ANIMATION_DURATION, null);
         if (mIsInFullScreenMode) {
@@ -538,9 +539,14 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
             return;
         }
         if (aResizeAction == ResizeAction.RESTORE_SIZE) {
+<<<<<<< HEAD
             mWindowWidget.getPlacement().copyFrom(mPlacementBeforeResize);
             mWidgetManager.updateWidget(mWindowWidget);
             mWindowWidget.saveCurrentSize();
+=======
+            mAttachedWindow.getPlacement().copyFrom(mPlacementBeforeResize);
+            mWidgetManager.updateWidget(mAttachedWindow);
+>>>>>>> Rebase fixes
         }
         mIsResizing = false;
         finishWidgetResize();

@@ -200,7 +200,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
 
         Bundle extras = getIntent() != null ? getIntent().getExtras() : null;
         SessionManager.get().setContext(this, extras);
-        SessionManager.get().initializeBookmarkStore(this);
+        SessionManager.get().initializeStores(this);
         ((VRBrowserApplication)getApplication()).getRepository().migrateOldBookmarks();
 
         // Create broadcast receiver for getting crash messages from crash process

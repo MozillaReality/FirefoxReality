@@ -77,6 +77,8 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
                 mAudio.playSound(AudioEngine.Sound.CLICK);
             }
 
+            SessionManager.get().getHistoryStore().addHistory(bookmark.getUrl(), VisitType.BOOKMARK);
+
             SessionStore sessionStore = SessionManager.get().getActiveStore();
             sessionStore.loadUri(bookmark.getUrl());
         }

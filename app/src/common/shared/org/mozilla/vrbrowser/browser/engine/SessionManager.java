@@ -14,6 +14,7 @@ import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.geckoview.WebExtension;
 import org.mozilla.vrbrowser.BuildConfig;
 import org.mozilla.vrbrowser.browser.BookmarksStore;
+import org.mozilla.vrbrowser.browser.HistoryStore;
 import org.mozilla.vrbrowser.browser.PermissionDelegate;
 import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.crashreporting.CrashReporterService;
@@ -45,6 +46,7 @@ public class SessionManager implements GeckoSession.PermissionDelegate {
     private Integer mActiveStoreId;
     private PermissionDelegate mPermissionDelegate;
     private BookmarksStore mBookmarksStore;
+    private HistoryStore mHistoryStore;
 
     private SessionManager() {
         mSessionStores = new HashMap<>();
@@ -89,8 +91,9 @@ public class SessionManager implements GeckoSession.PermissionDelegate {
         }
     }
 
-    public void initializeBookmarkStore(Context context) {
+    public void initializeStores(Context context) {
         mBookmarksStore = new BookmarksStore(context);
+        mHistoryStore = new HistoryStore(context);
     }
 
     public SessionStore createSessionStore(int storeId, boolean privateMode) {
@@ -129,6 +132,10 @@ public class SessionManager implements GeckoSession.PermissionDelegate {
         return mBookmarksStore;
     }
 
+    public HistoryStore getHistoryStore() {
+        return mHistoryStore;
+    }
+
     public void onPause() {
         for (Map.Entry<Integer, SessionStore> entry : mSessionStores.entrySet()) {
             entry.getValue().setActive(false);
@@ -149,6 +156,10 @@ public class SessionManager implements GeckoSession.PermissionDelegate {
 
         if (mBookmarksStore != null) {
             mBookmarksStore.removeAllListeners();
+        }
+
+        if (mHistoryStore != null) {
+            mHistoryStore.removeAllListeners();
         }
     }
 
