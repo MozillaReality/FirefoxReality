@@ -431,7 +431,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
                 activeStore.loadUri(uri.toString());
 
             } else {
-                mWindows.getFocusedWindow().loadHome();
+                mWindows.getFocusedWindow().loadHomeIfNotRestored();
             }
         }
     }

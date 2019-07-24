@@ -209,6 +209,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
         newWindow.getPlacement().width = aState.textureWidth;
         newWindow.getPlacement().height = aState.textureHeight;
         newWindow.getPlacement().worldWidth = aState.worldWidth;
+        newWindow.setRestored(true);
         placeWindow(newWindow, aState.placement);
 
         mWidgetManager.addWidget(newWindow);

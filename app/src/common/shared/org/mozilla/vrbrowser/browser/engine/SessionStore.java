@@ -268,21 +268,19 @@ public class SessionStore implements ContentBlocking.Delegate, GeckoSession.Navi
         mRegion = store.mRegion;
         mUsePrivateMode = store.mUsePrivateMode;
 
-        SessionSettings settings = new SessionSettings.Builder()
-                .withDefaultSettings(mContext)
-                .build();
-
-        GeckoSessionSettings geckoSettings = new GeckoSessionSettings.Builder()
-                .useMultiprocess(settings.isMultiprocessEnabled())
-                .usePrivateMode(mUsePrivateMode)
-                .useTrackingProtection(settings.isTrackingProtectionEnabled())
-                .build();
-
         HashMap<Integer, Integer> oldNewSessionId = new HashMap<>();
         for (Map.Entry<Integer, SessionState> entry : store.mSessions.entrySet()) {
             SessionState state = entry.getValue();
 
-            if (settings.isServoEnabled()) {
+            GeckoSessionSettings geckoSettings = new GeckoSessionSettings.Builder()
+                    .useMultiprocess(state.mSettings.isMultiprocessEnabled())
+                    .usePrivateMode(mUsePrivateMode)
+                    .userAgentMode(state.mSettings.getUserAgentMode())
+                    .suspendMediaWhenInactive(state.mSettings.isSuspendMediaWhenInactiveEnabled())
+                    .useTrackingProtection(state.mSettings.isTrackingProtectionEnabled())
+                    .build();
+
+            if (state.mSettings.isServoEnabled()) {
                 if (isServoAvailable()) {
                     state.mSession = createServoSession(mContext);
                 } else {
@@ -298,8 +296,6 @@ public class SessionStore implements ContentBlocking.Delegate, GeckoSession.Navi
             int newSessionId = state.mSession.hashCode();
             oldNewSessionId.put(entry.getKey(), newSessionId);
 
-            state.mSession.getSettings().setSuspendMediaWhenInactive(settings.isSuspendMediaWhenInactiveEnabled());
-            state.mSession.getSettings().setUserAgentMode(settings.getUserAgentMode());
             state.mSession.setNavigationDelegate(this);
             state.mSession.setProgressDelegate(this);
             state.mSession.setPromptDelegate(this);
@@ -763,6 +759,10 @@ public class SessionStore implements ContentBlocking.Delegate, GeckoSession.Navi
     // Session Settings
 
     protected void setServo(final boolean enabled) {
+        SessionState state = mSessions.get(mCurrentSession.hashCode());
+        if (state != null) {
+            state.mSettings.setServoEnabled(enabled);
+        }
         if (!enabled && mCurrentSession != null && isInstanceOfServoSession(mCurrentSession)) {
             String uri = getCurrentUri();
             int id = createSession();
@@ -777,8 +777,12 @@ public class SessionStore implements ContentBlocking.Delegate, GeckoSession.Navi
 
     public void setUaMode(int mode) {
         if (mCurrentSession != null) {
-            mCurrentSession.getSettings().setUserAgentMode(mode);
-            mCurrentSession.reload();
+            SessionState state = mSessions.get(mCurrentSession.hashCode());
+            if (state != null && state.mSettings.getUserAgentMode() != mode) {
+                state.mSettings.setUserAgentMode(mode);
+                mCurrentSession.getSettings().setUserAgentMode(mode);
+                mCurrentSession.reload();
+            }
         }
     }
 

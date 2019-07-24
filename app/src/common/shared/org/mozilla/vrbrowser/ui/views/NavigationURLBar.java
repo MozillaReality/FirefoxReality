@@ -155,7 +155,7 @@ public class NavigationURLBar extends FrameLayout {
         mUAModeButton = findViewById(R.id.uaModeButton);
         mUAModeButton.setTag(R.string.view_id_tag, R.id.uaModeButton);
         mUAModeButton.setOnClickListener(mUAModeListener);
-        setUAMode(SettingsStore.getInstance(aContext).getUaMode());
+        setUAMode(mSessionStore.getUaMode());
 
         mURLLeftContainer = findViewById(R.id.urlLeftContainer);
         mInsecureIcon = findViewById(R.id.insecureIcon);
@@ -183,6 +183,7 @@ public class NavigationURLBar extends FrameLayout {
 
     public void setSessionStore(SessionStore sessionStore) {
         mSessionStore = sessionStore;
+        setUAMode(mSessionStore.getUaMode());
     }
 
     public void onPause() {
@@ -501,13 +502,13 @@ public class NavigationURLBar extends FrameLayout {
         view.requestFocusFromTouch();
 
         int uaMode = mSessionStore.getUaMode();
-        if (uaMode == GeckoSessionSettings.USER_AGENT_MODE_VR) {
-            setUAMode(GeckoSessionSettings.USER_AGENT_MODE_DESKTOP);
-            mSessionStore.setUaMode(GeckoSessionSettings.USER_AGENT_MODE_DESKTOP);
-
-        }else {
+        if (uaMode == GeckoSessionSettings.USER_AGENT_MODE_DESKTOP) {
             setUAMode(GeckoSessionSettings.USER_AGENT_MODE_VR);
             mSessionStore.setUaMode(GeckoSessionSettings.USER_AGENT_MODE_VR);
+
+        }else {
+            setUAMode(GeckoSessionSettings.USER_AGENT_MODE_DESKTOP);
+            mSessionStore.setUaMode(GeckoSessionSettings.USER_AGENT_MODE_DESKTOP);
         }
 
         TelemetryWrapper.voiceInputEvent();

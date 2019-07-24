@@ -54,6 +54,9 @@ class SessionSettings {
         return isServoEnabled;
     }
 
+    public void setServoEnabled(boolean enabled) {
+        isServoEnabled = enabled;
+    }
 
     public static class Builder {
 
