@@ -85,6 +85,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     private ArrayList<BookmarkListener> mBookmarksListeners;
     private Windows.WindowPlacement mWindowPlacement = Windows.WindowPlacement.FRONT;
     private float mMaxWindowScale = 3;
+    private boolean mIsRestored = false;
 
     public WindowWidget(Context aContext, int windowId, boolean privateMode) {
         super(aContext);
@@ -179,6 +180,11 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         SessionManager.get().destroySessionStore(mWindowId);
     }
 
+    public void loadHomeIfNotRestored() {
+        if (!mIsRestored)
+            loadHome();
+    }
+
     public void loadHome() {
         if (mSessionStore.isPrivateMode()) {
             InternalPages.PageResources pageResources = InternalPages.PageResources.create(R.raw.private_mode, R.raw.private_style);
@@ -186,6 +192,10 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         } else {
             mSessionStore.loadUri(SettingsStore.getInstance(getContext()).getHomepage());
         }
+    }
+
+    protected void setRestored(boolean restored) {
+        mIsRestored = restored;
     }
 
     private void setView(View view) {
