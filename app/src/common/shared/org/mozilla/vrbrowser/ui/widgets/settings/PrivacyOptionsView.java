@@ -18,9 +18,8 @@ import android.widget.TextView;
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.audio.AudioEngine;
-import org.mozilla.vrbrowser.browser.engine.SessionManager;
-import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.browser.SettingsStore;
+import org.mozilla.vrbrowser.browser.engine.SessionManager;
 import org.mozilla.vrbrowser.ui.views.UIButton;
 import org.mozilla.vrbrowser.ui.views.settings.ButtonSetting;
 import org.mozilla.vrbrowser.ui.views.settings.SwitchSetting;
@@ -78,8 +77,8 @@ class PrivacyOptionsView extends SettingsView {
             SettingsStore.getInstance(getContext()).setDrmContentPlaybackEnabled(enabled);
             // TODO Enable/Disable DRM content playback
         });
-        mDrmContentPlaybackSwitch.setLinkClickListener((widget, url) -> {
-            SessionStore.get().loadUri(url);
+        mDrmContentPlaybackSwitch.setLinkClickListner((widget, url) -> {
+            SessionManager.get().getActiveStore().loadUri(url);
             exitWholeSettings();
         });
 
@@ -88,12 +87,6 @@ class PrivacyOptionsView extends SettingsView {
         mTrackingSetting.setOnCheckedChangeListener((compoundButton, enabled, apply) -> {
             SettingsStore.getInstance(getContext()).setTrackingProtectionEnabled(enabled);
             SessionManager.get().setTrackingProtection(enabled);
-        });
-
-        mAutoplaySetting = findViewById(R.id.autoplaySwitch);
-        mAutoplaySetting.setChecked(SessionManager.get().getAutoplayEnabled());
-        mAutoplaySetting.setOnCheckedChangeListener((compoundButton, enabled, apply) -> {
-            SessionManager.get().setAutoplayEnabled(enabled);
         });
 
         TextView permissionsTitleText = findViewById(R.id.permissionsTitle);

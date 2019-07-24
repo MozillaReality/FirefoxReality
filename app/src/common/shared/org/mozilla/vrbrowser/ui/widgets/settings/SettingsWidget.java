@@ -97,7 +97,7 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
 
         LinearLayout reportIssue = findViewById(R.id.reportIssueLayout);
         reportIssue.setOnClickListener(v -> {
-            SessionStore.get().loadUri(getContext().getString(R.string.bug_report_url));
+            SessionManager.get().getActiveStore().loadUri(getContext().getString(R.string.bug_report_url));
             onDismiss();
         });
 
