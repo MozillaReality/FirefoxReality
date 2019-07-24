@@ -9,12 +9,10 @@ import android.content.Context;
 import android.graphics.Point;
 import android.view.View;
 
-import org.mozilla.vrbrowser.BuildConfig;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.audio.AudioEngine;
-import org.mozilla.vrbrowser.browser.engine.SessionManager;
-import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.browser.SettingsStore;
+import org.mozilla.vrbrowser.browser.engine.SessionManager;
 import org.mozilla.vrbrowser.ui.views.UIButton;
 import org.mozilla.vrbrowser.ui.views.settings.ButtonSetting;
 import org.mozilla.vrbrowser.ui.views.settings.DoubleEditSetting;
@@ -77,7 +75,7 @@ class DisplayOptionsView extends SettingsView {
 
         mAutoplaySetting = findViewById(R.id.autoplaySwitch);
         mAutoplaySetting.setOnCheckedChangeListener(mAutoplayListener);
-        setAutoplay(SessionStore.get().getAutoplayEnabled(), false);
+        setAutoplay(SessionManager.get().getAutoplayEnabled(), false);
 
         mDefaultHomepageUrl = getContext().getString(R.string.homepage_url);
 
@@ -314,7 +312,7 @@ class DisplayOptionsView extends SettingsView {
         mAutoplaySetting.setOnCheckedChangeListener(mAutoplayListener);
 
         if (doApply) {
-            SessionStore.get().setAutoplayEnabled(value);
+            SessionManager.get().setAutoplayEnabled(value);
         }
     }
 

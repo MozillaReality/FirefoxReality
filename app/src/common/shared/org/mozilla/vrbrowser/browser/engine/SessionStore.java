@@ -771,7 +771,11 @@ public class SessionStore implements ContentBlocking.Delegate, GeckoSession.Navi
         }
     }
 
-    protected void setUaMode(int mode) {
+    public int getUaMode() {
+        return mCurrentSession.getSettings().getUserAgentMode();
+    }
+
+    public void setUaMode(int mode) {
         if (mCurrentSession != null) {
             mCurrentSession.getSettings().setUserAgentMode(mode);
             mCurrentSession.reload();

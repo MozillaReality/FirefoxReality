@@ -16,6 +16,7 @@ import android.util.TypedValue;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.view.inputmethod.EditorInfo;
@@ -499,14 +500,14 @@ public class NavigationURLBar extends FrameLayout {
 
         view.requestFocusFromTouch();
 
-        int uaMode = SessionStore.get().getUaMode();
+        int uaMode = mSessionStore.getUaMode();
         if (uaMode == GeckoSessionSettings.USER_AGENT_MODE_VR) {
             setUAMode(GeckoSessionSettings.USER_AGENT_MODE_DESKTOP);
-            SessionStore.get().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_DESKTOP);
+            mSessionStore.setUaMode(GeckoSessionSettings.USER_AGENT_MODE_DESKTOP);
 
         }else {
             setUAMode(GeckoSessionSettings.USER_AGENT_MODE_VR);
-            SessionStore.get().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_VR);
+            mSessionStore.setUaMode(GeckoSessionSettings.USER_AGENT_MODE_VR);
         }
 
         TelemetryWrapper.voiceInputEvent();
