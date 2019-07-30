@@ -27,7 +27,7 @@ public class MaxWindowsWidget extends PromptWidget {
     }
 
     protected void initialize(Context aContext) {
-        inflate(aContext, R.layout.promp_max_windows, this);
+        inflate(aContext, R.layout.prompt_max_windows, this);
 
         mLayout = findViewById(R.id.layout);
 
