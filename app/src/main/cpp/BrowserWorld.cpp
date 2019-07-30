@@ -832,7 +832,7 @@ BrowserWorld::AddWidget(int32_t aHandle, const WidgetPlacementPtr& aPlacement) {
   }
   float worldWidth = aPlacement->worldWidth;
   if (worldWidth <= 0.0f) {
-    worldWidth = aPlacement->width * WidgetPlacement::WORLD_DPI_RATIO;
+    worldWidth = aPlacement->width * WidgetPlacement::kWorldDPIRatio;
   }
 
   const int32_t textureWidth = aPlacement->GetTextureWidth();
@@ -1010,9 +1010,9 @@ BrowserWorld::LayoutWidget(int32_t aHandle) {
 
   vrb::Matrix transform = vrb::Matrix::Identity();
 
-  vrb::Vector translation = vrb::Vector(aPlacement->translation.x() * WidgetPlacement::WORLD_DPI_RATIO,
-                                        aPlacement->translation.y() * WidgetPlacement::WORLD_DPI_RATIO,
-                                        aPlacement->translation.z() * WidgetPlacement::WORLD_DPI_RATIO);
+  vrb::Vector translation = vrb::Vector(aPlacement->translation.x() * WidgetPlacement::kWorldDPIRatio,
+                                        aPlacement->translation.y() * WidgetPlacement::kWorldDPIRatio,
+                                        aPlacement->translation.z() * WidgetPlacement::kWorldDPIRatio);
 
   const float anchorX = (aPlacement->anchor.x() - 0.5f) * worldWidth;
   const float anchorY = (aPlacement->anchor.y() - 0.5f) * worldHeight;

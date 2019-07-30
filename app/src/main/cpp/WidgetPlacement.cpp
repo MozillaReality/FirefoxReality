@@ -7,7 +7,7 @@
 
 namespace crow {
 
-const float WidgetPlacement::WORLD_DPI_RATIO = 2.0f/720.0f;
+const float WidgetPlacement::kWorldDPIRatio = 2.0f/720.0f;
 
 WidgetPlacementPtr
 WidgetPlacement::FromJava(JNIEnv* aEnv, jobject& aObject) {

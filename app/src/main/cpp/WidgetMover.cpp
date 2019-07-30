@@ -44,6 +44,8 @@ struct WidgetMover::State {
     const float minX = -2.0f;
     const float maxY = 2.0f;
     const float minY = -1.0f;
+    float x = initialPlacement->translation.x() * WidgetPlacement::kWorldDPIRatio;
+    float y = initialPlacement->translation.y() * WidgetPlacement::kWorldDPIRatio;
     const float maxAngle = -35.0f * (float)M_PI / 180.0f;
     const float angleStartY = 0.8f;
     const float minZ = -2.5f;
