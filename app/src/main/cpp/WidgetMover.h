@@ -28,7 +28,8 @@ public:
   static WidgetMoverPtr Create();
   bool IsMoving(const int aControllerIndex) const;
   WidgetPlacementPtr HandleMove(const vrb::Vector& aStart, const vrb::Vector& aDirection);
-  void StartMoving(const WidgetPtr& aWidget, const int32_t aMoveBehavour, const int32_t aControllerIndex, const vrb::Vector& hitPoint);
+  void StartMoving(const WidgetPtr& aWidget, const int32_t aMoveBehavour, const int32_t aControllerIndex,
+                   const vrb::Vector& aHitPoint, const vrb::Vector& aAnchorPoint);
   void EndMoving();
   WidgetPtr GetWidget() const;
 protected:

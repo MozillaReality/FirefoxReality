@@ -22,6 +22,7 @@ struct WidgetMover::State {
   WidgetPtr widget;
   int attachedController;
   vrb::Vector initialPoint;
+  vrb::Vector anchorPoint;
   vrb::Matrix initialTransform;
   WidgetPlacementPtr initialPlacement;
   WidgetPlacementPtr movePlacement;
@@ -37,15 +38,13 @@ struct WidgetMover::State {
   {}
 
 
-  WidgetPlacementPtr HandleKeyboardMove(const vrb::Vector& aDelta) {
-    float x = initialPlacement->translation.x() * WidgetPlacement::WORLD_DPI_RATIO;
-    float y = initialPlacement->translation.y() * WidgetPlacement::WORLD_DPI_RATIO;
-    const float maxX = 3.0f;
-    const float minX = -2.0f;
-    const float maxY = 2.0f;
-    const float minY = -1.0f;
+  WidgetPlacementPtr& HandleKeyboardMove(const vrb::Vector& aDelta) {
     float x = initialPlacement->translation.x() * WidgetPlacement::kWorldDPIRatio;
     float y = initialPlacement->translation.y() * WidgetPlacement::kWorldDPIRatio;
+    const float maxX = 4.0f; // Relative to 0.5f anchor point.
+    const float minX = -maxX;
+    const float maxY = 2.0f;  // Relative to 0.0f anchor point.
+    const float minY = -1.1f; // Relative to 0.0f anchor point.
     const float maxAngle = -35.0f * (float)M_PI / 180.0f;
     const float angleStartY = 0.8f;
     const float minZ = -2.5f;
@@ -54,13 +53,18 @@ struct WidgetMover::State {
     x += aDelta.x();
     y += aDelta.y();
 
-    x = fmin(x, maxX);
-    x = fmax(x, minX);
-    y = fmin(y, maxY);
-    y = fmax(y, minY);
+    float w, h;
+    widget->GetWorldSize(w, h);
+    const float dx = w * (anchorPoint.x() - 0.5f);
+    const float dy = h * anchorPoint.y();
 
-    movePlacement->translation.x() = x / WidgetPlacement::WORLD_DPI_RATIO;
-    movePlacement->translation.y() = y / WidgetPlacement::WORLD_DPI_RATIO;
+    x = fmin(x, maxX + dx);
+    x = fmax(x, minX - dx);
+    y = fmin(y, maxY + dy);
+    y = fmax(y, minY + dy);
+
+    movePlacement->translation.x() = x / WidgetPlacement::kWorldDPIRatio;
+    movePlacement->translation.y() = y / WidgetPlacement::kWorldDPIRatio;
 
     float angle = 0.0f;
     if (y < angleStartY) {
@@ -75,7 +79,7 @@ struct WidgetMover::State {
       t = (y - minY) / (1.45f - minY);
     }
 
-    movePlacement->translation.z() = (minZ + t * (maxZ - minZ)) / WidgetPlacement::WORLD_DPI_RATIO;
+    movePlacement->translation.z() = (minZ + t * (maxZ - minZ)) / WidgetPlacement::kWorldDPIRatio;
     movePlacement->rotation = angle;
     endDelta = movePlacement->translation - initialPlacement->translation;
     endRotation = angle;
@@ -100,11 +104,10 @@ WidgetMover::HandleMove(const vrb::Vector& aStart, const vrb::Vector& aDirection
   vrb::Vector hitPoint;
   vrb::Vector hitNormal;
   bool isInWidget = false;
-  m.widget->TestControllerIntersection(aStart, aDirection, hitPoint, hitNormal, isInWidget, hitDistance);
+  m.widget->TestControllerIntersection(aStart, aDirection, hitPoint, hitNormal, false, isInWidget, hitDistance);
   if (hitDistance < 0) {
     return nullptr;
   };
-
 
   const vrb::Vector delta = hitPoint - m.initialPoint;
 
@@ -114,8 +117,8 @@ WidgetMover::HandleMove(const vrb::Vector& aStart, const vrb::Vector& aDirection
     // General case
     vrb::Matrix updatedTransform = m.initialTransform.Translate(vrb::Vector(delta.x(), delta.y(), 0.0f));
     m.widget->SetTransform(updatedTransform);
-    m.endDelta.x() = delta.x() / WidgetPlacement::WORLD_DPI_RATIO;
-    m.endDelta.y() = delta.y() / WidgetPlacement::WORLD_DPI_RATIO;
+    m.endDelta.x() = delta.x() / WidgetPlacement::kWorldDPIRatio;
+    m.endDelta.y() = delta.y() / WidgetPlacement::kWorldDPIRatio;
     m.endDelta.z() = 0.0f;
     m.endRotation = 0.0f;
     return nullptr;
@@ -123,11 +126,13 @@ WidgetMover::HandleMove(const vrb::Vector& aStart, const vrb::Vector& aDirection
 }
 
 void
-WidgetMover::StartMoving(const WidgetPtr& aWidget, const int32_t aMoveBehaviour, const int32_t aControllerIndex, const vrb::Vector& hitPoint) {
+WidgetMover::StartMoving(const WidgetPtr& aWidget, const int32_t aMoveBehaviour, const int32_t aControllerIndex,
+                         const vrb::Vector& aHitPoint, const vrb::Vector& aAnchorPoint) {
   m.widget = aWidget;
   m.attachedController = aControllerIndex;
   m.initialTransform = aWidget->GetTransform();
-  m.initialPoint = hitPoint;
+  m.initialPoint = aHitPoint;
+  m.anchorPoint = aAnchorPoint;
   m.initialPlacement = aWidget->GetPlacement();
   m.movePlacement = WidgetPlacement::Create(*m.initialPlacement);
   m.moveBehaviour = (WidgetMoveBehaviour) aMoveBehaviour;

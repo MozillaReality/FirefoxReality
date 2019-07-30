@@ -263,18 +263,18 @@ Widget::GetWorldSize(float& aWidth, float& aHeight) const {
 }
 
 bool
-Widget::TestControllerIntersection(const vrb::Vector& aStartPoint, const vrb::Vector& aDirection, vrb::Vector& aResult, vrb::Vector& aNormal, bool& aIsInWidget, float& aDistance) const {
+Widget::TestControllerIntersection(const vrb::Vector& aStartPoint, const vrb::Vector& aDirection, vrb::Vector& aResult, vrb::Vector& aNormal,
+                                   const bool aClamp, bool& aIsInWidget, float& aDistance) const {
   aDistance = -1.0f;
   if (!m.root->IsEnabled(*m.transform)) {
     return false;
   }
 
-  bool clamp = !m.resizing;
   bool result;
   if (m.quad) {
-    result = m.quad->TestIntersection(aStartPoint, aDirection, aResult, aNormal, clamp, aIsInWidget, aDistance);
+    result = m.quad->TestIntersection(aStartPoint, aDirection, aResult, aNormal, aClamp, aIsInWidget, aDistance);
   } else {
-    result = m.cylinder->TestIntersection(aStartPoint, aDirection, aResult, aNormal, clamp, aIsInWidget, aDistance);
+    result = m.cylinder->TestIntersection(aStartPoint, aDirection, aResult, aNormal, aClamp, aIsInWidget, aDistance);
   }
   if (result && m.resizing && !aIsInWidget) {
     // Handle extra intersections while resizing

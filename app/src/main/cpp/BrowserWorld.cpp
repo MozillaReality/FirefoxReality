@@ -372,7 +372,8 @@ BrowserWorld::State::UpdateControllers(bool& aRelayoutWidgets) {
       vrb::Vector normal;
       float distance = 0.0f;
       bool isInWidget = false;
-      if (widget->TestControllerIntersection(start, direction, result, normal, isInWidget, distance)) {
+      const bool clamp = !widget->IsResizing();
+      if (widget->TestControllerIntersection(start, direction, result, normal, clamp, isInWidget, distance)) {
         if (isInWidget && (distance < hitDistance)) {
           hitWidget = widget;
           hitDistance = distance;
@@ -894,7 +895,7 @@ BrowserWorld::UpdateWidget(int32_t aHandle, const WidgetPlacementPtr& aPlacement
 
   float newWorldWidth = aPlacement->worldWidth;
   if (newWorldWidth <= 0.0f) {
-    newWorldWidth = aPlacement->width * WidgetPlacement::WORLD_DPI_RATIO;
+    newWorldWidth = aPlacement->width * WidgetPlacement::kWorldDPIRatio;
   }
 
   if (newWorldWidth != worldWidth || oldWidth != aPlacement->width || oldHeight != aPlacement->height) {
@@ -949,6 +950,7 @@ BrowserWorld::StartWidgetMove(int32_t aHandle, int32_t aMoveBehavour) {
   }
 
   vrb::Vector initialPoint;
+  vrb::Vector anchorPoint;
   int controllerIndex = -1;
 
   for (Controller& controller: m.controllers->GetControllers()) {
@@ -959,6 +961,10 @@ BrowserWorld::StartWidgetMove(int32_t aHandle, int32_t aMoveBehavour) {
     if (controller.pointer && controller.pointer->GetHitWidget() == widget) {
       controllerIndex = controller.index;
       initialPoint = controller.pointerWorldPoint;
+      int32_t w, h;
+      widget->GetSurfaceTextureSize(w, h);
+      anchorPoint.x() = controller.pointerX / (float)w;
+      anchorPoint.y() = controller.pointerY / (float)h;
       break;
     }
   }
@@ -968,7 +974,7 @@ BrowserWorld::StartWidgetMove(int32_t aHandle, int32_t aMoveBehavour) {
   }
   
   m.movingWidget = WidgetMover::Create();
-  m.movingWidget->StartMoving(widget, aMoveBehavour, controllerIndex, initialPoint);
+  m.movingWidget->StartMoving(widget, aMoveBehavour, controllerIndex, initialPoint, anchorPoint);
 }
 
 void
