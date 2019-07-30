@@ -525,40 +525,5 @@ public class SettingsStore {
         editor.putBoolean(mContext.getString(R.string.settings_key_notifications), isEnabled);
         editor.commit();
     }
-
-
-    public void restoreKeyboardMove(WidgetPlacement aPlacement) {
-        try {
-            String value = mPrefs.getString(mContext.getString(R.string.settings_key_keyboard_move), null);
-            if (StringUtils.isEmpty(value)) {
-                return;
-            }
-            JSONObject json = new JSONObject(value);
-            aPlacement.translationX = (float)json.optDouble("x", aPlacement.translationX);
-            aPlacement.translationY = (float)json.optDouble("y", aPlacement.translationY);
-            aPlacement.translationZ = (float)json.optDouble("z", aPlacement.translationZ);
-            aPlacement.rotation = (float)json.optDouble("r", aPlacement.rotation);
-        }
-        catch (JSONException ex) {
-            Log.e(LOGTAG, "Error restoring keyboard move: " + ex.toString());
-        }
-    }
-
-    public void saveKeyboardMove(WidgetPlacement aPlacement) {
-        try {
-            SharedPreferences.Editor editor = mPrefs.edit();
-            JSONObject json = new JSONObject();
-            json.put("x", aPlacement.translationX);
-            json.put("y", aPlacement.translationY);
-            json.put("z", aPlacement.translationZ);
-            json.put("r", aPlacement.rotation);
-            editor.putString(mContext.getString(R.string.settings_key_keyboard_move), json.toString());
-            editor.commit();
-        }
-        catch (JSONException ex) {
-            Log.e(LOGTAG, "Error saving keyboard move: " + ex.toString());
-        }
-
-    }
 }
 

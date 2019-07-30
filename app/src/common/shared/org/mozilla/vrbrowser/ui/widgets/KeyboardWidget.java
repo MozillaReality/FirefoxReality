@@ -267,13 +267,6 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
         aPlacement.worldWidth = WidgetPlacement.floatDimension(context, R.dimen.keyboard_world_width);
         aPlacement.visible = false;
         aPlacement.cylinder = true;
-        SettingsStore.getInstance(getContext()).restoreKeyboardMove(mWidgetPlacement);
-    }
-
-    @Override
-    public void handleMoveEvent(float aDeltaX, float aDeltaY, float aDeltaZ, float aRotation) {
-        super.handleMoveEvent(aDeltaX, aDeltaY, aDeltaZ, aRotation);
-        SettingsStore.getInstance(getContext()).saveKeyboardMove(mWidgetPlacement);
     }
 
     private int getKeyboardWidth(float aAlphabeticWidth) {
