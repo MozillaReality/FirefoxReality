@@ -94,7 +94,7 @@ android {
     }
 
     lintOptions {
-        disable "LogUsage", "ExtraTranslation"
+        disable "ExtraTranslation"
     }
 
     packagingOptions {
