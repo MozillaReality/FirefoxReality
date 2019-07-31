@@ -96,7 +96,7 @@ public class ViewUtils {
         if (!(parent instanceof ViewGroup))
             return false;
 
-        return parent.findViewById(view.getId()) == null;
+        return parent.findViewById(view.getId()) != null;
     }
 
 }

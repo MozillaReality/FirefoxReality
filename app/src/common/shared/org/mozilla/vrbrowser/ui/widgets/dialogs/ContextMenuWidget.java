@@ -176,7 +176,7 @@ public class ContextMenuWidget extends UIWidget implements WidgetManagerDelegate
 
     @Override
     public void onGlobalFocusChanged(View oldFocus, View newFocus) {
-        if (ViewUtils.getParentWidget(oldFocus) == this && isVisible() && ViewUtils.isChildrenOf(oldFocus, newFocus)) {
+        if (!ViewUtils.isChildrenOf(mContextMenu, newFocus)) {
             onDismiss();
         }
     }
