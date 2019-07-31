@@ -21,6 +21,7 @@ import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.audio.AudioEngine;
 import org.mozilla.vrbrowser.browser.SessionChangeListener;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
+import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
 import org.mozilla.vrbrowser.ui.views.UIButton;
 import org.mozilla.vrbrowser.ui.widgets.settings.SettingsWidget;
 
@@ -111,6 +112,8 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Bookm
             }
 
             view.requestFocusFromTouch();
+
+            TelemetryWrapper.trayNewWindowEvent();
 
             notifyAddWindowClicked();
         });

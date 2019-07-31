@@ -32,6 +32,7 @@ import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.browser.VideoAvailabilityListener;
 import org.mozilla.vrbrowser.browser.engine.SessionManager;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
+import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
 import org.mozilla.vrbrowser.ui.views.BookmarksView;
 import org.mozilla.vrbrowser.ui.widgets.dialogs.ContextMenuWidget;
 import org.mozilla.vrbrowser.ui.widgets.dialogs.MaxWindowsWidget;
@@ -85,6 +86,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     private Windows.WindowPlacement mWindowPlacement = Windows.WindowPlacement.FRONT;
     private float mMaxWindowScale = 3;
     private boolean mIsRestored = false;
+    boolean mActive = false;
 
     public WindowWidget(Context aContext, int windowId, boolean privateMode) {
         super(aContext);
@@ -112,6 +114,8 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         mLastMouseClickPos = new Point(0, 0);
 
         setFocusable(true);
+
+        TelemetryWrapper.openWindowEvent(mWindowId);
     }
 
     @Override
@@ -174,6 +178,8 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     }
 
     public void close() {
+        TelemetryWrapper.closeWindowEvent(mWindowId);
+
         releaseWidget();
         mBookmarksView.onDestroy();
         SessionManager.get().destroySessionStore(mWindowId);
@@ -317,7 +323,13 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     }
 
     public void setWindowPlacement(@NonNull Windows.WindowPlacement aPlacement) {
+        if (mActive)
+            TelemetryWrapper.activePlacementEvent(mWindowPlacement.getValue(), false);
+
         mWindowPlacement = aPlacement;
+
+        if (mActive)
+            TelemetryWrapper.activePlacementEvent(mWindowPlacement.getValue(), true);
     }
 
     public @NonNull Windows.WindowPlacement getWindowPlacement() {
@@ -348,13 +360,18 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         return mBorderWidth;
     }
 
-    public void setActiveWindow() {
-        SessionManager.get().setActiveStore(mWindowId);
-        mSessionId = mSessionStore.getCurrentSessionId();
-        GeckoSession session = mSessionStore.getSession(mSessionId);
-        if (session != null) {
-            session.getTextInput().setView(this);
+    public void setActiveWindow(boolean active) {
+        mActive = active;
+        if (active) {
+            SessionManager.get().setActiveStore(mWindowId);
+            mSessionId = mSessionStore.getCurrentSessionId();
+            GeckoSession session = mSessionStore.getSession(mSessionId);
+            if (session != null) {
+                session.getTextInput().setView(this);
+            }
         }
+
+        TelemetryWrapper.activePlacementEvent(mWindowPlacement.getValue(), mActive);
     }
 
     public SessionStore getSessionStore() {
@@ -811,6 +828,8 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
 
     @Override
     public void onContextMenu(GeckoSession session, int screenX, int screenY, ContextElement element) {
+        TelemetryWrapper.longPressContextMenuEvent();
+
         if (mContextMenu != null) {
             mContextMenu.hide(REMOVE_WIDGET);
         }

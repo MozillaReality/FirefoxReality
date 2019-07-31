@@ -297,6 +297,10 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     @Override
     protected void onStop() {
         super.onStop();
+
+        if (SettingsStore.getInstance(this).getCylinderDensity() > 0.0f)
+            TelemetryWrapper.queueCurvedModeActiveEvent();
+
         TelemetryWrapper.stop();
     }
 

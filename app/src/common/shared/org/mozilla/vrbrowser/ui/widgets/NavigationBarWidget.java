@@ -30,6 +30,7 @@ import org.mozilla.vrbrowser.browser.engine.SessionManager;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.search.suggestions.SuggestionsProvider;
+import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
 import org.mozilla.vrbrowser.ui.views.CustomUIButton;
 import org.mozilla.vrbrowser.ui.views.NavigationURLBar;
 import org.mozilla.vrbrowser.ui.views.UIButton;
@@ -553,6 +554,9 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         mWidgetManager.popBackHandler(mResizeBackHandler);
         mWidgetManager.setTrayVisible(!mIsInFullScreenMode);
         closeFloatingMenus();
+
+        if (aResizeAction == ResizeAction.KEEP_SIZE)
+            TelemetryWrapper.windowsResizeEvent();
     }
 
     private void enterVRVideo(@VideoProjectionMenuWidget.VideoProjectionFlags int aProjection) {
