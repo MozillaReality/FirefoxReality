@@ -20,6 +20,7 @@ import org.mozilla.vrbrowser.ui.views.ContextMenu;
 import org.mozilla.vrbrowser.ui.widgets.UIWidget;
 import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
 import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
+import org.mozilla.vrbrowser.utils.ViewUtils;
 
 public class ContextMenuWidget extends UIWidget implements WidgetManagerDelegate.FocusChangeListener {
 
@@ -175,7 +176,7 @@ public class ContextMenuWidget extends UIWidget implements WidgetManagerDelegate
 
     @Override
     public void onGlobalFocusChanged(View oldFocus, View newFocus) {
-        if (oldFocus == this && isVisible()) {
+        if (ViewUtils.getParentWidget(oldFocus) == this && isVisible() && ViewUtils.isChildrenOf(oldFocus, newFocus)) {
             onDismiss();
         }
     }
