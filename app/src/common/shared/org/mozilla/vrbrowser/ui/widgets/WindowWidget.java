@@ -271,6 +271,14 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         }
     }
 
+    public void hideBookmarks() {
+        if (mView != null) {
+            unsetView(mBookmarksView);
+            for (BookmarkListener listener : mBookmarksListeners)
+                listener.onBookmarksHidden(this);
+        }
+    }
+
     public void pauseCompositor() {
         if (mDisplay == null) {
             return;

@@ -222,6 +222,8 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
         WindowWidget leftWindow = getLeftWindow();
         WindowWidget rightWindow = getRightWindow();
 
+        aWindow.hideBookmarks();
+
         if (leftWindow == aWindow) {
             removeWindow(leftWindow);
             if (mFocusedWindow == leftWindow) {
