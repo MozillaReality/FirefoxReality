@@ -540,14 +540,8 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
             return;
         }
         if (aResizeAction == ResizeAction.RESTORE_SIZE) {
-<<<<<<< HEAD
-            mWindowWidget.getPlacement().copyFrom(mPlacementBeforeResize);
-            mWidgetManager.updateWidget(mWindowWidget);
-            mWindowWidget.saveCurrentSize();
-=======
             mAttachedWindow.getPlacement().copyFrom(mPlacementBeforeResize);
             mWidgetManager.updateWidget(mAttachedWindow);
->>>>>>> Rebase fixes
         }
         mIsResizing = false;
         finishWidgetResize();

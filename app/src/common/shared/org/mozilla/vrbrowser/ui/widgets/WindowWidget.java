@@ -709,12 +709,6 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         }
     }
 
-    public void saveCurrentSize() {
-        final float aspect = (float)mWidgetPlacement.width / (float)mWidgetPlacement.height;
-        SettingsStore.getInstance(getContext()).setBrowserWorldWidth(mWidgetPlacement.worldWidth);
-        SettingsStore.getInstance(getContext()).setBrowserWorldHeight(mWidgetPlacement.worldWidth / aspect);
-    }
-
     public void showAlert(String title, @NonNull String msg, @NonNull AlertCallback callback) {
         mAlertPrompt = new AlertPromptWidget(getContext());
         mAlertPrompt.mWidgetPlacement.parentHandle = getHandle();
