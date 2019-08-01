@@ -580,8 +580,6 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
         for (WindowWidget window: getCurrentWindows()) {
             mWidgetManager.updateWidget(window);
             mWidgetManager.updateWidget(window.getTopBar());
-            window.switchBookmarks();
-            window.switchBookmarks();
         }
     }
 
