@@ -170,7 +170,7 @@ public class TopBarWidget extends UIWidget implements SessionChangeListener, Wid
     }
 
     public void setMoveLeftButtonEnabled(boolean aEnabled) {
-        mMoveLeftButton.setHovered(false);
+        mMoveRightButton.setHovered(false);
         mMoveLeftButton.setEnabled(aEnabled);
     }
 
