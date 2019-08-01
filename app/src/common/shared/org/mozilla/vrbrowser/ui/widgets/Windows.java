@@ -14,6 +14,7 @@ import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
+import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
 
 import java.io.File;
 import java.io.FileReader;
@@ -61,11 +62,11 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
     private WindowWidget mFocusedWindow;
     private static int sIndex;
     private boolean mPrivateMode = false;
-    private static final int MAX_WINDOWS = 3;
+    public static final int MAX_WINDOWS = 3;
     private WindowWidget mFullscreenWindow;
     private WindowPlacement mPrevWindowPlacement;
 
-    enum WindowPlacement{
+    public enum WindowPlacement{
         FRONT(0),
         LEFT(1),
         RIGHT(2);
@@ -301,7 +302,9 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
         if (aWindow != mFocusedWindow) {
             WindowWidget prev = mFocusedWindow;
             mFocusedWindow = aWindow;
-            mFocusedWindow.setActiveWindow();
+            if (prev != null)
+                prev.setActiveWindow(false);
+            mFocusedWindow.setActiveWindow(true);
             if (mDelegate != null) {
                 mDelegate.onFocusedWindowChanged(mFocusedWindow, prev);
             }
@@ -409,6 +412,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
     }
 
     private void showMaxWindowsMessage() {
+        TelemetryWrapper.maxWindowsDialogEvent();
         mFocusedWindow.showMaxWindowsDialog(MAX_WINDOWS);
     }
 
@@ -486,14 +490,19 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
         aWindow.getSessionStore().removeContentListener(this);
         aWindow.close();
         updateMaxWindowScales();
+
+        if (aWindow.getSessionStore().isPrivateMode())
+            TelemetryWrapper.openWindowsEvent(mPrivateWindows.size()+1, mPrivateWindows.size(), true);
+        else
+            TelemetryWrapper.openWindowsEvent(mRegularWindows.size()+1, mRegularWindows.size(), false);
     }
 
-    private void setWindowVisible(WindowWidget aWindow, boolean aVisible) {
+    private void setWindowVisible(@NonNull WindowWidget aWindow, boolean aVisible) {
         aWindow.setVisible(aVisible);
         aWindow.getTopBar().setVisible(aVisible);
     }
 
-    private void placeWindow(WindowWidget aWindow, WindowPlacement aPosition) {
+    private void placeWindow(@NonNull WindowWidget aWindow, WindowPlacement aPosition) {
         WidgetPlacement placement = aWindow.getPlacement();
         aWindow.setWindowPlacement(aPosition);
         boolean curved = SettingsStore.getInstance(mContext).getCylinderDensity() > 0;
@@ -601,6 +610,11 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
         window.getTopBar().setDelegate(this);
         window.getSessionStore().addContentListener(this);
 
+        if (mPrivateMode)
+            TelemetryWrapper.openWindowsEvent(mPrivateWindows.size()-1, mPrivateWindows.size(), true);
+        else
+            TelemetryWrapper.openWindowsEvent(mRegularWindows.size()-1, mRegularWindows.size(), false);
+
         return window;
     }
 
@@ -646,6 +660,8 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
     public void onMoveLeftClicked(TopBarWidget aWidget) {
         WindowWidget window = aWidget.getAttachedWindow();
         if (window != null) {
+            TelemetryWrapper.windowsMoveEvent();
+
             moveWindowLeft(window);
         }
     }
@@ -654,6 +670,8 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
     public void onMoveRightClicked(TopBarWidget aWidget) {
         WindowWidget window = aWidget.getAttachedWindow();
         if (window != null) {
+            TelemetryWrapper.windowsMoveEvent();
+
             moveWindowRight(window);
         }
     }
