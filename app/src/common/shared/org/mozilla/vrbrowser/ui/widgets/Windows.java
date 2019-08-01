@@ -588,6 +588,10 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
                 window.getTopBar().setMoveRightButtonEnabled(window != rightWindow);
             }
         }
+        if (isInPrivateMode() && mPrivateWindows.size() == 1) {
+            mFocusedWindow.getTopBar().setMoveLeftButtonEnabled(false);
+            mFocusedWindow.getTopBar().setMoveRightButtonEnabled(false);
+        }
     }
 
     private WindowWidget createWindow() {
