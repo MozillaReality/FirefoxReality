@@ -46,8 +46,14 @@ class PrivacyOptionsView extends SettingsView {
         initialize(aContext);
     }
 
-    private void initialize(Context aContext) {
-        inflate(aContext, R.layout.options_privacy, this);
+    protected int getLayoutId() {
+        return R.layout.options_privacy;
+    }
+
+    @Override
+    protected void initialize(Context aContext) {
+        super.initialize(aContext);
+
         mAudio = AudioEngine.fromContext(aContext);
 
         ((Application)aContext.getApplicationContext()).registerActivityLifecycleCallbacks(mLifeCycleListener);
@@ -59,8 +65,6 @@ class PrivacyOptionsView extends SettingsView {
             }
             onDismiss();
         });
-
-        mScrollbar = findViewById(R.id.scrollbar);
 
         ButtonSetting privacyPolicy = findViewById(R.id.showPrivacyButton);
         privacyPolicy.setOnClickListener(v -> {

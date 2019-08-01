@@ -6,7 +6,6 @@
 package org.mozilla.vrbrowser.ui.widgets.settings;
 
 import android.content.Context;
-import android.widget.ScrollView;
 
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.audio.AudioEngine;
@@ -28,8 +27,15 @@ class ControllerOptionsView extends SettingsView {
         initialize(aContext);
     }
 
-    private void initialize(Context aContext) {
-        inflate(aContext, R.layout.options_controller, this);
+    @Override
+    protected int getLayoutId() {
+        return R.layout.options_controller;
+    }
+
+    @Override
+    protected void initialize(Context aContext) {
+        super.initialize(aContext);
+
         mAudio = AudioEngine.fromContext(aContext);
 
         mBackButton = findViewById(R.id.backButton);

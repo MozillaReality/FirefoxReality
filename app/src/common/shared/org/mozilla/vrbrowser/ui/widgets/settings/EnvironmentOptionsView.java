@@ -29,8 +29,14 @@ class EnvironmentOptionsView extends SettingsView {
         initialize(aContext);
     }
 
-    private void initialize(Context aContext) {
-        inflate(aContext, R.layout.options_environment, this);
+    @Override
+    protected int getLayoutId() {
+        return R.layout.options_environment;
+    }
+
+    @Override
+    protected void initialize(Context aContext) {
+        super.initialize(aContext);
 
         mAudio = AudioEngine.fromContext(aContext);
 
