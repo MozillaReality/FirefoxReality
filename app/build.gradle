@@ -220,13 +220,6 @@ android {
             }
         }
 
-        x86 {
-            dimension "abi"
-            ndk {
-                abiFilters "x86"
-            }
-        }
-
         x86_64 {
             dimension "abi"
             ndk {
@@ -493,7 +486,6 @@ if (findProject(':geckoview-local')) {
         // https://maven.mozilla.org/?prefix=maven2/org/mozilla/geckoview/geckoview-nightly-armeabi-v7a/
         armImplementation deps.gecko_view.nightly_armv7a
         arm64Implementation deps.gecko_view.nightly_arm64
-        x86Implementation deps.gecko_view.nightly_x86
         x86_64Implementation deps.gecko_view.nightly_x86_64
     }
 }
@@ -517,8 +509,7 @@ android.applicationVariants.all { variant ->
         // compatibility mode.
         def multiplier = 100000000
 
-        // Currently only support arm7
-        if (variant.flavorName.contains("X86")) {
+        if (variant.flavorName.contains("x86_64")) {
             versionCode = versionCode + (3 * multiplier)
         } else if (variant.flavorName.contains("Aarch64")) {
             versionCode = versionCode + (2 * multiplier)
