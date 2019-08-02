@@ -20,6 +20,7 @@ import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.crashreporting.CrashReporterService;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class SessionStore implements GeckoSession.PermissionDelegate {
@@ -225,6 +226,12 @@ public class SessionStore implements GeckoSession.PermissionDelegate {
         }
 
         return false;
+    }
+
+    public void setLocales(List<String> locales) {
+        if (mRuntime != null) {
+            mRuntime.getSettings().setLocales(locales.stream().toArray(String[]::new));
+        }
     }
 
     // Permission Delegate
