@@ -450,48 +450,9 @@ struct WidgetResizer::State {
     return max.y() - min.y();
   }
 
-  // Returns the circle angle of a local point in a cylinder
-  float GetCylinderAngle(const vrb::Vector& aLocalPoint) const {
-    return atan2f(-aLocalPoint.z(), aLocalPoint.x());
-  }
-
   vrb::Vector ProjectPoint(const vrb::Vector& aWorldPoint) const {
     if (widget->GetCylinder()) {
-      // For cylinders we want to map the position in the cylinder to the position it would have on a quad.
-      // This way we can reuse the same resize logic between quads and cylinders.
-      // First Convert to world point to local point in the cylinder.
-      vrb::Matrix modelView = widget->GetCylinder()->GetTransformNode()->GetWorldTransform().AfineInverse();
-      vrb::Vector localPoint = modelView.MultiplyPosition(aWorldPoint);
-      const float pointAngle = GetCylinderAngle(localPoint);
-
-      // Ratio used to convert arc length to quad width.
-      const float thetaRatio = widget->GetCylinderDensity() * 0.5f / ((float) M_PI * Cylinder::kWorldDensityRatio);
-
-      float x;
-
-      // Handle different anchor points.
-      const float anchorX = GetAnchorX();
-      if (anchorX == 1.0f) {
-        // Difference between pointer angle and the right anchor point.
-        const float initialTheta = (max.x() - min.x()) / thetaRatio;
-        const float initialAngle = (float)M_PI * 0.5f - initialTheta * 0.5f;
-        const float arc = fabsf(pointAngle - initialAngle);
-        x = max.x() - arc * thetaRatio;
-      } else if (anchorX == 0.0f) {
-        // Difference between pointer angle and the left anchor point.
-        const float initialTheta = (max.x() - min.x()) / thetaRatio;
-        const float initialAngle = (float)M_PI * 0.5f + initialTheta * 0.5f;
-        const float arc = fabsf(initialAngle - pointAngle);
-        x = min.x() + arc * thetaRatio;
-      } else { // Anchor 0.5f
-        // The center of the cylinder is 90º.
-        x  = ((float) M_PI * 0.5f - pointAngle) * thetaRatio;
-      }
-
-
-      // The mapped position on a quad.
-      const float y = WorldHeight() * localPoint.y() * 0.5f;
-      return vrb::Vector(x, y, 0.0f);
+      return widget->GetCylinder()->ProjectPointToQuad(aWorldPoint, GetAnchorX(), widget->GetCylinderDensity(), min, max);
     } else {
       // For quads just convert to world point to local point.
       vrb::Matrix modelView = widget->GetTransformNode()->GetWorldTransform().AfineInverse();

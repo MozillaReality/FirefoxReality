@@ -50,6 +50,8 @@ public:
   void ConvertToQuadCoordinates(const vrb::Vector& point, float& aX, float& aY, bool aClamp) const;
   void ConvertFromQuadCoordinates(const float aX, const float aY, vrb::Vector& aWorldPoint, vrb::Vector& aNormal);
   float DistanceToBackPlane(const vrb::Vector& aStartPoint, const vrb::Vector& aDirection) const;
+  float GetCylinderAngle(const vrb::Vector& aLocalPoint) const;
+  vrb::Vector ProjectPointToQuad(const vrb::Vector& aWorldPoint, const float aAnchorX, const float aDensity, const vrb::Vector& aMin, const vrb::Vector& aMax) const;
 protected:
   struct State;
   Cylinder(State& aState, vrb::CreationContextPtr& aContext);
