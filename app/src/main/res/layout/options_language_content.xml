@@ -60,7 +60,7 @@
                     android:fadingEdge="vertical"
                     android:fadingEdgeLength="60dp"
                     android:requiresFadingEdge="vertical"
-                    app:layoutManager=".ui.adapters.LanguagesAdapter$CustLinearLayoutManager" />
+                    app:layoutManager="org.mozilla.vrbrowser.ui.adapters.LanguagesAdapter$CustLinearLayoutManager" />
             </LinearLayout>
 
             <LinearLayout
@@ -88,7 +88,7 @@
                     android:fadingEdge="vertical"
                     android:fadingEdgeLength="60dp"
                     android:requiresFadingEdge="vertical"
-                    app:layoutManager=".ui.adapters.LanguagesAdapter$CustLinearLayoutManager" />
+                    app:layoutManager="org.mozilla.vrbrowser.ui.adapters.LanguagesAdapter$CustLinearLayoutManager" />
             </LinearLayout>
         </LinearLayout>
 
