@@ -29,7 +29,7 @@ import android.widget.TextView;
 
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.R;
-import org.mozilla.vrbrowser.browser.engine.SessionStore;
+import org.mozilla.vrbrowser.browser.engine.SessionStack;
 import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.input.CustomKeyboard;
 import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
@@ -96,7 +96,7 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
     private String mComposingText = "";
     private String mComposingDisplayText = "";
     private boolean mInternalDeleteHint = false;
-    private SessionStore mSessionStore;
+    private SessionStack mSessionStack;
 
     private class MoveTouchListener implements OnTouchListener {
         @Override
@@ -270,9 +270,9 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
 
     @Override
     public void detachFromWindow() {
-        if (mSessionStore != null) {
-            mSessionStore.removeTextInputListener(this);
-            mSessionStore = null;
+        if (mSessionStack != null) {
+            mSessionStack.removeTextInputListener(this);
+            mSessionStack = null;
         }
     }
 
@@ -284,9 +284,9 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
         mAttachedWindow = aWindow;
         mWidgetPlacement.parentHandle = aWindow.getHandle();
 
-        mSessionStore = aWindow.getSessionStore();
-        if (mSessionStore != null) {
-            mSessionStore.addTextInputListener(this);
+        mSessionStack = aWindow.getSessionStack();
+        if (mSessionStack != null) {
+            mSessionStack.addTextInputListener(this);
         }
     }
 

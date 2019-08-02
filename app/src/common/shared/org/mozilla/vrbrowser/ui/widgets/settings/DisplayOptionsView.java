@@ -12,7 +12,7 @@ import android.view.View;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.audio.AudioEngine;
 import org.mozilla.vrbrowser.browser.SettingsStore;
-import org.mozilla.vrbrowser.browser.engine.SessionManager;
+import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.ui.views.UIButton;
 import org.mozilla.vrbrowser.ui.views.settings.ButtonSetting;
 import org.mozilla.vrbrowser.ui.views.settings.DoubleEditSetting;
@@ -71,7 +71,7 @@ class DisplayOptionsView extends SettingsView {
 
         mAutoplaySetting = findViewById(R.id.autoplaySwitch);
         mAutoplaySetting.setOnCheckedChangeListener(mAutoplayListener);
-        setAutoplay(SessionManager.get().getAutoplayEnabled(), false);
+        setAutoplay(SessionStore.get().getAutoplayEnabled(), false);
 
         mDefaultHomepageUrl = getContext().getString(R.string.homepage_url);
 
@@ -324,7 +324,7 @@ class DisplayOptionsView extends SettingsView {
         mAutoplaySetting.setOnCheckedChangeListener(mAutoplayListener);
 
         if (doApply) {
-            SessionManager.get().setAutoplayEnabled(value);
+            SessionStore.get().setAutoplayEnabled(value);
         }
     }
 
@@ -343,7 +343,7 @@ class DisplayOptionsView extends SettingsView {
         SettingsStore.getInstance(getContext()).setUaMode(checkId);
 
         if (doApply) {
-            SessionManager.get().setUaMode((Integer)mUaModeRadio.getValueForId(checkId));
+            SessionStore.get().setUaMode((Integer)mUaModeRadio.getValueForId(checkId));
         }
     }
 

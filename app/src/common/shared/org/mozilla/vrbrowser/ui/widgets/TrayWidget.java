@@ -20,7 +20,7 @@ import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.audio.AudioEngine;
 import org.mozilla.vrbrowser.browser.SessionChangeListener;
-import org.mozilla.vrbrowser.browser.engine.SessionStore;
+import org.mozilla.vrbrowser.browser.engine.SessionStack;
 import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
 import org.mozilla.vrbrowser.ui.views.UIButton;
 import org.mozilla.vrbrowser.ui.widgets.settings.SettingsWidget;
@@ -44,7 +44,7 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Bookm
     private int mMaxPadding;
     private boolean mKeyboardVisible;
     private boolean mTrayVisible = true;
-    private SessionStore mSessionStore;
+    private SessionStack mSessionStack;
     private WindowWidget mAttachedWindow;
 
     public TrayWidget(Context aContext) {
@@ -228,8 +228,8 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Bookm
 
     @Override
     public void releaseWidget() {
-        if (mSessionStore != null) {
-            mSessionStore.removeSessionChangeListener(this);
+        if (mSessionStack != null) {
+            mSessionStack.removeSessionChangeListener(this);
         }
 
         mWidgetManager.removeUpdateListener(this);
@@ -259,9 +259,9 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Bookm
 
     @Override
     public void detachFromWindow() {
-        if (mSessionStore != null) {
-            mSessionStore.removeSessionChangeListener(this);
-            mSessionStore = null;
+        if (mSessionStack != null) {
+            mSessionStack.removeSessionChangeListener(this);
+            mSessionStack = null;
         }
         if (mAttachedWindow != null)
             mAttachedWindow.removeBookmarksListener(this);
@@ -277,9 +277,9 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Bookm
         mAttachedWindow = aWindow;
         mAttachedWindow.addBookmarksListener(this);
 
-        mSessionStore = aWindow.getSessionStore();
-        if (mSessionStore != null) {
-            mSessionStore.addSessionChangeListener(this);
+        mSessionStack = aWindow.getSessionStack();
+        if (mSessionStack != null) {
+            mSessionStack.addSessionChangeListener(this);
             handleSessionState();
         }
 
@@ -289,7 +289,7 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Bookm
             onBookmarksHidden(aWindow);
     }
 
-    // SessionStore.SessionChangeListener
+    // SessionStack.SessionChangeListener
 
     @Override
     public void onCurrentSessionChange(GeckoSession aSession, int aId) {
@@ -297,8 +297,8 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Bookm
     }
 
     private void handleSessionState() {
-        if (mSessionStore != null) {
-            boolean isPrivateMode = mSessionStore.isPrivateMode();
+        if (mSessionStack != null) {
+            boolean isPrivateMode = mSessionStack.isPrivateMode();
 
             if (isPrivateMode != mIsLastSessionPrivate) {
                 mPrivateButton.setPrivateMode(isPrivateMode);

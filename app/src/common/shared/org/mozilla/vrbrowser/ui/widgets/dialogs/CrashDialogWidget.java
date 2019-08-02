@@ -13,7 +13,6 @@ import android.widget.TextView;
 
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.audio.AudioEngine;
-import org.mozilla.vrbrowser.browser.engine.SessionManager;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
@@ -66,7 +65,7 @@ public class CrashDialogWidget extends UIDialog {
                 mAudio.playSound(AudioEngine.Sound.CLICK);
             }
 
-            SessionManager.get().getActiveStore().newSessionWithUrl(getContext().getString(R.string.crash_dialog_learn_more_url));
+            SessionStore.get().getActiveStore().newSessionWithUrl(getContext().getString(R.string.crash_dialog_learn_more_url));
 
             onDismiss();
         });

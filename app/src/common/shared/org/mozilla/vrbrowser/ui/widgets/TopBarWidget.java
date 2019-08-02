@@ -125,7 +125,7 @@ public class TopBarWidget extends UIWidget implements SessionChangeListener, Wid
         mWidgetPlacement.parentHandle = aWindow.getHandle();
         mAttachedWindow = aWindow;
 
-        setPrivateMode(aWindow.getSessionStore().isPrivateMode());
+        setPrivateMode(aWindow.getSessionStack().isPrivateMode());
 
     }
 
@@ -142,7 +142,7 @@ public class TopBarWidget extends UIWidget implements SessionChangeListener, Wid
         mMoveRightButton.setBackground(getContext().getDrawable(aPrivateMode ? R.drawable.fullscreen_button_private_last : R.drawable.fullscreen_button_last));
     }
 
-    // SessionStore.SessionChangeListener
+    // SessionStack.SessionChangeListener
 
     @Override
     public void onCurrentSessionChange(GeckoSession aSession, int aId) {

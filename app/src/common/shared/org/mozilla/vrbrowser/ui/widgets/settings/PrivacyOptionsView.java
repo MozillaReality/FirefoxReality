@@ -19,7 +19,7 @@ import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.audio.AudioEngine;
 import org.mozilla.vrbrowser.browser.SettingsStore;
-import org.mozilla.vrbrowser.browser.engine.SessionManager;
+import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.ui.views.UIButton;
 import org.mozilla.vrbrowser.ui.views.settings.ButtonSetting;
 import org.mozilla.vrbrowser.ui.views.settings.SwitchSetting;
@@ -67,7 +67,7 @@ class PrivacyOptionsView extends SettingsView {
             if (mAudio != null) {
                 mAudio.playSound(AudioEngine.Sound.CLICK);
             }
-            SessionManager.get().getActiveStore().newSessionWithUrl(getContext().getString(R.string.private_policy_url));
+            SessionStore.get().getActiveStore().newSessionWithUrl(getContext().getString(R.string.private_policy_url));
             exitWholeSettings();
         });
 
@@ -78,7 +78,7 @@ class PrivacyOptionsView extends SettingsView {
             // TODO Enable/Disable DRM content playback
         });
         mDrmContentPlaybackSwitch.setLinkClickListner((widget, url) -> {
-            SessionManager.get().getActiveStore().loadUri(url);
+            SessionStore.get().getActiveStore().loadUri(url);
             exitWholeSettings();
         });
 
@@ -86,7 +86,7 @@ class PrivacyOptionsView extends SettingsView {
         mTrackingSetting.setChecked(SettingsStore.getInstance(getContext()).isTrackingProtectionEnabled());
         mTrackingSetting.setOnCheckedChangeListener((compoundButton, enabled, apply) -> {
             SettingsStore.getInstance(getContext()).setTrackingProtectionEnabled(enabled);
-            SessionManager.get().setTrackingProtection(enabled);
+            SessionStore.get().setTrackingProtection(enabled);
         });
 
         TextView permissionsTitleText = findViewById(R.id.permissionsTitle);

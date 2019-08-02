@@ -13,7 +13,7 @@ import com.google.gson.reflect.TypeToken;
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.browser.SettingsStore;
-import org.mozilla.vrbrowser.browser.engine.SessionStore;
+import org.mozilla.vrbrowser.browser.engine.SessionStack;
 import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
 
 import java.io.File;
@@ -31,7 +31,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
 
     class WindowState {
         WindowPlacement placement;
-        SessionStore sessionStore;
+        SessionStack sessionStack;
         int currentSessionId;
         int textureWidth;
         int textureHeight;
@@ -39,8 +39,8 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
 
         public void load(WindowWidget aWindow) {
             placement = aWindow.getWindowPlacement();
-            sessionStore = aWindow.getSessionStore();
-            currentSessionId = aWindow.getSessionStore().getCurrentSessionId();
+            sessionStack = aWindow.getSessionStack();
+            currentSessionId = aWindow.getSessionStack().getCurrentSessionId();
             textureWidth = aWindow.getPlacement().width;
             textureHeight = aWindow.getPlacement().height;
             worldWidth = aWindow.getPlacement().worldWidth;
@@ -159,8 +159,8 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
         }
 
         if (mFullscreenWindow != null) {
-            mFullscreenWindow.getSessionStore().exitFullScreen();
-            onFullScreen(mFullscreenWindow.getSessionStore().getCurrentSession(), false);
+            mFullscreenWindow.getSessionStack().exitFullScreen();
+            onFullScreen(mFullscreenWindow.getSessionStack().getCurrentSession(), false);
         }
 
         WindowWidget frontWindow = getFrontWindow();
@@ -389,8 +389,8 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
         if (mFocusedWindow == null) {
             return false;
         }
-        if (mFocusedWindow.getSessionStore().canGoBack()) {
-            mFocusedWindow.getSessionStore().goBack();
+        if (mFocusedWindow.getSessionStack().canGoBack()) {
+            mFocusedWindow.getSessionStack().goBack();
             return true;
         } else if (isInPrivateMode()) {
             exitPrivateMode();
@@ -451,12 +451,12 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
         if (windowsState != null) {
             for (WindowState windowState : windowsState.regularWindowsState) {
                 WindowWidget window = addWindow(windowState);
-                window.getSessionStore().restore(windowState.sessionStore, windowState.currentSessionId);
+                window.getSessionStack().restore(windowState.sessionStack, windowState.currentSessionId);
             }
             mPrivateMode = true;
             for (WindowState windowState : windowsState.privateWindowsState) {
                 WindowWidget window = addWindow(windowState);
-                window.getSessionStore().restore(windowState.sessionStore, windowState.currentSessionId);
+                window.getSessionStack().restore(windowState.sessionStack, windowState.currentSessionId);
             }
             mPrivateMode = false;
             if (windowsState.privateMode) {
@@ -489,11 +489,11 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
         mPrivateWindows.remove(aWindow);
         aWindow.getTopBar().setVisible(false);
         aWindow.getTopBar().setDelegate((TopBarWidget.Delegate) null);
-        aWindow.getSessionStore().removeContentListener(this);
+        aWindow.getSessionStack().removeContentListener(this);
         aWindow.close();
         updateMaxWindowScales();
 
-        if (aWindow.getSessionStore().isPrivateMode())
+        if (aWindow.getSessionStack().isPrivateMode())
             TelemetryWrapper.openWindowsEvent(mPrivateWindows.size()+1, mPrivateWindows.size(), true);
         else
             TelemetryWrapper.openWindowsEvent(mRegularWindows.size()+1, mRegularWindows.size(), false);
@@ -608,7 +608,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
         WindowWidget window = new WindowWidget(mContext, newWindowId, mPrivateMode);
         getCurrentWindows().add(window);
         window.getTopBar().setDelegate(this);
-        window.getSessionStore().addContentListener(this);
+        window.getSessionStack().addContentListener(this);
 
         if (mPrivateMode)
             TelemetryWrapper.openWindowsEvent(mPrivateWindows.size()-1, mPrivateWindows.size(), true);
@@ -707,7 +707,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
 
     private WindowWidget getWindowWithSession(GeckoSession aSession) {
         for (WindowWidget window: getCurrentWindows()) {
-            if (window.getSessionStore().containsSession(aSession)) {
+            if (window.getSessionStack().containsSession(aSession)) {
                 return window;
             }
         }

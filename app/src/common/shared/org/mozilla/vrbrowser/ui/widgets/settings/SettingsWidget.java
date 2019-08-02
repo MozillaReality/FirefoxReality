@@ -23,9 +23,8 @@ import android.widget.TextView;
 import org.mozilla.vrbrowser.BuildConfig;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.audio.AudioEngine;
-import org.mozilla.vrbrowser.browser.engine.SessionManager;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
-import org.mozilla.vrbrowser.browser.SettingsStore;
+import org.mozilla.vrbrowser.browser.engine.SessionStack;
 import org.mozilla.vrbrowser.ui.views.HoneycombButton;
 import org.mozilla.vrbrowser.ui.widgets.UIWidget;
 import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
@@ -97,7 +96,7 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
 
         LinearLayout reportIssue = findViewById(R.id.reportIssueLayout);
         reportIssue.setOnClickListener(v -> {
-            SessionManager.get().getActiveStore().loadUri(getContext().getString(R.string.bug_report_url));
+            SessionStore.get().getActiveStore().loadUri(getContext().getString(R.string.bug_report_url));
             onDismiss();
         });
 
@@ -218,8 +217,8 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
     }
 
     private void onSettingsReportClick() {
-        SessionStore sessionStore = SessionManager.get().getActiveStore();
-        String url = sessionStore.getCurrentUri();
+        SessionStack sessionStack = SessionStore.get().getActiveStore();
+        String url = sessionStack.getCurrentUri();
 
         try {
             if (url == null) {
@@ -227,9 +226,9 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
                 url = "";
             } else if (url.startsWith("jar:") || url.startsWith("resource:") || url.startsWith("about:")) {
                 url = "";
-            } else if (sessionStore.isHomeUri(url)) {
+            } else if (sessionStack.isHomeUri(url)) {
                 // Use the original URL (without any hash).
-                url = sessionStore.getHomeUri();
+                url = sessionStack.getHomeUri();
             }
 
             url = URLEncoder.encode(url, "UTF-8");
@@ -238,7 +237,7 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
             Log.e(LOGTAG, "Cannot encode URL");
         }
 
-        sessionStore.newSessionWithUrl(getContext().getString(R.string.private_report_url, url));
+        sessionStack.newSessionWithUrl(getContext().getString(R.string.private_report_url, url));
 
         hide(REMOVE_WIDGET);
     }

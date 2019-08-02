@@ -11,7 +11,7 @@ import androidx.annotation.NonNull;
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.PlatformActivity;
 import org.mozilla.vrbrowser.R;
-import org.mozilla.vrbrowser.browser.engine.SessionManager;
+import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
 import org.mozilla.vrbrowser.ui.widgets.dialogs.PermissionWidget;
 
@@ -33,7 +33,7 @@ public class PermissionDelegate implements GeckoSession.PermissionDelegate, Widg
         mContext = aContext;
         mWidgetManager = aWidgetManager;
         mWidgetManager.addPermissionListener(this);
-        SessionManager.get().setPermissionDelegate(this);
+        SessionStore.get().setPermissionDelegate(this);
     }
 
     public void setParentWidgetHandle(int aHandle) {
@@ -73,7 +73,7 @@ public class PermissionDelegate implements GeckoSession.PermissionDelegate, Widg
 
     public void release() {
         mWidgetManager.removePermissionListener(this);
-        SessionManager.get().setPermissionDelegate(null);
+        SessionStore.get().setPermissionDelegate(null);
         mCallback = null;
         mContext = null;
         mWidgetManager = null;

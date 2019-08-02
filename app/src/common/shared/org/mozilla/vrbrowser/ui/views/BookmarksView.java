@@ -15,8 +15,8 @@ import androidx.databinding.DataBindingUtil;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.audio.AudioEngine;
 import org.mozilla.vrbrowser.browser.BookmarksStore;
-import org.mozilla.vrbrowser.browser.engine.SessionManager;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
+import org.mozilla.vrbrowser.browser.engine.SessionStack;
 import org.mozilla.vrbrowser.databinding.BookmarksBinding;
 import org.mozilla.vrbrowser.ui.adapters.BookmarkAdapter;
 import org.mozilla.vrbrowser.ui.callbacks.BookmarkClickCallback;
@@ -61,13 +61,13 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
         mBinding.setIsLoading(true);
         mBinding.executePendingBindings();
         syncBookmarks();
-        SessionManager.get().getBookmarkStore().addListener(this);
+        SessionStore.get().getBookmarkStore().addListener(this);
 
         setVisibility(GONE);
     }
 
     public void onDestroy() {
-        SessionManager.get().getBookmarkStore().removeListener(this);
+        SessionStore.get().getBookmarkStore().removeListener(this);
     }
 
     private final BookmarkClickCallback mBookmarkClickCallback = new BookmarkClickCallback() {
@@ -77,10 +77,10 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
                 mAudio.playSound(AudioEngine.Sound.CLICK);
             }
 
-            SessionManager.get().getHistoryStore().addHistory(bookmark.getUrl(), VisitType.BOOKMARK);
+            SessionStore.get().getHistoryStore().addHistory(bookmark.getUrl(), VisitType.BOOKMARK);
 
-            SessionStore sessionStore = SessionManager.get().getActiveStore();
-            sessionStore.loadUri(bookmark.getUrl());
+            SessionStack sessionStack = SessionStore.get().getActiveStore();
+            sessionStack.loadUri(bookmark.getUrl());
         }
 
         @Override
@@ -90,7 +90,7 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
             }
 
             mIgnoreNextListener = true;
-            SessionManager.get().getBookmarkStore().deleteBookmarkById(bookmark.getGuid());
+            SessionStore.get().getBookmarkStore().deleteBookmarkById(bookmark.getGuid());
             mBookmarkAdapter.removeItem(bookmark);
             if (mBookmarkAdapter.itemCount() == 0) {
                 mBinding.setIsEmpty(true);
@@ -102,7 +102,7 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
 
 
     private void syncBookmarks() {
-        SessionManager.get().getBookmarkStore().getBookmarks().thenAcceptAsync(this::showBookmarks, new UIThreadExecutor());
+        SessionStore.get().getBookmarkStore().getBookmarks().thenAcceptAsync(this::showBookmarks, new UIThreadExecutor());
     }
 
     private void showBookmarks(List<BookmarkNode> aBookmarks) {
