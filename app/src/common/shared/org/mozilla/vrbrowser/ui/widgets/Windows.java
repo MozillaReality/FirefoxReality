@@ -331,9 +331,11 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
         }
     }
 
-    public void onDestroy() {
+    public void onStop() {
         saveState();
+    }
 
+    public void onDestroy() {
         for (WindowWidget window: mRegularWindows) {
             window.close();
         }

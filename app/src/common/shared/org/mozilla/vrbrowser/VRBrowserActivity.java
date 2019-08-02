@@ -310,6 +310,8 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
             TelemetryWrapper.queueCurvedModeActiveEvent();
 
         TelemetryWrapper.stop();
+
+        mWindows.onStop();
     }
 
     @Override
