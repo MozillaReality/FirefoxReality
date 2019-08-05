@@ -12,16 +12,17 @@ import android.content.Context;
 import android.graphics.Point;
 import android.os.Bundle;
 import android.util.Pair;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.TextView;
 
+import androidx.databinding.DataBindingUtil;
+
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.R;
-import org.mozilla.vrbrowser.audio.AudioEngine;
 import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
-import org.mozilla.vrbrowser.ui.views.UIButton;
-import org.mozilla.vrbrowser.ui.views.settings.ButtonSetting;
+import org.mozilla.vrbrowser.databinding.OptionsPrivacyBinding;
 import org.mozilla.vrbrowser.ui.views.settings.SwitchSetting;
 import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
 import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
@@ -30,65 +31,49 @@ import org.mozilla.vrbrowser.utils.DeviceType;
 import java.util.ArrayList;
 
 class PrivacyOptionsView extends SettingsView {
-    private AudioEngine mAudio;
-    private UIButton mBackButton;
-    private SwitchSetting mDrmContentPlaybackSwitch;
-    private SwitchSetting mTrackingSetting;
-    private SwitchSetting mNotificationsPermissionSwitch;
-    private ButtonSetting mResetButton;
+
+    private OptionsPrivacyBinding mBinding;
     private ArrayList<Pair<SwitchSetting, String>> mPermissionButtons;
-    private SwitchSetting mSpeechDataSwitch;
-    private SwitchSetting mTelemetryDataSwitch;
-    private SwitchSetting mCrashreportsDataSwitch;
 
     public PrivacyOptionsView(Context aContext, WidgetManagerDelegate aWidgetManager) {
         super(aContext, aWidgetManager);
         initialize(aContext);
     }
 
-    protected int getLayoutId() {
-        return R.layout.options_privacy;
-    }
+    private void initialize(Context aContext) {
+        LayoutInflater inflater = LayoutInflater.from(aContext);
 
-    @Override
-    protected void initialize(Context aContext) {
-        super.initialize(aContext);
+        // Inflate this data binding layout
+        mBinding = DataBindingUtil.inflate(inflater, R.layout.options_privacy, this, true);
 
-        mAudio = AudioEngine.fromContext(aContext);
+        mScrollbar = mBinding.scrollbar;
+
+        // Header
+        mBinding.headerLayout.setBackClickListener(view -> onDismiss());
+
+        // Footer
+        mBinding.footerLayout.setResetClickListener(v -> resetOptions());
 
         ((Application)aContext.getApplicationContext()).registerActivityLifecycleCallbacks(mLifeCycleListener);
 
-        mBackButton = findViewById(R.id.backButton);
-        mBackButton.setOnClickListener(view -> {
-            if (mAudio != null) {
-                mAudio.playSound(AudioEngine.Sound.CLICK);
-            }
-            onDismiss();
-        });
-
-        ButtonSetting privacyPolicy = findViewById(R.id.showPrivacyButton);
-        privacyPolicy.setOnClickListener(v -> {
-            if (mAudio != null) {
-                mAudio.playSound(AudioEngine.Sound.CLICK);
-            }
+        // Options
+        mBinding.showPrivacyButton.setOnClickListener(v -> {
             SessionStore.get().getActiveStore().newSessionWithUrl(getContext().getString(R.string.private_policy_url));
             exitWholeSettings();
         });
 
-        mDrmContentPlaybackSwitch = findViewById(R.id.drmContentPlaybackSwitch);
-        mDrmContentPlaybackSwitch.setChecked(SettingsStore.getInstance(getContext()).isDrmContentPlaybackEnabled());
-        mDrmContentPlaybackSwitch.setOnCheckedChangeListener((compoundButton, enabled, apply) -> {
+        mBinding.drmContentPlaybackSwitch.setChecked(SettingsStore.getInstance(getContext()).isDrmContentPlaybackEnabled());
+        mBinding.drmContentPlaybackSwitch.setOnCheckedChangeListener((compoundButton, enabled, apply) -> {
             SettingsStore.getInstance(getContext()).setDrmContentPlaybackEnabled(enabled);
             // TODO Enable/Disable DRM content playback
         });
-        mDrmContentPlaybackSwitch.setLinkClickListener((widget, url) -> {
+        mBinding.drmContentPlaybackSwitch.setLinkClickListener((widget, url) -> {
             SessionStore.get().getActiveStore().loadUri(url);
             exitWholeSettings();
         });
 
-        mTrackingSetting = findViewById(R.id.trackingProtectionSwitch);
-        mTrackingSetting.setChecked(SettingsStore.getInstance(getContext()).isTrackingProtectionEnabled());
-        mTrackingSetting.setOnCheckedChangeListener((compoundButton, enabled, apply) -> {
+        mBinding.trackingProtectionSwitch.setChecked(SettingsStore.getInstance(getContext()).isTrackingProtectionEnabled());
+        mBinding.trackingProtectionSwitch.setOnCheckedChangeListener((compoundButton, enabled, apply) -> {
             SettingsStore.getInstance(getContext()).setTrackingProtectionEnabled(enabled);
             SessionStore.get().setTrackingProtection(enabled);
         });
@@ -112,29 +97,22 @@ class PrivacyOptionsView extends SettingsView {
                     togglePermission(button.first, button.second));
         }
 
-        mNotificationsPermissionSwitch = findViewById(R.id.notificationsPermissionSwitch);
-        mNotificationsPermissionSwitch.setChecked(SettingsStore.getInstance(getContext()).isNotificationsEnabled());
-        mNotificationsPermissionSwitch.setOnCheckedChangeListener((compoundButton, enabled, apply) -> {
+        mBinding.notificationsPermissionSwitch.setChecked(SettingsStore.getInstance(getContext()).isNotificationsEnabled());
+        mBinding.notificationsPermissionSwitch.setOnCheckedChangeListener((compoundButton, enabled, apply) -> {
             SettingsStore.getInstance(getContext()).setNotificationsEnabled(enabled);
         });
 
-        mSpeechDataSwitch = findViewById(R.id.speechDataSwitch);
-        mSpeechDataSwitch.setChecked(SettingsStore.getInstance(getContext()).isSpeechDataCollectionEnabled());
-        mSpeechDataSwitch.setOnCheckedChangeListener((compoundButton, enabled, apply) ->
+        mBinding.speechDataSwitch.setChecked(SettingsStore.getInstance(getContext()).isSpeechDataCollectionEnabled());
+        mBinding.speechDataSwitch.setOnCheckedChangeListener((compoundButton, enabled, apply) ->
                 SettingsStore.getInstance(getContext()).setSpeechDataCollectionEnabled(enabled));
 
-        mTelemetryDataSwitch = findViewById(R.id.telemetryDataSwitch);
-        mTelemetryDataSwitch.setChecked(SettingsStore.getInstance(getContext()).isTelemetryEnabled());
-        mTelemetryDataSwitch.setOnCheckedChangeListener((compoundButton, enabled, apply) ->
+        mBinding.telemetryDataSwitch.setChecked(SettingsStore.getInstance(getContext()).isTelemetryEnabled());
+        mBinding.telemetryDataSwitch.setOnCheckedChangeListener((compoundButton, enabled, apply) ->
                 SettingsStore.getInstance(getContext()).setTelemetryEnabled(enabled));
 
-        mCrashreportsDataSwitch = findViewById(R.id.crashReportsDataSwitch);
-        mCrashreportsDataSwitch.setChecked(SettingsStore.getInstance(getContext()).isCrashReportingEnabled());
-        mCrashreportsDataSwitch.setOnCheckedChangeListener((compoundButton, enabled, apply) ->
+        mBinding.crashReportsDataSwitch.setChecked(SettingsStore.getInstance(getContext()).isCrashReportingEnabled());
+        mBinding.crashReportsDataSwitch.setOnCheckedChangeListener((compoundButton, enabled, apply) ->
                 SettingsStore.getInstance(getContext()).setCrashReportingEnabled(enabled));
-
-        mResetButton = findViewById(R.id.resetButton);
-        mResetButton.setOnClickListener(v -> resetOptions());
     }
 
     private void togglePermission(SwitchSetting aButton, String aPermission) {
@@ -157,8 +135,8 @@ class PrivacyOptionsView extends SettingsView {
     }
 
     private void resetOptions() {
-        if (mTrackingSetting.isChecked() != SettingsStore.TRACKING_DEFAULT) {
-            mTrackingSetting.setChecked(SettingsStore.TRACKING_DEFAULT);
+        if (mBinding.trackingProtectionSwitch.isChecked() != SettingsStore.TRACKING_DEFAULT) {
+            mBinding.trackingProtectionSwitch.setChecked(SettingsStore.TRACKING_DEFAULT);
         }
     }
 

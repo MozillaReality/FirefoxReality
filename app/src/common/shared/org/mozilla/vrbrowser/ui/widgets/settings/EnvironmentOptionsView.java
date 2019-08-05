@@ -6,69 +6,53 @@
 package org.mozilla.vrbrowser.ui.widgets.settings;
 
 import android.content.Context;
+import android.view.LayoutInflater;
+
+import androidx.databinding.DataBindingUtil;
 
 import org.mozilla.vrbrowser.R;
-import org.mozilla.vrbrowser.audio.AudioEngine;
 import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
-import org.mozilla.vrbrowser.ui.views.UIButton;
-import org.mozilla.vrbrowser.ui.views.settings.ButtonSetting;
+import org.mozilla.vrbrowser.databinding.OptionsEnvironmentBinding;
 import org.mozilla.vrbrowser.ui.views.settings.ImageRadioGroupSetting;
 import org.mozilla.vrbrowser.ui.views.settings.SwitchSetting;
 import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
 
 class EnvironmentOptionsView extends SettingsView {
-    private AudioEngine mAudio;
-    private UIButton mBackButton;
-    private SwitchSetting mEnvOverrideSwitch;
+
+    private OptionsEnvironmentBinding mBinding;
     private ImageRadioGroupSetting mEnvironmentsRadio;
-    private ButtonSetting mResetButton;
 
     public EnvironmentOptionsView(Context aContext, WidgetManagerDelegate aWidgetManager) {
         super(aContext, aWidgetManager);
         initialize(aContext);
     }
 
-    @Override
-    protected int getLayoutId() {
-        return R.layout.options_environment;
-    }
+    private void initialize(Context aContext) {
+        LayoutInflater inflater = LayoutInflater.from(aContext);
 
-    @Override
-    protected void initialize(Context aContext) {
-        super.initialize(aContext);
+        // Inflate this data binding layout
+        mBinding = DataBindingUtil.inflate(inflater, R.layout.options_environment, this, true);
 
-        mAudio = AudioEngine.fromContext(aContext);
+        mScrollbar = mBinding.scrollbar;
 
-        mBackButton = findViewById(R.id.backButton);
-        mBackButton.setOnClickListener(view -> {
-            if (mAudio != null) {
-                mAudio.playSound(AudioEngine.Sound.CLICK);
-            }
+        // Header
+        mBinding.headerLayout.setBackClickListener(view -> onDismiss());
 
-            onDismiss();
-        });
+        // Footer
+        mBinding.footerLayout.setResetClickListener(mResetListener);
 
         String env = SettingsStore.getInstance(getContext()).getEnvironment();
         mEnvironmentsRadio = findViewById(R.id.environmentRadio);
         mEnvironmentsRadio.setOnCheckedChangeListener(mEnvsListener);
         setEnv(mEnvironmentsRadio.getIdForValue(env), false);
 
-        mEnvOverrideSwitch = findViewById(R.id.envOverrideSwitch);
-        mEnvOverrideSwitch.setOnCheckedChangeListener(mEnvOverrideListener);
+        mBinding.envOverrideSwitch.setOnCheckedChangeListener(mEnvOverrideListener);
         setEnvOverride(SettingsStore.getInstance(getContext()).isEnvironmentOverrideEnabled());
-        mEnvOverrideSwitch.setHelpDelegate(() -> {
-            if (mAudio != null) {
-                mAudio.playSound(AudioEngine.Sound.CLICK);
-            }
+        mBinding.envOverrideSwitch.setHelpDelegate(() -> {
             SessionStore.get().getActiveStore().loadUri(getContext().getString(R.string.environment_override_help_url));
             exitWholeSettings();
         });
-
-        mResetButton = findViewById(R.id.resetButton);
-        mResetButton.setOnClickListener(mResetListener);
-
-        mScrollbar = findViewById(R.id.scrollbar);
     }
 
     @Override
@@ -77,16 +61,16 @@ class EnvironmentOptionsView extends SettingsView {
     }
 
     private void setEnvOverride(boolean value) {
-        mEnvOverrideSwitch.setOnCheckedChangeListener(null);
-        mEnvOverrideSwitch.setValue(value, false);
-        mEnvOverrideSwitch.setOnCheckedChangeListener(mEnvOverrideListener);
+        mBinding.envOverrideSwitch.setOnCheckedChangeListener(null);
+        mBinding.envOverrideSwitch.setValue(value, false);
+        mBinding.envOverrideSwitch.setOnCheckedChangeListener(mEnvOverrideListener);
 
         SettingsStore.getInstance(getContext()).setEnvironmentOverrideEnabled(value);
     }
 
     private OnClickListener mResetListener = (view) -> {
         boolean restart = false;
-        if (mEnvOverrideSwitch.isChecked() != SettingsStore.ENV_OVERRIDE_DEFAULT) {
+        if (mBinding.envOverrideSwitch.isChecked() != SettingsStore.ENV_OVERRIDE_DEFAULT) {
             setEnvOverride(SettingsStore.ENV_OVERRIDE_DEFAULT);
             restart = true;
         }

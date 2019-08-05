@@ -6,7 +6,6 @@ import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.ScrollView;
 
-import androidx.annotation.CallSuper;
 import androidx.annotation.NonNull;
 
 import org.mozilla.vrbrowser.R;
@@ -30,15 +29,6 @@ abstract class SettingsView extends FrameLayout {
         super(context);
         mWidgetManager = aWidgetManager;
     }
-
-    @CallSuper
-    protected void initialize(Context context) {
-        inflate(context, getLayoutId(), this);
-
-        mScrollbar = findViewById(R.id.scrollbar);
-    }
-
-    protected abstract int getLayoutId();
 
     public void setDelegate(Delegate aDelegate) {
         mDelegate = aDelegate;
