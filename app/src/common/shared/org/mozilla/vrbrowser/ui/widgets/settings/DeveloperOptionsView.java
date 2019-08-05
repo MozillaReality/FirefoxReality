@@ -102,6 +102,10 @@ class DeveloperOptionsView extends SettingsView {
             setServo(SettingsStore.SERVO_DEFAULT, true);
         }
 
+        if (mBinding.performanceMonitorSwitch.isChecked() != SettingsStore.PERFORMANCE_MONITOR_DEFAULT) {
+            setPerformance(SettingsStore.PERFORMANCE_MONITOR_DEFAULT, true);
+        }
+
         if (restart && mDelegate != null) {
             showRestartDialog();
         }
