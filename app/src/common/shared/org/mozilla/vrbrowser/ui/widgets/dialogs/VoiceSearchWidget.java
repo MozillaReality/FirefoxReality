@@ -27,6 +27,7 @@ import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.audio.AudioEngine;
 import org.mozilla.vrbrowser.browser.SettingsStore;
+import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.utils.DeviceType;
 import org.mozilla.vrbrowser.ui.views.UIButton;
 import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
@@ -92,9 +93,6 @@ public class VoiceSearchWidget extends UIDialog implements WidgetManagerDelegate
 
         mMozillaSpeechService = MozillaSpeechService.getInstance();
         mMozillaSpeechService.setProductTag(getContext().getString(R.string.voice_app_id));
-        boolean storeData = SettingsStore.getInstance(aContext).isSpeechDataCollectionEnabled();
-        mMozillaSpeechService.storeSamples(storeData);
-        mMozillaSpeechService.storeTranscriptions(storeData);
 
         mVoiceSearchText1 = findViewById(R.id.voiceSearchText1);
         mVoiceSearchText2 = findViewById(R.id.voiceSearchText2);
@@ -231,6 +229,11 @@ public class VoiceSearchWidget extends UIDialog implements WidgetManagerDelegate
         } else {
             String locale = LocaleUtils.getVoiceSearchLocale(getContext());
             mMozillaSpeechService.setLanguage(LocaleUtils.mapToMozillaSpeechLocales(locale));
+            boolean storeData = SettingsStore.getInstance(getContext()).isSpeechDataCollectionEnabled();
+            if (SessionStore.get().getActiveStore().isPrivateMode())
+                storeData = false;
+            mMozillaSpeechService.storeSamples(storeData);
+            mMozillaSpeechService.storeTranscriptions(storeData);
             mMozillaSpeechService.start(getContext().getApplicationContext());
             mIsSpeechRecognitionRunning = true;
         }
