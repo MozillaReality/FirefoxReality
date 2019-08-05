@@ -23,6 +23,7 @@ import com.mozilla.speechlibrary.ISpeechRecognitionListener;
 import com.mozilla.speechlibrary.MozillaSpeechService;
 import com.mozilla.speechlibrary.STTResult;
 
+import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.audio.AudioEngine;
 import org.mozilla.vrbrowser.browser.SettingsStore;
@@ -32,6 +33,7 @@ import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
 import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
 import org.mozilla.vrbrowser.utils.LocaleUtils;
 
+import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 
 public class VoiceSearchWidget extends UIDialog implements WidgetManagerDelegate.PermissionListener,
@@ -150,8 +152,7 @@ public class VoiceSearchWidget extends UIDialog implements WidgetManagerDelegate
         aPlacement.parentAnchorY = 0.5f;
         aPlacement.anchorX = 0.5f;
         aPlacement.anchorY = 0.5f;
-        aPlacement.translationY = WidgetPlacement.unitFromMeters(getContext(), R.dimen.restart_dialog_world_y);
-        aPlacement.translationZ = WidgetPlacement.unitFromMeters(getContext(), R.dimen.restart_dialog_world_z);
+        aPlacement.translationZ = WidgetPlacement.unitFromMeters(getContext(), R.dimen.voice_search_world_z);
     }
 
     public void setPlacementForKeyboard(int aHandle) {
@@ -269,11 +270,41 @@ public class VoiceSearchWidget extends UIDialog implements WidgetManagerDelegate
 
     @Override
     public void show(@ShowFlags int aShowFlags) {
-        super.show(aShowFlags);
+        if (SettingsStore.getInstance(getContext()).isSpeechDataCollectionReviewed()) {
+            super.show(aShowFlags);
 
-        setStartListeningState();
+            setStartListeningState();
 
-        startVoiceSearch();
+            startVoiceSearch();
+
+        } else {
+            mWidgetManager.getFocusedWindow().showAppDialog(
+                    R.string.voice_samples_collect_dialog_title,
+                    R.string.voice_samples_collect_dialog_description,
+                    new int[]{
+                            R.string.voice_samples_collect_dialog_do_not_allow,
+                            R.string.voice_samples_collect_dialog_allow},
+                    new AppDialogWidget.Delegate() {
+                        @Override
+                        public void onButtonClicked(int index) {
+                            if (index == AppDialogWidget.LEFT) {
+                                SettingsStore.getInstance(getContext()).setSpeechDataCollectionReviewed(true);
+                                onDismiss();
+
+                            } else {
+                                SettingsStore.getInstance(getContext()).setSpeechDataCollectionReviewed(true);
+                                SettingsStore.getInstance(getContext()).setSpeechDataCollectionEnabled(true);
+                                ThreadUtils.postToUiThread(() -> show(aShowFlags));
+                            }
+                        }
+
+                        @Override
+                        public void onMessageLinkClicked(@NonNull String url) {
+                            mWidgetManager.getFocusedWindow().getSessionStack().loadUri(getResources().getString(R.string.private_policy_url));
+                            onDismiss();
+                        }
+                    });
+        }
     }
 
     @Override
