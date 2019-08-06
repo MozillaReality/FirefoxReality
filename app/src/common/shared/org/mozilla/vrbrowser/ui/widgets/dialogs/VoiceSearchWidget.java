@@ -290,15 +290,11 @@ public class VoiceSearchWidget extends UIDialog implements WidgetManagerDelegate
                     new AppDialogWidget.Delegate() {
                         @Override
                         public void onButtonClicked(int index) {
-                            if (index == AppDialogWidget.LEFT) {
-                                SettingsStore.getInstance(getContext()).setSpeechDataCollectionReviewed(true);
-                                onDismiss();
-
-                            } else {
-                                SettingsStore.getInstance(getContext()).setSpeechDataCollectionReviewed(true);
+                            SettingsStore.getInstance(getContext()).setSpeechDataCollectionReviewed(true);
+                            if (index == AppDialogWidget.RIGHT) {
                                 SettingsStore.getInstance(getContext()).setSpeechDataCollectionEnabled(true);
-                                ThreadUtils.postToUiThread(() -> show(aShowFlags));
                             }
+                            ThreadUtils.postToUiThread(() -> show(aShowFlags));
                         }
 
                         @Override
