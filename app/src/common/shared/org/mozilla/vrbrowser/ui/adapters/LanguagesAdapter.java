@@ -15,6 +15,7 @@ import androidx.databinding.DataBindingUtil;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.databinding.LanguageItemBinding;
 import org.mozilla.vrbrowser.ui.callbacks.LanguageItemCallback;
@@ -51,6 +52,9 @@ public class LanguagesAdapter extends RecyclerView.Adapter<LanguagesAdapter.Lang
     public void addItem(Language language) {
         mLanguagesList.add(0, language);
         notifyItemInserted(mLanguagesList.indexOf(language));
+        // This shouldn't be necessary but for some reason the last list item is not refreshed
+        // if we don't do a full refresh. Might be another RecyclerView bug.
+        ThreadUtils.postToUiThread(() -> notifyDataSetChanged());
     }
 
     public void addItemAlphabetical(Language language) {
