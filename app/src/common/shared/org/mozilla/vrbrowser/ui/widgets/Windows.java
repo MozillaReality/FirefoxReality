@@ -373,6 +373,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
         } else {
             focusWindow(getFrontWindow());
         }
+        updateTopBars();
         mWidgetManager.pushWorldBrightness(this, WidgetManagerDelegate.DEFAULT_DIM_BRIGHTNESS);
     }
 
@@ -389,6 +390,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
             setWindowVisible(window, false);
         }
         focusWindow(getFrontWindow());
+        updateTopBars();
         mWidgetManager.popWorldBrightness(this);
     }
 
