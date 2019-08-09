@@ -72,6 +72,7 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Bookm
 
         mPrivateButton = findViewById(R.id.privateButton);
         mPrivateButton.setOnHoverListener(mButtonScaleHoverListener);
+        mPrivateButton.setCurvedTooltip(false);
         mPrivateButton.setOnClickListener(view -> {
             if (mAudio != null) {
                 mAudio.playSound(AudioEngine.Sound.CLICK);
@@ -81,8 +82,10 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Bookm
             view.requestFocusFromTouch();
         });
 
+
         mSettingsButton = findViewById(R.id.settingsButton);
         mSettingsButton.setOnHoverListener(mButtonScaleHoverListener);
+        mSettingsButton.setCurvedTooltip(false);
         mSettingsButton.setOnClickListener(view -> {
             if (mAudio != null) {
                 mAudio.playSound(AudioEngine.Sound.CLICK);
@@ -95,6 +98,7 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Bookm
 
         mBookmarksButton = findViewById(R.id.bookmarksButton);
         mBookmarksButton.setOnHoverListener(mButtonScaleHoverListener);
+        mBookmarksButton.setCurvedTooltip(false);
         mBookmarksButton.setOnClickListener(view -> {
             if (mAudio != null) {
                 mAudio.playSound(AudioEngine.Sound.CLICK);
@@ -106,6 +110,7 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Bookm
 
         UIButton addWindowButton = findViewById(R.id.addwindowButton);
         addWindowButton.setOnHoverListener(mButtonScaleHoverListener);
+        addWindowButton.setCurvedTooltip(false);
         addWindowButton.setOnClickListener(view -> {
             if (mAudio != null) {
                 mAudio.playSound(AudioEngine.Sound.CLICK);

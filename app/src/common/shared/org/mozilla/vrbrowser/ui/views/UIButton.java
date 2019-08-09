@@ -39,6 +39,7 @@ public class UIButton extends AppCompatImageButton implements CustomUIButton {
     private @IdRes int mActiveModeTintColorListRes;
     private TooltipWidget mTooltipView;
     private String mTooltipText;
+    private boolean mCurvedTooltip = true;
     private State mState;
     private int mTooltipDelay;
     private float mTooltipDensity;
@@ -91,6 +92,10 @@ public class UIButton extends AppCompatImageButton implements CustomUIButton {
 
         if (mTooltipView != null && mTooltipView.isVisible())
             mTooltipView.setText(text);
+    }
+
+    public void setCurvedTooltip(boolean aValue) {
+        mCurvedTooltip = aValue;
     }
 
     @Override
