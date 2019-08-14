@@ -53,7 +53,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         SharedPreferences.OnSharedPreferenceChangeListener, SuggestionsWidget.URLBarPopupDelegate,
         BookmarkListener, TrayListener {
 
-    private static final String LOGTAG = "VRB";
+    private static final String LOGTAG = NavigationBarWidget.class.getSimpleName();
 
     private AudioEngine mAudio;
     private UIButton mBackButton;
@@ -900,7 +900,10 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
                         mPopup.show(CLEAR_FOCUS);
                     }
 
-                }, new UIThreadExecutor());
+                }, new UIThreadExecutor()).exceptionally(th -> {
+                    Log.e(LOGTAG, "Error getting suggestions: " + th.getLocalizedMessage());
+                    return null;
+        });
     }
 
     @Override
