@@ -75,6 +75,8 @@ public class SessionStack implements ContentBlocking.Delegate, GeckoSession.Navi
     private transient SharedPreferences mPrefs;
     private transient GeckoRuntime mRuntime;
     private boolean mUsePrivateMode;
+    private transient String mPrivatePageData;
+    private transient byte[] mPrivatePage;
 
     protected SessionStack(Context context, GeckoRuntime runtime, boolean usePrivateMode) {
         mRuntime = runtime;
@@ -94,6 +96,10 @@ public class SessionStack implements ContentBlocking.Delegate, GeckoSession.Navi
 
         mContext = context;
         mPrefs = PreferenceManager.getDefaultSharedPreferences(mContext);
+
+        InternalPages.PageResources pageResources = InternalPages.PageResources.create(R.raw.private_mode, R.raw.private_style);
+        mPrivatePageData = InternalPages.createAboutPageDataURI(mContext, pageResources);
+        mPrivatePage = InternalPages.createAboutPage(mContext, pageResources);
 
         if (mUserAgentOverride == null) {
             mUserAgentOverride = new UserAgentOverride();
@@ -304,6 +310,12 @@ public class SessionStack implements ContentBlocking.Delegate, GeckoSession.Navi
             if (entry.getKey() == currentSessionId) {
                 setCurrentSession(newSessionId);
             }
+
+            if (mUsePrivateMode && mPrivatePageData.equals(state.mUri)) {
+                loadPrivateBrowsingPage();
+            }
+
+            dumpAllState(state.mSession);
         }
     }
 
@@ -628,6 +640,14 @@ public class SessionStack implements ContentBlocking.Delegate, GeckoSession.Navi
         mCurrentSession.loadUri(aUri);
     }
 
+    public void loadPrivateBrowsingPage() {
+        if (mCurrentSession == null) {
+            return;
+        }
+
+        mCurrentSession.loadData(mPrivatePage, "text/html");
+    }
+
     public void toggleServo() {
         if (mCurrentSession == null) {
             return;
@@ -894,7 +914,7 @@ public class SessionStack implements ContentBlocking.Delegate, GeckoSession.Navi
     public GeckoResult<String> onLoadError(@NonNull GeckoSession session, String uri,  @NonNull WebRequestError error) {
         Log.d(LOGTAG, "SessionStack onLoadError: " + uri);
 
-        return GeckoResult.fromValue(InternalPages.createErrorPage(mContext, uri, error.category, error.code));
+        return GeckoResult.fromValue(InternalPages.createErrorPageDataURI(mContext, uri, error.category, error.code));
     }
 
     // Progress Listener
