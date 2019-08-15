@@ -512,7 +512,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
         updateMaxWindowScales();
         updateCurvedMode();
 
-        if (aWindow.getSessionStack().isPrivateMode()) {
+        if (mPrivateMode) {
             TelemetryWrapper.openWindowsEvent(mPrivateWindows.size() + 1, mPrivateWindows.size(), true);
         } else {
             TelemetryWrapper.openWindowsEvent(mRegularWindows.size() + 1, mRegularWindows.size(), false);
