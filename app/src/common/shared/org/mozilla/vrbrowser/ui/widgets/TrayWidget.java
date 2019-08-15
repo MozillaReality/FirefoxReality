@@ -30,7 +30,15 @@ import java.util.Arrays;
 import java.util.List;
 
 public class TrayWidget extends UIWidget implements SessionChangeListener, BookmarkListener, WidgetManagerDelegate.UpdateListener {
-    static final String LOGTAG = "VRB";
+
+    private static final String LOGTAG = TrayWidget.class.getSimpleName();
+
+    public interface Delegate {
+        default void onBookmarksClicked() {}
+        default void onPrivateBrowsingClicked() {}
+        default void onAddWindowClicked() {}
+    }
+
     private static final int ICON_ANIMATION_DURATION = 200;
 
     private UIButton mSettingsButton;
@@ -39,7 +47,7 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Bookm
     private AudioEngine mAudio;
     private int mSettingsDialogHandle = -1;
     private boolean mIsLastSessionPrivate;
-    private List<TrayListener> mTrayListeners;
+    private List<Delegate> mTrayListeners;
     private int mMinPadding;
     private int mMaxPadding;
     private boolean mKeyboardVisible;
@@ -184,11 +192,11 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Bookm
         }
     }
 
-    public void addListeners(TrayListener... listeners) {
+    public void addListeners(Delegate... listeners) {
         mTrayListeners.addAll(Arrays.asList(listeners));
     }
 
-    public void removeListeners(TrayListener... listeners) {
+    public void removeListeners(Delegate... listeners) {
         mTrayListeners.removeAll(Arrays.asList(listeners));
     }
 
@@ -197,15 +205,15 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Bookm
     }
 
     private void notifyBookmarksClicked() {
-        mTrayListeners.forEach(TrayListener::onBookmarksClicked);
+        mTrayListeners.forEach(Delegate::onBookmarksClicked);
     }
 
     private void notifyPrivateBrowsingClicked() {
-        mTrayListeners.forEach(TrayListener::onPrivateBrowsingClicked);
+        mTrayListeners.forEach(Delegate::onPrivateBrowsingClicked);
     }
 
     private void notifyAddWindowClicked() {
-        mTrayListeners.forEach(TrayListener::onAddWindowClicked);
+        mTrayListeners.forEach(Delegate::onAddWindowClicked);
     }
 
     @Override
@@ -220,8 +228,6 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Bookm
         aPlacement.anchorY = 0.5f;
         aPlacement.parentAnchorX = 0.5f;
         aPlacement.parentAnchorY = 0.5f;
-        aPlacement.rotationAxisX = 1.0f;
-        aPlacement.rotation = (float)Math.toRadians(-45);
         aPlacement.opaque = false;
         aPlacement.cylinder = false;
         aPlacement.textureScale = 1.0f;
@@ -276,7 +282,9 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Bookm
         }
         detachFromWindow();
 
+        mWidgetPlacement.parentHandle = aWindow.getHandle();
         mAttachedWindow = aWindow;
+        updatePlacement();
         mAttachedWindow.addBookmarksListener(this);
 
         mSessionStack = aWindow.getSessionStack();
@@ -290,6 +298,42 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Bookm
         } else {
             onBookmarksHidden(aWindow);
         }
+    }
+
+    public void updatePlacement() {
+        switch (mAttachedWindow.getWindowPlacement()) {
+            case FRONT:
+                mWidgetPlacement.translationX = 0;
+                mWidgetPlacement.translationY = WidgetPlacement.unitFromMeters(getContext(), R.dimen.tray_world_y);
+                mWidgetPlacement.translationZ = WidgetPlacement.unitFromMeters(getContext(), R.dimen.tray_world_z);
+                mWidgetPlacement.rotationAxisX = 0.0f;
+                mWidgetPlacement.rotationAxisY = 0.0f;
+                mWidgetPlacement.rotationAxisZ = 0.0f;
+                mWidgetPlacement.rotation = 0;
+                break;
+
+            case LEFT:
+                mWidgetPlacement.translationX = WidgetPlacement.unitFromMeters(getContext(), R.dimen.tray_world_x_sides);
+                mWidgetPlacement.translationY = WidgetPlacement.unitFromMeters(getContext(), R.dimen.tray_world_y);
+                mWidgetPlacement.translationZ = WidgetPlacement.unitFromMeters(getContext(), R.dimen.tray_world_z_sides);
+                mWidgetPlacement.rotationAxisX = 0.0f;
+                mWidgetPlacement.rotationAxisY = 1.0f;
+                mWidgetPlacement.rotationAxisZ = 0.0f;
+                mWidgetPlacement.rotation = -(float) Math.toRadians(-WidgetPlacement.floatDimension(getContext(), R.dimen.multi_window_angle));
+                break;
+
+            case RIGHT:
+                mWidgetPlacement.translationX = -WidgetPlacement.unitFromMeters(getContext(), R.dimen.tray_world_x_sides);
+                mWidgetPlacement.translationY = WidgetPlacement.unitFromMeters(getContext(), R.dimen.tray_world_y);
+                mWidgetPlacement.translationZ = WidgetPlacement.unitFromMeters(getContext(), R.dimen.tray_world_z_sides);
+                mWidgetPlacement.rotationAxisX = 0.0f;
+                mWidgetPlacement.rotationAxisY = 1.0f;
+                mWidgetPlacement.rotationAxisZ = 0.0f;
+                mWidgetPlacement.rotation = (float) Math.toRadians(-WidgetPlacement.floatDimension(getContext(), R.dimen.multi_window_angle));
+                break;
+        }
+
+        mWidgetManager.updateWidget(this);
     }
 
     // SessionStack.SessionChangeListener
@@ -327,6 +371,8 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Bookm
             widget = createChild(SettingsWidget.class, false);
             mSettingsDialogHandle = widget.getHandle();
         }
+
+        widget.getPlacement().parentHandle = mAttachedWindow.getHandle();
 
         if (widget.isVisible()) {
             widget.hide(REMOVE_WIDGET);
@@ -375,6 +421,10 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Bookm
     // WidgetManagerDelegate.UpdateListener
     @Override
     public void onWidgetUpdate(Widget aWidget) {
+        if (aWidget == mAttachedWindow) {
+            mWidgetManager.updateWidget(this);
+        }
+
         if (!aWidget.getClass().equals(KeyboardWidget.class)) {
             return;
         }

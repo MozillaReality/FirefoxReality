@@ -208,6 +208,7 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
         aPlacement.parentAnchorY = 0.5f;
         aPlacement.anchorX = 0.5f;
         aPlacement.anchorY = 0.5f;
+        aPlacement.cylinder = true;
         aPlacement.translationY = WidgetPlacement.unitFromMeters(getContext(), R.dimen.settings_world_y);
         aPlacement.translationZ = WidgetPlacement.unitFromMeters(getContext(), R.dimen.settings_world_z);
     }

@@ -25,7 +25,7 @@ import java.io.Writer;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 
-public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSession.ContentDelegate {
+public class Windows implements TrayWidget.Delegate, TopBarWidget.Delegate, GeckoSession.ContentDelegate {
 
     private static final String WINDOWS_SAVE_FILENAME = "windows_state.json";
 
@@ -66,6 +66,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
     private WindowWidget mFullscreenWindow;
     private WindowPlacement mPrevWindowPlacement;
     private boolean mCurvedMode = false;
+    private TrayWidget mTray;
 
     public enum WindowPlacement{
         FRONT(0),
@@ -145,6 +146,10 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
 
     public void setDelegate(Delegate aDelegate) {
         mDelegate = aDelegate;
+    }
+
+    public void setTray(@NonNull TrayWidget tray) {
+        mTray = tray;
     }
 
     public WindowWidget getFocusedWindow() {
@@ -600,6 +605,9 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
         }
 
         updateTopBars();
+        if (mTray != null)
+            mTray.updatePlacement();
+
         ArrayList<WindowWidget> windows = getCurrentWindows();
         // Sort windows so frontWindow is the first one. Required for proper native matrix updates.
         windows.sort((o1, o2) -> o1 == frontWindow ? -1 : 0);

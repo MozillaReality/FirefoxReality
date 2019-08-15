@@ -280,6 +280,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         mTray.addListeners(mWindows);
 
         attachToWindow(mWindows.getFocusedWindow(), null);
+        mWindows.setTray(mTray);
 
         addWidgets(Arrays.asList(mRootWidget, mNavigationBar, mKeyboard, mTray));
     }

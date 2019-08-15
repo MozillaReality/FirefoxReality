@@ -62,8 +62,8 @@
     <dimen name="keyboard_popup_left_margin">116dp</dimen>
 
     <!-- Settings Dialog -->
-    <item name="settings_world_y" format="float" type="dimen">1.6</item>
-    <item name="settings_world_z" format="float" type="dimen">-2.0</item>
+    <item name="settings_world_y" format="float" type="dimen">0.0</item>
+    <item name="settings_world_z" format="float" type="dimen">2.0</item>
     <dimen name="settings_width">770dp</dimen>
     <dimen name="settings_height">490dp</dimen>
     <dimen name="settings_button_height">320dp</dimen>
@@ -119,11 +119,14 @@
     <dimen name="autocompletion_widget_item_padding">20dp</dimen>
 
     <!-- Tray -->
-    <item name="tray_world_y" format="float" type="dimen">0.25</item>
-    <item name="tray_world_z" format="float" type="dimen">-2.5</item>
+    <item name="tray_world_x" format="float" type="dimen">1.8</item>
+    <item name="tray_world_y" format="float" type="dimen">-1.4</item>
+    <item name="tray_world_z" format="float" type="dimen">1.6</item>
+    <item name="tray_world_x_sides" format="float" type="dimen">2.1</item>
+    <item name="tray_world_z_sides" format="float" type="dimen">2.6</item>
     <item name="tray_world_width" format="float" type="dimen">1.2</item>
-    <dimen name="tray_width">206dp</dimen>
-    <dimen name="tray_height">40dp</dimen>
+    <dimen name="tray_width">172dp</dimen>
+    <dimen name="tray_height">45dp</dimen>
     <item name="tray_tooltip_density" format="float" type="dimen">4.0</item>
 
     <!-- Developer Options Panel -->

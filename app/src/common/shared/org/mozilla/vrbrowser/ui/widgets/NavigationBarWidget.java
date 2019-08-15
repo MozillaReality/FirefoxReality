@@ -51,7 +51,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         WidgetManagerDelegate.UpdateListener, SessionChangeListener,
         NavigationURLBar.NavigationURLBarDelegate, VoiceSearchWidget.VoiceSearchDelegate,
         SharedPreferences.OnSharedPreferenceChangeListener, SuggestionsWidget.URLBarPopupDelegate,
-        BookmarkListener, TrayListener {
+        BookmarkListener, TrayWidget.Delegate {
 
     private static final String LOGTAG = "VRB";
 

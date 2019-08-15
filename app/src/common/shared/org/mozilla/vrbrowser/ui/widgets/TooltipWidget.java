@@ -64,6 +64,10 @@ public class TooltipWidget extends UIWidget {
         this.setLayoutParams(targetView, position, mWidgetPlacement.density);
     }
 
+    public void setCurvedMode(boolean enabled) {
+        mWidgetPlacement.cylinder = enabled;
+    }
+
     public void setLayoutParams(View targetView, ViewUtils.TooltipPosition position, float density) {
         mTargetView = targetView;
         mParentWidget = ViewUtils.getParentWidget(mTargetView);
