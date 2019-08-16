@@ -170,11 +170,6 @@ public class InternalPages {
         return html.getBytes();
     }
 
-    public static String createAboutPageDataURI(Context context,
-                                                PageResources resources) {
-        return "data:text/html;base64," + Base64.encodeToString(createAboutPage(context, resources), Base64.NO_WRAP);
-    }
-
     private static String readRawResourceString(Context context, int resource) {
         StringBuilder total = new StringBuilder();
         try {

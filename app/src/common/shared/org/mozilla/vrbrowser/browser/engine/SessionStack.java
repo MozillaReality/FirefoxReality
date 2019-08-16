@@ -75,7 +75,6 @@ public class SessionStack implements ContentBlocking.Delegate, GeckoSession.Navi
     private transient SharedPreferences mPrefs;
     private transient GeckoRuntime mRuntime;
     private boolean mUsePrivateMode;
-    private transient String mPrivatePageData;
     private transient byte[] mPrivatePage;
 
     protected SessionStack(Context context, GeckoRuntime runtime, boolean usePrivateMode) {
@@ -98,7 +97,6 @@ public class SessionStack implements ContentBlocking.Delegate, GeckoSession.Navi
         mPrefs = PreferenceManager.getDefaultSharedPreferences(mContext);
 
         InternalPages.PageResources pageResources = InternalPages.PageResources.create(R.raw.private_mode, R.raw.private_style);
-        mPrivatePageData = InternalPages.createAboutPageDataURI(mContext, pageResources);
         mPrivatePage = InternalPages.createAboutPage(mContext, pageResources);
 
         if (mUserAgentOverride == null) {
@@ -263,7 +261,6 @@ public class SessionStack implements ContentBlocking.Delegate, GeckoSession.Navi
 
         mPreviousGeckoSessionId = store.mPreviousGeckoSessionId;
         mRegion = store.mRegion;
-        mUsePrivateMode = store.mUsePrivateMode;
 
         for (Map.Entry<Integer, SessionState> entry : store.mSessions.entrySet()) {
             SessionState state = entry.getValue();
@@ -311,7 +308,7 @@ public class SessionStack implements ContentBlocking.Delegate, GeckoSession.Navi
                 setCurrentSession(newSessionId);
             }
 
-            if (mUsePrivateMode && mPrivatePageData.equals(state.mUri)) {
+            if (mUsePrivateMode) {
                 loadPrivateBrowsingPage();
             }
 
