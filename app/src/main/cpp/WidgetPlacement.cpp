@@ -58,6 +58,7 @@ WidgetPlacement::FromJava(JNIEnv* aEnv, jobject& aObject) {
   GET_FLOAT_FIELD(textureScale, "textureScale");
   GET_BOOLEAN_FIELD(cylinder);
   GET_FLOAT_FIELD(cylinderMapRadius, "cylinderMapRadius");
+  GET_INT_FIELD(borderColor);
 
   return result;
 }

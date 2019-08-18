@@ -49,6 +49,7 @@ public class WidgetPlacement {
     public float textureScale = 0.7f;
     // Widget will be curved if enabled.
     public boolean cylinder = true;
+    public int borderColor = 0;
     /*
      * Flat surface placements are automatically mapped to curved coordinates.
      * If a radius is set it's used for the automatic mapping of the yaw & angle when the

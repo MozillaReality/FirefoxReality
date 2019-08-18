@@ -910,6 +910,7 @@ BrowserWorld::UpdateWidget(int32_t aHandle, const WidgetPlacementPtr& aPlacement
     widget->SetWorldWidth(newWorldWidth);
   }
 
+  widget->SetBorderColor(vrb::Color(aPlacement->borderColor));
   LayoutWidget(aHandle);
 }
 

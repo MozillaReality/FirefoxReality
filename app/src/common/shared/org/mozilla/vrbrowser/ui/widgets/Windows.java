@@ -510,6 +510,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
         mPrivateWindows.remove(aWindow);
         aWindow.getTopBar().setVisible(false);
         aWindow.getTopBar().setDelegate((TopBarWidget.Delegate) null);
+        aWindow.setWindowDelegate(null);
         aWindow.getSessionStack().removeContentListener(this);
         aWindow.close();
         updateMaxWindowScales();
@@ -664,6 +665,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
     private WindowWidget createWindow() {
         int newWindowId = sIndex++;
         WindowWidget window = new WindowWidget(mContext, newWindowId, mPrivateMode);
+        window.setWindowDelegate(this::focusWindow);
         getCurrentWindows().add(window);
         window.getTopBar().setDelegate(this);
         window.getSessionStack().addContentListener(this);
