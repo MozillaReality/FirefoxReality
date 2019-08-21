@@ -674,6 +674,8 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
             TelemetryWrapper.openWindowsEvent(mRegularWindows.size() - 1, mRegularWindows.size(), false);
         }
 
+        mForcedCurvedMode = getCurrentWindows().size() > 1;
+
         return window;
     }
 
