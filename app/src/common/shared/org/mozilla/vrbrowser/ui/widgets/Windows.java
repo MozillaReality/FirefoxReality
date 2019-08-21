@@ -677,6 +677,17 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
         return window;
     }
 
+    public void enterResizeMode() {
+        for (WindowWidget window : getCurrentWindows()) {
+            window.getTopBar().setVisible(false);
+        }
+    }
+
+    public void exitResizeMode() {
+        for (WindowWidget window : getCurrentWindows()) {
+            window.getTopBar().setVisible(true);
+        }
+    }
 
     // Tray Listener
     @Override
