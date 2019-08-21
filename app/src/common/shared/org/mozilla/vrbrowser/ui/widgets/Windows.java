@@ -706,6 +706,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, GeckoSessio
     public void onCloseClicked(TopBarWidget aWidget) {
         WindowWidget window = aWidget.getAttachedWindow();
         if (window != null) {
+            focusWindow(window);
             closeWindow(window);
         }
     }
