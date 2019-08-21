@@ -733,7 +733,7 @@
 
     <!-- This string is for the tooltip that appears upon hovering the 'Request desktop site' button in the
          browser's navigation bar. The button it labels, when pressed, change the currently used user agent. -->
-    <string name="user_agent_tooltip">Request desktop site</string>
+    <string name="request_dekstop_site_tooltip">Request desktop site</string>
 
     <!-- This string is for the tooltip that appears upon hovering the 'Clear' button in the
          browser's navigation bar. The button it labels, when pressed, clears the navigation bar text. -->
