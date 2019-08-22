@@ -23,7 +23,7 @@
 #include "vrb/Vector.h"
 #include "vrb/VertexArray.h"
 #include "WidgetBorder.h"
-#include "../../../../../../../../Applications/android-sdk/ndk-bundle/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/include/c++/v1/vector"
+#include <vector>
 
 namespace crow {
 

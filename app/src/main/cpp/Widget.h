@@ -75,6 +75,7 @@ public:
   void SetCylinderDensity(const float aDensity);
   float GetCylinderDensity() const;
   void SetBorderColor(const vrb::Color& aColor);
+  void SetProxifyLayer(const bool aValue);
 protected:
   struct State;
   Widget(State& aState, vrb::RenderContextPtr& aContext);

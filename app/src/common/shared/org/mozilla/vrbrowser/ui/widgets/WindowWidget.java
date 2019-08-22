@@ -98,7 +98,8 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     boolean mClickedAfterFocus = false;
 
     public interface WindowDelegate {
-        void onFocusRequest(WindowWidget aWindow);
+        void onFocusRequest(@NonNull WindowWidget aWindow);
+        void onBorderChanged(@NonNull WindowWidget aWindow);
     }
 
     public WindowWidget(Context aContext, int windowId, boolean privateMode) {
@@ -573,6 +574,9 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         if (mWidgetPlacement.borderColor != color) {
             mWidgetPlacement.borderColor = color;
             mWidgetManager.updateWidget(this);
+            if (mWindowDelegate != null) {
+                mWindowDelegate.onBorderChanged(this);
+            }
         }
     }
 

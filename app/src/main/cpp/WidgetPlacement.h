@@ -31,6 +31,7 @@ struct WidgetPlacement {
   bool showPointer;
   bool firstDraw;
   bool layer;
+  bool proxifyLayer;
   float textureScale;
   bool cylinder;
   float cylinderMapRadius;

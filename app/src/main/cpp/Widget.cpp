@@ -15,7 +15,10 @@
 
 #include "vrb/Color.h"
 #include "vrb/RenderContext.h"
+#include "vrb/CreationContext.h"
+#include "vrb/TextureGL.h"
 #include "vrb/Matrix.h"
+#include "vrb/GLError.h"
 #include "vrb/Geometry.h"
 #include "vrb/RenderState.h"
 #include "vrb/SurfaceTextureFactory.h"
@@ -54,6 +57,7 @@ struct Widget::State {
   bool toggleState;
   vrb::TogglePtr bordersContainer;
   std::vector<WidgetBorderPtr> borders;
+  vrb::TogglePtr layerProxy;
 
   State()
       : handle(0)
@@ -542,6 +546,49 @@ Widget::SetBorderColor(const vrb::Color &aColor) {
       border->SetColor(aColor);
     }
   }
+}
+
+void
+Widget::SetProxifyLayer(const bool aValue) {
+  if (!aValue) {
+    if (m.layerProxy) {
+      m.layerProxy->ToggleAll(false);
+    }
+    return;
+  }
+
+  if (!m.layerProxy) {
+    vrb::RenderContextPtr render = m.context.lock();
+    vrb::CreationContextPtr create = render->GetRenderThreadCreationContext();
+    m.layerProxy = vrb::Toggle::Create(create);
+    // Proxy objects must clear the existing surface, so set a proper blend function.
+    m.layerProxy->SetPreRenderLambda(create, []() {
+      VRB_GL_CHECK(glBlendFunc(GL_ZERO, GL_ONE_MINUS_SRC_ALPHA));
+    });
+    m.layerProxy->SetPostRenderLambda(create, []() {
+      VRB_GL_CHECK(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+    });
+    m.transform->AddNode(m.layerProxy);
+    int32_t textureWidth, textureHeight;
+    GetSurfaceTextureSize(textureWidth, textureHeight);
+    // Reduce quality, proxy objects do not need full quality.
+    textureWidth /= 2;
+    textureHeight /= 2;
+    vrb::TextureSurfacePtr proxySurface = vrb::TextureSurface::Create(render, m.name);
+    if (m.cylinder) {
+      CylinderPtr proxy = Cylinder::Create(create, *m.cylinder);
+      proxy->SetCylinderTheta(m.cylinder->GetCylinderTheta());
+      proxy->SetTexture(proxySurface, textureWidth, textureHeight);
+      proxy->SetTransform(m.cylinder->GetTransformNode()->GetTransform());
+      m.layerProxy->AddNode(proxy->GetRoot());
+    } else {
+      QuadPtr proxy = Quad::Create(create, *m.quad);
+      proxy->SetTexture(proxySurface, textureWidth, textureHeight);
+      m.layerProxy->AddNode(proxy->GetRoot());
+    }
+  }
+
+  m.layerProxy->ToggleAll(true);
 }
 
 Widget::Widget(State& aState, vrb::RenderContextPtr& aContext) : m(aState) {

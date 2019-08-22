@@ -256,7 +256,16 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
 
     protected void initializeWidgets() {
         mWindows = new Windows(this);
-        mWindows.setDelegate(this::attachToWindow);
+        mWindows.setDelegate(new Windows.Delegate() {
+            @Override
+            public void onFocusedWindowChanged(@NonNull WindowWidget aFocusedWindow, @Nullable WindowWidget aPrevFocusedWindow) {
+                attachToWindow(aFocusedWindow, aPrevFocusedWindow);
+            }
+            @Override
+            public void onWindowBorderChanged(@NonNull WindowWidget aChangeWindow) {
+                mKeyboard.proxifyLayerIfNeeded(mWindows.getCurrentWindows());
+            }
+        });
 
         // Create Browser navigation widget
         mNavigationBar = new NavigationBarWidget(this);
