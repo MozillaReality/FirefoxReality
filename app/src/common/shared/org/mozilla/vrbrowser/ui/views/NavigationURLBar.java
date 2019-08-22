@@ -260,7 +260,7 @@ public class NavigationURLBar extends FrameLayout {
                 setBookmarked(false);
             }
         }, mUIThreadExecutor).exceptionally(th -> {
-            Log.e(LOGTAG, "Error getting bookmarks: " + th.getLocalizedMessage());
+            Log.d(LOGTAG, "Error getting bookmarks: " + th.getLocalizedMessage());
             return null;
         });
 

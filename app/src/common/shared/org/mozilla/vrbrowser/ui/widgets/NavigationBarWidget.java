@@ -901,7 +901,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
                     }
 
                 }, new UIThreadExecutor()).exceptionally(th -> {
-                    Log.e(LOGTAG, "Error getting suggestions: " + th.getLocalizedMessage());
+                    Log.d(LOGTAG, "Error getting suggestions: " + th.getLocalizedMessage());
                     return null;
         });
     }

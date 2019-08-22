@@ -95,7 +95,7 @@ public class SuggestionsProvider {
             future.complete(items);
 
         }).exceptionally(th -> {
-            Log.e(LOGTAG, "Error getting bookmarks suggestions: " + th.getLocalizedMessage());
+            Log.d(LOGTAG, "Error getting bookmarks suggestions: " + th.getLocalizedMessage());
             future.complete(items);
             return null;
         });
@@ -121,7 +121,7 @@ public class SuggestionsProvider {
             future.complete(items);
 
         }).exceptionally(th -> {
-            Log.e(LOGTAG, "Error getting history suggestions: " + th.getLocalizedMessage());
+            Log.d(LOGTAG, "Error getting history suggestions: " + th.getLocalizedMessage());
             future.complete(items);
            return null;
         });
@@ -167,7 +167,7 @@ public class SuggestionsProvider {
             future.complete(items);
 
         }).exceptionally(th -> {
-            Log.e(LOGTAG, "Error getting search engine suggestions: " + th.getLocalizedMessage());
+            Log.d(LOGTAG, "Error getting search engine suggestions: " + th.getLocalizedMessage());
             future.complete(items);
             return null;
         });
