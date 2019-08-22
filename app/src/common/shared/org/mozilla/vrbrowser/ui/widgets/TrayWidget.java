@@ -214,12 +214,12 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Bookm
         aPlacement.width = WidgetPlacement.dpDimension(context, R.dimen.tray_width);
         aPlacement.height = WidgetPlacement.dpDimension(context, R.dimen.tray_height);
         aPlacement.worldWidth = WidgetPlacement.floatDimension(getContext(), R.dimen.tray_world_width);
-        aPlacement.translationY = WidgetPlacement.unitFromMeters(context, R.dimen.tray_world_y);
-        aPlacement.translationZ = WidgetPlacement.unitFromMeters(context, R.dimen.tray_world_z);
+        aPlacement.translationY = WidgetPlacement.unitFromMeters(context, R.dimen.tray_world_y) - WidgetPlacement.unitFromMeters(context, R.dimen.window_world_y);
+        aPlacement.translationZ = WidgetPlacement.unitFromMeters(context, R.dimen.tray_world_z) - WidgetPlacement.unitFromMeters(context, R.dimen.window_world_z);
         aPlacement.anchorX = 0.5f;
-        aPlacement.anchorY = 0.5f;
+        aPlacement.anchorY = 0.0f;
         aPlacement.parentAnchorX = 0.5f;
-        aPlacement.parentAnchorY = 0.5f;
+        aPlacement.parentAnchorY = 0.0f;
         aPlacement.rotationAxisX = 1.0f;
         aPlacement.rotation = (float)Math.toRadians(-45);
         aPlacement.opaque = false;
@@ -267,6 +267,8 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Bookm
         if (mAttachedWindow != null) {
             mAttachedWindow.removeBookmarksListener(this);
         }
+        mWidgetPlacement.parentHandle = -1;
+
     }
 
     @Override
@@ -277,6 +279,7 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Bookm
         detachFromWindow();
 
         mAttachedWindow = aWindow;
+        mWidgetPlacement.parentHandle = aWindow.getHandle();
         mAttachedWindow.addBookmarksListener(this);
 
         mSessionStack = aWindow.getSessionStack();
