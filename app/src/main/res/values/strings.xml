@@ -292,7 +292,7 @@
 
     <!-- The string labels the description text for the clear cookies and site data button in the
          privacy options dialog. -->
-    <string name="developer_options_clear_cache_cookies_site_description">Cookies &amp; SiteData</string>
+    <string name="developer_options_clear_cache_cookies_site_description">Cookies &amp; Site Data</string>
 
     <!-- The string labels the description text for the clear cached web content button in the
          privacy options dialog. -->
