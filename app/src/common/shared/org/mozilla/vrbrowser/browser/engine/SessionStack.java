@@ -51,7 +51,8 @@ import static org.mozilla.vrbrowser.utils.ServoUtils.isServoAvailable;
 
 public class SessionStack implements ContentBlocking.Delegate, GeckoSession.NavigationDelegate,
         GeckoSession.ProgressDelegate, GeckoSession.ContentDelegate, GeckoSession.TextInputDelegate,
-        GeckoSession.PromptDelegate, GeckoSession.MediaDelegate, SharedPreferences.OnSharedPreferenceChangeListener {
+        GeckoSession.PromptDelegate, GeckoSession.MediaDelegate, GeckoSession.HistoryDelegate,
+        SharedPreferences.OnSharedPreferenceChangeListener {
 
     private static final String LOGTAG = "VRB";
 
@@ -64,6 +65,7 @@ public class SessionStack implements ContentBlocking.Delegate, GeckoSession.Navi
     private transient LinkedList<SessionChangeListener> mSessionChangeListeners;
     private transient LinkedList<GeckoSession.TextInputDelegate> mTextInputListeners;
     private transient LinkedList<VideoAvailabilityListener> mVideoAvailabilityListeners;
+    private transient LinkedList<GeckoSession.HistoryDelegate> mHistoryDelegate;
     private transient UserAgentOverride mUserAgentOverride;
 
     private transient GeckoSession mCurrentSession;
@@ -89,6 +91,7 @@ public class SessionStack implements ContentBlocking.Delegate, GeckoSession.Navi
         mSessionChangeListeners = new LinkedList<>();
         mTextInputListeners = new LinkedList<>();
         mVideoAvailabilityListeners = new LinkedList<>();
+        mHistoryDelegate = new LinkedList<>();
 
         if (mPrefs != null) {
             mPrefs.registerOnSharedPreferenceChangeListener(this);
@@ -119,6 +122,7 @@ public class SessionStack implements ContentBlocking.Delegate, GeckoSession.Navi
         mSessionChangeListeners.clear();
         mTextInputListeners.clear();
         mVideoAvailabilityListeners.clear();
+        mHistoryDelegate.clear();
 
         if (mPrefs != null) {
             mPrefs.unregisterOnSharedPreferenceChangeListener(this);
@@ -257,6 +261,14 @@ public class SessionStack implements ContentBlocking.Delegate, GeckoSession.Navi
         mVideoAvailabilityListeners.remove(aListener);
     }
 
+    public void addHistoryListener(GeckoSession.HistoryDelegate aListener) {
+        mHistoryDelegate.add(aListener);
+    }
+
+    public void removeHistoryListener(GeckoSession.HistoryDelegate aListener) {
+        mHistoryDelegate.remove(aListener);
+    }
+
     public void restore(SessionStack store, int currentSessionId) {
         mSessions.clear();
 
@@ -299,6 +311,7 @@ public class SessionStack implements ContentBlocking.Delegate, GeckoSession.Navi
             state.mSession.setPromptDelegate(mPromptDelegate);
             state.mSession.setContentBlockingDelegate(this);
             state.mSession.setMediaDelegate(this);
+            state.mSession.setHistoryDelegate(this);
             for (SessionChangeListener listener: mSessionChangeListeners) {
                 listener.onNewSession(state.mSession, newSessionId);
             }
@@ -363,6 +376,7 @@ public class SessionStack implements ContentBlocking.Delegate, GeckoSession.Navi
         state.mSession.setPromptDelegate(mPromptDelegate);
         state.mSession.setContentBlockingDelegate(this);
         state.mSession.setMediaDelegate(this);
+        state.mSession.setHistoryDelegate(this);
         for (SessionChangeListener listener: mSessionChangeListeners) {
             listener.onNewSession(state.mSession, result);
         }
@@ -402,6 +416,7 @@ public class SessionStack implements ContentBlocking.Delegate, GeckoSession.Navi
             session.setPermissionDelegate(null);
             session.setContentBlockingDelegate(null);
             session.setMediaDelegate(null);
+            session.setHistoryDelegate(null);
             mSessions.remove(aSessionId);
             for (SessionChangeListener listener: mSessionChangeListeners) {
                 listener.onRemoveSession(session, aSessionId);
@@ -952,16 +967,24 @@ public class SessionStack implements ContentBlocking.Delegate, GeckoSession.Navi
         AtomicBoolean allowed = new AtomicBoolean(false);
         for (GeckoSession.NavigationDelegate listener: mNavigationListeners) {
             GeckoResult<AllowOrDeny> listenerResult = listener.onLoadRequest(aSession, aRequest);
-            listenerResult.then(value -> {
-                if (AllowOrDeny.ALLOW.equals(value)) {
-                    allowed.set(true);
-                }
+            if (listenerResult != null) {
+                listenerResult.then(value -> {
+                    if (AllowOrDeny.ALLOW.equals(value)) {
+                        allowed.set(true);
+                    }
+                    if (count.getAndIncrement() == mNavigationListeners.size() - 1) {
+                        result.complete(allowed.get() ? AllowOrDeny.ALLOW : AllowOrDeny.DENY);
+                    }
+
+                    return null;
+                });
+
+            } else {
+                allowed.set(true);
                 if (count.getAndIncrement() == mNavigationListeners.size() - 1) {
                     result.complete(allowed.get() ? AllowOrDeny.ALLOW : AllowOrDeny.DENY);
                 }
-
-                return null;
-            });
+            }
         }
 
         return result;
@@ -1332,6 +1355,46 @@ public class SessionStack implements ContentBlocking.Delegate, GeckoSession.Navi
                 return;
             }
         }
+    }
+
+    // HistoryDelegate
+
+    @Override
+    public void onHistoryStateChange(@NonNull GeckoSession geckoSession, @NonNull GeckoSession.HistoryDelegate.HistoryList historyList) {
+        if (geckoSession == mCurrentSession) {
+            for (GeckoSession.HistoryDelegate listener : mHistoryDelegate) {
+                listener.onHistoryStateChange(geckoSession, historyList);
+            }
+        }
+    }
+
+    @Nullable
+    @Override
+    public GeckoResult<Boolean> onVisited(@NonNull GeckoSession geckoSession, @NonNull String url, @Nullable String lastVisitedURL, int flags) {
+        final GeckoResult<Boolean> result = new GeckoResult<>();
+        AtomicInteger count = new AtomicInteger(0);
+        AtomicBoolean allowed = new AtomicBoolean(false);
+        for (GeckoSession.HistoryDelegate listener: mHistoryDelegate) {
+            GeckoResult<Boolean> listenerResult = listener.onVisited(geckoSession, url, lastVisitedURL, flags);
+            if (listenerResult != null) {
+                listenerResult.then(value -> {
+                    allowed.set(value);
+                    if (count.getAndIncrement() == mNavigationListeners.size() - 1) {
+                        result.complete(allowed.get());
+                    }
+
+                    return null;
+                });
+
+            } else {
+                allowed.set(true);
+                if (count.getAndIncrement() == mNavigationListeners.size() - 1) {
+                    result.complete(allowed.get());
+                }
+            }
+        }
+
+        return result;
     }
 
     // SharedPreferences.OnSharedPreferenceChangeListener

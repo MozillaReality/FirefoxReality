@@ -10,6 +10,8 @@ import android.os.Handler
 import android.os.Looper
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.future.future
+import mozilla.components.concept.storage.PageObservation
+import mozilla.components.concept.storage.VisitInfo
 import mozilla.components.concept.storage.VisitType
 import org.mozilla.vrbrowser.VRBrowserApplication
 import java.util.concurrent.CompletableFuture
@@ -40,13 +42,32 @@ class HistoryStore constructor(val context: Context) {
         storage.getVisited()
     }
 
-    fun addHistory(aURL: String, visitType: VisitType) = GlobalScope.future {
+    fun getDetailedHistory(): CompletableFuture<List<VisitInfo>?> = GlobalScope.future {
+        storage.getDetailedVisits(0, excludeTypes = listOf(VisitType.NOT_A_VISIT))
+    }
+
+    fun recordVisit(aURL: String, visitType: VisitType) = GlobalScope.future {
         storage.recordVisit(aURL, visitType)
+        notifyListeners()
+    }
+
+    fun recordObservation(aURL: String, observation: PageObservation) = GlobalScope.future {
+        storage.recordObservation(aURL, observation)
         notifyListeners()
     }
 
     fun deleteHistory(aUrl: String, timestamp: Long) = GlobalScope.future {
         storage.deleteVisit(aUrl, timestamp)
+        notifyListeners()
+    }
+
+    fun deleteEverything() = GlobalScope.future {
+        storage.deleteEverything()
+        notifyListeners()
+    }
+
+    fun deleteVisitsSince(since: Long) = GlobalScope.future {
+        storage.deleteVisitsSince(since)
         notifyListeners()
     }
 

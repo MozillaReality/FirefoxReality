@@ -77,7 +77,7 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
                 mAudio.playSound(AudioEngine.Sound.CLICK);
             }
 
-            SessionStore.get().getHistoryStore().addHistory(bookmark.getUrl(), VisitType.BOOKMARK);
+            SessionStore.get().getHistoryStore().recordVisit(bookmark.getUrl(), VisitType.BOOKMARK);
 
             SessionStack sessionStack = SessionStore.get().getActiveStore();
             sessionStack.loadUri(bookmark.getUrl());
@@ -118,7 +118,7 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
         mBinding.executePendingBindings();
     }
 
-    // BookmarksStore.BookmarkListener
+    // BookmarksStore.BookmarksViewListener
     @Override
     public void onBookmarksUpdated() {
         if (mIgnoreNextListener) {
