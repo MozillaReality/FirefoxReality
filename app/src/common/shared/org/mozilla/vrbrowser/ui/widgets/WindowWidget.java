@@ -1286,29 +1286,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
             hideHistory();
         }
 
-        if (mTitleBar != null && url != null) {
-            if (url.startsWith("data") && mSessionStack.isPrivateMode()) {
-                mTitleBar.setInsecureVisibility(GONE);
-                mTitleBar.setURL(getResources().getString(R.string.private_browsing_title));
-
-            } else if (url.equals(mSessionStack.getHomeUri())) {
-                mTitleBar.setInsecureVisibility(VISIBLE);
-                mTitleBar.setURL(getResources().getString(R.string.url_home_title, getResources().getString(R.string.app_name)));
-
-            } else if (url.equals(getResources().getString(R.string.url_bookmarks_title)) ||
-                    url.equals(getResources().getString(R.string.url_history_title))) {
-                mTitleBar.setInsecureVisibility(GONE);
-                mTitleBar.setURL(url);
-
-            } else if (url.equals(getResources().getString(R.string.about_blank))) {
-                mTitleBar.setInsecureVisibility(GONE);
-                mTitleBar.setURL("");
-
-            } else {
-                mTitleBar.setInsecureVisibility(View.VISIBLE);
-                mTitleBar.setURL(url);
-            }
-        }
+        updateTitleBarUrl(url);
     }
 
     // GeckoSession.HistoryDelegate
