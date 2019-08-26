@@ -43,7 +43,10 @@ class HistoryStore constructor(val context: Context) {
     }
 
     fun getDetailedHistory(): CompletableFuture<List<VisitInfo>?> = GlobalScope.future {
-        storage.getDetailedVisits(0, excludeTypes = listOf(VisitType.NOT_A_VISIT))
+        storage.getDetailedVisits(0, excludeTypes = listOf(
+                VisitType.NOT_A_VISIT,
+                VisitType.REDIRECT_TEMPORARY,
+                VisitType.REDIRECT_PERMANENT))
     }
 
     fun recordVisit(aURL: String, visitType: VisitType) = GlobalScope.future {

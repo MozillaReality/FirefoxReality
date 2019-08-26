@@ -28,7 +28,6 @@ import org.mozilla.vrbrowser.browser.Media;
 import org.mozilla.vrbrowser.browser.SessionChangeListener;
 import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.browser.engine.SessionStack;
-import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.search.suggestions.SuggestionsProvider;
 import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
 import org.mozilla.vrbrowser.ui.views.CustomUIButton;
@@ -43,8 +42,6 @@ import org.mozilla.vrbrowser.utils.UIThreadExecutor;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import mozilla.components.concept.storage.VisitType;
 
 public class NavigationBarWidget extends UIWidget implements GeckoSession.NavigationDelegate,
         GeckoSession.ProgressDelegate, GeckoSession.ContentDelegate, WidgetManagerDelegate.WorldClickListener,
@@ -168,9 +165,6 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
 
         mReloadButton.setOnClickListener(v -> {
             v.requestFocusFromTouch();
-            SessionStore.get().getHistoryStore().recordVisit(
-                    mAttachedWindow.getSessionStack().getCurrentUri(),
-                    VisitType.RELOAD);
             if (mIsLoading) {
                 mSessionStack.stop();
             } else {

@@ -33,8 +33,8 @@ import org.mozilla.geckoview.GeckoSessionSettings;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.audio.AudioEngine;
 import org.mozilla.vrbrowser.browser.BookmarksStore;
-import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.browser.engine.SessionStack;
+import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.search.SearchEngineWrapper;
 import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
 import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
@@ -50,7 +50,6 @@ import java.net.URLDecoder;
 import kotlin.Unit;
 import mozilla.components.browser.domains.autocomplete.DomainAutocompleteResult;
 import mozilla.components.browser.domains.autocomplete.ShippedDomainsProvider;
-import mozilla.components.concept.storage.VisitType;
 import mozilla.components.ui.autocomplete.InlineAutocompleteEditText;
 
 public class NavigationURLBar extends FrameLayout {
@@ -486,7 +485,6 @@ public class NavigationURLBar extends FrameLayout {
         }
 
         if (mSessionStack.getCurrentUri() != url) {
-            SessionStore.get().getHistoryStore().recordVisit(url, VisitType.TYPED);
             mSessionStack.loadUri(url);
 
             if (mDelegate != null) {
