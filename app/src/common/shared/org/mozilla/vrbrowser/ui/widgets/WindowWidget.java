@@ -23,6 +23,7 @@ import android.view.inputmethod.InputConnection;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
+import androidx.annotation.UiThread;
 
 import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.geckoview.GeckoDisplay;
@@ -56,6 +57,7 @@ import org.mozilla.vrbrowser.utils.ViewUtils;
 import org.mozilla.vrbrowser.utils.SystemUtils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import mozilla.components.concept.storage.PageObservation;
 import mozilla.components.concept.storage.VisitInfo;
@@ -141,7 +143,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         mSessionStack.addVideoAvailabilityListener(this);
         mSessionStack.addNavigationListener(this);
         mSessionStack.addProgressListener(this);
-        mSessionStack.addHistoryListener(this);
+        mSessionStack.setHistoryDelegate(this);
         mSessionStack.newSession();
 
         mBookmarksView  = new BookmarksView(aContext);
@@ -744,7 +746,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         mSessionStack.removeVideoAvailabilityListener(this);
         mSessionStack.removeNavigationListener(this);
         mSessionStack.removeProgressListener(this);
-        mSessionStack.removeHistoryListener(this);
+        mSessionStack.setHistoryDelegate(null);
         GeckoSession session = mSessionStack.getSession(mSessionId);
         if (session == null) {
             return;
@@ -1328,6 +1330,27 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         SessionStore.get().getHistoryStore().recordVisit(url, visitType);
 
         return GeckoResult.fromValue(true);
+    }
+
+    @UiThread
+    @Nullable
+    public GeckoResult<boolean[]> getVisited(@NonNull GeckoSession geckoSession, @NonNull String[] urls) {
+        if (mSessionStack.isPrivateMode()) {
+            return GeckoResult.fromValue(new boolean[]{});
+        }
+
+        GeckoResult<boolean[]> result = new GeckoResult<>();
+
+        SessionStore.get().getHistoryStore().getVisited(Arrays.asList(urls)).thenAcceptAsync(list -> {
+            final boolean[] primitives = new boolean[list.size()];
+            int index = 0;
+            for (Boolean object : list) {
+                primitives[index++] = object;
+            }
+            result.complete(primitives);
+        });
+
+        return result;
     }
 
     // GeckoSession.ProgressDelegate

@@ -29,6 +29,8 @@ import org.mozilla.vrbrowser.ui.callbacks.HistoryItemCallback;
 import org.mozilla.vrbrowser.utils.SystemUtils;
 import org.mozilla.vrbrowser.utils.UIThreadExecutor;
 
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -134,10 +136,17 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
     }
 
     private void syncHistory() {
+        Calendar date = new GregorianCalendar();
+        date.set(Calendar.HOUR_OF_DAY, 0);
+        date.set(Calendar.MINUTE, 0);
+        date.set(Calendar.SECOND, 0);
+        date.set(Calendar.MILLISECOND, 0);
+        date.getTimeInMillis();
+
         long currentTime = System.currentTimeMillis();
-        long todayLimit = currentTime - SystemUtils.ONE_DAY_MILLIS;
-        long yesterdayLimit = currentTime - SystemUtils.TWO_DAYS_MILLIS;
-        long oneWeekLimit = currentTime - SystemUtils.ONE_WEEK_MILLIS;
+        long todayLimit = date.getTimeInMillis();
+        long yesterdayLimit = todayLimit - SystemUtils.ONE_DAY_MILLIS;
+        long oneWeekLimit = yesterdayLimit - SystemUtils.ONE_WEEK_MILLIS;
 
         SessionStore.get().getHistoryStore().getDetailedHistory().thenAcceptAsync((items) -> {
             List<VisitInfo> orderedItems = items.stream()
@@ -160,7 +169,7 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
     private void addSection(final @NonNull List<VisitInfo> items, @NonNull String section, long rangeStart, long rangeEnd) {
         for (int i=0; i< items.size(); i++) {
             if (items.get(i).getVisitTime() == rangeStart && items.get(i).getVisitType() == VisitType.NOT_A_VISIT)
-                return;
+                break;
 
             if (items.get(i).getVisitTime() < rangeStart && items.get(i).getVisitTime() > rangeEnd) {
                 items.add(i, new VisitInfo(
@@ -169,7 +178,7 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
                         rangeStart,
                         VisitType.NOT_A_VISIT
                 ));
-                return;
+                break;
             }
         }
     }

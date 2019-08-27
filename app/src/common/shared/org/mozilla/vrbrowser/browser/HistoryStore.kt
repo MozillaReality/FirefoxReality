@@ -46,7 +46,8 @@ class HistoryStore constructor(val context: Context) {
         storage.getDetailedVisits(0, excludeTypes = listOf(
                 VisitType.NOT_A_VISIT,
                 VisitType.REDIRECT_TEMPORARY,
-                VisitType.REDIRECT_PERMANENT))
+                VisitType.REDIRECT_PERMANENT,
+                VisitType.RELOAD))
     }
 
     fun recordVisit(aURL: String, visitType: VisitType) = GlobalScope.future {
@@ -72,6 +73,10 @@ class HistoryStore constructor(val context: Context) {
     fun deleteVisitsSince(since: Long) = GlobalScope.future {
         storage.deleteVisitsSince(since)
         notifyListeners()
+    }
+
+    fun getVisited(uris: List<String>) = GlobalScope.future {
+        storage.getVisited(uris)
     }
 
     fun isInHistory(aURL: String): CompletableFuture<Boolean> = GlobalScope.future {
