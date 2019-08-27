@@ -302,7 +302,7 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
 
         mAttachedWindow = aWindow;
         mWidgetPlacement.parentHandle = aWindow.getHandle();
-        mAttachedWindow.addBookmarksListener(this);
+        mAttachedWindow.addBookmarksViewListener(this);
         mAttachedWindow.addHistoryViewListener(this);
 
         mSessionStack = aWindow.getSessionStack();
