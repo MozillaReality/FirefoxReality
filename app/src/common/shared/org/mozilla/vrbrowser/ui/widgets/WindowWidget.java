@@ -126,6 +126,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     boolean mHovered = false;
     boolean mClickedAfterFocus = false;
     boolean mIsBookmarksVisible = false;
+    boolean mIsHistoryVisible = false;
 
     public interface WindowDelegate {
         void onFocusRequest(@NonNull WindowWidget aWindow);
@@ -347,7 +348,6 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
                 listener.onBookmarksShown(this);
             }
             mIsBookmarksVisible = true;
-            mIsBookmarksVisible = false;
         }
 
         updateTitleBar();
@@ -359,6 +359,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
             for (BookmarksViewDelegate listener : mBookmarksViewListeners) {
                 listener.onBookmarksHidden(this);
             }
+            mIsBookmarksVisible = false;
         }
     }
 
@@ -381,6 +382,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
             for (HistoryViewDelegate listener : mHistoryViewListeners) {
                 listener.onHistoryViewShown(this);
             }
+            mIsHistoryVisible = true;
         }
     }
 
@@ -390,6 +392,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
             for (HistoryViewDelegate listener : mHistoryViewListeners) {
                 listener.onHistoryViewHidden(this);
             }
+            mIsHistoryVisible = false;
         }
     }
 
@@ -784,16 +787,17 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         }
         mWidgetPlacement.visible = aVisible;
         if (!aVisible) {
-            if (mIsBookmarksVisible) {
+            if (mIsBookmarksVisible || mIsHistoryVisible) {
                 mWidgetManager.popWorldBrightness(this);
             }
 
         } else {
-            if (mIsBookmarksVisible) {
+            if (mIsBookmarksVisible || mIsHistoryVisible) {
                 mWidgetManager.pushWorldBrightness(this, WidgetManagerDelegate.DEFAULT_DIM_BRIGHTNESS);
             }
         }
         mIsBookmarksVisible = isBookmarksVisible();
+        mIsHistoryVisible = isHistoryVisible();
         mWidgetManager.updateWidget(this);
         if (!aVisible) {
             clearFocus();
