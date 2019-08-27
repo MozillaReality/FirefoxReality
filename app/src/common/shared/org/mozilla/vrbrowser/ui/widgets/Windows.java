@@ -720,7 +720,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
 
     public void exitResizeMode() {
         for (WindowWidget window : getCurrentWindows()) {
-            if (getCurrentWindows().size() > 1) {
+            if (getCurrentWindows().size() > 1 || isInPrivateMode()) {
                 window.getTopBar().setVisible(true);
             }
         }
