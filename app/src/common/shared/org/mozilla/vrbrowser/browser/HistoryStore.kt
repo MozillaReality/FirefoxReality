@@ -65,6 +65,11 @@ class HistoryStore constructor(val context: Context) {
         notifyListeners()
     }
 
+    fun deleteVisitsFor(aUrl: String) = GlobalScope.future {
+        storage.deleteVisitsFor(aUrl)
+        notifyListeners()
+    }
+
     fun deleteEverything() = GlobalScope.future {
         storage.deleteEverything()
         notifyListeners()
@@ -72,6 +77,11 @@ class HistoryStore constructor(val context: Context) {
 
     fun deleteVisitsSince(since: Long) = GlobalScope.future {
         storage.deleteVisitsSince(since)
+        notifyListeners()
+    }
+
+    fun deleteVisitsBetween(startTime: Long, endTime: Long) = GlobalScope.future {
+        storage.deleteVisitsBetween(startTime, endTime)
         notifyListeners()
     }
 

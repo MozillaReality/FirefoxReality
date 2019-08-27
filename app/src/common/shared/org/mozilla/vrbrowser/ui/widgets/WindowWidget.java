@@ -58,6 +58,8 @@ import org.mozilla.vrbrowser.utils.SystemUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 
 import mozilla.components.concept.storage.PageObservation;
 import mozilla.components.concept.storage.VisitInfo;
@@ -980,17 +982,27 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
                 mClearCacheDialog.hide(REMOVE_WIDGET);
 
             } else {
+                Calendar date = new GregorianCalendar();
+                date.set(Calendar.HOUR_OF_DAY, 0);
+                date.set(Calendar.MINUTE, 0);
+                date.set(Calendar.SECOND, 0);
+                date.set(Calendar.MILLISECOND, 0);
+
+                long currentTime = System.currentTimeMillis();
+                long todayLimit = date.getTimeInMillis();
+                long yesterdayLimit = todayLimit - SystemUtils.ONE_DAY_MILLIS;
+                long oneWeekLimit = todayLimit - SystemUtils.ONE_WEEK_MILLIS;
+
                 HistoryStore store = SessionStore.get().getHistoryStore();
-                long current = System.currentTimeMillis();
                 switch (mClearCacheDialog.getSelectedRange()) {
                     case ClearCacheDialogWidget.TODAY:
-                        store.deleteVisitsSince(current - SystemUtils.ONE_DAY_MILLIS);
+                        store.deleteVisitsBetween(todayLimit, currentTime);
                         break;
                     case ClearCacheDialogWidget.YESTERDAY:
-                        store.deleteVisitsSince(current - SystemUtils.TWO_DAYS_MILLIS);
+                        store.deleteVisitsBetween(yesterdayLimit, todayLimit);
                         break;
                     case ClearCacheDialogWidget.LAST_WEEK:
-                        store.deleteVisitsSince(current - SystemUtils.ONE_WEEK_MILLIS);
+                        store.deleteVisitsBetween(oneWeekLimit, yesterdayLimit);
                         break;
                     case ClearCacheDialogWidget.EVERYTHING:
                         store.deleteEverything();
@@ -1327,6 +1339,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
             }
         }
 
+        SessionStore.get().getHistoryStore().deleteVisitsFor(url);
         SessionStore.get().getHistoryStore().recordVisit(url, visitType);
 
         return GeckoResult.fromValue(true);

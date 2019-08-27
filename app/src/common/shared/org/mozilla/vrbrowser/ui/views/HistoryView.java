@@ -141,12 +141,11 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
         date.set(Calendar.MINUTE, 0);
         date.set(Calendar.SECOND, 0);
         date.set(Calendar.MILLISECOND, 0);
-        date.getTimeInMillis();
 
         long currentTime = System.currentTimeMillis();
         long todayLimit = date.getTimeInMillis();
         long yesterdayLimit = todayLimit - SystemUtils.ONE_DAY_MILLIS;
-        long oneWeekLimit = yesterdayLimit - SystemUtils.ONE_WEEK_MILLIS;
+        long oneWeekLimit = todayLimit - SystemUtils.ONE_WEEK_MILLIS;
 
         SessionStore.get().getHistoryStore().getDetailedHistory().thenAcceptAsync((items) -> {
             List<VisitInfo> orderedItems = items.stream()
