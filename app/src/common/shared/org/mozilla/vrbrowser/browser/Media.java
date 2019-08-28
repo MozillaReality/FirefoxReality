@@ -5,6 +5,8 @@ import org.mozilla.geckoview.MediaElement;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import java.util.ArrayList;
+
 public class Media implements MediaElement.Delegate {
     private static final String LOGTAG = "VRB";
     private boolean mIsFullscreen = false;
@@ -18,16 +20,21 @@ public class Media implements MediaElement.Delegate {
     private boolean mIsMuted = false;
     private boolean mIsUnloaded = false;
     private org.mozilla.geckoview.MediaElement mMedia;
-    private MediaElement.Delegate mDelegate;
+    private ArrayList<MediaElement.Delegate> mMediaListeners;
     private ResizeDelegate mResizeDelegate;
 
     public Media(@NonNull MediaElement aMediaElement) {
         mMedia = aMediaElement;
+        mMediaListeners = new ArrayList<>();
         aMediaElement.setDelegate(this);
     }
 
-    public void setDelegate(@Nullable MediaElement.Delegate aDelegate) {
-        mDelegate = aDelegate;
+    public void addNavigationListener(MediaElement.Delegate aListener) {
+        mMediaListeners.add(aListener);
+    }
+
+    public void removeNavigationListener(MediaElement.Delegate aListener) {
+        mMediaListeners.remove(aListener);
     }
 
     public double getDuration() {
@@ -103,7 +110,7 @@ public class Media implements MediaElement.Delegate {
 
     public void unload() {
         mIsUnloaded = true;
-        mDelegate = null;
+        mMediaListeners.clear();
     }
 
     public int getWidth() {
@@ -132,17 +139,13 @@ public class Media implements MediaElement.Delegate {
         } else if (playbackState == MediaElement.MEDIA_STATE_ENDED) {
             mEnded = true;
         }
-        if (mDelegate != null) {
-            mDelegate.onPlaybackStateChange(mediaElement, playbackState);
-        }
+        mMediaListeners.forEach(listener -> listener.onPlaybackStateChange(mediaElement, playbackState));
     }
 
     @Override
     public void onReadyStateChange(MediaElement mediaElement, int readyState) {
         mReadyState = readyState;
-        if (mDelegate != null) {
-            mDelegate.onReadyStateChange(mediaElement, readyState);
-        }
+        mMediaListeners.forEach(listener -> listener.onReadyStateChange(mediaElement, readyState));
     }
 
     @Override
@@ -150,9 +153,7 @@ public class Media implements MediaElement.Delegate {
         final int oldWidth = getWidth();
         final int oldHeight = getHeight();
         mMetaData = metaData;
-        if (mDelegate != null) {
-            mDelegate.onMetadataChange(mediaElement, metaData);
-        }
+        mMediaListeners.forEach(listener -> listener.onMetadataChange(mediaElement, metaData));
 
         if (mResizeDelegate!= null && metaData != null) {
             final int w = getWidth();
@@ -165,18 +166,14 @@ public class Media implements MediaElement.Delegate {
 
     @Override
     public void onLoadProgress(MediaElement mediaElement, MediaElement.LoadProgressInfo progressInfo) {
-        if (mDelegate != null) {
-            mDelegate.onLoadProgress(mediaElement, progressInfo);
-        }
+        mMediaListeners.forEach(listener -> listener.onLoadProgress(mediaElement, progressInfo));
     }
 
     @Override
     public void onVolumeChange(MediaElement mediaElement, double volume, boolean muted) {
         mVolume = volume;
         mIsMuted = muted;
-        if (mDelegate != null) {
-            mDelegate.onVolumeChange(mediaElement, volume, muted);
-        }
+        mMediaListeners.forEach(listener -> listener.onVolumeChange(mediaElement, volume, muted));
     }
 
     @Override
@@ -186,31 +183,23 @@ public class Media implements MediaElement.Delegate {
         if (duration <= 0 || mCurrentTime < getDuration()) {
             mEnded = false;
         }
-        if (mDelegate != null) {
-            mDelegate.onTimeChange(mediaElement, time);
-        }
+        mMediaListeners.forEach(listener -> listener.onTimeChange(mediaElement, time));
     }
 
     @Override
     public void onPlaybackRateChange(MediaElement mediaElement, double rate) {
         mPlaybackRate = rate;
-        if (mDelegate != null) {
-            mDelegate.onPlaybackRateChange(mediaElement, rate);
-        }
+        mMediaListeners.forEach(listener -> listener.onPlaybackRateChange(mediaElement, rate));
     }
 
     @Override
     public void onFullscreenChange(MediaElement mediaElement, boolean fullscreen) {
         mIsFullscreen = fullscreen;
-        if (mDelegate != null) {
-            mDelegate.onFullscreenChange(mediaElement, fullscreen);
-        }
+        mMediaListeners.forEach(listener -> listener.onFullscreenChange(mediaElement, fullscreen));
     }
 
     @Override
     public void onError(MediaElement mediaElement, int code) {
-        if (mDelegate != null) {
-            mDelegate.onError(mediaElement, code);
-        }
+        mMediaListeners.forEach(listener -> listener.onError(mediaElement, code));
     }
 }
