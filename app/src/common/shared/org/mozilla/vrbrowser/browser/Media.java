@@ -4,7 +4,6 @@ import androidx.annotation.NonNull;
 
 import org.mozilla.geckoview.MediaElement;
 
-import java.util.ArrayList;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class Media implements MediaElement.Delegate {
@@ -25,7 +24,7 @@ public class Media implements MediaElement.Delegate {
 
     public Media(@NonNull MediaElement aMediaElement) {
         mMedia = aMediaElement;
-        mMediaListeners = new ArrayList<>();
+        mMediaListeners = new CopyOnWriteArrayList<>();
         aMediaElement.setDelegate(this);
     }
 
