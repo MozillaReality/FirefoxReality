@@ -1,11 +1,11 @@
 package org.mozilla.vrbrowser.browser;
 
+import androidx.annotation.NonNull;
+
 import org.mozilla.geckoview.MediaElement;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-
 import java.util.ArrayList;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class Media implements MediaElement.Delegate {
     private static final String LOGTAG = "VRB";
@@ -19,8 +19,8 @@ public class Media implements MediaElement.Delegate {
     private double mVolume = 1.0f;
     private boolean mIsMuted = false;
     private boolean mIsUnloaded = false;
-    private org.mozilla.geckoview.MediaElement mMedia;
-    private ArrayList<MediaElement.Delegate> mMediaListeners;
+    private MediaElement mMedia;
+    private CopyOnWriteArrayList<MediaElement.Delegate> mMediaListeners;
     private ResizeDelegate mResizeDelegate;
 
     public Media(@NonNull MediaElement aMediaElement) {
@@ -29,11 +29,11 @@ public class Media implements MediaElement.Delegate {
         aMediaElement.setDelegate(this);
     }
 
-    public void addNavigationListener(MediaElement.Delegate aListener) {
+    public void addMediaListener(MediaElement.Delegate aListener) {
         mMediaListeners.add(aListener);
     }
 
-    public void removeNavigationListener(MediaElement.Delegate aListener) {
+    public void removeMediaListener(MediaElement.Delegate aListener) {
         mMediaListeners.remove(aListener);
     }
 

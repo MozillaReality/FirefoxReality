@@ -181,8 +181,8 @@ public class TitleBarWidget extends UIWidget {
             mMedia = mAttachedWindow.getSessionStack().getFullScreenVideo();
             if (mMedia != null) {
                 mBinding.setIsMediaPlaying(mMedia.isPlaying());
-                mMedia.removeNavigationListener(mMediaDelegate);
-                mMedia.addNavigationListener(mMediaDelegate);
+                mMedia.removeMediaListener(mMediaDelegate);
+                mMedia.addMediaListener(mMediaDelegate);
             }
         }
     }
