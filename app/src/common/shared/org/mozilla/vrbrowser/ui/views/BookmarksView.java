@@ -146,7 +146,8 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
             mBookmarkAdapter.setBookmarkList(aBookmarks);
         }
         mBinding.executePendingBindings();
-        mBinding.bookmarksList.post(() -> mBinding.bookmarksList.smoothScrollToPosition(mBookmarkAdapter.getItemCount()-1));
+        mBinding.bookmarksList.post(() -> mBinding.bookmarksList.smoothScrollToPosition(
+                mBookmarkAdapter.getItemCount() > 0 ? mBookmarkAdapter.getItemCount() - 1 : 0));
     }
 
     // BookmarksStore.BookmarksViewListener
