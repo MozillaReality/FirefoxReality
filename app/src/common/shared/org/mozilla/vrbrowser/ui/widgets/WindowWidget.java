@@ -795,9 +795,12 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         }
         if (mSurface != null) {
             mSurface.release();
+            mSurface = null;
         }
-        if (mTexture != null) {
+        if (mTexture != null && mRenderer == null) {
+            // Custom SurfaceTexture used for GeckoView
             mTexture.release();
+            mTexture = null;
         }
         super.releaseWidget();
     }
