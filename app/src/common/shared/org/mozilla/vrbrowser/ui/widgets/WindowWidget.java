@@ -783,15 +783,23 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         mSessionStack.removeProgressListener(this);
         mSessionStack.setHistoryDelegate(null);
         GeckoSession session = mSessionStack.getSession(mSessionId);
-        if (session == null) {
-            return;
-        }
         if (mDisplay != null) {
             mDisplay.surfaceDestroyed();
-            session.releaseDisplay(mDisplay);
+            if (session != null) {
+                session.releaseDisplay(mDisplay);
+            }
             mDisplay = null;
         }
-        session.getTextInput().setView(null);
+        if (session != null) {
+            session.getTextInput().setView(null);
+        }
+        if (mSurface != null) {
+            mSurface.release();
+        }
+        if (mTexture != null) {
+            mTexture.release();
+        }
+        super.releaseWidget();
     }
 
 
