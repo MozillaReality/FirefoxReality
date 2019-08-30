@@ -336,8 +336,6 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         }
         mAudioEngine.pauseEngine();
 
-        SessionStore.get().onPause();
-
         mWindows.onPause();
 
         for (Widget widget: mWidgets.values()) {
@@ -360,7 +358,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
             mOffscreenDisplay.onResume();
         }
 
-        SessionStore.get().onResume();
+        mWindows.onResume();
 
         mAudioEngine.resumeEngine();
         for (Widget widget: mWidgets.values()) {
