@@ -246,6 +246,12 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         mBookmarksView.onDestroy();
         mHistoryView.onDestroy();
         SessionStore.get().destroySessionStack(mWindowId);
+        if (mTopBar != null) {
+            mWidgetManager.removeWidget(mTopBar);
+        }
+        if (mTitleBar != null) {
+            mWidgetManager.removeWidget(mTitleBar);
+        }
     }
 
     public void loadHomeIfNotRestored() {
