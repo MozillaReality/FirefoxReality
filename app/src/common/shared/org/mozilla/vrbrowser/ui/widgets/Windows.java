@@ -395,6 +395,31 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         return mPrivateMode;
     }
 
+    public void enterImmersiveMode() {
+        for (WindowWidget window: mRegularWindows) {
+            if (window != mFocusedWindow) {
+                window.onPause();
+            }
+        }
+        for (WindowWidget window: mPrivateWindows) {
+            if (window != mFocusedWindow) {
+                window.onPause();
+            }
+        }
+    }
+
+    public void exitImmersiveMode() {
+        for (WindowWidget window: mRegularWindows) {
+            if (window != mFocusedWindow) {
+                window.onResume();
+            }
+        }
+        for (WindowWidget window: mPrivateWindows) {
+            if (window != mFocusedWindow) {
+                window.onResume();
+            }
+        }
+    }
 
     public void enterPrivateMode() {
         if (mPrivateMode) {
