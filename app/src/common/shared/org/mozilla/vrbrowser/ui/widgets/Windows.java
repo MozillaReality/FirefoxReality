@@ -70,6 +70,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
     private WindowPlacement mPrevWindowPlacement;
     private boolean mStoredCurvedMode = false;
     private boolean mForcedCurvedMode = false;
+    private boolean mIsPaused = false;
 
     public enum WindowPlacement{
         FRONT(0),
@@ -363,6 +364,8 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
     }
 
     public void onPause() {
+        mIsPaused = true;
+
         saveState();
         for (WindowWidget window: mRegularWindows) {
             window.onPause();
@@ -373,6 +376,8 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
     }
 
     public void onResume() {
+        mIsPaused = false;
+
         for (WindowWidget window: mRegularWindows) {
             window.onResume();
         }
@@ -396,27 +401,39 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
     }
 
     public void enterImmersiveMode() {
-        for (WindowWidget window: mRegularWindows) {
-            if (window != mFocusedWindow) {
-                window.onPause();
+        if (!isInPrivateMode()) {
+            for (WindowWidget window: mRegularWindows) {
+                if (window != mFocusedWindow) {
+                    window.onPause();
+                }
             }
-        }
-        for (WindowWidget window: mPrivateWindows) {
-            if (window != mFocusedWindow) {
-                window.onPause();
+
+        } else {
+            for (WindowWidget window: mPrivateWindows) {
+                if (window != mFocusedWindow) {
+                    window.onPause();
+                }
             }
         }
     }
 
     public void exitImmersiveMode() {
-        for (WindowWidget window: mRegularWindows) {
-            if (window != mFocusedWindow) {
-                window.onResume();
-            }
+        if (mIsPaused) {
+            return;
         }
-        for (WindowWidget window: mPrivateWindows) {
-            if (window != mFocusedWindow) {
-                window.onResume();
+
+        if (!isInPrivateMode()) {
+            for (WindowWidget window: mRegularWindows) {
+                if (window != mFocusedWindow) {
+                    window.onResume();
+                }
+            }
+
+        } else {
+            for (WindowWidget window: mPrivateWindows) {
+                if (window != mFocusedWindow) {
+                    window.onResume();
+                }
             }
         }
     }
