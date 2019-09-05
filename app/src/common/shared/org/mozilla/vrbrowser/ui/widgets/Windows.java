@@ -41,12 +41,25 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         float worldWidth;
 
         public void load(WindowWidget aWindow) {
-            placement = aWindow.getWindowPlacement();
+            if (aWindow == mFullscreenWindow) {
+                placement = mPrevWindowPlacement;
+
+            } else {
+                placement = aWindow.getWindowPlacement();
+            }
             sessionStack = aWindow.getSessionStack();
             currentSessionId = aWindow.getSessionStack().getCurrentSessionId();
-            textureWidth = aWindow.getPlacement().width;
-            textureHeight = aWindow.getPlacement().height;
-            worldWidth = aWindow.getPlacement().worldWidth;
+            WidgetPlacement placement;
+            if (aWindow == mFullscreenWindow && aWindow.getBackupPlacement() != null) {
+                placement = aWindow.getBackupPlacement();
+
+            } else {
+                placement = aWindow.getPlacement();
+            }
+
+            textureWidth = placement.width;
+            textureHeight = placement.height;
+            worldWidth = placement.worldWidth;
         }
     }
 

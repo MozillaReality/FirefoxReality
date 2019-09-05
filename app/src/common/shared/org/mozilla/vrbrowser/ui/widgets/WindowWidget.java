@@ -131,6 +131,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     boolean mClickedAfterFocus = false;
     boolean mIsBookmarksVisible = false;
     boolean mIsHistoryVisible = false;
+    private WidgetPlacement mBackupPlacement;
 
     public interface WindowDelegate {
         void onFocusRequest(@NonNull WindowWidget aWindow);
@@ -779,6 +780,14 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
                 mWindowDelegate.onBorderChanged(this);
             }
         }
+    }
+
+    public void setBackupPlacement(@NonNull WidgetPlacement placement) {
+        mBackupPlacement = placement;
+    }
+
+    public WidgetPlacement getBackupPlacement() {
+        return mBackupPlacement;
     }
 
     public void setWindowDelegate(WindowDelegate aDelegate) {

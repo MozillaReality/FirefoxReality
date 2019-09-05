@@ -456,6 +456,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         }
 
         setFullScreenSize();
+        mAttachedWindow.setBackupPlacement(mPlacementBeforeFullscreen);
         mWidgetManager.pushBackHandler(mFullScreenBackHandler);
         mIsInFullScreenMode = true;
         AnimationHelper.fadeIn(mFullScreenModeContainer, AnimationHelper.FADE_ANIMATION_DURATION, null);
