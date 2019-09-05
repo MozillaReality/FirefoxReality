@@ -50,8 +50,11 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             sessionStack = aWindow.getSessionStack();
             currentSessionId = aWindow.getSessionStack().getCurrentSessionId();
             WidgetPlacement placement;
-            if (aWindow == mFullscreenWindow && aWindow.getBackupPlacement() != null) {
-                placement = aWindow.getBackupPlacement();
+            if (aWindow.isFullScreen()) {
+                placement = aWindow.getBeforeFullscreenPlacement();
+
+            } else if (aWindow.isResizing()) {
+                placement = aWindow.getBeforeResizePlacement();
 
             } else {
                 placement = aWindow.getPlacement();
