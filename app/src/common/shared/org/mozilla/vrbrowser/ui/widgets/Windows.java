@@ -818,15 +818,19 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
     }
 
     public void enterResizeMode() {
-        for (WindowWidget window : getCurrentWindows()) {
-            window.getTopBar().setVisible(false);
+        if (mFullscreenWindow == null) {
+            for (WindowWidget window : getCurrentWindows()) {
+                window.getTopBar().setVisible(false);
+            }
         }
     }
 
     public void exitResizeMode() {
-        for (WindowWidget window : getCurrentWindows()) {
-            if (getCurrentWindows().size() > 1 || isInPrivateMode()) {
-                window.getTopBar().setVisible(window != mFullscreenWindow);
+        if (mFullscreenWindow == null) {
+            for (WindowWidget window : getCurrentWindows()) {
+                if (getCurrentWindows().size() > 1 || isInPrivateMode()) {
+                    window.getTopBar().setVisible(true);
+                }
             }
         }
     }
