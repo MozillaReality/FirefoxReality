@@ -21,7 +21,7 @@ if (userProperties != null) {
         gradle.ext.set("userProperties.${prop.key}", prop.value)
         logger.lifecycle("\tuserProperties.${prop.key}" + '=' + prop.value)
     }
-    if (gradle.hasProperty('enableServo')) {
+    if (gradle.hasProperty('userProperties.enableServo')) {
         logger.lifecycle('Including Servo.')
         include ':servo'
     }
