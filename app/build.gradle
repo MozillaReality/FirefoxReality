@@ -12,22 +12,22 @@ def getGitHash = { ->
 }
 
 def getCrashRestartDisabled = { ->
-    if (gradle.hasProperty("disableCrashRestart")) {
-        return gradle.disableCrashRestart
+    if (gradle.hasProperty("userProperties.disableCrashRestart")) {
+        return gradle."userProperties.disableCrashRestart"
     }
     return "false"
 }
 
 def getDevApplicationIdSuffix = { ->
-    if (gradle.hasProperty("simultaneousDevProduction")) {
-        return gradle.simultaneousDevProduction == "true" ? ".dev" : ""
+    if (gradle.hasProperty("userProperties.simultaneousDevProduction")) {
+        return gradle."userProperties.simultaneousDevProduction" == "true" ? ".dev" : ""
     }
     return ""
 }
 
 def getUseDebugSigningOnRelease = { ->
-    if (gradle.hasProperty("useDebugSigningOnRelease")) {
-        return gradle.useDebugSigningOnRelease == "true"
+    if (gradle.hasProperty("userProperties.useDebugSigningOnRelease")) {
+        return gradle."userProperties.useDebugSigningOnRelease" == "true"
     }
     return false
 }
@@ -59,7 +59,7 @@ android {
         }
     }
 
-    if (gradle.hasProperty('taskclusterBuild')) {
+    if (gradle.hasProperty('userProperties.taskclusterBuild')) {
         project.archivesBaseName = "FirefoxReality-$defaultConfig.versionName-$generatedVersionCode"
         defaultConfig.versionCode = generatedVersionCode
     } else {
@@ -488,11 +488,11 @@ if (gradle.hasProperty('geckoViewLocalArm') || gradle.hasProperty('geckoViewLoca
     throw new GradleException("geckoViewLocal{Arm,X86} are deprecated: use geckoViewLocalTopsrcdir and geckoViewLocalTopobjdir")
 }
 
-if (gradle.hasProperty('geckoViewLocalTopsrcdir')) {
-    if (gradle.hasProperty('geckoViewLocalTopobjdir')) {
-        ext.topobjdir = gradle.geckoViewLocalTopobjdir
+if (gradle.hasProperty('localProperties.dependencySubstitutions.geckoviewTopsrcdir')) {
+    if (gradle.hasProperty('localProperties.dependencySubstitutions.geckoviewTopobjdir')) {
+        ext.topobjdir = gradle."localProperties.dependencySubstitutions.geckoviewTopobjdir"
     }
-    ext.topsrcdir = gradle.geckoViewLocalTopsrcdir
+    ext.topsrcdir = gradle."localProperties.dependencySubstitutions.geckoviewTopsrcdir"
     apply from: "${topsrcdir}/substitute-local-geckoview.gradle"
 }
 
@@ -502,7 +502,7 @@ if (gradle.hasProperty('geckoViewLocalTopsrcdir')) {
 
 android.applicationVariants.all { variant ->
     def buildType = variant.buildType.name
-    if (gradle.hasProperty('taskclusterBuild')) {
+    if (gradle.hasProperty('userProperties.taskclusterBuild')) {
         def versionCode = generatedVersionCode
 
         // The Google Play Store does not allow multiple APKs for the same app that all have the
