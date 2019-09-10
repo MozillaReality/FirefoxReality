@@ -121,6 +121,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     private ArrayList<BookmarksViewDelegate> mBookmarksViewListeners;
     private ArrayList<HistoryViewDelegate> mHistoryViewListeners;
     private Windows.WindowPlacement mWindowPlacement = Windows.WindowPlacement.FRONT;
+    private Windows.WindowPlacement mWindowPlacementBeforeFullscreen = Windows.WindowPlacement.FRONT;
     private float mMaxWindowScale = 3;
     private boolean mIsRestored = false;
     private WindowDelegate mWindowDelegate;
@@ -516,6 +517,10 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         }
     }
 
+    public @NonNull Windows.WindowPlacement getmWindowPlacementBeforeFullscreen() {
+        return mWindowPlacementBeforeFullscreen;
+    }
+
     public @NonNull Windows.WindowPlacement getWindowPlacement() {
         return mWindowPlacement;
     }
@@ -788,10 +793,12 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     }
 
     public void saveBeforeFullscreenPlacement() {
+        mWindowPlacementBeforeFullscreen = mWindowPlacement;
         mPlacementBeforeFullscreen.copyFrom(mWidgetPlacement);
     }
 
     public void restoreBeforeFullscreenPlacement() {
+        mWindowPlacement = mWindowPlacementBeforeFullscreen;
         mWidgetPlacement.copyFrom(mPlacementBeforeFullscreen);
     }
 
