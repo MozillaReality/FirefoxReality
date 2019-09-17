@@ -134,6 +134,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     private WidgetPlacement mPlacementBeforeResize;
     private boolean mIsResizing;
     private boolean mIsFullScreen;
+    private boolean mAfterFirstlPaint;
 
     public interface WindowDelegate {
         void onFocusRequest(@NonNull WindowWidget aWindow);
@@ -1432,15 +1433,25 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     }
 
     @Override
-    public void onFirstComposite(GeckoSession session) {
+    public void onFirstComposite(@NonNull GeckoSession session) {
+        if (!mAfterFirstlPaint) {
+            return;
+        }
         if (mFirstDrawCallback != null) {
-            // Post this call because running it synchronously can cause a deadlock if the runnable
-            // resizes the widget and calls surfaceChanged. See https://github.com/MozillaReality/FirefoxReality/issues/1459.
-            // 1s delay has been added because firstComposite callback is received before a Gecko layer is actually rendered
-            // and that makes the window transparent for a while. Remove the 1s delay when GV is updated with a better callback.
-            final int delay = 1000;
-            ThreadUtils.postDelayedToUiThread(mFirstDrawCallback, delay);
+            ThreadUtils.postToUiThread(mFirstDrawCallback);
             mFirstDrawCallback = null;
+        }
+    }
+
+    @Override
+    public void onFirstContentfulPaint(@NonNull GeckoSession session) {
+        if (mAfterFirstlPaint) {
+            return;
+        }
+        if (mFirstDrawCallback != null) {
+            ThreadUtils.postToUiThread(mFirstDrawCallback);
+            mFirstDrawCallback = null;
+            mAfterFirstlPaint = true;
         }
     }
 
