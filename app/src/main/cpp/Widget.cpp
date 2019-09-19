@@ -456,7 +456,7 @@ Widget::SetPlacement(const WidgetPlacementPtr& aPlacement) {
     m.root->ToggleAll(m.toggleState);
     int32_t textureWidth, textureHeight;
     GetSurfaceTextureSize(textureWidth, textureHeight);
-      m.UpdateSurface(textureWidth, textureHeight);
+    m.UpdateSurface(textureWidth, textureHeight);
   }
   if (m.cylinder) {
     m.UpdateCylinderMatrix();

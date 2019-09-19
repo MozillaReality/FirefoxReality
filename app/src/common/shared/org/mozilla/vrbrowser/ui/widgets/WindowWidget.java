@@ -628,9 +628,10 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     }
 
     @Override
-    public void setSurfaceTexture(SurfaceTexture aTexture, final int aWidth, final int aHeight) {
+    public void setSurfaceTexture(SurfaceTexture aTexture, final int aWidth, final int aHeight, Runnable aFirstDrawCallback) {
+        mFirstDrawCallback = aFirstDrawCallback;
         if (mView != null) {
-            super.setSurfaceTexture(aTexture, aWidth, aHeight);
+            super.setSurfaceTexture(aTexture, aWidth, aHeight, aFirstDrawCallback);
 
         } else {
             GeckoSession session = mSessionStack.getSession(mSessionId);
