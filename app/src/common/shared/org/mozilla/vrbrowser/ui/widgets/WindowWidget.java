@@ -1137,15 +1137,16 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
                         store.deleteVisitsBetween(todayLimit, currentTime);
                         break;
                     case ClearCacheDialogWidget.YESTERDAY:
-                        store.deleteVisitsBetween(yesterdayLimit, todayLimit);
+                        store.deleteVisitsBetween(yesterdayLimit, currentTime);
                         break;
                     case ClearCacheDialogWidget.LAST_WEEK:
-                        store.deleteVisitsBetween(oneWeekLimit, yesterdayLimit);
+                        store.deleteVisitsBetween(oneWeekLimit, currentTime);
                         break;
                     case ClearCacheDialogWidget.EVERYTHING:
                         store.deleteEverything();
                         break;
                 }
+                SessionStore.get().clearHistory();
             }
         });
         mClearCacheDialog.show(REQUEST_FOCUS);

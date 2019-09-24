@@ -267,7 +267,7 @@ public class SessionStack implements ContentBlocking.Delegate, GeckoSession.Navi
         mVideoAvailabilityListeners.remove(aListener);
     }
 
-    public void restore(SessionStack store, int currentSessionId) {
+    public void restore(@NonNull SessionStack store, int currentSessionId) {
         mSessions.clear();
 
         mPreviousGeckoSessionId = store.mPreviousGeckoSessionId;
@@ -383,13 +383,17 @@ public class SessionStack implements ContentBlocking.Delegate, GeckoSession.Navi
     }
 
     private void recreateAllSessions() {
+        recreateAllSessions(true);
+    }
+
+    private void recreateAllSessions(boolean restoreState) {
         Map<Integer, SessionState> sessions = (Map<Integer, SessionState>) mSessions.clone();
         for (Integer sessionId : sessions.keySet()) {
-            recreateSession(sessionId);
+            recreateSession(sessionId, restoreState);
         }
     }
 
-    private void recreateSession(int sessionId) {
+    private void recreateSession(int sessionId, boolean restoreState) {
         SessionState previousSessionState = mSessions.get(sessionId);
 
         previousSessionState.mSession.stop();
@@ -397,7 +401,7 @@ public class SessionStack implements ContentBlocking.Delegate, GeckoSession.Navi
 
         int newSessionId = createSession(previousSessionState.mSettings);
         GeckoSession session = mSessions.get(newSessionId).mSession;
-        if (previousSessionState.mSessionState != null)
+        if (restoreState && previousSessionState.mSessionState != null)
             session.restoreState(previousSessionState.mSessionState);
         setCurrentSession(newSessionId);
         removeSession(sessionId);
@@ -874,6 +878,14 @@ public class SessionStack implements ContentBlocking.Delegate, GeckoSession.Navi
                 recreateAllSessions();
                 return null;
             });
+        }
+    }
+
+    public void clearHistory() {
+        if (mRuntime != null) {
+            String currentUri = getCurrentUri();
+            recreateAllSessions(false);
+            getCurrentSession().loadUri(currentUri);
         }
     }
 
