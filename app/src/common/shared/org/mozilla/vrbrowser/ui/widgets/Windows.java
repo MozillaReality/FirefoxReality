@@ -48,7 +48,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             WidgetPlacement widgetPlacement;
             if (aWindow.isFullScreen()) {
                 widgetPlacement = aWindow.getBeforeFullscreenPlacement();
-                placement = aWindow.getmWindowPlacementBeforeFullscreen();
+                placement = aWindow.getWindowPlacementBeforeFullscreen();
             } else if (aWindow.isResizing()) {
                 widgetPlacement = aWindow.getBeforeResizePlacement();
                 placement = aWindow.getWindowPlacement();
@@ -126,7 +126,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         try (Writer writer = new FileWriter(file)) {
             WindowsState state = new WindowsState();
             state.privateMode = mPrivateMode;
-            state.focusedWindowPlacement = mFocusedWindow.isFullScreen() ?  mFocusedWindow.getmWindowPlacementBeforeFullscreen() : mFocusedWindow.getWindowPlacement();
+            state.focusedWindowPlacement = mFocusedWindow.isFullScreen() ?  mFocusedWindow.getWindowPlacementBeforeFullscreen() : mFocusedWindow.getWindowPlacement();
             for (WindowWidget window : mRegularWindows) {
                 WindowState windowState = new WindowState();
                 windowState.load(window);

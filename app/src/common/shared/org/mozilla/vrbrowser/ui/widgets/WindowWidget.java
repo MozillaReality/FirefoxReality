@@ -134,7 +134,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     private WidgetPlacement mPlacementBeforeResize;
     private boolean mIsResizing;
     private boolean mIsFullScreen;
-    private boolean mAfterFirstlPaint;
+    private boolean mAfterFirstPaint;
 
     public interface WindowDelegate {
         void onFocusRequest(@NonNull WindowWidget aWindow);
@@ -524,7 +524,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         }
     }
 
-    public @NonNull Windows.WindowPlacement getmWindowPlacementBeforeFullscreen() {
+    public @NonNull Windows.WindowPlacement getWindowPlacementBeforeFullscreen() {
         return mWindowPlacementBeforeFullscreen;
     }
 
@@ -1435,7 +1435,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
 
     @Override
     public void onFirstComposite(@NonNull GeckoSession session) {
-        if (!mAfterFirstlPaint) {
+        if (!mAfterFirstPaint) {
             return;
         }
         if (mFirstDrawCallback != null) {
@@ -1446,13 +1446,13 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
 
     @Override
     public void onFirstContentfulPaint(@NonNull GeckoSession session) {
-        if (mAfterFirstlPaint) {
+        if (mAfterFirstPaint) {
             return;
         }
         if (mFirstDrawCallback != null) {
             ThreadUtils.postToUiThread(mFirstDrawCallback);
             mFirstDrawCallback = null;
-            mAfterFirstlPaint = true;
+            mAfterFirstPaint = true;
         }
     }
 
