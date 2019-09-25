@@ -57,6 +57,7 @@ import org.mozilla.vrbrowser.ui.widgets.prompts.ChoicePromptWidget;
 import org.mozilla.vrbrowser.ui.widgets.prompts.ConfirmPromptWidget;
 import org.mozilla.vrbrowser.ui.widgets.prompts.PromptWidget;
 import org.mozilla.vrbrowser.ui.widgets.prompts.TextPromptWidget;
+import org.mozilla.vrbrowser.utils.UrlUtils;
 import org.mozilla.vrbrowser.utils.ViewUtils;
 import org.mozilla.vrbrowser.utils.SystemUtils;
 
@@ -1550,9 +1551,14 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
             }
         }
 
-        SessionStore.get().getHistoryStore().deleteVisitsFor(url).thenAcceptAsync(result -> {
-            SessionStore.get().getHistoryStore().recordVisit(url, visitType);
-        });
+        // Avoid logging youtube redirects due to url override
+        if (UrlUtils.isYoutubeRedirect(url, lastVisitedURL)) {
+            return GeckoResult.fromValue(true);
+        }
+
+        SessionStore.get().getHistoryStore().deleteVisitsFor(url);
+        SessionStore.get().getHistoryStore().recordVisit(url, visitType);
+
         return GeckoResult.fromValue(true);
     }
 

@@ -5,8 +5,12 @@
 
 package org.mozilla.vrbrowser.utils;
 
+import android.net.Uri;
+import android.util.Log;
+
 import java.util.regex.Pattern;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 
@@ -31,6 +35,44 @@ public class UrlUtils {
         }
 
         return host.substring(start);
+    }
+
+    public static boolean isYoutubeVideo(String aUri) {
+        try {
+            Uri uri = Uri.parse(aUri);
+            String hostLower = uri.getHost().toLowerCase();
+            String videoParameter = uri.getQueryParameter("v");
+            if (videoParameter != null &&
+                    (hostLower.contains(".youtube.com") || hostLower.contains(".youtube-nocookie.com"))) {
+                return true;
+
+            } else {
+                return false;
+            }
+
+        } catch (Exception ex) {
+            return false;
+        }
+    }
+
+    public static String getYoutubeVideoId(String aUri) {
+        try {
+            Uri uri = Uri.parse(aUri);
+            return uri.getQueryParameter("v");
+
+        } catch (Exception ex) {
+            return "";
+        }
+    }
+
+    public static boolean isYoutubeRedirect(String aUri, String anotherUri) {
+        if (aUri != null && anotherUri != null && !aUri.equals(anotherUri) &&
+                (UrlUtils.isYoutubeVideo(aUri) && UrlUtils.isYoutubeVideo(anotherUri)) &&
+                (UrlUtils.getYoutubeVideoId(aUri).equals(UrlUtils.getYoutubeVideoId(anotherUri)))) {
+            return true;
+        }
+
+        return false;
     }
 
     private static Pattern domainPattern = Pattern.compile("^(http:\\/\\/www\\.|https:\\/\\/www\\.|http:\\/\\/|https:\\/\\/)?[a-z0-9]+([\\-\\.]{1}[a-z0-9]+)*\\.[a-z]{2,5}(:[0-9]{1,5})?(\\/.*)?$");
