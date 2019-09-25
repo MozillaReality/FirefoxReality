@@ -26,6 +26,7 @@ import mozilla.components.service.fxa.sync.GlobalSyncableStoreProvider
 import mozilla.components.support.base.log.Log
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.base.log.sink.AndroidLogSink
+import org.mozilla.vrbrowser.browser.engine.SessionStore
 import java.lang.IllegalStateException
 
 class Services(context: Context, places: Places) {
@@ -69,7 +70,7 @@ class Services(context: Context, places: Places) {
                 events.filterIsInstance(DeviceEvent.TabReceived::class.java).forEach {
                     // Just load the first tab that was sent.
                     // TODO is there a notifications API of sorts here?
-                    SessionStore.get().loadUri(it.entries[0].url)
+                    SessionStore.get().activeStore.loadUri(it.entries[0].url)
                 }
             }
         }

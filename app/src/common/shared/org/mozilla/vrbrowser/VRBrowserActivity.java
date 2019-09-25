@@ -72,6 +72,10 @@ import org.mozilla.vrbrowser.utils.LocaleUtils;
 import org.mozilla.vrbrowser.utils.ServoUtils;
 import org.mozilla.vrbrowser.utils.SystemUtils;
 
+import mozilla.components.concept.sync.AccountObserver;
+import mozilla.components.concept.sync.OAuthAccount;
+import mozilla.components.concept.sync.Profile;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -89,9 +93,6 @@ import java.util.function.Consumer;
 
 public class VRBrowserActivity extends PlatformActivity implements WidgetManagerDelegate {
 
-import mozilla.components.concept.sync.AccountObserver;
-import mozilla.components.concept.sync.OAuthAccount;
-import mozilla.components.concept.sync.Profile;
     private BroadcastReceiver mCrashReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -188,13 +189,13 @@ import mozilla.components.concept.sync.Profile;
         public void onLoggedOut() {}
 
         @Override
-        public void onAuthenticated(@NotNull OAuthAccount account) {
+        public void onAuthenticated(@NonNull OAuthAccount account) {
             // Check if we have any new device events (e.g. tabs).
             account.deviceConstellation().refreshDeviceStateAsync();
         }
 
         @Override
-        public void onProfileUpdated(@NotNull Profile profile) {}
+        public void onProfileUpdated(@NonNull Profile profile) {}
 
         @Override
         public void onAuthenticationProblems() {}

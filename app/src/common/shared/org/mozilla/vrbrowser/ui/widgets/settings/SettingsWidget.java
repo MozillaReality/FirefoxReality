@@ -26,6 +26,7 @@ import org.mozilla.vrbrowser.BuildConfig;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.VRBrowserApplication;
 import org.mozilla.vrbrowser.audio.AudioEngine;
+import org.mozilla.vrbrowser.browser.Services;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.browser.engine.SessionStack;
 import org.mozilla.vrbrowser.ui.views.HoneycombButton;
@@ -292,7 +293,7 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
                 // Actually process the url on the main thread.
                 new Handler(Looper.getMainLooper()).post(() -> {
                     Log.i(LOGTAG, "Loading url...");
-                    loadUrl(url);
+                    SessionStore.get().getActiveStore().loadUri(url);
                     hide(REMOVE_WIDGET);
                 });
             } catch (ExecutionException | InterruptedException e) {
@@ -504,5 +505,9 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
         }
 
         return false;
+    }
+
+    private Services getServices() {
+        return ((VRBrowserApplication) getContext().getApplicationContext()).getServices();
     }
 }
