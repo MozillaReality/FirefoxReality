@@ -26,6 +26,7 @@ import static android.view.Gravity.CENTER_VERTICAL;
 public class SelectionActionWidget extends UIWidget implements WidgetManagerDelegate.FocusChangeListener {
     public interface Delegate {
         void onAction(String action);
+        void onDismiss();
     }
 
     private Delegate mDelegate;
@@ -42,6 +43,9 @@ public class SelectionActionWidget extends UIWidget implements WidgetManagerDele
         inflate(getContext(), R.layout.selection_action_menu, this);
         mContainer = findViewById(R.id.selectionMenuContainer);
         mMinButtonWidth = WidgetPlacement.pixelDimension(getContext(), R.dimen.autocompletion_widget_min_item_width);
+        mBackHandler = () -> {
+            onDismiss();
+        };
     }
 
     @Override
@@ -80,6 +84,13 @@ public class SelectionActionWidget extends UIWidget implements WidgetManagerDele
     public void hide(@HideFlags int aHideFlags) {
         super.hide(aHideFlags);
         mWidgetManager.removeFocusChangeListener(this);
+    }
+
+    @Override
+    protected void onDismiss() {
+        if (mDelegate != null) {
+            mDelegate.onDismiss();
+        }
     }
 
     public void setSelectionRect(@Nullable RectF aRect) {

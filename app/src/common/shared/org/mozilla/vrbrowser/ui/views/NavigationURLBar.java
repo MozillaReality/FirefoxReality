@@ -12,6 +12,7 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Rect;
 import android.text.Editable;
+import android.text.Selection;
 import android.text.SpannableString;
 import android.text.TextWatcher;
 import android.text.style.ForegroundColorSpan;
@@ -50,6 +51,7 @@ import org.mozilla.vrbrowser.utils.StringUtils;
 import org.mozilla.vrbrowser.utils.SystemUtils;
 import org.mozilla.vrbrowser.utils.UIThreadExecutor;
 import org.mozilla.vrbrowser.utils.UrlUtils;
+import org.mozilla.vrbrowser.utils.ViewUtils;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
@@ -58,6 +60,7 @@ import java.net.URLDecoder;
 import java.util.ArrayList;
 
 import kotlin.Unit;
+import kotlin.jvm.functions.Function2;
 import mozilla.components.browser.domains.autocomplete.DomainAutocompleteResult;
 import mozilla.components.browser.domains.autocomplete.ShippedDomainsProvider;
 import mozilla.components.ui.autocomplete.InlineAutocompleteEditText;
@@ -90,6 +93,10 @@ public class NavigationURLBar extends FrameLayout {
     private UIThreadExecutor mUIThreadExecutor = new UIThreadExecutor();
     private SessionStack mSessionStack;
     private SelectionActionWidget mSelectionMenu;
+    private boolean mWasFocusedWhenTouchBegan = false;
+    private boolean mLongPressed = false;
+    private float lastTouchDownX = 0;
+    private int lastTouchDownOffset = 0;
 
     private Unit domainAutocompleteFilter(String text) {
         if (mURL != null) {
@@ -149,7 +156,9 @@ public class NavigationURLBar extends FrameLayout {
             updateHintFading();
 
             mURL.setSelection(mURL.getText().length(), 0);
-            if (!focused) {
+            if (focused) {
+                mURL.selectAll();
+            } else {
                 hideSelectionMenu();
             }
 
@@ -158,19 +167,56 @@ public class NavigationURLBar extends FrameLayout {
         final GestureDetector gd = new GestureDetector(getContext(), new UrlGestureListener());
         gd.setOnDoubleTapListener(mUrlDoubleTapListener);
         mURL.setOnTouchListener((view, motionEvent) -> {
+            if (motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
+                mWasFocusedWhenTouchBegan = view.isFocused();
+                lastTouchDownX = motionEvent.getX();
+                lastTouchDownOffset = ViewUtils.getCursorOffset(mURL, motionEvent.getX());
+            } else if (mLongPressed && motionEvent.getAction() == MotionEvent.ACTION_MOVE) {
+                // Selection gesture while longpressing
+                ViewUtils.placeSelection(mURL, lastTouchDownOffset, ViewUtils.getCursorOffset(mURL, motionEvent.getX()));
+            } else if (motionEvent.getAction() == MotionEvent.ACTION_UP || motionEvent.getAction() == MotionEvent.ACTION_CANCEL) {
+                mLongPressed = false;
+            }
             if (gd.onTouchEvent(motionEvent)) {
                 return true;
             }
             return view.onTouchEvent(motionEvent);
         });
-        mURL.setOnClickListener(v -> hideSelectionMenu());
+        mURL.setOnClickListener(v -> {
+            if (mWasFocusedWhenTouchBegan) {
+                hideSelectionMenu();
+            }
+        });
         mURL.setOnLongClickListener(v -> {
-            mURL.requestFocus();
+            if (!v.isFocused()) {
+                mURL.requestFocus();
+                mURL.selectAll();
+            } else if (!mURL.hasSelection()) {
+                // Place the cursor in the longpressed position.
+                if (lastTouchDownOffset >= 0) {
+                    mURL.setSelection(lastTouchDownOffset);
+                }
+                mLongPressed = true;
+            }
             // Add some delay so selection ranges are ready
             ThreadUtils.postDelayedToUiThread(this::handleLongPress, 10);
-            return false;
+            return true;
         });
         mURL.addTextChangedListener(mURLTextWatcher);
+
+        mURL.setOnSelectionChangedListener((integer, integer2) -> {
+            if (mSelectionMenu != null && mDelegate != null) {
+                mDelegate.onLongPress(getSelectionCenterX(), mSelectionMenu);
+                mSelectionMenu.updateWidget();
+            }
+            return null;
+        });
+
+        mURL.setOnScrollChangeListener((v, scrollX, scrollY, oldScrollX, oldScrollY) -> {
+            if (mLongPressed) {
+                hideSelectionMenu();
+            }
+        });
 
         // Set a filter to provide domain autocomplete results
         mURL.setOnFilterListener(this::domainAutocompleteFilter);
@@ -607,7 +653,6 @@ public class NavigationURLBar extends FrameLayout {
         if (mAudio != null) {
             mAudio.playSound(AudioEngine.Sound.CLICK);
         }
-
         view.requestFocusFromTouch();
 
         int uaMode = mSessionStack.getUaMode();
@@ -665,7 +710,7 @@ public class NavigationURLBar extends FrameLayout {
     GestureDetector.OnDoubleTapListener mUrlDoubleTapListener = new GestureDetector.OnDoubleTapListener() {
         @Override
         public boolean onSingleTapConfirmed(MotionEvent motionEvent) {
-            return false;
+            return true;
         }
 
         @Override
@@ -675,7 +720,7 @@ public class NavigationURLBar extends FrameLayout {
 
         @Override
         public boolean onDoubleTapEvent(MotionEvent motionEvent) {
-            mURL.setSelection(mURL.getText().length(), 0);
+            mURL.selectAll();
             return true;
         }
     };
@@ -702,52 +747,74 @@ public class NavigationURLBar extends FrameLayout {
 
         mSelectionMenu = new SelectionActionWidget(getContext());
         mSelectionMenu.setActions(actions.toArray(new String[0]));
-        mSelectionMenu.setDelegate(action -> {
-            int startSelection = mURL.getSelectionStart();
-            int endSelection = mURL.getSelectionEnd();
-            boolean selectionValid = endSelection > startSelection;
+        mSelectionMenu.setDelegate(new SelectionActionWidget.Delegate() {
+            @Override
+            public void onAction(String action) {
+                int startSelection = mURL.getSelectionStart();
+                int endSelection = mURL.getSelectionEnd();
+                boolean selectionValid = endSelection > startSelection;
 
-            if (action.equals(GeckoSession.SelectionActionDelegate.ACTION_CUT) && selectionValid) {
-                String selectedText = mURL.getText().toString().substring(startSelection, endSelection);
-                clipboard.setPrimaryClip(ClipData.newPlainText("text", selectedText));
-                mURL.setText(StringUtils.removeRange(mURL.getText().toString(), startSelection, endSelection));
-            } else if (action.equals(GeckoSession.SelectionActionDelegate.ACTION_COPY) && selectionValid) {
-                String selectedText = mURL.getText().toString().substring(startSelection, endSelection);
-                clipboard.setPrimaryClip(ClipData.newPlainText("text", selectedText));
-            } else if (action.equals(GeckoSession.SelectionActionDelegate.ACTION_PASTE) && clipboard.hasPrimaryClip()) {
-                ClipData.Item item = clipboard.getPrimaryClip().getItemAt(0);
-                if (selectionValid) {
+                if (action.equals(GeckoSession.SelectionActionDelegate.ACTION_CUT) && selectionValid) {
+                    String selectedText = mURL.getText().toString().substring(startSelection, endSelection);
+                    clipboard.setPrimaryClip(ClipData.newPlainText("text", selectedText));
                     mURL.setText(StringUtils.removeRange(mURL.getText().toString(), startSelection, endSelection));
+                } else if (action.equals(GeckoSession.SelectionActionDelegate.ACTION_COPY) && selectionValid) {
+                    String selectedText = mURL.getText().toString().substring(startSelection, endSelection);
+                    clipboard.setPrimaryClip(ClipData.newPlainText("text", selectedText));
+                } else if (action.equals(GeckoSession.SelectionActionDelegate.ACTION_PASTE) && clipboard.hasPrimaryClip()) {
+                    ClipData.Item item = clipboard.getPrimaryClip().getItemAt(0);
+                    if (selectionValid) {
+                        mURL.setText(StringUtils.removeRange(mURL.getText().toString(), startSelection, endSelection));
+                    }
+                    if (item != null && item.getText() != null) {
+                        mURL.getText().insert(mURL.getSelectionStart(), item.getText());
+                    } else if (item != null && item.getUri() != null) {
+                        mURL.getText().insert(mURL.getSelectionStart(), item.getUri().toString());
+                    }
+                } else if (action.equals(GeckoSession.SelectionActionDelegate.ACTION_SELECT_ALL)) {
+                    mURL.selectAll();
+                    handleLongPress();
+                    return;
+
                 }
-                if (item != null && item.getText() != null) {
-                    mURL.getText().insert(mURL.getSelectionStart(), item.getText());
-                } else if (item != null && item.getUri() != null) {
-                    mURL.getText().insert(mURL.getSelectionStart(), item.getUri().toString());
-                }
-            } else if (action.equals(GeckoSession.SelectionActionDelegate.ACTION_SELECT_ALL)) {
-                mURL.selectAll();
+                hideSelectionMenu();
             }
-            hideSelectionMenu();
+
+            @Override
+            public void onDismiss() {
+                hideSelectionMenu();
+            }
         });
 
-        // Cursor position
-        int horizontal = mURL.getSelectionStart();
-        if (mURL.getSelectionEnd() > mURL.getSelectionStart()) {
-            horizontal += (mURL.getSelectionEnd() - horizontal) / 2;
-        }
-        float x = mURL.getLayout().getPrimaryHorizontal(horizontal >= 0 ? horizontal : 0);
-        x += mURL.getPaddingLeft();
-        if (x > mURL.getMeasuredWidth()) {
-            x = mURL.getMeasuredWidth();
+        if (mDelegate != null) {
+            mDelegate.onLongPress(getSelectionCenterX(), mSelectionMenu);
         }
 
-        if (mDelegate != null) {
-            mDelegate.onLongPress(x, mSelectionMenu);
+        mSelectionMenu.show(UIWidget.KEEP_FOCUS);
+    }
+
+
+    private float getSelectionCenterX() {
+        int startSelection = mURL.getSelectionStart();
+        int endSelection = mURL.getSelectionEnd();
+        boolean selectionValid = endSelection > startSelection;
+        float start = 0;
+        if (mURL.getSelectionStart() >= 0) {
+            start = ViewUtils.GetLetterPositionX(mURL, mURL.getSelectionStart(), true);
         }
+        float end = start;
+        if (mURL.getSelectionEnd() > mURL.getSelectionStart()) {
+            end = ViewUtils.GetLetterPositionX(mURL, mURL.getSelectionEnd(), true);
+        }
+        if (end < start) {
+            end = start;
+        }
+        return start + (end - start) * 0.5f;
     }
 
     private void hideSelectionMenu() {
         if (mSelectionMenu != null) {
+            mSelectionMenu.setDelegate((SelectionActionWidget.Delegate) null);
             mSelectionMenu.hide(UIWidget.REMOVE_WIDGET);
             mSelectionMenu.releaseWidget();
             mSelectionMenu = null;

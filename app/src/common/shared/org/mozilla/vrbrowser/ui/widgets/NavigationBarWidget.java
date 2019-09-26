@@ -579,7 +579,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         } else {
             AnimationHelper.fadeIn(mNavigationContainer, AnimationHelper.FADE_ANIMATION_DURATION, null);
         }
-        AnimationHelper.fadeOut(mResizeModeContainer, 0, () -> updateWidget());
+        AnimationHelper.fadeOut(mResizeModeContainer, 0, () -> onWidgetUpdate(mAttachedWindow));
         mWidgetManager.popBackHandler(mResizeBackHandler);
         mWidgetManager.setTrayVisible(!mAttachedWindow.isFullScreen());
         closeFloatingMenus();
@@ -940,7 +940,6 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         offsetDescendantRectToMyCoords(mURLBar, offsetViewBounds);
         float x = offsetViewBounds.left + centerX;
         actionMenu.getPlacement().parentAnchorX = x / getMeasuredWidth();
-        actionMenu.show(REQUEST_FOCUS);
     }
 
     // VoiceSearch Delegate
@@ -1073,9 +1072,4 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
             mWidgetManager.startWidgetResize(mAttachedWindow, maxSize.first, 4.5f, minSize.first, minSize.second);
         }
     }
-
-    private void updateWidget() {
-        onWidgetUpdate(mAttachedWindow);
-    }
-
 }
