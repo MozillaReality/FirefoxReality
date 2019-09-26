@@ -5,6 +5,7 @@
 
     <data>
         <import type="android.widget.LinearLayout"/>
+        <import type="org.mozilla.vrbrowser.browser.BookmarksStore" />
 
         <variable
             name="item"

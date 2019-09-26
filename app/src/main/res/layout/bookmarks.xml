@@ -80,38 +80,39 @@
             android:visibility="gone"
             app:visibleGone="@{isLoading}" />
 
-        <RelativeLayout
-            android:layout_width="match_parent"
+        <LinearLayout
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:orientation="horizontal"
             android:paddingStart="30dp"
             android:paddingEnd="30dp"
             android:layout_marginEnd="20dp"
             android:layout_marginBottom="20dp"
             app:visibleGone="@{!isLoading &amp;&amp; !isEmpty}">
 
-            <ImageView
-                android:id="@+id/icon"
+            <!-- Back button starts off as 'gone', and will be displayed during folder navigation -->
+            <org.mozilla.vrbrowser.ui.views.UIButton
+                android:id="@+id/backButton"
+                style="?attr/navigationBarButtonStyle"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
-                android:layout_alignParentStart="true"
-                android:src="@drawable/ic_icon_bookmarks"
-                android:tint="@color/concrete"
-                app:srcCompat="@drawable/ic_icon_bookmarks" />
+                android:layout_marginBottom="10dp"
+                android:src="@drawable/ic_icon_back"
+                android:tint="@color/midnight"
+                android:visibility="gone" />
 
+            <!-- Starts off as a default bookmarks title, and will be changed during folder navigation -->
             <TextView
-                android:id="@+id/textView"
+                android:id="@+id/currentFolderName"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_centerVertical="true"
-                android:layout_toEndOf="@id/icon"
-                android:gravity="center_vertical"
-                android:paddingStart="15dp"
-                android:paddingEnd="15dp"
+                android:layout_marginBottom="25dp"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
                 android:text="@string/bookmarks_title"
-                android:textColor="@color/smoke"
                 android:textSize="@dimen/text_biggest_size"
                 android:textStyle="bold" />
-        </RelativeLayout>
+        </LinearLayout>
 
         <org.mozilla.vrbrowser.ui.views.CustomRecyclerView
             android:id="@+id/bookmarks_list"

@@ -16,6 +16,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+import mozilla.appservices.places.BookmarkRoot;
+
 public class SuggestionsProvider {
 
     private static final String LOGTAG = SuggestionsProvider.class.getSimpleName();
@@ -79,7 +81,7 @@ public class SuggestionsProvider {
 
     public CompletableFuture<List<SuggestionItem>> getBookmarkSuggestions(@NonNull List<SuggestionItem> items) {
         CompletableFuture future = new CompletableFuture();
-        SessionStore.get().getBookmarkStore().getBookmarks().thenAcceptAsync((bookmarks) -> {
+        SessionStore.get().getBookmarkStore().getBookmarks(BookmarkRoot.Root.getId()).thenAcceptAsync((bookmarks) -> {
             bookmarks.stream().
                     filter(b -> b.getUrl().toLowerCase().contains(mFilterText) ||
                             b.getTitle().toLowerCase().contains(mFilterText))

@@ -30,6 +30,7 @@ import org.mozilla.geckoview.GeckoSessionSettings;
 import org.mozilla.geckoview.MediaElement;
 import org.mozilla.geckoview.WebRequestError;
 import org.mozilla.vrbrowser.R;
+import org.mozilla.vrbrowser.VRBrowserApplication;
 import org.mozilla.vrbrowser.browser.Media;
 import org.mozilla.vrbrowser.browser.SessionChangeListener;
 import org.mozilla.vrbrowser.browser.SettingsStore;
@@ -737,6 +738,8 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         String uri = aRequest.uri;
 
         Log.d(LOGTAG, "onLoadRequest: " + uri);
+
+        ((VRBrowserApplication) mContext.getApplicationContext()).getServices().interceptFxaUrl(uri);
 
         String uriOverride = SessionUtils.checkYoutubeOverride(uri);
         if (uriOverride != null) {

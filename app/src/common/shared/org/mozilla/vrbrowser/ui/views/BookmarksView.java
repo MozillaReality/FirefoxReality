@@ -31,6 +31,7 @@ import org.mozilla.vrbrowser.utils.UIThreadExecutor;
 
 import java.util.List;
 
+import mozilla.appservices.places.BookmarkRoot;
 import mozilla.components.concept.storage.BookmarkNode;
 
 public class BookmarksView extends FrameLayout implements BookmarksStore.BookmarkListener {
@@ -136,7 +137,7 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
     }
 
     private void syncBookmarks() {
-        SessionStore.get().getBookmarkStore().getBookmarks().thenAcceptAsync(this::showBookmarks, new UIThreadExecutor());
+        SessionStore.get().getBookmarkStore().getBookmarks(BookmarkRoot.Root.getId()).thenAcceptAsync(this::showBookmarks, new UIThreadExecutor());
     }
 
     private void showBookmarks(List<BookmarkNode> aBookmarks) {

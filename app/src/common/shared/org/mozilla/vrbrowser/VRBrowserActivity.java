@@ -72,6 +72,10 @@ import org.mozilla.vrbrowser.utils.LocaleUtils;
 import org.mozilla.vrbrowser.utils.ServoUtils;
 import org.mozilla.vrbrowser.utils.SystemUtils;
 
+import mozilla.components.concept.sync.AccountObserver;
+import mozilla.components.concept.sync.OAuthAccount;
+import mozilla.components.concept.sync.Profile;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -181,6 +185,23 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         }
     };
 
+    private AccountObserver accountObserver = new AccountObserver() {
+        @Override
+        public void onLoggedOut() {}
+
+        @Override
+        public void onAuthenticated(@NonNull OAuthAccount account) {
+            // Check if we have any new device events (e.g. tabs).
+            account.deviceConstellation().refreshDeviceStateAsync();
+        }
+
+        @Override
+        public void onProfileUpdated(@NonNull Profile profile) {}
+
+        @Override
+        public void onAuthenticationProblems() {}
+    };
+
     @Override
     protected void attachBaseContext(Context base) {
         super.attachBaseContext(LocaleUtils.setLocale(base));
@@ -263,6 +284,12 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         mConnectivityReceiver = new ConnectivityReceiver();
         mPoorPerformanceWhiteList = new HashSet<>();
         checkForCrash();
+
+        // Monitor FxA account state.
+        ((VRBrowserApplication) this.getApplicationContext())
+            .getServices()
+            .getAccountManager()
+            .register(accountObserver);
     }
 
     protected void initializeWidgets() {
@@ -388,6 +415,17 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         }
         handleConnectivityChange();
         mConnectivityReceiver.register(this, () -> runOnUiThread(() -> handleConnectivityChange()));
+
+        // If we're signed-in, poll for any new device events (e.g. received tabs) on activity resume.
+        // There's no push support right now, so this helps with the perception of speedy tab delivery.
+        OAuthAccount account = ((VRBrowserApplication) this.getApplicationContext())
+                .getServices()
+                .getAccountManager()
+                .authenticatedAccount();
+        if (account != null) {
+            account.deviceConstellation().refreshDeviceStateAsync();
+        }
+
         super.onResume();
     }
 
