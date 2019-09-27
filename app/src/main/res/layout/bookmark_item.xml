@@ -98,8 +98,6 @@
                         android:layout_width="@dimen/library_item_row_height"
                         android:layout_height="@dimen/library_item_row_height"
                         android:layout_gravity="center_vertical|end"
-                        android:layout_marginEnd="10dp"
-                        android:duplicateParentState="true"
                         android:focusable="false"
                         android:focusableInTouchMode="false"
                         android:padding="@dimen/library_icon_padding_max"
