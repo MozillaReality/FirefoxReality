@@ -17,6 +17,7 @@ import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.utils.SystemUtils;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.StringRes;
 
 public class HoneycombButton extends LinearLayout {
 
@@ -130,5 +131,9 @@ public class HoneycombButton extends LinearLayout {
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
         return true;
+    }
+
+    public void setText(@StringRes int text) {
+        mText.setText(text);
     }
 }

@@ -5,8 +5,12 @@
 
 package org.mozilla.vrbrowser.ui.views;
 
+import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.SharedPreferences;
+import android.graphics.drawable.Drawable;
+import android.preference.PreferenceManager;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -18,7 +22,10 @@ import androidx.databinding.DataBindingUtil;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.mozilla.vrbrowser.R;
+import org.mozilla.vrbrowser.browser.AccountsManager;
 import org.mozilla.vrbrowser.browser.HistoryStore;
 import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.browser.engine.Session;
@@ -30,21 +37,34 @@ import org.mozilla.vrbrowser.ui.callbacks.HistoryItemCallback;
 import org.mozilla.vrbrowser.utils.SystemUtils;
 import org.mozilla.vrbrowser.utils.UIThreadExecutor;
 
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Comparator;
 import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import mozilla.components.concept.storage.VisitInfo;
 import mozilla.components.concept.storage.VisitType;
+import mozilla.components.concept.sync.AccountObserver;
+import mozilla.components.concept.sync.AuthType;
+import mozilla.components.concept.sync.OAuthAccount;
+import mozilla.components.concept.sync.Profile;
+import mozilla.components.service.fxa.SyncEngine;
+import mozilla.components.service.fxa.sync.SyncStatusObserver;
 
 public class HistoryView extends FrameLayout implements HistoryStore.HistoryListener {
 
     private static final String LOGTAG = SystemUtils.createLogtag(HistoryView.class);
 
     private HistoryBinding mBinding;
+    private ObjectAnimator mSyncingAnimation;
+    private AccountsManager mAccountManager;
     private HistoryAdapter mHistoryAdapter;
     private boolean mIgnoreNextListener;
+    private boolean mIsSyncEnabled;
+    private boolean mIsSignedIn;
+    private ArrayList<HistoryCallback> mHistoryViewListeners;
 
     public HistoryView(Context aContext) {
         super(aContext);
@@ -65,8 +85,11 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
     private void initialize(Context aContext) {
         LayoutInflater inflater = LayoutInflater.from(aContext);
 
+        mHistoryViewListeners = new ArrayList<>();
+
         // Inflate this data binding layout
         mBinding = DataBindingUtil.inflate(inflater, R.layout.history, this, true);
+        mBinding.setCallback(mHistoryCallback);
         mHistoryAdapter = new HistoryAdapter(mHistoryItemCallback, aContext);
         mBinding.historyList.setAdapter(mHistoryAdapter);
         mBinding.historyList.setOnTouchListener((v, event) -> {
@@ -75,8 +98,21 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
         });
         mBinding.setIsLoading(true);
         mBinding.executePendingBindings();
-        syncHistory();
+
+        Drawable[] drawables = mBinding.syncButton.getCompoundDrawables();
+        mSyncingAnimation = ObjectAnimator.ofInt(drawables[0], "level", 0, 10000);
+        mSyncingAnimation.setRepeatCount(ObjectAnimator.INFINITE);
+
+        updateHistory();
         SessionStore.get().getHistoryStore().addListener(this);
+
+        mAccountManager = SessionStore.get().getAccountsManager();
+        mAccountManager.addAccountListener(mAccountListener);
+        mAccountManager.addSyncListener(mSyncListener);
+
+        mIsSyncEnabled = mAccountManager.supportedSyncEngines().contains(SyncEngine.HISTORY);
+
+        updateCurrentAccountState();
 
         setVisibility(GONE);
 
@@ -88,6 +124,8 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
 
     public void onDestroy() {
         SessionStore.get().getHistoryStore().removeListener(this);
+        mAccountManager.removeAccountListener(mAccountListener);
+        mAccountManager.removeSyncListener(mSyncListener);
     }
 
     private final HistoryItemCallback mHistoryItemCallback = new HistoryItemCallback() {
@@ -135,11 +173,160 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
         }
     };
 
-    public void setHistoryCallback(@NonNull HistoryCallback callback) {
-        mBinding.setCallback(callback);
+    private HistoryCallback mHistoryCallback = new HistoryCallback() {
+        @Override
+        public void onClearHistory(@NonNull View view) {
+            mHistoryViewListeners.forEach((listener) -> listener.onClearHistory(view));
+        }
+
+        @Override
+        public void onSyncHistory(@NonNull View view) {
+            switch(mAccountManager.getAccountStatus()) {
+                case NEEDS_RECONNECT:
+                case SIGNED_OUT:
+                    mAccountManager.getAuthenticationUrlAsync().thenAcceptAsync((url) -> {
+                        if (url != null) {
+                            SessionStore.get().getActiveStore().loadUri(url);
+                        }
+                    });
+                    break;
+
+                case SIGNED_IN:
+                    SessionStore.get().getAccountsManager().syncNowAsync(false, false);
+
+                    mHistoryViewListeners.forEach((listener) -> listener.onSyncHistory(view));
+                    break;
+
+                default:
+                    throw new IllegalStateException("Unexpected value: " + mAccountManager.getAccountStatus());
+            }
+        }
+
+        @Override
+        public void onShowContextMenu(@NonNull View view, @NonNull VisitInfo item, boolean isLastVisibleItem) {
+            mHistoryViewListeners.forEach((listener) -> listener.onShowContextMenu(view, item, isLastVisibleItem));
+        }
+    };
+
+    public void addHistoryListener(@NonNull HistoryCallback listener) {
+        if (!mHistoryViewListeners.contains(listener)) {
+            mHistoryViewListeners.add(listener);
+        }
     }
 
-    private void syncHistory() {
+    public void removeHistoryListener(@NonNull HistoryCallback listener) {
+        mHistoryViewListeners.remove(listener);
+    }
+
+    private SyncStatusObserver mSyncListener = new SyncStatusObserver() {
+        @Override
+        public void onStarted() {
+            post(() -> {
+                mBinding.syncButton.setEnabled(false);
+                mSyncingAnimation.start();
+            });
+        }
+
+        @Override
+        public void onIdle() {
+            post(() -> {
+                mBinding.syncButton.setEnabled(true);
+                mSyncingAnimation.cancel();
+                updateUi();
+            });
+        }
+
+        @Override
+        public void onError(@Nullable Exception e) {
+            post(() -> {
+                mBinding.syncButton.setEnabled(true);
+                mSyncingAnimation.cancel();
+                mBinding.syncDescription.setText(getContext().getString(R.string.fxa_account_last_no_synced));
+            });
+        }
+    };
+
+    private void updateCurrentAccountState() {
+        switch(mAccountManager.getAccountStatus()) {
+            case NEEDS_RECONNECT:
+            case SIGNED_OUT:
+                mIsSignedIn = false;
+                updateUi();
+                break;
+
+            case SIGNED_IN:
+                mIsSignedIn = true;
+                updateUi();
+                break;
+
+            default:
+                throw new IllegalStateException("Unexpected value: " + mAccountManager.getAccountStatus());
+        }
+    }
+
+    private AccountObserver mAccountListener = new AccountObserver() {
+
+        @Override
+        public void onAuthenticated(@NotNull OAuthAccount oAuthAccount, @NotNull AuthType authType) {
+            mIsSignedIn = true;
+            updateUi();
+        }
+
+        @Override
+        public void onProfileUpdated(@NotNull Profile profile) {
+        }
+
+        @Override
+        public void onLoggedOut() {
+            mIsSignedIn = false;
+            updateUi();
+        }
+
+        @Override
+        public void onAuthenticationProblems() {
+            mIsSignedIn = false;
+            updateUi();
+        }
+    };
+
+    private void updateUi() {
+        post(() -> {
+            if (mIsSignedIn) {
+                mBinding.syncButton.setText(R.string.history_sync);
+                mBinding.syncDescription.setVisibility(VISIBLE);
+
+                mIsSyncEnabled = mAccountManager.supportedSyncEngines().contains(SyncEngine.HISTORY);
+                if (mIsSyncEnabled) {
+                    mBinding.syncButton.setEnabled(true);
+                    mBinding.syncDescription.setVisibility(VISIBLE);
+
+                    long lastSync = mAccountManager.getLastSync();
+                    if (lastSync == 0) {
+                        mBinding.syncDescription.setText(getContext().getString(R.string.fxa_account_last_no_synced));
+
+                    } else {
+                        long timeDiff = System.currentTimeMillis() - lastSync;
+                        if (timeDiff < 60000) {
+                            mBinding.syncDescription.setText(getContext().getString(R.string.fxa_account_last_synced_now));
+
+                        } else {
+                            mBinding.syncDescription.setText(getContext().getString(R.string.fxa_account_last_synced, timeDiff / 60000));
+                        }
+                    }
+
+                } else {
+                    mBinding.syncButton.setEnabled(false);
+                    mBinding.syncDescription.setVisibility(GONE);
+                }
+
+            } else {
+                mBinding.syncButton.setText(R.string.fxa_account_sing_to_sync);
+                mBinding.syncDescription.setVisibility(GONE);
+            }
+        });
+    }
+
+    private void updateHistory() {
         Calendar date = new GregorianCalendar();
         date.set(Calendar.HOUR_OF_DAY, 0);
         date.set(Calendar.MINUTE, 0);
@@ -153,7 +340,8 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
 
         SessionStore.get().getHistoryStore().getDetailedHistory().thenAcceptAsync((items) -> {
             List<VisitInfo> orderedItems = items.stream()
-                    .sorted((o1, o2) -> Long.valueOf(o2.getVisitTime() - o1.getVisitTime()).intValue())
+                    .sorted(Comparator.comparing((VisitInfo mps) -> mps.getVisitTime())
+                    .reversed())
                     .collect(Collectors.toList());
 
             addSection(orderedItems, getResources().getString(R.string.history_section_today), Long.MAX_VALUE, todayLimit);
@@ -215,6 +403,6 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
             mIgnoreNextListener = false;
             return;
         }
-        syncHistory();
+        updateHistory();
     }
 }

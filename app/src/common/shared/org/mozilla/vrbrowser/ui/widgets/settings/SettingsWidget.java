@@ -9,58 +9,55 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.os.Handler;
-import android.os.Looper;
 import android.graphics.Point;
 import android.text.Html;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.GestureDetector;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
-import android.widget.ImageButton;
-import android.widget.LinearLayout;
-import android.widget.TextView;
 
+import androidx.databinding.DataBindingUtil;
+
+import org.jetbrains.annotations.NotNull;
 import org.mozilla.vrbrowser.BuildConfig;
 import org.mozilla.vrbrowser.R;
-import org.mozilla.vrbrowser.VRBrowserApplication;
 import org.mozilla.vrbrowser.audio.AudioEngine;
 import org.mozilla.vrbrowser.browser.engine.Session;
 import org.mozilla.vrbrowser.browser.Services;
+import org.mozilla.vrbrowser.browser.AccountsManager;
+import org.mozilla.vrbrowser.browser.engine.SessionStack;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
-import org.mozilla.vrbrowser.ui.views.HoneycombButton;
+import org.mozilla.vrbrowser.databinding.SettingsBinding;
 import org.mozilla.vrbrowser.ui.widgets.UIWidget;
 import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
 import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
 import org.mozilla.vrbrowser.ui.widgets.dialogs.RestartDialogWidget;
 import org.mozilla.vrbrowser.ui.widgets.dialogs.UIDialog;
 import org.mozilla.vrbrowser.ui.widgets.prompts.AlertPromptWidget;
+import org.mozilla.vrbrowser.utils.StringUtils;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
 
-import mozilla.components.service.fxa.manager.FxaAccountManager;
+import mozilla.components.concept.sync.AccountObserver;
+import mozilla.components.concept.sync.AuthType;
+import mozilla.components.concept.sync.OAuthAccount;
+import mozilla.components.concept.sync.Profile;
 
 public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.WorldClickListener, SettingsView.Delegate {
+
+    private SettingsBinding mBinding;
     private AudioEngine mAudio;
     private SettingsView mCurrentView;
-    private TextView mBuildText;
-    private ViewGroup mMainLayout;
     private int mViewMarginH;
     private int mViewMarginV;
     private int mRestartDialogHandle = -1;
     private int mAlertDialogHandle = -1;
-
-    private AccountsHelper accountHelper = new AccountsHelper(this);
+    private AccountsManager mAccountManager;
 
     class VersionGestureListener extends GestureDetector.SimpleOnGestureListener {
 
@@ -68,7 +65,7 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
 
         @Override
         public boolean onDown (MotionEvent e) {
-            mBuildText.setText(mIsHash ? versionCodeToDate(BuildConfig.VERSION_CODE) : BuildConfig.GIT_HASH);
+            mBinding.buildText.setText(mIsHash ? StringUtils.versionCodeToDate(getContext(), BuildConfig.VERSION_CODE) : BuildConfig.GIT_HASH);
 
             mIsHash = !mIsHash;
 
@@ -78,28 +75,32 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
 
     public SettingsWidget(Context aContext) {
         super(aContext);
-        initialize(aContext);
+        initialize();
     }
 
     public SettingsWidget(Context aContext, AttributeSet aAttrs) {
         super(aContext, aAttrs);
-        initialize(aContext);
+        initialize();
     }
 
     public SettingsWidget(Context aContext, AttributeSet aAttrs, int aDefStyle) {
         super(aContext, aAttrs, aDefStyle);
-        initialize(aContext);
+        initialize();
     }
 
     @SuppressLint("ClickableViewAccessibility")
-    private void initialize(Context aContext) {
-        inflate(aContext, R.layout.settings, this);
+    private void initialize() {
+        LayoutInflater inflater = LayoutInflater.from(getContext());
+
+        // Inflate this data binding layout
+        mBinding = DataBindingUtil.inflate(inflater, R.layout.settings, this, true);
 
         mWidgetManager.addWorldClickListener(this);
-        mMainLayout = findViewById(R.id.optionsLayout);
 
-        ImageButton cancelButton = findViewById(R.id.backButton);
-        cancelButton.setOnClickListener(v -> {
+        mAccountManager = SessionStore.get().getAccountsManager();
+        mAccountManager.addAccountListener(mAccountObserver);
+
+        mBinding.backButton.setOnClickListener(v -> {
             if (mAudio != null) {
                 mAudio.playSound(AudioEngine.Sound.CLICK);
             }
@@ -107,14 +108,12 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
             onDismiss();
         });
 
-        LinearLayout reportIssue = findViewById(R.id.reportIssueLayout);
-        reportIssue.setOnClickListener(v -> {
+        mBinding.reportIssueLayout.setOnClickListener(v -> {
             onSettingsReportClick();
             onDismiss();
         });
 
-        HoneycombButton languageButton = findViewById(R.id.languageButton);
-        languageButton.setOnClickListener(view -> {
+        mBinding.languageButton.setOnClickListener(view -> {
             if (mAudio != null) {
                 mAudio.playSound(AudioEngine.Sound.CLICK);
             }
@@ -122,8 +121,7 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
             onLanguageOptionsClick();
         });
 
-        HoneycombButton privacyButton = findViewById(R.id.privacyButton);
-        privacyButton.setOnClickListener(view -> {
+        mBinding.languageButton.setOnClickListener(view -> {
             if (mAudio != null) {
                 mAudio.playSound(AudioEngine.Sound.CLICK);
             }
@@ -131,8 +129,7 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
             onSettingsPrivacyClick();
         });
 
-        HoneycombButton displayButton = findViewById(R.id.displayButton);
-        displayButton.setOnClickListener(view -> {
+        mBinding.displayButton.setOnClickListener(view -> {
             if (mAudio != null) {
                 mAudio.playSound(AudioEngine.Sound.CLICK);
             }
@@ -140,8 +137,7 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
             onDisplayOptionsClick();
         });
 
-        HoneycombButton environmentButton = findViewById(R.id.environmentButton);
-        environmentButton.setOnClickListener(view -> {
+        mBinding.environmentButton.setOnClickListener(view -> {
             if (mAudio != null) {
                 mAudio.playSound(AudioEngine.Sound.CLICK);
             }
@@ -149,7 +145,6 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
             showEnvironmentOptionsDialog();
         });
 
-        TextView versionText = findViewById(R.id.versionText);
         try {
             PackageInfo pInfo = getContext().getPackageManager().getPackageInfo(getContext().getPackageName(), 0);
             String app_name = getResources().getString(R.string.app_name);
@@ -163,12 +158,11 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
             e.printStackTrace();
         }
 
-        mBuildText = findViewById(R.id.buildText);
-        mBuildText.setText(versionCodeToDate(BuildConfig.VERSION_CODE));
+        mBinding.buildText.setText(StringUtils.versionCodeToDate(getContext(), BuildConfig.VERSION_CODE));
 
         TextView settingsMasthead = findViewById(R.id.buildText);
         final GestureDetector gd = new GestureDetector(getContext(), new VersionGestureListener());
-        settingsMasthead.setOnTouchListener((view, motionEvent) -> {
+        mBinding.settingsMasthead.setOnTouchListener((view, motionEvent) -> {
             if (gd.onTouchEvent(motionEvent)) {
                 return true;
             }
@@ -190,18 +184,11 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
             onDismiss();
         });
 
-        HoneycombButton fxaButton = findViewById(R.id.fxaButton);
-        fxaButton.setOnClickListener(view ->
-                onTurnOnSyncClick()
+        mBinding.fxaButton.setOnClickListener(view ->
+                manageAccount()
         );
 
-        updateCurrentAccountState();
-
-        // Monitor account state changes.
-        getServices().getAccountManager().register(accountHelper.getAccountObserver());
-
-        HoneycombButton developerOptionsButton = findViewById(R.id.developerOptionsButton);
-        developerOptionsButton.setOnClickListener(view -> {
+        mBinding.developerOptionsButton.setOnClickListener(view -> {
             if (mAudio != null) {
                 mAudio.playSound(AudioEngine.Sound.CLICK);
             }
@@ -209,8 +196,7 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
             onDeveloperOptionsClick();
         });
 
-        HoneycombButton controllerOptionsButton = findViewById(R.id.controllerOptionsButton);
-        controllerOptionsButton.setOnClickListener(view -> {
+        mBinding.controllerOptionsButton.setOnClickListener(view -> {
             if (mAudio != null) {
                 mAudio.playSound(AudioEngine.Sound.CLICK);
             }
@@ -218,7 +204,7 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
             showControllerOptionsDialog();
         });
 
-        mAudio = AudioEngine.fromContext(aContext);
+        mAudio = AudioEngine.fromContext(getContext());
 
         mViewMarginH = mWidgetPlacement.width - WidgetPlacement.dpDimension(getContext(), R.dimen.options_width);
         mViewMarginH = WidgetPlacement.convertDpToPixel(getContext(), mViewMarginH);
@@ -229,6 +215,7 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
     @Override
     public void releaseWidget() {
         mWidgetManager.removeWorldClickListener(this);
+        mAccountManager.removeAccountListener(mAccountObserver);
 
         super.releaseWidget();
     }
@@ -278,57 +265,64 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
         onDismiss();
     }
 
-    private void onTurnOnSyncClick() {
-        FxaAccountManager manager = getServices().getAccountManager();
-        // If we're already logged-in, and not in a "need to reconnect" state, logout.
-        if (manager.authenticatedAccount() != null && !manager.accountNeedsReauth()) {
-            manager.logoutAsync();
-            return;
-        }
-
-        // Otherwise, obtain an authentication URL and load it in the gecko session.
-        // Recovering from "need to reconnect" state is treated the same as just logging in.
-        CompletableFuture<String> futureUrl = accountHelper.authUrlAsync();
-        if (futureUrl == null) {
-            Log.w(LOGTAG, "Got a 'null' futureUrl");
-            return;
-        }
-
-        Executors.newSingleThreadExecutor().submit(() -> {
-            try {
-                String url = futureUrl.get();
-                if (url == null) {
-                    Log.w(LOGTAG, "Got a 'null' url after resolving futureUrl");
-                    return;
-                }
-                Log.i(LOGTAG, "Got an auth url: " + url);
-
-                // Actually process the url on the main thread.
-                new Handler(Looper.getMainLooper()).post(() -> {
-                    Log.i(LOGTAG, "Loading url...");
-                    SessionStore.get().getActiveStore().loadUri(url);
-                    hide(REMOVE_WIDGET);
+    private void manageAccount() {
+        switch(mAccountManager.getAccountStatus()) {
+            case SIGNED_OUT:
+            case NEEDS_RECONNECT:
+                mAccountManager.getAuthenticationUrlAsync().thenAcceptAsync((url) -> {
+                    if (url != null) {
+                        post(() -> {
+                            SessionStore.get().getActiveStore().loadUri(url);
+                            hide(REMOVE_WIDGET);
+                        });
+                    }
                 });
-            } catch (ExecutionException | InterruptedException e) {
-                Log.e(LOGTAG, "Error obtaining auth url", e);
-            }
-        });
-    }
+                break;
 
-    // TODO we can also set profile display name, email and authentication problem states.
-    void updateCurrentAccountState() {
-        HoneycombButton fxaButton = findViewById(R.id.fxaButton);
-        FxaAccountManager manager = getServices().getAccountManager();
-        if (manager.authenticatedAccount() != null) {
-            if (manager.accountNeedsReauth()) {
-                ((TextView) fxaButton.findViewById(R.id.settings_button_text)).setText(R.string.settings_accounts_reconnect);
-            } else {
-                ((TextView) fxaButton.findViewById(R.id.settings_button_text)).setText(R.string.settings_accounts_sign_out);
-            }
-        } else {
-            ((TextView) fxaButton.findViewById(R.id.settings_button_text)).setText(R.string.settings_accounts_sign_in);
+            case SIGNED_IN:
+                post(() -> showView(new FxAAccountOptionsView(getContext(), mWidgetManager)));
+                break;
         }
     }
+
+    private void updateCurrentAccountState() {
+        switch(mAccountManager.getAccountStatus()) {
+            case NEEDS_RECONNECT:
+                mBinding.fxaButton.setText(R.string.settings_fxa_account_reconnect);
+                break;
+
+            case SIGNED_IN:
+                mBinding.fxaButton.setText(R.string.settings_fxa_account_manage);
+                break;
+
+            case SIGNED_OUT:
+                mBinding.fxaButton.setText(R.string.settings_fxa_account_sign_in);
+                break;
+        }
+    }
+
+    private AccountObserver mAccountObserver = new AccountObserver() {
+
+        @Override
+        public void onAuthenticated(@NotNull OAuthAccount oAuthAccount, @NotNull AuthType authType) {
+
+        }
+
+        @Override
+        public void onProfileUpdated(@NotNull Profile profile) {
+
+        }
+
+        @Override
+        public void onLoggedOut() {
+            post(() -> mBinding.fxaButton.setText(R.string.settings_fxa_account_sign_in));
+        }
+
+        @Override
+        public void onAuthenticationProblems() {
+            post(() -> mBinding.fxaButton.setText(R.string.settings_fxa_account_reconnect));
+        }
+    };
 
     private void onDeveloperOptionsClick() {
         showDeveloperOptionsDialog();
@@ -340,43 +334,6 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
 
     private void onDisplayOptionsClick() {
         showDisplayOptionsDialog();
-    }
-
-    /**
-     * The version code is composed like: yDDDHHmm
-     *  * y   = Double digit year, with 16 substracted: 2017 -> 17 -> 1
-     *  * DDD = Day of the year, pad with zeros if needed: September 6th -> 249
-     *  * HH  = Hour in day (00-23)
-     *  * mm  = Minute in hour
-     *
-     * For September 6th, 2017, 9:41 am this will generate the versionCode: 12490941 (1-249-09-41).
-     *
-     * For local debug builds we use a fixed versionCode to not mess with the caching mechanism of the build
-     * system. The fixed local build number is 1.
-     *
-     * @param aVersionCode Application version code minus the leading architecture digit.
-     * @return String The converted date in the format yyyy-MM-dd
-     */
-    private String versionCodeToDate(final int aVersionCode) {
-        String versionCode = Integer.toString(aVersionCode);
-
-        String formatted;
-        try {
-            int year = Integer.parseInt(versionCode.substring(0, 1)) + 2016;
-            int dayOfYear = Integer.parseInt(versionCode.substring(1, 4));
-
-            GregorianCalendar cal = (GregorianCalendar)GregorianCalendar.getInstance();
-            cal.set(Calendar.YEAR, year);
-            cal.set(Calendar.DAY_OF_YEAR, dayOfYear);
-
-            SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
-            formatted = format.format(cal.getTime());
-
-        } catch (StringIndexOutOfBoundsException e) {
-            formatted = getContext().getString(R.string.settings_version_developer);
-        }
-
-        return formatted;
     }
 
     public void showView(SettingsView aView) {
@@ -398,9 +355,11 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
             this.addView(mCurrentView, params);
             mCurrentView.setDelegate(this);
             mCurrentView.onShown();
-            mMainLayout.setVisibility(View.GONE);
+            mBinding.optionsLayout.setVisibility(View.GONE);
+
         } else {
-            mMainLayout.setVisibility(View.VISIBLE);
+            mBinding.optionsLayout.setVisibility(View.VISIBLE);
+            updateCurrentAccountState();
         }
     }
 
@@ -441,6 +400,8 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
         super.show(aShowFlags);
 
         mWidgetManager.pushWorldBrightness(this, WidgetManagerDelegate.DEFAULT_DIM_BRIGHTNESS);
+
+        updateCurrentAccountState();
     }
 
     @Override
@@ -520,7 +481,4 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
         return false;
     }
 
-    private Services getServices() {
-        return ((VRBrowserApplication) getContext().getApplicationContext()).getServices();
-    }
 }

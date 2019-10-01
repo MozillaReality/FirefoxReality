@@ -14,6 +14,8 @@ import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
 import androidx.databinding.BindingAdapter;
 
+import org.mozilla.vrbrowser.ui.views.HoneycombButton;
+
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -66,6 +68,11 @@ public class BindingAdapters {
         ImageSpan span = new ImageSpan(drawable, ImageSpan.ALIGN_BOTTOM);
         spannableString.setSpan(span, spannableString.toString().indexOf("@"),  spannableString.toString().indexOf("@")+1, Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
         textView.setText(spannableString);
+    }
+
+    @BindingAdapter("honeycombButtonText")
+    public static void setHoneycombButtonText(@NonNull HoneycombButton button, int resource){
+        button.setText(resource);
     }
 
     @BindingAdapter("layout_height")

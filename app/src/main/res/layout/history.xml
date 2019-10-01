@@ -109,8 +109,44 @@
                 android:textSize="@dimen/text_biggest_size"
                 android:textStyle="bold" />
 
+            <TextView
+                android:id="@+id/syncDescription"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
+                android:layout_toStartOf="@+id/syncButton"
+                android:gravity="center_vertical"
+                android:paddingStart="15dp"
+                android:paddingEnd="15dp"
+                android:text="Last synced"
+                android:textColor="@color/rhino"
+                android:textSize="@dimen/text_medium_size"
+                android:textStyle="italic" />
+
             <Button
-                android:id="@+id/positiveButton"
+                android:id="@+id/syncButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_toStartOf="@+id/clearButton"
+                android:layout_centerVertical="true"
+                android:background="@drawable/content_panel_button_background"
+                android:drawableLeft="@drawable/library_sync_spinner"
+                android:drawableTint="@color/library_panel_button_text_color"
+                android:drawablePadding="5dp"
+                android:fontFamily="sans-serif"
+                android:gravity="center"
+                android:onClick="@{(view) ->  callback != null ? callback.onSyncHistory(view) : void}"
+                android:padding="5dp"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:layout_marginEnd="20dp"
+                android:text="@string/history_sync"
+                android:textColor="@color/library_panel_button_text_color"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/clearButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_alignParentEnd="true"

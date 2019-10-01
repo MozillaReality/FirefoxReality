@@ -18,16 +18,17 @@ import mozilla.components.concept.sync.DeviceCapability
 import mozilla.components.concept.sync.DeviceEvent
 import mozilla.components.concept.sync.DeviceEventsObserver
 import mozilla.components.concept.sync.DeviceType
-import mozilla.components.service.fxa.DeviceConfig
-import mozilla.components.service.fxa.ServerConfig
-import mozilla.components.service.fxa.SyncConfig
+import mozilla.components.lib.fetch.httpurlconnection.HttpURLConnectionClient
+import mozilla.components.service.fxa.*
 import mozilla.components.service.fxa.manager.FxaAccountManager
 import mozilla.components.service.fxa.sync.GlobalSyncableStoreProvider
 import mozilla.components.support.base.log.Log
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.base.log.sink.AndroidLogSink
+import mozilla.components.support.rusthttp.RustHttpConfig
+import mozilla.components.support.rustlog.RustLog
 import org.mozilla.vrbrowser.browser.engine.SessionStore
-import java.lang.IllegalStateException
+import org.mozilla.vrbrowser.R
 
 class Services(context: Context, places: Places) {
     companion object {
@@ -38,11 +39,14 @@ class Services(context: Context, places: Places) {
 
     // This makes bookmarks storage accessible to background sync workers.
     init {
+        RustLog.enable()
+        RustHttpConfig.setClient(lazy { HttpURLConnectionClient() })
+
         // Make sure we get logs out of our android-components.
         Log.addSink(AndroidLogSink())
 
-        GlobalSyncableStoreProvider.configureStore("bookmarks" to places.bookmarks)
-        GlobalSyncableStoreProvider.configureStore("history" to places.history)
+        GlobalSyncableStoreProvider.configureStore(SyncEngine.BOOKMARKS to places.bookmarks)
+        GlobalSyncableStoreProvider.configureStore(SyncEngine.HISTORY to places.history)
 
         // TODO this really shouldn't be necessary, since WorkManager auto-initializes itself, unless
         // auto-initialization is disabled in the manifest file. We don't disable the initialization,
@@ -82,14 +86,15 @@ class Services(context: Context, places: Places) {
         deviceConfig = DeviceConfig(
             // This is a default name, and can be changed once user is logged in.
             // E.g. accountManager.authenticatedAccount()?.deviceConstellation()?.setDeviceNameAsync("new name")
-            name = "Firefox Reality on ${Build.MANUFACTURER} ${Build.MODEL}",
+            name = "${context.getString(R.string.app_name)} on ${Build.MANUFACTURER} ${Build.MODEL}",
             // TODO need a new device type! "VR"
-            type = DeviceType.MOBILE,
+            type = DeviceType.VR,
             capabilities = setOf(DeviceCapability.SEND_TAB)
         ),
         // If background syncing is desired, pass in a 'syncPeriodInMinutes' parameter.
         // As-is, sync will run on app startup.
-        syncConfig = SyncConfig(setOf("bookmarks", "history"))
+        syncConfig = SyncConfig(setOf(SyncEngine.HISTORY, SyncEngine.BOOKMARKS), syncPeriodInMinutes = 15L)
+
     ).also {
         it.registerForDeviceEvents(deviceEventObserver, ProcessLifecycleOwner.get(), true)
     }
@@ -109,9 +114,10 @@ class Services(context: Context, places: Places) {
 
         parsedUri.getQueryParameter("code")?.let { code ->
             val state = parsedUri.getQueryParameter("state") as String
+            val action = parsedUri.getQueryParameter("action") as String
 
             // Notify the state machine about our success.
-            accountManager.finishAuthenticationAsync(code, state)
+            accountManager.finishAuthenticationAsync(FxaAuthData(action.toAuthType(), code = code, state = state))
         }
     }
 }

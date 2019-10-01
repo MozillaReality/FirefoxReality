@@ -8,21 +8,25 @@ package org.mozilla.vrbrowser.browser
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import androidx.lifecycle.ProcessLifecycleOwner
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.future.future
 import mozilla.appservices.places.BookmarkRoot
 import mozilla.components.concept.storage.BookmarkNode
-import org.mozilla.vrbrowser.VRBrowserApplication
-import java.util.concurrent.CompletableFuture
 import mozilla.components.concept.storage.BookmarkNodeType
 import mozilla.components.service.fxa.sync.SyncStatusObserver
+import mozilla.components.support.base.log.logger.Logger
 import org.mozilla.vrbrowser.R
+import org.mozilla.vrbrowser.VRBrowserApplication
+import org.mozilla.vrbrowser.utils.SystemUtils
+import java.util.concurrent.CompletableFuture
 
 const val DESKTOP_ROOT = "fake_desktop_root"
 
 class BookmarksStore constructor(val context: Context) {
+
+    private val LOGTAG = SystemUtils.createLogtag(BookmarksStore::class.java)
+
     companion object {
         private val coreRoots = listOf(
                 DESKTOP_ROOT,
@@ -63,7 +67,7 @@ class BookmarksStore constructor(val context: Context) {
         override fun onStarted() {}
 
         override fun onIdle() {
-            Log.d("BookmarksStore", "Detected that sync is finished, notifying listeners")
+            Logger(LOGTAG).debug("Detected that sync is finished, notifying listeners")
             notifyListeners()
         }
 

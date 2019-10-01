@@ -5,8 +5,12 @@
 
 package org.mozilla.vrbrowser.ui.views;
 
+import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.SharedPreferences;
+import android.graphics.drawable.Drawable;
+import android.preference.PreferenceManager;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -17,8 +21,10 @@ import androidx.databinding.DataBindingUtil;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.mozilla.vrbrowser.R;
-import org.mozilla.vrbrowser.audio.AudioEngine;
+import org.mozilla.vrbrowser.browser.AccountsManager;
 import org.mozilla.vrbrowser.browser.BookmarksStore;
 import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.browser.engine.Session;
@@ -29,17 +35,28 @@ import org.mozilla.vrbrowser.ui.callbacks.BookmarkItemCallback;
 import org.mozilla.vrbrowser.ui.callbacks.BookmarksCallback;
 import org.mozilla.vrbrowser.utils.UIThreadExecutor;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import mozilla.appservices.places.BookmarkRoot;
 import mozilla.components.concept.storage.BookmarkNode;
+import mozilla.components.concept.sync.AccountObserver;
+import mozilla.components.concept.sync.AuthType;
+import mozilla.components.concept.sync.OAuthAccount;
+import mozilla.components.concept.sync.Profile;
+import mozilla.components.service.fxa.SyncEngine;
+import mozilla.components.service.fxa.sync.SyncStatusObserver;
 
 public class BookmarksView extends FrameLayout implements BookmarksStore.BookmarkListener {
 
     private BookmarksBinding mBinding;
+    private ObjectAnimator mSyncingAnimation;
+    private AccountsManager mAccountManager;
     private BookmarkAdapter mBookmarkAdapter;
-    private AudioEngine mAudio;
     private boolean mIgnoreNextListener;
+    private boolean mIsSyncEnabled;
+    private boolean mIsSignedIn;
+    private ArrayList<BookmarksCallback> mBookmarksViewListeners;
 
     public BookmarksView(Context aContext) {
         super(aContext);
@@ -58,12 +75,13 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
 
     @SuppressLint("ClickableViewAccessibility")
     private void initialize(Context aContext) {
-        mAudio = AudioEngine.fromContext(aContext);
-
         LayoutInflater inflater = LayoutInflater.from(aContext);
+
+        mBookmarksViewListeners = new ArrayList<>();
 
         // Inflate this data binding layout
         mBinding = DataBindingUtil.inflate(inflater, R.layout.bookmarks, this, true);
+        mBinding.setCallback(mBookmarksCallback);
         mBookmarkAdapter = new BookmarkAdapter(mBookmarkItemCallback, aContext);
         mBinding.bookmarksList.setAdapter(mBookmarkAdapter);
         mBinding.bookmarksList.setOnTouchListener((v, event) -> {
@@ -72,8 +90,21 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
         });
         mBinding.setIsLoading(true);
         mBinding.executePendingBindings();
-        syncBookmarks();
+
+        Drawable[] drawables = mBinding.syncButton.getCompoundDrawables();
+        mSyncingAnimation = ObjectAnimator.ofInt(drawables[0], "level", 0, 10000);
+        mSyncingAnimation.setRepeatCount(ObjectAnimator.INFINITE);
+
+        updateBookmarks();
         SessionStore.get().getBookmarkStore().addListener(this);
+
+        mAccountManager = SessionStore.get().getAccountsManager();
+        mAccountManager.addAccountListener(mAccountListener);
+        mAccountManager.addSyncListener(mSyncListener);
+
+        mIsSyncEnabled = mAccountManager.supportedSyncEngines().contains(SyncEngine.BOOKMARKS);
+
+        updateCurrentAccountState();
 
         setVisibility(GONE);
 
@@ -85,6 +116,8 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
 
     public void onDestroy() {
         SessionStore.get().getBookmarkStore().removeListener(this);
+        mAccountManager.removeAccountListener(mAccountListener);
+        mAccountManager.removeSyncListener(mSyncListener);
     }
 
     private final BookmarkItemCallback mBookmarkItemCallback = new BookmarkItemCallback() {
@@ -132,11 +165,160 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
         }
     };
 
-    public void setBookmarksCallback(@NonNull BookmarksCallback callback) {
-        mBinding.setCallback(callback);
+    private BookmarksCallback mBookmarksCallback = new BookmarksCallback() {
+        @Override
+        public void onClearBookmarks(@NonNull View view) {
+            mBookmarksViewListeners.forEach((listener) -> listener.onClearBookmarks(view));
+        }
+
+        @Override
+        public void onSyncBookmarks(@NonNull View view) {
+            switch(mAccountManager.getAccountStatus()) {
+                case NEEDS_RECONNECT:
+                case SIGNED_OUT:
+                    mAccountManager.getAuthenticationUrlAsync().thenAcceptAsync((url) -> {
+                        if (url != null) {
+                            SessionStore.get().getActiveStore().loadUri(url);
+                        }
+                    });
+                    break;
+
+                case SIGNED_IN:
+                    SessionStore.get().getAccountsManager().syncNowAsync(false, false);
+
+                    mBookmarksViewListeners.forEach((listener) -> listener.onSyncBookmarks(view));
+                    break;
+
+                default:
+                    throw new IllegalStateException("Unexpected value: " + mAccountManager.getAccountStatus());
+            }
+        }
+
+        @Override
+        public void onShowContextMenu(@NonNull View view, BookmarkNode item, boolean isLastVisibleItem) {
+            mBookmarksViewListeners.forEach((listener) -> listener.onShowContextMenu(view, item, isLastVisibleItem));
+        }
+    };
+
+    public void addBookmarksListener(@NonNull BookmarksCallback listener) {
+        if (!mBookmarksViewListeners.contains(listener)) {
+            mBookmarksViewListeners.add(listener);
+        }
     }
 
-    private void syncBookmarks() {
+    public void removeBookmarksListener(@NonNull BookmarksCallback listener) {
+        mBookmarksViewListeners.remove(listener);
+    }
+
+    private SyncStatusObserver mSyncListener = new SyncStatusObserver() {
+        @Override
+        public void onStarted() {
+            post(() -> {
+                mBinding.syncButton.setEnabled(false);
+                mSyncingAnimation.start();
+            });
+        }
+
+        @Override
+        public void onIdle() {
+            post(() -> {
+                mBinding.syncButton.setEnabled(true);
+                mSyncingAnimation.cancel();
+                updateUi();
+            });
+        }
+
+        @Override
+        public void onError(@Nullable Exception e) {
+            post(() -> {
+                mBinding.syncButton.setEnabled(true);
+                mSyncingAnimation.cancel();
+                mBinding.syncDescription.setText(getContext().getString(R.string.fxa_account_last_no_synced));
+            });
+        }
+    };
+
+    private void updateCurrentAccountState() {
+        switch(mAccountManager.getAccountStatus()) {
+            case NEEDS_RECONNECT:
+            case SIGNED_OUT:
+                mIsSignedIn = false;
+                updateUi();
+                break;
+
+            case SIGNED_IN:
+                mIsSignedIn = true;
+                updateUi();
+                break;
+
+            default:
+                throw new IllegalStateException("Unexpected value: " + mAccountManager.getAccountStatus());
+        }
+    }
+
+    private AccountObserver mAccountListener = new AccountObserver() {
+
+        @Override
+        public void onAuthenticated(@NotNull OAuthAccount oAuthAccount, @NotNull AuthType authType) {
+            mIsSignedIn = true;
+            updateUi();
+        }
+
+        @Override
+        public void onProfileUpdated(@NotNull Profile profile) {
+        }
+
+        @Override
+        public void onLoggedOut() {
+            mIsSignedIn = false;
+            updateUi();
+        }
+
+        @Override
+        public void onAuthenticationProblems() {
+            mIsSignedIn = false;
+            updateUi();
+        }
+    };
+
+    private void updateUi() {
+        post(() -> {
+            if (mIsSignedIn) {
+                mBinding.syncButton.setText(R.string.bookmarks_sync);
+                mBinding.syncDescription.setVisibility(VISIBLE);
+
+                mIsSyncEnabled = mAccountManager.supportedSyncEngines().contains(SyncEngine.BOOKMARKS);
+                if (mIsSyncEnabled) {
+                    mBinding.syncButton.setEnabled(true);
+                    mBinding.syncDescription.setVisibility(VISIBLE);
+
+                    long lastSync = mAccountManager.getLastSync();
+                    if (lastSync == 0) {
+                        mBinding.syncDescription.setText(getContext().getString(R.string.fxa_account_last_no_synced));
+
+                    } else {
+                        long timeDiff = System.currentTimeMillis() - lastSync;
+                        if (timeDiff < 60000) {
+                            mBinding.syncDescription.setText(getContext().getString(R.string.fxa_account_last_synced_now));
+
+                        } else {
+                            mBinding.syncDescription.setText(getContext().getString(R.string.fxa_account_last_synced, timeDiff / 60000));
+                        }
+                    }
+
+                } else {
+                    mBinding.syncButton.setEnabled(false);
+                    mBinding.syncDescription.setVisibility(GONE);
+                }
+
+            } else {
+                mBinding.syncButton.setText(R.string.fxa_account_sing_to_sync);
+                mBinding.syncDescription.setVisibility(GONE);
+            }
+        });
+    }
+
+    private void updateBookmarks() {
         SessionStore.get().getBookmarkStore().getBookmarks(BookmarkRoot.Root.getId()).thenAcceptAsync(this::showBookmarks, new UIThreadExecutor());
     }
 
@@ -170,7 +352,7 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
             mIgnoreNextListener = false;
             return;
         }
-        syncBookmarks();
+        updateBookmarks();
     }
 
     @Override
@@ -179,6 +361,6 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
             mIgnoreNextListener = false;
             return;
         }
-        syncBookmarks();
+        updateBookmarks();
     }
 }

@@ -48,14 +48,6 @@ public class VRBrowserApplication extends Application {
         LocaleUtils.setLocale(this);
     }
 
-    public AppDatabase getDatabase() {
-        return AppDatabase.getInstance(this, mAppExecutors);
-    }
-
-    public DataRepository getRepository() {
-        return DataRepository.getInstance(getDatabase(), mAppExecutors);
-    }
-
     public Services getServices() {
         return mServices;
     }

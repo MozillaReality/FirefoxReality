@@ -49,8 +49,6 @@ import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.crashreporting.CrashReporterService;
 import org.mozilla.vrbrowser.crashreporting.GlobalExceptionHandler;
 import org.mozilla.vrbrowser.geolocation.GeolocationWrapper;
-import org.mozilla.vrbrowser.ui.widgets.prompts.ConfirmPromptWidget;
-import org.mozilla.vrbrowser.utils.DeviceType;
 import org.mozilla.vrbrowser.input.MotionEventGenerator;
 import org.mozilla.vrbrowser.search.SearchEngineWrapper;
 import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
@@ -67,14 +65,12 @@ import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
 import org.mozilla.vrbrowser.ui.widgets.WindowWidget;
 import org.mozilla.vrbrowser.ui.widgets.Windows;
 import org.mozilla.vrbrowser.ui.widgets.dialogs.CrashDialogWidget;
+import org.mozilla.vrbrowser.ui.widgets.prompts.ConfirmPromptWidget;
 import org.mozilla.vrbrowser.utils.ConnectivityReceiver;
+import org.mozilla.vrbrowser.utils.DeviceType;
 import org.mozilla.vrbrowser.utils.LocaleUtils;
 import org.mozilla.vrbrowser.utils.ServoUtils;
 import org.mozilla.vrbrowser.utils.SystemUtils;
-
-import mozilla.components.concept.sync.AccountObserver;
-import mozilla.components.concept.sync.OAuthAccount;
-import mozilla.components.concept.sync.Profile;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -185,23 +181,6 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         }
     };
 
-    private AccountObserver accountObserver = new AccountObserver() {
-        @Override
-        public void onLoggedOut() {}
-
-        @Override
-        public void onAuthenticated(@NonNull OAuthAccount account) {
-            // Check if we have any new device events (e.g. tabs).
-            account.deviceConstellation().refreshDeviceStateAsync();
-        }
-
-        @Override
-        public void onProfileUpdated(@NonNull Profile profile) {}
-
-        @Override
-        public void onAuthenticationProblems() {}
-    };
-
     @Override
     protected void attachBaseContext(Context base) {
         super.attachBaseContext(LocaleUtils.setLocale(base));
@@ -234,6 +213,8 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         Bundle extras = getIntent() != null ? getIntent().getExtras() : null;
         SessionStore.get().setContext(this, extras);
         SessionStore.get().initializeStores(this);
+
+        SessionStore.get().initializeAccounts(this);
 
         // Create broadcast receiver for getting crash messages from crash process
         IntentFilter intentFilter = new IntentFilter();
@@ -284,12 +265,6 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         mConnectivityReceiver = new ConnectivityReceiver();
         mPoorPerformanceWhiteList = new HashSet<>();
         checkForCrash();
-
-        // Monitor FxA account state.
-        ((VRBrowserApplication) this.getApplicationContext())
-            .getServices()
-            .getAccountManager()
-            .register(accountObserver);
     }
 
     protected void initializeWidgets() {
@@ -418,13 +393,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
 
         // If we're signed-in, poll for any new device events (e.g. received tabs) on activity resume.
         // There's no push support right now, so this helps with the perception of speedy tab delivery.
-        OAuthAccount account = ((VRBrowserApplication) this.getApplicationContext())
-                .getServices()
-                .getAccountManager()
-                .authenticatedAccount();
-        if (account != null) {
-            account.deviceConstellation().refreshDeviceStateAsync();
-        }
+        SessionStore.get().getAccountsManager().refreshDevicesAsync();
 
         super.onResume();
     }
