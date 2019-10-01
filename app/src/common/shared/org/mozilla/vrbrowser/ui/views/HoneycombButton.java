@@ -16,6 +16,8 @@ import org.mozilla.vrbrowser.utils.DeviceType;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.utils.SystemUtils;
 
+import androidx.annotation.DrawableRes;
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
 
@@ -135,5 +137,9 @@ public class HoneycombButton extends LinearLayout {
 
     public void setText(@StringRes int text) {
         mText.setText(text);
+    }
+
+    public void setImageDrawable(@NonNull Drawable drawable) {
+        mIcon.setImageDrawable(drawable);
     }
 }

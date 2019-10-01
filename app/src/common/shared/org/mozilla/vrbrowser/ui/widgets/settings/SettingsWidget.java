@@ -23,6 +23,7 @@ import android.widget.FrameLayout;
 import androidx.databinding.DataBindingUtil;
 
 import org.jetbrains.annotations.NotNull;
+import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.vrbrowser.BuildConfig;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.audio.AudioEngine;
@@ -40,7 +41,9 @@ import org.mozilla.vrbrowser.ui.widgets.dialogs.UIDialog;
 import org.mozilla.vrbrowser.ui.widgets.prompts.AlertPromptWidget;
 import org.mozilla.vrbrowser.utils.StringUtils;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.URL;
 import java.net.URLEncoder;
 
 import mozilla.components.concept.sync.AccountObserver;
@@ -293,10 +296,12 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
 
             case SIGNED_IN:
                 mBinding.fxaButton.setText(R.string.settings_fxa_account_manage);
+                updateProfile(mAccountManager.accountProfile());
                 break;
 
             case SIGNED_OUT:
                 mBinding.fxaButton.setText(R.string.settings_fxa_account_sign_in);
+                updateProfile(mAccountManager.accountProfile());
                 break;
         }
     }
@@ -310,7 +315,7 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
 
         @Override
         public void onProfileUpdated(@NotNull Profile profile) {
-
+            updateProfile(profile);
         }
 
         @Override
@@ -323,6 +328,25 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
             post(() -> mBinding.fxaButton.setText(R.string.settings_fxa_account_reconnect));
         }
     };
+
+    private void updateProfile(Profile profile) {
+        if (profile != null) {
+            ThreadUtils.postToBackgroundThread(() -> {
+                try {
+                    URL url = new URL(profile.getAvatar().getUrl());
+                    Drawable picture = Drawable.createFromStream(url.openStream(), "src");
+                    post(() -> mBinding.fxaButton.setImageDrawable(picture));
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+
+                }
+            });
+
+        } else {
+            mBinding.fxaButton.setImageDrawable(getContext().getDrawable(R.drawable.ic_settings_help));
+        }
+    }
 
     private void onDeveloperOptionsClick() {
         showDeveloperOptionsDialog();
