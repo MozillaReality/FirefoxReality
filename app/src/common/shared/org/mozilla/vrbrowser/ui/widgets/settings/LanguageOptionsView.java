@@ -7,6 +7,7 @@ package org.mozilla.vrbrowser.ui.widgets.settings;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.graphics.Point;
 import android.preference.PreferenceManager;
 import android.view.LayoutInflater;
 
@@ -16,6 +17,7 @@ import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.databinding.OptionsLanguageBinding;
 import org.mozilla.vrbrowser.ui.adapters.Language;
 import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
+import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
 import org.mozilla.vrbrowser.utils.LocaleUtils;
 import org.mozilla.vrbrowser.utils.ViewUtils;
 
@@ -122,5 +124,11 @@ class LanguageOptionsView extends SettingsView {
             setDisplayLanguage();
         }
     };
+
+    @Override
+    public Point getDimensions() {
+        return new Point( WidgetPlacement.dpDimension(getContext(), R.dimen.language_options_width),
+                WidgetPlacement.dpDimension(getContext(), R.dimen.language_options_height));
+    }
 
 }

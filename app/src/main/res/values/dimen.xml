@@ -129,9 +129,11 @@
     <dimen name="tray_height">40dp</dimen>
     <item name="tray_tooltip_density" format="float" type="dimen">4.5</item>
 
-    <!-- Developer Options Panel -->
-    <dimen name="developer_options_width">585dp</dimen>
-    <dimen name="developer_options_height">385dp</dimen>
+    <!-- Options Panel -->
+    <dimen name="options_width">585dp</dimen>
+    <dimen name="options_height">385dp</dimen>
+
+    <!-- Developer Panel -->
     <dimen name="developer_options_button_width">120dp</dimen>
     <dimen name="developer_options_row_width">40dp</dimen>
 
@@ -245,7 +247,7 @@
 
     <!-- Privacy settings -->
     <dimen name="language_options_width">585dp</dimen>
-    <dimen name="language_options_height">490dp</dimen>
+    <dimen name="language_options_height">360dp</dimen>
 
     <!-- Display settings -->
     <dimen name="display_options_width">585dp</dimen>
