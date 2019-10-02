@@ -11,8 +11,10 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
+import org.jetbrains.annotations.NotNull;
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.R;
+import org.mozilla.vrbrowser.browser.AccountsManager;
 import org.mozilla.vrbrowser.browser.Media;
 import org.mozilla.vrbrowser.browser.PromptDelegate;
 import org.mozilla.vrbrowser.browser.SettingsStore;
@@ -32,6 +34,11 @@ import java.io.Writer;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
+
+import mozilla.components.concept.sync.AccountObserver;
+import mozilla.components.concept.sync.AuthType;
+import mozilla.components.concept.sync.OAuthAccount;
+import mozilla.components.concept.sync.Profile;
 
 import static org.mozilla.vrbrowser.ui.widgets.UIWidget.REQUEST_FOCUS;
 
@@ -93,6 +100,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
     private boolean mIsPaused = false;
     private PromptDelegate mPromptDelegate;
     private TabsWidget mTabsWidget;
+    private AccountsManager mAccountManager;
 
     public enum WindowPlacement{
         FRONT(0),
@@ -127,6 +135,9 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         mPromptDelegate = new PromptDelegate(mContext);
 
         mStoredCurvedMode = SettingsStore.getInstance(mContext).getCylinderDensity() > 0.0f;
+
+        mAccountManager = SessionStore.get().getAccountsManager();
+        mAccountManager.addAccountListener(mAccountObserver);
 
         restoreWindows();
     }
@@ -424,6 +435,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         for (WindowWidget window: mPrivateWindows) {
             window.close();
         }
+        mAccountManager.removeAccountListener(mAccountObserver);
     }
 
     public boolean isInPrivateMode() {
@@ -858,6 +870,40 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             }
         }
     }
+
+    private AccountObserver mAccountObserver = new AccountObserver() {
+        @Override
+        public void onLoggedOut() {
+
+        }
+
+        @Override
+        public void onAuthenticated(@NotNull OAuthAccount oAuthAccount, @NotNull AuthType authType) {
+            switch (mAccountManager.getLoginOrigin()) {
+                case BOOKMARKS:
+                    getFocusedWindow().switchBookmarks();
+                    break;
+
+                case HISTORY:
+                    getFocusedWindow().switchHistory();
+                    break;
+
+                case SETTINGS:
+                    mWidgetManager.getTray().toggleSettingsDialog();
+                    break;
+            }
+        }
+
+        @Override
+        public void onProfileUpdated(@NotNull Profile profile) {
+
+        }
+
+        @Override
+        public void onAuthenticationProblems() {
+
+        }
+    };
 
     // Tray Listener
     @Override

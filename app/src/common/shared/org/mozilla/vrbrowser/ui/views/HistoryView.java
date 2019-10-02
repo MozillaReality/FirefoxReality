@@ -8,9 +8,7 @@ package org.mozilla.vrbrowser.ui.views;
 import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.graphics.drawable.Drawable;
-import android.preference.PreferenceManager;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -186,6 +184,7 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
                 case SIGNED_OUT:
                     mAccountManager.getAuthenticationUrlAsync().thenAcceptAsync((url) -> {
                         if (url != null) {
+                            mAccountManager.setLoginOrigin(AccountsManager.LoginOrigin.HISTORY);
                             SessionStore.get().getActiveStore().loadUri(url);
                         }
                     });
@@ -221,28 +220,22 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
     private SyncStatusObserver mSyncListener = new SyncStatusObserver() {
         @Override
         public void onStarted() {
-            post(() -> {
-                mBinding.syncButton.setEnabled(false);
-                mSyncingAnimation.start();
-            });
+            mBinding.syncButton.setEnabled(false);
+            mSyncingAnimation.start();
         }
 
         @Override
         public void onIdle() {
-            post(() -> {
-                mBinding.syncButton.setEnabled(true);
-                mSyncingAnimation.cancel();
-                updateUi();
-            });
+            mBinding.syncButton.setEnabled(true);
+            mSyncingAnimation.cancel();
+            updateUi();
         }
 
         @Override
         public void onError(@Nullable Exception e) {
-            post(() -> {
-                mBinding.syncButton.setEnabled(true);
-                mSyncingAnimation.cancel();
-                mBinding.syncDescription.setText(getContext().getString(R.string.fxa_account_last_no_synced));
-            });
+            mBinding.syncButton.setEnabled(true);
+            mSyncingAnimation.cancel();
+            mBinding.syncDescription.setText(getContext().getString(R.string.fxa_account_last_no_synced));
         }
     };
 
@@ -290,40 +283,38 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
     };
 
     private void updateUi() {
-        post(() -> {
-            if (mIsSignedIn) {
-                mBinding.syncButton.setText(R.string.history_sync);
+        if (mIsSignedIn) {
+            mBinding.syncButton.setText(R.string.history_sync);
+            mBinding.syncDescription.setVisibility(VISIBLE);
+
+            mIsSyncEnabled = mAccountManager.supportedSyncEngines().contains(SyncEngine.HISTORY);
+            if (mIsSyncEnabled) {
+                mBinding.syncButton.setEnabled(true);
                 mBinding.syncDescription.setVisibility(VISIBLE);
 
-                mIsSyncEnabled = mAccountManager.supportedSyncEngines().contains(SyncEngine.HISTORY);
-                if (mIsSyncEnabled) {
-                    mBinding.syncButton.setEnabled(true);
-                    mBinding.syncDescription.setVisibility(VISIBLE);
-
-                    long lastSync = mAccountManager.getLastSync();
-                    if (lastSync == 0) {
-                        mBinding.syncDescription.setText(getContext().getString(R.string.fxa_account_last_no_synced));
-
-                    } else {
-                        long timeDiff = System.currentTimeMillis() - lastSync;
-                        if (timeDiff < 60000) {
-                            mBinding.syncDescription.setText(getContext().getString(R.string.fxa_account_last_synced_now));
-
-                        } else {
-                            mBinding.syncDescription.setText(getContext().getString(R.string.fxa_account_last_synced, timeDiff / 60000));
-                        }
-                    }
+                long lastSync = mAccountManager.getLastSync();
+                if (lastSync == 0) {
+                    mBinding.syncDescription.setText(getContext().getString(R.string.fxa_account_last_no_synced));
 
                 } else {
-                    mBinding.syncButton.setEnabled(false);
-                    mBinding.syncDescription.setVisibility(GONE);
+                    long timeDiff = System.currentTimeMillis() - lastSync;
+                    if (timeDiff < 60000) {
+                        mBinding.syncDescription.setText(getContext().getString(R.string.fxa_account_last_synced_now));
+
+                    } else {
+                        mBinding.syncDescription.setText(getContext().getString(R.string.fxa_account_last_synced, timeDiff / 60000));
+                    }
                 }
 
             } else {
-                mBinding.syncButton.setText(R.string.fxa_account_sing_to_sync);
+                mBinding.syncButton.setEnabled(false);
                 mBinding.syncDescription.setVisibility(GONE);
             }
-        });
+
+        } else {
+            mBinding.syncButton.setText(R.string.fxa_account_sing_to_sync);
+            mBinding.syncDescription.setVisibility(GONE);
+        }
     }
 
     private void updateHistory() {

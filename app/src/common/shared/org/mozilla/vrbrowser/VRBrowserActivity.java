@@ -1410,6 +1410,11 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         return mWindows.getFocusedWindow();
     }
 
+    @Override
+    public TrayWidget getTray() {
+        return mTray;
+    }
+
     private native void addWidgetNative(int aHandle, WidgetPlacement aPlacement);
     private native void updateWidgetNative(int aHandle, WidgetPlacement aPlacement);
     private native void updateVisibleWidgetsNative();

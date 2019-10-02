@@ -36,6 +36,13 @@ class AccountsManager constructor(val context: Context) {
         NEEDS_RECONNECT
     }
 
+    enum class LoginOrigin {
+        BOOKMARKS,
+        HISTORY,
+        SETTINGS
+    }
+
+    var loginOrigin: LoginOrigin = LoginOrigin.SETTINGS
     var accountStatus = AccountStatus.SIGNED_OUT
     private val accountListeners = ArrayList<AccountObserver>()
     private val syncListeners = ArrayList<SyncStatusObserver>()
@@ -45,20 +52,26 @@ class AccountsManager constructor(val context: Context) {
     private val syncStatusObserver = object : SyncStatusObserver {
         override fun onStarted() {
             syncListeners.toMutableList().forEach {
-                it.onStarted()
+                Handler(Looper.getMainLooper()).post {
+                    it.onStarted()
+                }
             }
         }
 
         override fun onIdle() {
             lastSync = System.currentTimeMillis()
             syncListeners.toMutableList().forEach {
-                it.onIdle()
+                Handler(Looper.getMainLooper()).post {
+                    it.onIdle()
+                }
             }
         }
 
         override fun onError(error: Exception?) {
             syncListeners.toMutableList().forEach {
-                it.onError(error)
+                Handler(Looper.getMainLooper()).post {
+                    it.onError(error)
+                }
             }
         }
     }
@@ -68,27 +81,35 @@ class AccountsManager constructor(val context: Context) {
             accountStatus = AccountStatus.SIGNED_IN
             account.deviceConstellation().refreshDevicesAsync()
             accountListeners.toMutableList().forEach {
-                it.onAuthenticated(account, authType)
+                Handler(Looper.getMainLooper()).post {
+                    it.onAuthenticated(account, authType)
+                }
             }
         }
 
         override fun onAuthenticationProblems() {
             accountStatus = AccountStatus.NEEDS_RECONNECT
             accountListeners.toMutableList().forEach {
-                it.onAuthenticationProblems()
+                Handler(Looper.getMainLooper()).post {
+                    it.onAuthenticationProblems()
+                }
             }
         }
 
         override fun onLoggedOut() {
             accountStatus = AccountStatus.SIGNED_OUT
             accountListeners.toMutableList().forEach {
-                it.onLoggedOut()
+                Handler(Looper.getMainLooper()).post {
+                    it.onLoggedOut()
+                }
             }
         }
 
         override fun onProfileUpdated(profile: Profile) {
             accountListeners.toMutableList().forEach {
-                it.onProfileUpdated(profile)
+                Handler(Looper.getMainLooper()).post {
+                    it.onProfileUpdated(profile)
+                }
             }
         }
     }

@@ -275,6 +275,7 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
                 mAccountManager.getAuthenticationUrlAsync().thenAcceptAsync((url) -> {
                     if (url != null) {
                         post(() -> {
+                            mAccountManager.setLoginOrigin(AccountsManager.LoginOrigin.SETTINGS);
                             SessionStore.get().getActiveStore().loadUri(url);
                             hide(REMOVE_WIDGET);
                         });
