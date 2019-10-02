@@ -27,6 +27,7 @@ import mozilla.components.concept.sync.AuthType;
 import mozilla.components.concept.sync.OAuthAccount;
 import mozilla.components.concept.sync.Profile;
 import mozilla.components.service.fxa.SyncEngine;
+import mozilla.components.service.fxa.sync.SyncReason;
 
 class FxAAccountOptionsView extends SettingsView {
 
@@ -73,8 +74,8 @@ class FxAAccountOptionsView extends SettingsView {
         mAccountManager.addAccountListener(mAccountListener);
 
         Set<SyncEngine> syncEngines = mAccountManager.supportedSyncEngines();
-        setBookmarksSync(syncEngines.contains(SyncEngine.BOOKMARKS), false);
-        setHistorySync(syncEngines.contains(SyncEngine.HISTORY), false);
+        setBookmarksSync(syncEngines.contains(SyncEngine.Bookmarks.INSTANCE), false);
+        setHistorySync(syncEngines.contains(SyncEngine.History.INSTANCE), false);
     }
 
     @Override
@@ -98,12 +99,13 @@ class FxAAccountOptionsView extends SettingsView {
         if (doApply) {
             Set<SyncEngine> engines = mAccountManager.supportedSyncEngines();
             if (value) {
-                engines.add(SyncEngine.BOOKMARKS);
+                engines.add(SyncEngine.Bookmarks.INSTANCE);
 
             } else {
-                engines.remove(SyncEngine.BOOKMARKS);
+                engines.remove(SyncEngine.Bookmarks.INSTANCE);
             }
             mAccountManager.setSyncConfigAsync(engines, SYNC_REFRESH_TIME);
+            mAccountManager.syncNowAsync(SyncReason.EngineChange.INSTANCE, false);
         }
     }
 
@@ -118,12 +120,13 @@ class FxAAccountOptionsView extends SettingsView {
         if (doApply) {
             Set<SyncEngine> engines = mAccountManager.supportedSyncEngines();
             if (value) {
-                engines.add(SyncEngine.HISTORY);
+                engines.add(SyncEngine.History.INSTANCE);
 
             } else {
-                engines.remove(SyncEngine.HISTORY);
+                engines.remove(SyncEngine.History.INSTANCE);
             }
             mAccountManager.setSyncConfigAsync(engines, SYNC_REFRESH_TIME);
+            mAccountManager.syncNowAsync(SyncReason.EngineChange.INSTANCE, false);
         }
     }
 

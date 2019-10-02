@@ -118,7 +118,6 @@
                 android:gravity="center_vertical"
                 android:paddingStart="15dp"
                 android:paddingEnd="15dp"
-                android:text="Last synced"
                 android:textColor="@color/rhino"
                 android:textSize="@dimen/text_medium_size"
                 android:textStyle="italic" />

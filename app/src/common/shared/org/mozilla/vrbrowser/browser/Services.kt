@@ -45,8 +45,8 @@ class Services(context: Context, places: Places) {
         // Make sure we get logs out of our android-components.
         Log.addSink(AndroidLogSink())
 
-        GlobalSyncableStoreProvider.configureStore(SyncEngine.BOOKMARKS to places.bookmarks)
-        GlobalSyncableStoreProvider.configureStore(SyncEngine.HISTORY to places.history)
+        GlobalSyncableStoreProvider.configureStore(SyncEngine.Bookmarks to places.bookmarks)
+        GlobalSyncableStoreProvider.configureStore(SyncEngine.History to places.history)
 
         // TODO this really shouldn't be necessary, since WorkManager auto-initializes itself, unless
         // auto-initialization is disabled in the manifest file. We don't disable the initialization,
@@ -93,7 +93,7 @@ class Services(context: Context, places: Places) {
         ),
         // If background syncing is desired, pass in a 'syncPeriodInMinutes' parameter.
         // As-is, sync will run on app startup.
-        syncConfig = SyncConfig(setOf(SyncEngine.HISTORY, SyncEngine.BOOKMARKS), syncPeriodInMinutes = 15L)
+        syncConfig = SyncConfig(setOf(SyncEngine.History, SyncEngine.Bookmarks), syncPeriodInMinutes = 15L)
 
     ).also {
         it.registerForDeviceEvents(deviceEventObserver, ProcessLifecycleOwner.get(), true)

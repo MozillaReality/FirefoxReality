@@ -18,6 +18,7 @@ import mozilla.components.concept.sync.OAuthAccount
 import mozilla.components.concept.sync.Profile
 import mozilla.components.service.fxa.SyncConfig
 import mozilla.components.service.fxa.SyncEngine
+import mozilla.components.service.fxa.sync.SyncReason
 import mozilla.components.service.fxa.sync.SyncStatusObserver
 import mozilla.components.support.base.log.logger.Logger
 import org.mozilla.vrbrowser.VRBrowserApplication
@@ -39,10 +40,11 @@ class AccountsManager constructor(val context: Context) {
     enum class LoginOrigin {
         BOOKMARKS,
         HISTORY,
-        SETTINGS
+        SETTINGS,
+        UNDEFINED
     }
 
-    var loginOrigin: LoginOrigin = LoginOrigin.SETTINGS
+    var loginOrigin: LoginOrigin = LoginOrigin.UNDEFINED
     var accountStatus = AccountStatus.SIGNED_OUT
     private val accountListeners = ArrayList<AccountObserver>()
     private val syncListeners = ArrayList<SyncStatusObserver>()
@@ -175,7 +177,7 @@ class AccountsManager constructor(val context: Context) {
 
     fun setSyncConfigAsync(supportedEngines: Set<SyncEngine>, syncPeriodInMinutes: Long?): CompletableFuture<Unit> {
         return CoroutineScope(Dispatchers.Main).future {
-            services.accountManager.setSyncConfigAsync(SyncConfig(supportedEngines, syncPeriodInMinutes))?.await()
+            services.accountManager.setSyncConfigAsync(SyncConfig(supportedEngines, syncPeriodInMinutes)).await()
         }
     }
 
@@ -185,10 +187,10 @@ class AccountsManager constructor(val context: Context) {
         }
     }
 
-    fun syncNowAsync(startup: Boolean = false,
+    fun syncNowAsync(reason: SyncReason = SyncReason.Startup,
                      debounce: Boolean = false): CompletableFuture<Unit?>?{
         return CoroutineScope(Dispatchers.Main).future {
-            services.accountManager.syncNowAsync(startup, debounce).await()
+            services.accountManager.syncNowAsync(reason, debounce).await()
         }
     }
 

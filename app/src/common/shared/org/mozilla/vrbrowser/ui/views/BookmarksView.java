@@ -43,6 +43,7 @@ import mozilla.components.concept.sync.AuthType;
 import mozilla.components.concept.sync.OAuthAccount;
 import mozilla.components.concept.sync.Profile;
 import mozilla.components.service.fxa.SyncEngine;
+import mozilla.components.service.fxa.sync.SyncReason;
 import mozilla.components.service.fxa.sync.SyncStatusObserver;
 
 public class BookmarksView extends FrameLayout implements BookmarksStore.BookmarkListener {
@@ -100,7 +101,7 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
         mAccountManager.addAccountListener(mAccountListener);
         mAccountManager.addSyncListener(mSyncListener);
 
-        mIsSyncEnabled = mAccountManager.supportedSyncEngines().contains(SyncEngine.BOOKMARKS);
+        mIsSyncEnabled = mAccountManager.supportedSyncEngines().contains(SyncEngine.Bookmarks.INSTANCE);
 
         updateCurrentAccountState();
 
@@ -185,7 +186,7 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
                     break;
 
                 case SIGNED_IN:
-                    SessionStore.get().getAccountsManager().syncNowAsync(false, false);
+                    mAccountManager.syncNowAsync(SyncReason.User.INSTANCE, false);
 
                     mBookmarksViewListeners.forEach((listener) -> listener.onSyncBookmarks(view));
                     break;
@@ -281,7 +282,7 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
             mBinding.syncButton.setText(R.string.bookmarks_sync);
             mBinding.syncDescription.setVisibility(VISIBLE);
 
-            mIsSyncEnabled = mAccountManager.supportedSyncEngines().contains(SyncEngine.BOOKMARKS);
+            mIsSyncEnabled = mAccountManager.supportedSyncEngines().contains(SyncEngine.Bookmarks.INSTANCE);
             if (mIsSyncEnabled) {
                 mBinding.syncButton.setEnabled(true);
                 mBinding.syncDescription.setVisibility(VISIBLE);
@@ -312,7 +313,7 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
     }
 
     private void updateBookmarks() {
-        SessionStore.get().getBookmarkStore().getBookmarks(BookmarkRoot.Root.getId()).thenAcceptAsync(this::showBookmarks, new UIThreadExecutor());
+        SessionStore.get().getBookmarkStore().getBookmarks(BookmarkRoot.Mobile.getId()).thenAcceptAsync(this::showBookmarks, new UIThreadExecutor());
     }
 
     private void showBookmarks(List<BookmarkNode> aBookmarks) {

@@ -49,6 +49,7 @@ import mozilla.components.concept.sync.AuthType;
 import mozilla.components.concept.sync.OAuthAccount;
 import mozilla.components.concept.sync.Profile;
 import mozilla.components.service.fxa.SyncEngine;
+import mozilla.components.service.fxa.sync.SyncReason;
 import mozilla.components.service.fxa.sync.SyncStatusObserver;
 
 public class HistoryView extends FrameLayout implements HistoryStore.HistoryListener {
@@ -108,7 +109,7 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
         mAccountManager.addAccountListener(mAccountListener);
         mAccountManager.addSyncListener(mSyncListener);
 
-        mIsSyncEnabled = mAccountManager.supportedSyncEngines().contains(SyncEngine.HISTORY);
+        mIsSyncEnabled = mAccountManager.supportedSyncEngines().contains(SyncEngine.History.INSTANCE);
 
         updateCurrentAccountState();
 
@@ -191,7 +192,7 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
                     break;
 
                 case SIGNED_IN:
-                    SessionStore.get().getAccountsManager().syncNowAsync(false, false);
+                    mAccountManager.syncNowAsync(SyncReason.User.INSTANCE, false);
 
                     mHistoryViewListeners.forEach((listener) -> listener.onSyncHistory(view));
                     break;
@@ -287,7 +288,7 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
             mBinding.syncButton.setText(R.string.history_sync);
             mBinding.syncDescription.setVisibility(VISIBLE);
 
-            mIsSyncEnabled = mAccountManager.supportedSyncEngines().contains(SyncEngine.HISTORY);
+            mIsSyncEnabled = mAccountManager.supportedSyncEngines().contains(SyncEngine.History.INSTANCE);
             if (mIsSyncEnabled) {
                 mBinding.syncButton.setEnabled(true);
                 mBinding.syncDescription.setVisibility(VISIBLE);
