@@ -16,8 +16,8 @@ import mozilla.components.concept.sync.AccountObserver
 import mozilla.components.concept.sync.AuthType
 import mozilla.components.concept.sync.OAuthAccount
 import mozilla.components.concept.sync.Profile
-import mozilla.components.service.fxa.SyncConfig
 import mozilla.components.service.fxa.SyncEngine
+import mozilla.components.service.fxa.manager.SyncEnginesStorage
 import mozilla.components.service.fxa.sync.SyncReason
 import mozilla.components.service.fxa.sync.SyncStatusObserver
 import mozilla.components.support.base.log.logger.Logger
@@ -49,7 +49,8 @@ class AccountsManager constructor(val context: Context) {
     private val accountListeners = ArrayList<AccountObserver>()
     private val syncListeners = ArrayList<SyncStatusObserver>()
     private val services = (context.applicationContext as VRBrowserApplication).services
-    var lastSync = 0L;
+    private val syncStorage = SyncEnginesStorage(context)
+    var lastSync = 0L
 
     private val syncStatusObserver = object : SyncStatusObserver {
         override fun onStarted() {
@@ -175,12 +176,6 @@ class AccountsManager constructor(val context: Context) {
         }
     }
 
-    fun setSyncConfigAsync(supportedEngines: Set<SyncEngine>, syncPeriodInMinutes: Long?): CompletableFuture<Unit> {
-        return CoroutineScope(Dispatchers.Main).future {
-            services.accountManager.setSyncConfigAsync(SyncConfig(supportedEngines, syncPeriodInMinutes)).await()
-        }
-    }
-
     fun updateProfileAsync(): CompletableFuture<Unit?>? {
         return CoroutineScope(Dispatchers.Main).future {
             services.accountManager.updateProfileAsync().await()
@@ -192,6 +187,10 @@ class AccountsManager constructor(val context: Context) {
         return CoroutineScope(Dispatchers.Main).future {
             services.accountManager.syncNowAsync(reason, debounce).await()
         }
+    }
+
+    fun setSyncStatus(engine: SyncEngine, value: Boolean) {
+        syncStorage.setStatus(engine, value)
     }
 
     fun accountProfile(): Profile? {
@@ -251,8 +250,8 @@ class AccountsManager constructor(val context: Context) {
         return future
     }
 
-    fun supportedSyncEngines(): Set<SyncEngine>? {
-        return services.accountManager.supportedSyncEngines()
+    fun getSyncEngineStatus(engine: SyncEngine): Boolean {
+        return syncStorage.getStatus()[engine]?: false
     }
 
 }

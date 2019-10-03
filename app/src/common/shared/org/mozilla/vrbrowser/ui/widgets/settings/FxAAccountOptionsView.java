@@ -11,6 +11,7 @@ import android.view.LayoutInflater;
 import androidx.databinding.DataBindingUtil;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.browser.AccountsManager;
 import org.mozilla.vrbrowser.browser.SettingsStore;
@@ -20,6 +21,7 @@ import org.mozilla.vrbrowser.ui.views.settings.SwitchSetting;
 import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
 import org.mozilla.vrbrowser.utils.SystemUtils;
 
+import java.util.Map;
 import java.util.Set;
 
 import mozilla.components.concept.sync.AccountObserver;
@@ -28,6 +30,7 @@ import mozilla.components.concept.sync.OAuthAccount;
 import mozilla.components.concept.sync.Profile;
 import mozilla.components.service.fxa.SyncEngine;
 import mozilla.components.service.fxa.sync.SyncReason;
+import mozilla.components.service.fxa.sync.SyncStatusObserver;
 
 class FxAAccountOptionsView extends SettingsView {
 
@@ -72,17 +75,18 @@ class FxAAccountOptionsView extends SettingsView {
         super.onShown();
 
         mAccountManager.addAccountListener(mAccountListener);
+        mAccountManager.addSyncListener(mSyncListener);
 
-        Set<SyncEngine> syncEngines = mAccountManager.supportedSyncEngines();
-        setBookmarksSync(syncEngines.contains(SyncEngine.Bookmarks.INSTANCE), false);
-        setHistorySync(syncEngines.contains(SyncEngine.History.INSTANCE), false);
+        setBookmarksSync(mAccountManager.getSyncEngineStatus(SyncEngine.Bookmarks.INSTANCE), false);
+        setHistorySync(mAccountManager.getSyncEngineStatus(SyncEngine.History.INSTANCE), false);
     }
 
     @Override
-    protected void onDismiss() {
-        super.onDismiss();
+    public void onHidden() {
+        super.onHidden();
 
         mAccountManager.removeAccountListener(mAccountListener);
+        mAccountManager.removeSyncListener(mSyncListener);
     }
 
     private SwitchSetting.OnCheckedChangeListener mBookmarksSyncListener = (compoundButton, value, apply) -> setBookmarksSync(value, apply);
@@ -97,15 +101,8 @@ class FxAAccountOptionsView extends SettingsView {
     private void setBookmarksSync(boolean value, boolean doApply) {
         updateBookmarkSwitch(value);
         if (doApply) {
-            Set<SyncEngine> engines = mAccountManager.supportedSyncEngines();
-            if (value) {
-                engines.add(SyncEngine.Bookmarks.INSTANCE);
-
-            } else {
-                engines.remove(SyncEngine.Bookmarks.INSTANCE);
-            }
-            mAccountManager.setSyncConfigAsync(engines, SYNC_REFRESH_TIME);
-            mAccountManager.syncNowAsync(SyncReason.EngineChange.INSTANCE, false);
+            mAccountManager.setSyncStatus(SyncEngine.Bookmarks.INSTANCE, value);
+            mAccountManager.syncNowAsync(SyncReason.EngineChange.INSTANCE, true);
         }
     }
 
@@ -118,15 +115,8 @@ class FxAAccountOptionsView extends SettingsView {
     private void setHistorySync(boolean value, boolean doApply) {
         updateHistorySwitch(value);
         if (doApply) {
-            Set<SyncEngine> engines = mAccountManager.supportedSyncEngines();
-            if (value) {
-                engines.add(SyncEngine.History.INSTANCE);
-
-            } else {
-                engines.remove(SyncEngine.History.INSTANCE);
-            }
-            mAccountManager.setSyncConfigAsync(engines, SYNC_REFRESH_TIME);
-            mAccountManager.syncNowAsync(SyncReason.EngineChange.INSTANCE, false);
+            mAccountManager.setSyncStatus(SyncEngine.History.INSTANCE, value);
+            mAccountManager.syncNowAsync(SyncReason.EngineChange.INSTANCE, true);
         }
     }
 
@@ -135,6 +125,24 @@ class FxAAccountOptionsView extends SettingsView {
         mBinding.historySyncSwitch.setValue(value, false);
         mBinding.historySyncSwitch.setOnCheckedChangeListener(mHistorySyncListener);
     }
+
+    private SyncStatusObserver mSyncListener = new SyncStatusObserver() {
+        @Override
+        public void onStarted() {
+
+        }
+
+        @Override
+        public void onIdle() {
+            mBinding.bookmarksSyncSwitch.setValue(mAccountManager.getSyncEngineStatus(SyncEngine.Bookmarks.INSTANCE), false);
+            mBinding.historySyncSwitch.setValue(mAccountManager.getSyncEngineStatus(SyncEngine.History.INSTANCE), false);
+        }
+
+        @Override
+        public void onError(@Nullable Exception e) {
+
+        }
+    };
 
     void updateCurrentAccountState() {
         switch(mAccountManager.getAccountStatus()) {
