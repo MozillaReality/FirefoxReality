@@ -12,22 +12,24 @@
             android:orientation="horizontal">
 
             <org.mozilla.vrbrowser.ui.views.UIButton
-                android:id="@+id/privateButton"
-                style="@style/trayButtonStartTheme"
-                app:tooltipPosition="top"
-                android:tooltipText="@string/private_browsing_enter_tooltip"
-                app:tooltipDensity="@dimen/tray_tooltip_density"
-                app:tooltipLayout="@layout/tooltip_tray"
-                android:src="@drawable/ic_icon_tray_private_browsing_v2"/>
-
-            <org.mozilla.vrbrowser.ui.views.UIButton
                 android:id="@+id/addwindowButton"
-                style="@style/trayButtonMiddleTheme"
+                style="@style/trayButtonStartTheme"
                 android:tooltipText="@string/new_window_tooltip"
                 app:tooltipDensity="@dimen/tray_tooltip_density"
                 app:tooltipPosition="top"
                 app:tooltipLayout="@layout/tooltip_tray"
                 android:src="@drawable/ic_icon_tray_newwindow"/>
+
+            <org.mozilla.vrbrowser.ui.views.UIButton
+                android:id="@+id/privateButton"
+                style="@style/trayButtonMiddleTheme"
+                android:tooltipText="@string/private_browsing_enter_tooltip"
+                app:tooltipDensity="@dimen/tray_tooltip_density"
+                app:tooltipPosition="top"
+                app:tooltipLayout="@layout/tooltip_tray"
+                android:src="@drawable/ic_icon_tray_private_browsing_v2"/>
+
+            <include layout="@layout/vertical_separator"/>
 
             <org.mozilla.vrbrowser.ui.views.UIButton
                 android:id="@+id/bookmarksButton"
@@ -46,6 +48,8 @@
                 app:tooltipPosition="top"
                 app:tooltipLayout="@layout/tooltip_tray"
                 android:src="@drawable/ic_icon_history"/>
+
+            <include layout="@layout/vertical_separator"/>
 
             <org.mozilla.vrbrowser.ui.views.UIButton
                 android:id="@+id/settingsButton"
