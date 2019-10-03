@@ -15,8 +15,9 @@
                 android:id="@+id/privateButton"
                 style="@style/trayButtonStartTheme"
                 app:tooltipPosition="top"
-                app:tooltipDensity="@dimen/tray_tooltip_density"
                 android:tooltipText="@string/private_browsing_enter_tooltip"
+                app:tooltipDensity="@dimen/tray_tooltip_density"
+                app:tooltipLayout="@layout/tooltip_tray"
                 android:src="@drawable/ic_icon_tray_private_browsing_v2"/>
 
             <org.mozilla.vrbrowser.ui.views.UIButton
@@ -25,6 +26,7 @@
                 android:tooltipText="@string/new_window_tooltip"
                 app:tooltipDensity="@dimen/tray_tooltip_density"
                 app:tooltipPosition="top"
+                app:tooltipLayout="@layout/tooltip_tray"
                 android:src="@drawable/ic_icon_tray_newwindow"/>
 
             <org.mozilla.vrbrowser.ui.views.UIButton
@@ -33,6 +35,7 @@
                 android:tooltipText="@string/open_bookmarks_tooltip"
                 app:tooltipDensity="@dimen/tray_tooltip_density"
                 app:tooltipPosition="top"
+                app:tooltipLayout="@layout/tooltip_tray"
                 android:src="@drawable/ic_icon_tray_bookmarks_v2"/>
 
             <org.mozilla.vrbrowser.ui.views.UIButton
@@ -41,6 +44,7 @@
                 android:tooltipText="@string/open_history_tooltip"
                 app:tooltipDensity="@dimen/tray_tooltip_density"
                 app:tooltipPosition="top"
+                app:tooltipLayout="@layout/tooltip_tray"
                 android:src="@drawable/ic_icon_history"/>
 
             <org.mozilla.vrbrowser.ui.views.UIButton
@@ -49,6 +53,7 @@
                 android:tooltipText="@string/settings_tooltip"
                 app:tooltipDensity="@dimen/tray_tooltip_density"
                 app:tooltipPosition="top"
+                app:tooltipLayout="@layout/tooltip_tray"
                 android:src="@drawable/ic_icon_tray_settings_v3"/>
         </LinearLayout>
 
