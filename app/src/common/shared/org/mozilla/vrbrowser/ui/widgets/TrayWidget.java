@@ -482,7 +482,7 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
             mLibraryNotification.getPlacement().parentHandle = getHandle();
             mLibraryNotification.getPlacement().anchorY = 0.0f;
             mLibraryNotification.getPlacement().translationX = (offsetViewBounds.left + mBookmarksButton.getWidth() / 2.0f) * ratio;
-            mLibraryNotification.getPlacement().translationY = ((offsetViewBounds.top - 35) * ratio);
+            mLibraryNotification.getPlacement().translationY = ((offsetViewBounds.top - 60) * ratio);
             mLibraryNotification.getPlacement().translationZ = 25.0f;
             mLibraryNotification.getPlacement().density = WidgetPlacement.floatDimension(getContext(), R.dimen.tray_tooltip_density);
             mLibraryNotification.setText(R.string.bookmarks_saved_notification);

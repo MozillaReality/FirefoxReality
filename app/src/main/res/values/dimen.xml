@@ -204,6 +204,7 @@
 
     <!-- Library -->
     <dimen name="library_item_row_height">38dp</dimen>
+    <dimen name="library_item_row_height_narrow">64dp</dimen>
     <dimen name="library_section_text_size">18sp</dimen>
     <dimen name="library_item_title_text_size">20sp</dimen>
     <dimen name="library_item_url_text_size">16sp</dimen>
