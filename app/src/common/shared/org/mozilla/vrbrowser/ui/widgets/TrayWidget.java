@@ -43,6 +43,7 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
     private UIButton mSettingsButton;
     private UIButton mPrivateButton;
     private UIButton mBookmarksButton;
+    private boolean mIsBookmarksVisible;
     private UIButton mHistoryButton;
     private AudioEngine mAudio;
     private int mSettingsDialogHandle = -1;
@@ -416,12 +417,14 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
     public void onBookmarksShown(WindowWidget aWindow) {
         mBookmarksButton.setTooltip(getResources().getString(R.string.close_bookmarks_tooltip));
         mBookmarksButton.setActiveMode(true);
+        mIsBookmarksVisible = true;
     }
 
     @Override
     public void onBookmarksHidden(WindowWidget aWindow) {
         mBookmarksButton.setTooltip(getResources().getString(R.string.open_bookmarks_tooltip));
         mBookmarksButton.setActiveMode(false);
+        mIsBookmarksVisible = false;
     }
 
     // HistoryViewListener
@@ -500,7 +503,11 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
             if (mLibraryNotification != null) {
                 mLibraryNotification.hide(UIWidget.REMOVE_WIDGET);
                 mLibraryNotification = null;
-                mBookmarksButton.setNotificationMode(false);
+                if (mIsBookmarksVisible) {
+                    mBookmarksButton.setActiveMode(true);
+                } else {
+                    mBookmarksButton.setNotificationMode(false);
+                }
             }
         }
     };
