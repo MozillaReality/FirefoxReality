@@ -12,7 +12,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:background="@drawable/url_background"
-            android:ellipsize="end"
+            android:ellipsize="none"
             android:ems="10"
             android:fadingEdgeLength="30dp"
             android:gravity="center_vertical"
