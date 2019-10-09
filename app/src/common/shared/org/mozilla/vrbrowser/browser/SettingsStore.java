@@ -112,6 +112,11 @@ public class SettingsStore {
         editor.putBoolean(mContext.getString(R.string.settings_key_telemetry), isEnabled);
         editor.commit();
 
+        // We send before disabling in case of opting-out
+        if (!isEnabled) {
+            TelemetryWrapper.telemetryStatus(false);
+        }
+
         // If the state of Telemetry is not the same, we reinitialize it.
         final boolean hasEnabled = isTelemetryEnabled();
         if (hasEnabled != isEnabled) {
@@ -120,6 +125,11 @@ public class SettingsStore {
 
         TelemetryHolder.get().getConfiguration().setUploadEnabled(isEnabled);
         TelemetryHolder.get().getConfiguration().setCollectionEnabled(isEnabled);
+
+        // We send after enabling in case of opting-in
+        if (isEnabled) {
+            TelemetryWrapper.telemetryStatus(true);
+        }
     }
 
     public void setGeolocationData(String aGeolocationData) {
