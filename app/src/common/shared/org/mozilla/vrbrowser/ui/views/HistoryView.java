@@ -95,6 +95,11 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
             v.requestFocusFromTouch();
             return false;
         });
+        mBinding.historyList.setHasFixedSize(true);
+        mBinding.historyList.setItemViewCacheSize(20);
+        mBinding.historyList.setDrawingCacheEnabled(true);
+        mBinding.historyList.setDrawingCacheQuality(View.DRAWING_CACHE_QUALITY_HIGH);
+
         mBinding.setIsLoading(true);
         mBinding.executePendingBindings();
 
@@ -390,7 +395,9 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
         super.onLayout(changed, left, top, right, bottom);
 
         double width = Math.ceil(getWidth()/getContext().getResources().getDisplayMetrics().density);
-        mHistoryAdapter.setNarrow(width < SettingsStore.WINDOW_WIDTH_DEFAULT);
+        int firstVisibleItem = ((LinearLayoutManager)mBinding.historyList.getLayoutManager()).findFirstVisibleItemPosition();
+        int lastVisibleItem = ((LinearLayoutManager)mBinding.historyList.getLayoutManager()).findLastVisibleItemPosition();
+        mHistoryAdapter.setNarrow(width < SettingsStore.WINDOW_WIDTH_DEFAULT, firstVisibleItem, lastVisibleItem);
     }
 
     // HistoryStore.HistoryListener

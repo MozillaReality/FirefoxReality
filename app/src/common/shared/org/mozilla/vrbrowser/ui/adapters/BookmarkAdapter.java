@@ -57,10 +57,10 @@ public class BookmarkAdapter extends RecyclerView.Adapter<BookmarkAdapter.Bookma
         setHasStableIds(true);
     }
 
-    public void setNarrow(boolean isNarrow) {
+    public void setNarrow(boolean isNarrow, int first, int last) {
         if (mIsNarrowLayout != isNarrow) {
             mIsNarrowLayout = isNarrow;
-            notifyDataSetChanged();
+            notifyItemRangeChanged(first, last);
         }
     }
 
@@ -197,7 +197,6 @@ public class BookmarkAdapter extends RecyclerView.Adapter<BookmarkAdapter.Bookma
     public void onBindViewHolder(@NonNull BookmarkViewHolder holder, int position) {
         holder.binding.setItem(mBookmarkList.get(position));
         holder.binding.setIsNarrow(mIsNarrowLayout);
-        holder.binding.executePendingBindings();
     }
 
     @Override

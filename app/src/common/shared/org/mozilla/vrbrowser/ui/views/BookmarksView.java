@@ -87,6 +87,11 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
             v.requestFocusFromTouch();
             return false;
         });
+        mBinding.bookmarksList.setHasFixedSize(true);
+        mBinding.bookmarksList.setItemViewCacheSize(20);
+        mBinding.bookmarksList.setDrawingCacheEnabled(true);
+        mBinding.bookmarksList.setDrawingCacheQuality(View.DRAWING_CACHE_QUALITY_HIGH);
+
         mBinding.setIsLoading(true);
         mBinding.executePendingBindings();
 
@@ -106,8 +111,6 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
         updateCurrentAccountState();
 
         setVisibility(GONE);
-
-        mBinding.button.setOnClickListener(v -> mBinding.flipper.showNext());
 
         setOnTouchListener((v, event) -> {
             v.requestFocusFromTouch();
@@ -341,7 +344,9 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
         super.onLayout(changed, left, top, right, bottom);
 
         double width = Math.ceil(getWidth()/getContext().getResources().getDisplayMetrics().density);
-        mBookmarkAdapter.setNarrow(width < SettingsStore.WINDOW_WIDTH_DEFAULT);
+        int firstVisibleItem = ((LinearLayoutManager)mBinding.bookmarksList.getLayoutManager()).findFirstVisibleItemPosition();
+        int lastVisibleItem = ((LinearLayoutManager)mBinding.bookmarksList.getLayoutManager()).findLastVisibleItemPosition();
+        mBookmarkAdapter.setNarrow(width < SettingsStore.WINDOW_WIDTH_DEFAULT, firstVisibleItem, lastVisibleItem);
     }
 
     // BookmarksStore.BookmarksViewListener

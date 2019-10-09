@@ -20,9 +20,9 @@
             app:layout_constraintTop_toTopOf="parent"
             app:title="@string/settings_display" />
 
-        <ScrollView
+        <org.mozilla.vrbrowser.ui.views.CustomScrollView
             android:id="@+id/scrollbar"
-            style="@style/scrollbar"
+            style="@style/customScrollViewStyle"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_marginTop="10dp"
@@ -88,7 +88,7 @@
                     app:off_text="@string/do_not_sync"/>
 
             </LinearLayout>
-        </ScrollView>
+        </org.mozilla.vrbrowser.ui.views.CustomScrollView>
 
         <org.mozilla.vrbrowser.ui.widgets.settings.SettingsFooter
             android:id="@+id/footer_layout"

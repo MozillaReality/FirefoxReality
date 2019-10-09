@@ -74,6 +74,13 @@ class HistoryStore constructor(val context: Context) {
                 VisitType.REDIRECT_PERMANENT))
     }
 
+    fun getVisitsPaginated(offset: Long, count: Long): CompletableFuture<List<VisitInfo>?> = GlobalScope.future {
+        storage.getVisitsPaginated(offset, count, excludeTypes = listOf(
+                VisitType.NOT_A_VISIT,
+                VisitType.REDIRECT_TEMPORARY,
+                VisitType.REDIRECT_PERMANENT))
+    }
+
     fun recordVisit(aURL: String, visitType: VisitType) = GlobalScope.future {
         storage.recordVisit(aURL, visitType)
         notifyListeners()

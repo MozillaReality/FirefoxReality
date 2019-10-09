@@ -62,10 +62,10 @@ public class HistoryAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         setHasStableIds(true);
     }
 
-    public void setNarrow(boolean isNarrow) {
+    public void setNarrow(boolean isNarrow, int first, int last) {
         if (mIsNarrowLayout != isNarrow) {
             mIsNarrowLayout = isNarrow;
-            notifyDataSetChanged();
+            notifyItemRangeChanged(first, last);
         }
     }
 
@@ -222,12 +222,10 @@ public class HistoryAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             HistoryItemViewHolder item = (HistoryItemViewHolder) holder;
             item.binding.setItem(mHistoryList.get(position));
             item.binding.setIsNarrow(mIsNarrowLayout);
-            item.binding.executePendingBindings();
 
         } else if (holder instanceof HistoryItemViewHeaderHolder) {
             HistoryItemViewHeaderHolder item = (HistoryItemViewHeaderHolder) holder;
             item.binding.setTitle(mHistoryList.get(position).getTitle());
-            item.binding.executePendingBindings();
         }
     }
 
