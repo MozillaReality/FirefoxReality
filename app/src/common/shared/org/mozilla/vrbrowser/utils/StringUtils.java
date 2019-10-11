@@ -109,4 +109,9 @@ public class StringUtils {
 
         return formatted;
     }
+
+    @NonNull
+    public static String capitalize(@NonNull String input) {
+        return input.substring(0, 1).toUpperCase() + input.substring(1);
+    }
 }

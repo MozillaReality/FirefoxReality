@@ -41,6 +41,7 @@ import org.mozilla.vrbrowser.browser.VideoAvailabilityListener;
 import org.mozilla.vrbrowser.browser.engine.Session;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
+import org.mozilla.vrbrowser.ui.adapters.Bookmark;
 import org.mozilla.vrbrowser.ui.callbacks.BookmarksCallback;
 import org.mozilla.vrbrowser.ui.callbacks.HistoryCallback;
 import org.mozilla.vrbrowser.ui.callbacks.LibraryItemContextMenuClickCallback;
@@ -65,7 +66,6 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 
-import mozilla.components.concept.storage.BookmarkNode;
 import mozilla.components.concept.storage.PageObservation;
 import mozilla.components.concept.storage.VisitInfo;
 import mozilla.components.concept.storage.VisitType;
@@ -1314,7 +1314,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
 
     private BookmarksCallback mBookmarksListener = new BookmarksCallback() {
         @Override
-        public void onShowContextMenu(@NonNull View view, @NotNull BookmarkNode item, boolean isLastVisibleItem) {
+        public void onShowContextMenu(@NonNull View view, @NotNull Bookmark item, boolean isLastVisibleItem) {
             showLibraryItemContextMenu(
                     view,
                     new LibraryItemContextMenu.LibraryContextMenuItem(

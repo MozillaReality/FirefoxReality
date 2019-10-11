@@ -34,7 +34,7 @@ public class BindingAdapters {
     }
 
     @BindingAdapter("typeface")
-    public static void setTypeface(@NonNull TextView v, String style) {
+    public static void setTypeface(@NonNull TextView v, @NonNull String style) {
         switch (style) {
             case "bold":
                 v.setTypeface(null, Typeface.BOLD);
@@ -62,7 +62,7 @@ public class BindingAdapters {
     }
 
     @BindingAdapter(value={"textDrawable", "textString"})
-    public static void setSpannableString(@NonNull TextView textView, Drawable drawable, String text) {
+    public static void setSpannableString(@NonNull TextView textView, @NonNull Drawable drawable, String text) {
         SpannableString spannableString = new SpannableString(text);
         drawable.setBounds(0, 0, drawable.getIntrinsicWidth(), drawable.getIntrinsicHeight());
         ImageSpan span = new ImageSpan(drawable, ImageSpan.ALIGN_BOTTOM);
@@ -81,4 +81,16 @@ public class BindingAdapters {
         params.height = (int)dimen;
         view.setLayoutParams(params);
     }
+
+    @BindingAdapter("leftMargin")
+    public static void setLeftMargin(@NonNull View view, @NonNull @Dimension float margin) {
+        if (view.getLayoutParams() instanceof ViewGroup.MarginLayoutParams) {
+            ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) view.getLayoutParams();
+            if (params.getMarginStart() != Math.round(margin)) {
+                params.setMarginStart(Math.round(margin));
+                view.setLayoutParams(params);
+            }
+        }
+    }
+
 }

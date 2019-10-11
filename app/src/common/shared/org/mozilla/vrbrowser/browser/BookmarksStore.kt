@@ -49,7 +49,7 @@ class BookmarksStore constructor(val context: Context) {
                 // "Virtual" desktop folder.
                 DESKTOP_ROOT to context.getString(R.string.bookmarks_desktop_folder_title),
                 // Our main root, in actuality the "mobile" root:
-                BookmarkRoot.Mobile.id to context.getString(R.string.bookmarks_title),
+                BookmarkRoot.Mobile.id to context.getString(R.string.bookmarks_mobile_folder_title),
                 // What we consider the "desktop" roots:
                 BookmarkRoot.Menu.id to context.getString(R.string.bookmarks_desktop_menu_title),
                 BookmarkRoot.Toolbar.id to context.getString(R.string.bookmarks_desktop_toolbar_title),
@@ -61,6 +61,7 @@ class BookmarksStore constructor(val context: Context) {
     private val listeners = ArrayList<BookmarkListener>()
     private val storage = (context.applicationContext as VRBrowserApplication).places.bookmarks
     private val titles = rootTitles(context)
+    private val accountManager = (context.applicationContext as VRBrowserApplication).services.accountManager
 
     // Bookmarks might have changed during sync, so notify our listeners.
     private val syncStatusObserver = object : SyncStatusObserver {
@@ -75,7 +76,7 @@ class BookmarksStore constructor(val context: Context) {
     }
 
     init {
-        (context.applicationContext as VRBrowserApplication).services.accountManager.registerForSyncEvents(
+        accountManager.registerForSyncEvents(
             syncStatusObserver, ProcessLifecycleOwner.get(), false
         )
     }
@@ -154,6 +155,12 @@ class BookmarksStore constructor(val context: Context) {
         getBookmarkByUrl(aURL) != null
     }
 
+    fun getTree(guid: String, recursive: Boolean): CompletableFuture<List<BookmarkNode>?> = GlobalScope.future {
+        storage.getTree(guid, recursive)?.children
+                ?.map {
+                    it.copy(title = titles[it.guid])
+                }
+    }
 
     private suspend fun getBookmarkByUrl(aURL: String): BookmarkNode? {
         val bookmarks: List<BookmarkNode>? = storage.getBookmarksWithUrl(aURL)

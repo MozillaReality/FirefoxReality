@@ -14,15 +14,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.browser.AccountsManager;
-import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.databinding.OptionsFxaAccountBinding;
 import org.mozilla.vrbrowser.ui.views.settings.SwitchSetting;
 import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
 import org.mozilla.vrbrowser.utils.SystemUtils;
-
-import java.util.Map;
-import java.util.Set;
 
 import mozilla.components.concept.sync.AccountObserver;
 import mozilla.components.concept.sync.AuthType;
@@ -77,8 +73,8 @@ class FxAAccountOptionsView extends SettingsView {
         mAccountManager.addAccountListener(mAccountListener);
         mAccountManager.addSyncListener(mSyncListener);
 
-        setBookmarksSync(mAccountManager.getSyncEngineStatus(SyncEngine.Bookmarks.INSTANCE), false);
-        setHistorySync(mAccountManager.getSyncEngineStatus(SyncEngine.History.INSTANCE), false);
+        setBookmarksSync(mAccountManager.isEngineEnabled(SyncEngine.Bookmarks.INSTANCE), false);
+        setHistorySync(mAccountManager.isEngineEnabled(SyncEngine.History.INSTANCE), false);
     }
 
     @Override
@@ -134,8 +130,8 @@ class FxAAccountOptionsView extends SettingsView {
 
         @Override
         public void onIdle() {
-            mBinding.bookmarksSyncSwitch.setValue(mAccountManager.getSyncEngineStatus(SyncEngine.Bookmarks.INSTANCE), false);
-            mBinding.historySyncSwitch.setValue(mAccountManager.getSyncEngineStatus(SyncEngine.History.INSTANCE), false);
+            mBinding.bookmarksSyncSwitch.setValue(mAccountManager.isEngineEnabled(SyncEngine.Bookmarks.INSTANCE), false);
+            mBinding.historySyncSwitch.setValue(mAccountManager.isEngineEnabled(SyncEngine.History.INSTANCE), false);
         }
 
         @Override

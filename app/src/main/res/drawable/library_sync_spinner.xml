@@ -2,7 +2,7 @@
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item>
         <rotate
-            android:drawable="@drawable/library_sync_spinner_icon"
+            android:drawable="@drawable/ic_icon_settings_sign_in"
             android:pivotX="50%"
             android:pivotY="50%"
             android:fromDegrees="0"

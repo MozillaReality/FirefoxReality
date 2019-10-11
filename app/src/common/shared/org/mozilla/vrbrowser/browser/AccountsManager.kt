@@ -51,9 +51,11 @@ class AccountsManager constructor(val context: Context) {
     private val services = (context.applicationContext as VRBrowserApplication).services
     private val syncStorage = SyncEnginesStorage(context)
     var lastSync = 0L
+    var isSyncing = false
 
     private val syncStatusObserver = object : SyncStatusObserver {
         override fun onStarted() {
+            isSyncing = true
             syncListeners.toMutableList().forEach {
                 Handler(Looper.getMainLooper()).post {
                     it.onStarted()
@@ -62,6 +64,7 @@ class AccountsManager constructor(val context: Context) {
         }
 
         override fun onIdle() {
+            isSyncing = false
             lastSync = System.currentTimeMillis()
             syncListeners.toMutableList().forEach {
                 Handler(Looper.getMainLooper()).post {
@@ -71,6 +74,7 @@ class AccountsManager constructor(val context: Context) {
         }
 
         override fun onError(error: Exception?) {
+            isSyncing = false
             syncListeners.toMutableList().forEach {
                 Handler(Looper.getMainLooper()).post {
                     it.onError(error)
@@ -250,7 +254,7 @@ class AccountsManager constructor(val context: Context) {
         return future
     }
 
-    fun getSyncEngineStatus(engine: SyncEngine): Boolean {
+    fun isEngineEnabled(engine: SyncEngine): Boolean {
         return syncStorage.getStatus()[engine]?: false
     }
 

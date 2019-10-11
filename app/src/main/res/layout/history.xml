@@ -80,9 +80,8 @@
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingStart="30dp"
-            android:paddingEnd="30dp"
-            android:layout_marginEnd="20dp"
+            android:layout_marginStart="30dp"
+            android:layout_marginEnd="50dp"
             android:layout_marginBottom="20dp"
             app:visibleGone="@{!isLoading &amp;&amp; !isEmpty}">
 
@@ -168,8 +167,7 @@
             style="@style/customRecyclerViewStyle"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:paddingStart="30dp"
-            android:paddingEnd="10dp"
+            android:layout_marginStart="30dp"
             android:layout_marginEnd="30dp"
             android:contentDescription="History feed"
             android:fadingEdgeLength="60dp"

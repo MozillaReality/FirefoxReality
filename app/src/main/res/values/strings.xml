@@ -747,6 +747,9 @@
     <!-- This string is displayed in the middle of the Bookmarks List while the bookmarks are being loaded. -->
     <string name="bookmarks_loading">Loading Bookmarks</string>
 
+    <!-- This string is displayed as the title of the folder containing mobile bookmarks (after they're synced). -->
+    <string name="bookmarks_mobile_folder_title">Mobile</string>
+
     <!-- This string is displayed as the title of the folder containing desktop bookmarks (after they're synced). -->
     <string name="bookmarks_desktop_folder_title">Desktop Bookmarks</string>
 

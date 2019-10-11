@@ -107,14 +107,14 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
         mSyncingAnimation = ObjectAnimator.ofInt(drawables[0], "level", 0, 10000);
         mSyncingAnimation.setRepeatCount(ObjectAnimator.INFINITE);
 
-        updateHistory();
-        SessionStore.get().getHistoryStore().addListener(this);
-
         mAccountManager = SessionStore.get().getAccountsManager();
         mAccountManager.addAccountListener(mAccountListener);
         mAccountManager.addSyncListener(mSyncListener);
 
-        mIsSyncEnabled = mAccountManager.getSyncEngineStatus(SyncEngine.History.INSTANCE);
+        mIsSyncEnabled = mAccountManager.isEngineEnabled(SyncEngine.History.INSTANCE);
+
+        updateHistory();
+        SessionStore.get().getHistoryStore().addListener(this);
 
         updateCurrentAccountState();
 
@@ -226,16 +226,19 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
     private SyncStatusObserver mSyncListener = new SyncStatusObserver() {
         @Override
         public void onStarted() {
-            if (mAccountManager.getSyncEngineStatus(SyncEngine.History.INSTANCE)) {
+            if (mAccountManager.isEngineEnabled(SyncEngine.History.INSTANCE)) {
+                mBinding.syncButton.setHovered(false);
                 mBinding.syncButton.setEnabled(false);
+                mSyncingAnimation.setDuration(500);
                 mSyncingAnimation.start();
             }
         }
 
         @Override
         public void onIdle() {
-            mIsSyncEnabled = mAccountManager.getSyncEngineStatus(SyncEngine.History.INSTANCE);
+            mIsSyncEnabled = mAccountManager.isEngineEnabled(SyncEngine.History.INSTANCE);
             if (mIsSyncEnabled) {
+                mBinding.syncButton.setHovered(false);
                 mBinding.syncButton.setEnabled(true);
                 mSyncingAnimation.cancel();
             }
@@ -244,7 +247,8 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
 
         @Override
         public void onError(@Nullable Exception e) {
-            if (mAccountManager.getSyncEngineStatus(SyncEngine.History.INSTANCE)) {
+            if (mAccountManager.isEngineEnabled(SyncEngine.History.INSTANCE)) {
+                mBinding.syncButton.setHovered(false);
                 mBinding.syncButton.setEnabled(true);
                 mSyncingAnimation.cancel();
                 mBinding.syncDescription.setText(getContext().getString(R.string.fxa_account_last_no_synced));
@@ -285,6 +289,7 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
         @Override
         public void onLoggedOut() {
             mIsSignedIn = false;
+            updateHistory();
             updateUi();
         }
 
