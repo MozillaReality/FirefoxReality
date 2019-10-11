@@ -111,6 +111,13 @@
     <dimen name="top_bar_height">40dp</dimen>
     <dimen name="top_bar_window_margin">20dp</dimen>
 
+    <!-- Tabs -->
+    <dimen name="tabs_width">600dp</dimen>
+    <dimen name="tabs_height">350dp</dimen>
+    <dimen name="tabs_spacing">10dp</dimen>
+    <dimen name="tabs_spacing_first_column">20dp</dimen>
+    <dimen name="tab_view_height">90dp</dimen>
+
     <!-- No Internet toast -->
     <dimen name="no_internet_width">400dp</dimen>
     <dimen name="no_internet_height">200dp</dimen>
@@ -127,8 +134,8 @@
     <!-- Tray -->
     <item name="tray_world_y" format="float" type="dimen">0.25</item>
     <item name="tray_world_z" format="float" type="dimen">-2.5</item>
-    <item name="tray_world_width" format="float" type="dimen">1.2</item>
-    <dimen name="tray_width">206dp</dimen>
+    <item name="tray_world_width" format="float" type="dimen">1.42</item>
+    <dimen name="tray_width">246dp</dimen>
     <dimen name="tray_height">40dp</dimen>
     <item name="tray_tooltip_density" format="float" type="dimen">4.0</item>
     <dimen name="tray_tooltip_padding_h">20dp</dimen>

@@ -222,12 +222,12 @@ public abstract class UIWidget extends FrameLayout implements Widget {
     }
 
     @Override
-    public void setFirstDraw(final boolean aIsFirstDraw) {
+    public void setComposited(final boolean aIsFirstDraw) {
         mWidgetPlacement.composited = aIsFirstDraw;
     }
 
     @Override
-    public boolean getFirstDraw() {
+    public boolean isComposited() {
         return mWidgetPlacement.composited;
     }
 

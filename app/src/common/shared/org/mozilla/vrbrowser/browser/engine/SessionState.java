@@ -1,5 +1,9 @@
 package org.mozilla.vrbrowser.browser.engine;
 
+import android.graphics.Bitmap;
+
+import androidx.annotation.Nullable;
+
 import com.google.gson.Gson;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
@@ -24,16 +28,18 @@ public class SessionState {
     public boolean mCanGoForward;
     public boolean mIsLoading;
     public boolean mIsInputActive;
+    public transient @Nullable Bitmap mBitmap;
     public transient GeckoSession.ProgressDelegate.SecurityInformation mSecurityInformation;
-    public String mUri;
+    public String mUri = "";
     public String mPreviousUri;
-    public String mTitle;
+    public String mTitle = "";
     public boolean mFullScreen;
     public transient GeckoSession mSession;
     public SessionSettings mSettings;
     public transient ArrayList<Media> mMediaElements = new ArrayList<>();
     @JsonAdapter(SessionState.GeckoSessionStateAdapter.class)
     public GeckoSession.SessionState mSessionState;
+    public long mLastUse;
 
     public static class GeckoSessionStateAdapter extends TypeAdapter<GeckoSession.SessionState> {
         @Override
@@ -73,6 +79,7 @@ public class SessionState {
                             out.name("mTitle").value(session.mTitle);
                             out.name("mFullScreen").value(session.mFullScreen);
                             out.name("mSettings").jsonValue(gson.toJson(session.mSettings));
+                            out.name("mLastUse").value(session.mLastUse);
                             if (session.mSession != null) {
                                 if (session.mSession.getSettings().getUsePrivateMode()) {
                                     out.name("mSessionState").jsonValue(null);

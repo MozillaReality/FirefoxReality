@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/dialog_background">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:layout_marginTop="5dp">
+
+        <org.mozilla.vrbrowser.ui.views.UIButton
+            android:id="@+id/tabsBackButton"
+            style="?attr/navigationBarButtonStyle"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:padding="4dp"
+            app:tintColorList="@drawable/main_button_icon_color_active"
+            android:tint="@color/midnight"
+            android:src="@drawable/ic_icon_back" />
+
+        <TextView
+            android:id="@+id/tabsAvailableCounter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:paddingStart="5dp"
+            android:paddingEnd="5dp"
+            android:textSize="18sp" />
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="100" />
+
+        <org.mozilla.vrbrowser.ui.views.UITextButton
+            android:id="@+id/tabsSelectButton"
+            style="@style/tabsButton"
+            android:text="@string/tabs_select" />
+
+        <org.mozilla.vrbrowser.ui.views.UITextButton
+            android:id="@+id/tabsDoneButton"
+            style="@style/tabsButton"
+            android:visibility="gone"
+            android:text="@string/tabs_select_done" />
+
+    </LinearLayout>
+
+    <View
+        android:id="@+id/tabsSelectModeSeparator"
+        android:layout_width="match_parent"
+        style="?attr/separatorStyle"
+        android:layout_marginStart="20dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginTop="5dp"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:id="@+id/tabsSelectModeView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:layout_marginTop="5dp"
+        android:layout_marginBottom="5dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/tabsSelectedCounter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:textColor="@color/fog_blur"
+            android:shadowColor="#00000000"
+            android:textSize="14sp" />
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="100" />
+
+        <org.mozilla.vrbrowser.ui.views.UITextButton
+            android:id="@+id/tabsCloseButton"
+            style="@style/tabsButtonSmall"
+            android:visibility="gone"
+            android:text="@string/tabs_close_selected" />
+
+        <org.mozilla.vrbrowser.ui.views.UITextButton
+            android:id="@+id/tabsCloseAllButton"
+            style="@style/tabsButtonSmall"
+            android:text="@string/tabs_close_all" />
+
+        <org.mozilla.vrbrowser.ui.views.UITextButton
+            android:id="@+id/tabsSelectAllButton"
+            style="@style/tabsButtonSmall"
+            android:text="@string/tabs_select_all" />
+
+        <org.mozilla.vrbrowser.ui.views.UITextButton
+            android:id="@+id/tabsUnselectButton"
+            style="@style/tabsButtonSmall"
+            android:visibility="gone"
+            android:text="@string/tabs_unselect" />
+
+
+    </LinearLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/tabsRecyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:requiresFadingEdge="vertical"
+        android:fadingEdgeLength="50dp">
+    </androidx.recyclerview.widget.RecyclerView>
+
+</LinearLayout>

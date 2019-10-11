@@ -23,7 +23,7 @@ import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.audio.AudioEngine;
 import org.mozilla.vrbrowser.browser.BookmarksStore;
 import org.mozilla.vrbrowser.browser.SessionChangeListener;
-import org.mozilla.vrbrowser.browser.engine.SessionStack;
+import org.mozilla.vrbrowser.browser.engine.Session;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
 import org.mozilla.vrbrowser.ui.views.UIButton;
@@ -43,6 +43,7 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
     private UIButton mPrivateButton;
     private UIButton mBookmarksButton;
     private UIButton mHistoryButton;
+    private UIButton mTabsButton;
     private AudioEngine mAudio;
     private int mSettingsDialogHandle = -1;
     private boolean mIsLastSessionPrivate;
@@ -51,7 +52,7 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
     private int mMaxPadding;
     private boolean mKeyboardVisible;
     private boolean mTrayVisible = true;
-    private SessionStack mSessionStack;
+    private Session mSession;
     private WindowWidget mAttachedWindow;
     private TooltipWidget mLibraryNotification;
 
@@ -124,6 +125,18 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
             }
 
             notifyHistoryClicked();
+            view.requestFocusFromTouch();
+        });
+        mHistoryButton.setCurvedTooltip(false);
+
+        mTabsButton = findViewById(R.id.tabsButton);
+        mTabsButton.setOnHoverListener(mButtonScaleHoverListener);
+        mTabsButton.setOnClickListener(view -> {
+            if (mAudio != null) {
+                mAudio.playSound(AudioEngine.Sound.CLICK);
+            }
+
+            notifyTabsClicked();
             view.requestFocusFromTouch();
         });
         mHistoryButton.setCurvedTooltip(false);
@@ -224,6 +237,10 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
         mTrayListeners.forEach(TrayListener::onHistoryClicked);
     }
 
+    private void notifyTabsClicked() {
+        mTrayListeners.forEach(TrayListener::onTabsClicked);
+    }
+
     private void notifyPrivateBrowsingClicked() {
         mTrayListeners.forEach(TrayListener::onPrivateBrowsingClicked);
     }
@@ -255,8 +272,8 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
 
     @Override
     public void releaseWidget() {
-        if (mSessionStack != null) {
-            mSessionStack.removeSessionChangeListener(this);
+        if (mSession != null) {
+            mSession.removeSessionChangeListener(this);
         }
 
         mWidgetManager.removeUpdateListener(this);
@@ -291,9 +308,9 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
     public void detachFromWindow() {
         hideBookmarkNotification.run();
         
-        if (mSessionStack != null) {
-            mSessionStack.removeSessionChangeListener(this);
-            mSessionStack = null;
+        if (mSession != null) {
+            mSession.removeSessionChangeListener(this);
+            mSession = null;
         }
         if (mAttachedWindow != null) {
             SessionStore.get().getBookmarkStore().addListener(mBookmarksListener);
@@ -318,9 +335,9 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
 
         SessionStore.get().getBookmarkStore().addListener(mBookmarksListener);
 
-        mSessionStack = aWindow.getSessionStack();
-        if (mSessionStack != null) {
-            mSessionStack.addSessionChangeListener(this);
+        mSession = aWindow.getSession();
+        if (mSession != null) {
+            mSession.addSessionChangeListener(this);
             handleSessionState();
         }
 
@@ -337,16 +354,16 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
         }
     }
 
-    // SessionStack.SessionChangeListener
+    // Session.SessionChangeListener
 
     @Override
-    public void onCurrentSessionChange(GeckoSession aSession, int aId) {
+    public void onCurrentSessionChange(GeckoSession aOldSession, GeckoSession aSession) {
         handleSessionState();
     }
 
     private void handleSessionState() {
-        if (mSessionStack != null) {
-            boolean isPrivateMode = mSessionStack.isPrivateMode();
+        if (mSession != null) {
+            boolean isPrivateMode = mSession.isPrivateMode();
 
             if (isPrivateMode != mIsLastSessionPrivate) {
                 mPrivateButton.setPrivateMode(isPrivateMode);

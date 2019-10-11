@@ -44,8 +44,8 @@ import org.mozilla.geckoview.GeckoVRManager;
 import org.mozilla.vrbrowser.audio.AudioEngine;
 import org.mozilla.vrbrowser.browser.PermissionDelegate;
 import org.mozilla.vrbrowser.browser.SettingsStore;
+import org.mozilla.vrbrowser.browser.engine.Session;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
-import org.mozilla.vrbrowser.browser.engine.SessionStack;
 import org.mozilla.vrbrowser.crashreporting.CrashReporterService;
 import org.mozilla.vrbrowser.crashreporting.GlobalExceptionHandler;
 import org.mozilla.vrbrowser.geolocation.GeolocationWrapper;
@@ -449,7 +449,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
             uri = Uri.parse(intent.getExtras().getString("url"));
         }
 
-        SessionStack activeStore = SessionStore.get().getActiveStore();
+        Session activeStore = SessionStore.get().getActiveSession();
 
         Bundle extras = intent.getExtras();
         if (extras != null && extras.containsKey("homepage")) {
@@ -466,15 +466,9 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         }
 
         if (activeStore != null) {
-            if (activeStore.getCurrentSession() == null) {
-                String url = (uri != null ? uri.toString() : null);
-                activeStore.newSessionWithUrl(url);
-                Log.d(LOGTAG, "Creating session and loading URI from intent: " + url);
-
-            } else if (uri != null) {
+            if (uri != null) {
                 Log.d(LOGTAG, "Loading URI from intent: " + uri.toString());
                 activeStore.loadUri(uri.toString());
-
             } else {
                 mWindows.getFocusedWindow().loadHomeIfNotRestored();
             }
@@ -682,8 +676,8 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
                 Log.d(LOGTAG, "Widget: " + aHandle + " (" + aWidth + "x" + aHeight + ") received a null surface texture.");
             } else {
                 Runnable aFirstDrawCallback = () -> {
-                    if (!widget.getFirstDraw()) {
-                        widget.setFirstDraw(true);
+                    if (!widget.isComposited()) {
+                        widget.setComposited(true);
                         updateWidget(widget);
                     }
                 };
@@ -711,8 +705,8 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
                 if (aNativeCallback != 0) {
                     queueRunnable(() -> runCallbackNative(aNativeCallback));
                 }
-                if (aSurface != null && !widget.getFirstDraw()) {
-                    widget.setFirstDraw(true);
+                if (aSurface != null && !widget.isComposited()) {
+                    widget.setComposited(true);
                     updateWidget(widget);
                 }
             };
@@ -779,12 +773,12 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
             boolean consumed = false;
             if ((aType == GestureSwipeLeft) && (mLastGesture == GestureSwipeLeft)) {
                 Log.d(LOGTAG, "Go back!");
-                SessionStore.get().getActiveStore().goBack();
+                SessionStore.get().getActiveSession().goBack();
 
                 consumed = true;
             } else if ((aType == GestureSwipeRight) && (mLastGesture == GestureSwipeRight)) {
                 Log.d(LOGTAG, "Go forward!");
-                SessionStore.get().getActiveStore().goForward();
+                SessionStore.get().getActiveSession().goForward();
                 consumed = true;
             }
             if (mLastRunnable != null) {
@@ -1004,18 +998,18 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
             if (window == null) {
                 return;
             }
-            final String originalUrl = window.getSessionStack().getCurrentUri();
+            final String originalUrl = window.getSession().getCurrentUri();
             if (mPoorPerformanceWhiteList.contains(originalUrl)) {
                 return;
             }
-            window.getSessionStack().loadHomePage();
+            window.getSession().loadHomePage();
             final String[] buttons = {getString(R.string.ok_button), getString(R.string.performance_unblock_page)};
             window.showButtonPrompt(getString(R.string.performance_title), getString(R.string.performance_message), buttons, new ConfirmPromptWidget.ConfirmPromptDelegate() {
                 @Override
                 public void confirm(int index) {
                     if (index == GeckoSession.PromptDelegate.ButtonPrompt.Type.NEGATIVE) {
                         mPoorPerformanceWhiteList.add(originalUrl);
-                        window.getSessionStack().loadUri(originalUrl);
+                        window.getSession().loadUri(originalUrl);
                     }
                 }
 
@@ -1135,7 +1129,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     public void removeWidget(final Widget aWidget) {
         mWidgets.remove(aWidget.getHandle());
         mWidgetContainer.removeView((View) aWidget);
-        aWidget.setFirstDraw(false);
+        aWidget.setComposited(false);
         queueRunnable(() -> removeWidgetNative(aWidget.getHandle()));
         if (aWidget == mActiveDialog) {
             mActiveDialog = null;
@@ -1326,11 +1320,11 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
 
     @Override
     public void requestPermission(String uri, @NonNull String permission, GeckoSession.PermissionDelegate.Callback aCallback) {
-        SessionStack activeStore = SessionStore.get().getActiveStore();
+        Session session = SessionStore.get().getActiveSession();
         if (uri != null && !uri.isEmpty()) {
-            mPermissionDelegate.onAppPermissionRequest(activeStore.getCurrentSession(), uri, permission, aCallback);
+            mPermissionDelegate.onAppPermissionRequest(session.getGeckoSession(), uri, permission, aCallback);
         } else {
-            mPermissionDelegate.onAndroidPermissionsRequest(activeStore.getCurrentSession(), new String[]{permission}, aCallback);
+            mPermissionDelegate.onAndroidPermissionsRequest(session.getGeckoSession(), new String[]{permission}, aCallback);
         }
     }
 
@@ -1386,7 +1380,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     public void openNewWindow(String uri) {
         WindowWidget newWindow = mWindows.addWindow();
         if (newWindow != null) {
-            newWindow.getSessionStack().newSessionWithUrl(uri);
+            newWindow.getSession().loadUri(uri);
         }
     }
 
