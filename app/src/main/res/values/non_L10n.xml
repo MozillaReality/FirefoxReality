@@ -79,8 +79,8 @@
     <string name="language_ru" translatable="false">Русский</string>
     <string name="language_ko_KR" translatable="false">한국어</string>
     <string name="language_it_IT" translatable="false">Italiano</string>
-    <string name="language_pl_PL" translatable="false">Polish</string>
-    <string name="language_da_DK" translatable="false">Danish</string>
+    <string name="language_pl_PL" translatable="false">Polskie</string>
+    <string name="language_da_DK" translatable="false">Dansk</string>
 
     <string name="pinyin_spacebar_selection" translatable="false">选定</string>
     <string name="pinyin_spacebar_space" translatable="false">空格</string>
