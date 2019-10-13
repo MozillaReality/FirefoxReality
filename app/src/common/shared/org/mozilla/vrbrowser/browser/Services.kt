@@ -32,8 +32,7 @@ import org.mozilla.vrbrowser.R
 
 class Services(context: Context, places: Places) {
     companion object {
-        // TODO this is from a sample app, get a real client id before shipping.
-        const val CLIENT_ID = "3c49430b43dfba77"
+        const val CLIENT_ID = "7ad9917f6c55fb77"
         const val REDIRECT_URL = "https://accounts.firefox.com/oauth/success/$CLIENT_ID"
     }
 
