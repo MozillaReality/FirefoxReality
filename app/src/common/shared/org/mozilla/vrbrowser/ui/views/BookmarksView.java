@@ -98,7 +98,6 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
         mLayoutManager = (CustomLinearLayoutManager) mBinding.bookmarksList.getLayoutManager();
 
         mBinding.setIsLoading(true);
-        mBinding.executePendingBindings();
 
         Drawable[] drawables = mBinding.syncButton.getCompoundDrawables();
         mSyncingAnimation = ObjectAnimator.ofInt(drawables[0], "level", 0, 10000);
@@ -350,7 +349,6 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
             mBinding.setIsLoading(false);
             mBookmarkAdapter.setBookmarkList(aBookmarks);
         }
-        mBinding.executePendingBindings();
     }
 
     @Override

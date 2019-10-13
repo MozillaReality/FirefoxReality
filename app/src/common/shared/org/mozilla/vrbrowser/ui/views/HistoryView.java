@@ -101,7 +101,6 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
         mBinding.historyList.setDrawingCacheQuality(View.DRAWING_CACHE_QUALITY_HIGH);
 
         mBinding.setIsLoading(true);
-        mBinding.executePendingBindings();
 
         Drawable[] drawables = mBinding.syncButton.getCompoundDrawables();
         mSyncingAnimation = ObjectAnimator.ofInt(drawables[0], "level", 0, 10000);
@@ -392,7 +391,6 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
             mHistoryAdapter.setHistoryList(historyItems);
             mBinding.historyList.post(() -> mBinding.historyList.smoothScrollToPosition(0));
         }
-        mBinding.executePendingBindings();
     }
 
     @Override
