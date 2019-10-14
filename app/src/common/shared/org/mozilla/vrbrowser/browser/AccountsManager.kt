@@ -126,16 +126,16 @@ class AccountsManager constructor(val context: Context) {
                 syncStatusObserver, ProcessLifecycleOwner.get(), false
         )
         services.accountManager.register(accountObserver)
-        if (services.accountManager.authenticatedAccount() != null) {
+        accountStatus = if (services.accountManager.authenticatedAccount() != null) {
             if (services.accountManager.accountNeedsReauth()) {
-                accountStatus = AccountStatus.NEEDS_RECONNECT;
+                AccountStatus.NEEDS_RECONNECT
 
             } else {
-                accountStatus = AccountStatus.SIGNED_IN
+                AccountStatus.SIGNED_IN
             }
 
         } else {
-            accountStatus = AccountStatus.SIGNED_OUT
+            AccountStatus.SIGNED_OUT
         }
     }
 
@@ -256,6 +256,10 @@ class AccountsManager constructor(val context: Context) {
 
     fun isEngineEnabled(engine: SyncEngine): Boolean {
         return syncStorage.getStatus()[engine]?: false
+    }
+
+    fun isSignedIn(): Boolean {
+        return (accountStatus == AccountStatus.SIGNED_IN)
     }
 
 }

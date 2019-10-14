@@ -13,6 +13,18 @@
             type="boolean" />
 
         <variable
+            name="isSignedIn"
+            type="boolean" />
+
+        <variable
+            name="isSyncEnabled"
+            type="boolean" />
+
+        <variable
+            name="lastSync"
+            type="long" />
+
+        <variable
             name="callback"
             type="org.mozilla.vrbrowser.ui.callbacks.HistoryCallback" />
     </data>
@@ -119,7 +131,9 @@
                 android:paddingEnd="15dp"
                 android:textColor="@color/rhino"
                 android:textSize="@dimen/text_medium_size"
-                android:textStyle="italic" />
+                android:textStyle="italic"
+                app:lastSync="@{lastSync}"
+                app:visibleGone="@{isSignedIn}"/>
 
             <Button
                 android:id="@+id/syncButton"
@@ -127,6 +141,7 @@
                 android:layout_height="wrap_content"
                 android:layout_toStartOf="@+id/clearButton"
                 android:layout_centerVertical="true"
+                android:enabled="@{isSyncEnabled}"
                 android:background="@drawable/content_panel_button_background"
                 android:drawableLeft="@drawable/library_sync_spinner"
                 android:drawableTint="@color/library_panel_button_text_color"
@@ -138,10 +153,34 @@
                 android:paddingStart="10dp"
                 android:paddingEnd="10dp"
                 android:layout_marginEnd="20dp"
-                android:text="@string/history_sync"
+                android:text="@string/fxa_sync"
                 android:textColor="@color/library_panel_button_text_color"
                 android:textSize="18sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                app:visibleGone="@{isSignedIn}"/>
+
+            <Button
+                android:id="@+id/loginButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_toStartOf="@+id/clearButton"
+                android:layout_centerVertical="true"
+                android:background="@drawable/content_panel_button_background"
+                android:drawableLeft="@drawable/library_sync_spinner"
+                android:drawableTint="@color/library_panel_button_text_color"
+                android:drawablePadding="5dp"
+                android:fontFamily="sans-serif"
+                android:gravity="center"
+                android:onClick="@{(view) ->  callback != null ? callback.onFxALogin(view) : void}"
+                android:padding="5dp"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:layout_marginEnd="20dp"
+                android:text="@string/fxa_account_sing_to_sync"
+                android:textColor="@color/library_panel_button_text_color"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                app:visibleGone="@{!isSignedIn}"/>
 
             <Button
                 android:id="@+id/clearButton"

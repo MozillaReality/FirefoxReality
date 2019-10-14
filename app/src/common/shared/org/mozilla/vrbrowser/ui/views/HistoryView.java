@@ -61,8 +61,6 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
     private AccountsManager mAccountManager;
     private HistoryAdapter mHistoryAdapter;
     private boolean mIgnoreNextListener;
-    private boolean mIsSyncEnabled;
-    private boolean mIsSignedIn;
     private ArrayList<HistoryCallback> mHistoryViewListeners;
 
     public HistoryView(Context aContext) {
@@ -110,12 +108,11 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
         mAccountManager.addAccountListener(mAccountListener);
         mAccountManager.addSyncListener(mSyncListener);
 
-        mIsSyncEnabled = mAccountManager.isEngineEnabled(SyncEngine.History.INSTANCE);
+        mBinding.setIsSignedIn(mAccountManager.isSignedIn());
+        mBinding.setIsSyncEnabled(mAccountManager.isEngineEnabled(SyncEngine.History.INSTANCE));
 
         updateHistory();
         SessionStore.get().getHistoryStore().addListener(this);
-
-        updateCurrentAccountState();
 
         setVisibility(GONE);
 
@@ -184,26 +181,17 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
 
         @Override
         public void onSyncHistory(@NonNull View view) {
-            switch(mAccountManager.getAccountStatus()) {
-                case NEEDS_RECONNECT:
-                case SIGNED_OUT:
-                    mAccountManager.getAuthenticationUrlAsync().thenAcceptAsync((url) -> {
-                        if (url != null) {
-                            mAccountManager.setLoginOrigin(AccountsManager.LoginOrigin.HISTORY);
-                            SessionStore.get().getActiveStore().loadUri(url);
-                        }
-                    });
-                    break;
+            mAccountManager.syncNowAsync(SyncReason.User.INSTANCE, false);
+        }
 
-                case SIGNED_IN:
-                    mAccountManager.syncNowAsync(SyncReason.User.INSTANCE, false);
-
-                    mHistoryViewListeners.forEach((listener) -> listener.onSyncHistory(view));
-                    break;
-
-                default:
-                    throw new IllegalStateException("Unexpected value: " + mAccountManager.getAccountStatus());
-            }
+        @Override
+        public void onFxALogin(@NonNull View view) {
+            mAccountManager.getAuthenticationUrlAsync().thenAcceptAsync((url) -> {
+                if (url != null) {
+                    mAccountManager.setLoginOrigin(AccountsManager.LoginOrigin.HISTORY);
+                    SessionStore.get().getActiveStore().loadUri(url);
+                }
+            });
         }
 
         @Override
@@ -225,9 +213,9 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
     private SyncStatusObserver mSyncListener = new SyncStatusObserver() {
         @Override
         public void onStarted() {
+            mBinding.setIsSyncEnabled(mAccountManager.isEngineEnabled(SyncEngine.History.INSTANCE));
+            mBinding.executePendingBindings();
             if (mAccountManager.isEngineEnabled(SyncEngine.History.INSTANCE)) {
-                mBinding.syncButton.setHovered(false);
-                mBinding.syncButton.setEnabled(false);
                 mSyncingAnimation.setDuration(500);
                 mSyncingAnimation.start();
             }
@@ -235,50 +223,27 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
 
         @Override
         public void onIdle() {
-            mIsSyncEnabled = mAccountManager.isEngineEnabled(SyncEngine.History.INSTANCE);
-            if (mIsSyncEnabled) {
-                mBinding.syncButton.setHovered(false);
-                mBinding.syncButton.setEnabled(true);
+            if (mAccountManager.isEngineEnabled(SyncEngine.History.INSTANCE)) {
                 mSyncingAnimation.cancel();
+                mBinding.setLastSync(mAccountManager.getLastSync());
             }
-            updateUi();
         }
 
         @Override
         public void onError(@Nullable Exception e) {
+            mBinding.setIsSyncEnabled(mAccountManager.isEngineEnabled(SyncEngine.History.INSTANCE));
+            mBinding.executePendingBindings();
             if (mAccountManager.isEngineEnabled(SyncEngine.History.INSTANCE)) {
-                mBinding.syncButton.setHovered(false);
-                mBinding.syncButton.setEnabled(true);
                 mSyncingAnimation.cancel();
-                mBinding.syncDescription.setText(getContext().getString(R.string.fxa_account_last_no_synced));
             }
         }
     };
-
-    private void updateCurrentAccountState() {
-        switch(mAccountManager.getAccountStatus()) {
-            case NEEDS_RECONNECT:
-            case SIGNED_OUT:
-                mIsSignedIn = false;
-                updateUi();
-                break;
-
-            case SIGNED_IN:
-                mIsSignedIn = true;
-                updateUi();
-                break;
-
-            default:
-                throw new IllegalStateException("Unexpected value: " + mAccountManager.getAccountStatus());
-        }
-    }
 
     private AccountObserver mAccountListener = new AccountObserver() {
 
         @Override
         public void onAuthenticated(@NotNull OAuthAccount oAuthAccount, @NotNull AuthType authType) {
-            mIsSignedIn = true;
-            updateUi();
+            mBinding.setIsSignedIn(true);
         }
 
         @Override
@@ -287,50 +252,14 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
 
         @Override
         public void onLoggedOut() {
-            mIsSignedIn = false;
-            updateHistory();
-            updateUi();
+            mBinding.setIsSignedIn(false);
         }
 
         @Override
         public void onAuthenticationProblems() {
-            mIsSignedIn = false;
-            updateUi();
+            mBinding.setIsSignedIn(false);
         }
     };
-
-    private void updateUi() {
-        if (mIsSignedIn) {
-            mBinding.syncButton.setText(R.string.history_sync);
-            mBinding.syncDescription.setVisibility(VISIBLE);
-
-            if (mIsSyncEnabled) {
-                mBinding.syncButton.setEnabled(true);
-                long lastSync = mAccountManager.getLastSync();
-                if (lastSync == 0) {
-                    mBinding.syncDescription.setText(getContext().getString(R.string.fxa_account_last_no_synced));
-
-                } else {
-                    long timeDiff = System.currentTimeMillis() - lastSync;
-                    if (timeDiff < 60000) {
-                        mBinding.syncDescription.setText(getContext().getString(R.string.fxa_account_last_synced_now));
-
-                    } else {
-                        mBinding.syncDescription.setText(getContext().getString(R.string.fxa_account_last_synced, timeDiff / 60000));
-                    }
-                }
-
-            } else {
-                mBinding.syncButton.setEnabled(false);
-                mBinding.syncDescription.setVisibility(GONE);
-            }
-
-        } else {
-            mBinding.syncButton.setEnabled(true);
-            mBinding.syncButton.setText(R.string.fxa_account_sing_to_sync);
-            mBinding.syncDescription.setVisibility(GONE);
-        }
-    }
 
     private void updateHistory() {
         Calendar date = new GregorianCalendar();

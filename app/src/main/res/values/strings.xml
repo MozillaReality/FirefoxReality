@@ -824,7 +824,7 @@
 
     <!-- This string is displayed is the "Sync" button in the history panel. When pressed the
          history is synced with the Firefox account. -->
-    <string name="history_sync">Sync</string>
+    <string name="fxa_sync">Sync</string>
 
     <!-- This string is displayed is the "Cancel" button from the clear history dialog.
          When pressed the dialog is closed. -->

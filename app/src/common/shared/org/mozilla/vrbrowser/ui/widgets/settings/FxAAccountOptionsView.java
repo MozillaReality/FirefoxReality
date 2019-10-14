@@ -98,7 +98,7 @@ class FxAAccountOptionsView extends SettingsView {
         updateBookmarkSwitch(value);
         if (doApply) {
             mAccountManager.setSyncStatus(SyncEngine.Bookmarks.INSTANCE, value);
-            mAccountManager.syncNowAsync(SyncReason.EngineChange.INSTANCE, true);
+            mAccountManager.syncNowAsync(SyncReason.EngineChange.INSTANCE, false);
         }
     }
 
@@ -112,7 +112,7 @@ class FxAAccountOptionsView extends SettingsView {
         updateHistorySwitch(value);
         if (doApply) {
             mAccountManager.setSyncStatus(SyncEngine.History.INSTANCE, value);
-            mAccountManager.syncNowAsync(SyncReason.EngineChange.INSTANCE, true);
+            mAccountManager.syncNowAsync(SyncReason.EngineChange.INSTANCE, false);
         }
     }
 

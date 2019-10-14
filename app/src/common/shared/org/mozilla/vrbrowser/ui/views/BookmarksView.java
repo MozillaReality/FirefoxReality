@@ -55,8 +55,6 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
     private AccountsManager mAccountManager;
     private BookmarkAdapter mBookmarkAdapter;
     private boolean mIgnoreNextListener;
-    private boolean mIsSyncEnabled;
-    private boolean mIsSignedIn;
     private ArrayList<BookmarksCallback> mBookmarksViewListeners;
     private CustomLinearLayoutManager mLayoutManager;
 
@@ -107,12 +105,11 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
         mAccountManager.addAccountListener(mAccountListener);
         mAccountManager.addSyncListener(mSyncListener);
 
-        mIsSyncEnabled = mAccountManager.isEngineEnabled(SyncEngine.Bookmarks.INSTANCE);
+        mBinding.setIsSignedIn(mAccountManager.isSignedIn());
+        mBinding.setIsSyncEnabled(mAccountManager.isEngineEnabled(SyncEngine.Bookmarks.INSTANCE));
 
         updateBookmarks();
         SessionStore.get().getBookmarkStore().addListener(this);
-
-        updateCurrentAccountState();
 
         setVisibility(GONE);
 
@@ -187,26 +184,17 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
 
         @Override
         public void onSyncBookmarks(@NonNull View view) {
-            switch(mAccountManager.getAccountStatus()) {
-                case NEEDS_RECONNECT:
-                case SIGNED_OUT:
-                    mAccountManager.getAuthenticationUrlAsync().thenAcceptAsync((url) -> {
-                        if (url != null) {
-                            mAccountManager.setLoginOrigin(AccountsManager.LoginOrigin.BOOKMARKS);
-                            SessionStore.get().getActiveStore().loadUri(url);
-                        }
-                    });
-                    break;
+            mAccountManager.syncNowAsync(SyncReason.User.INSTANCE, false);
+        }
 
-                case SIGNED_IN:
-                    mAccountManager.syncNowAsync(SyncReason.User.INSTANCE, false);
-
-                    mBookmarksViewListeners.forEach((listener) -> listener.onSyncBookmarks(view));
-                    break;
-
-                default:
-                    throw new IllegalStateException("Unexpected value: " + mAccountManager.getAccountStatus());
-            }
+        @Override
+        public void onFxALogin(@NonNull View view) {
+            mAccountManager.getAuthenticationUrlAsync().thenAcceptAsync((url) -> {
+                if (url != null) {
+                    mAccountManager.setLoginOrigin(AccountsManager.LoginOrigin.HISTORY);
+                    SessionStore.get().getActiveStore().loadUri(url);
+                }
+            });
         }
 
         @Override
@@ -228,9 +216,9 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
     private SyncStatusObserver mSyncListener = new SyncStatusObserver() {
         @Override
         public void onStarted() {
+            mBinding.setIsSyncEnabled(mAccountManager.isEngineEnabled(SyncEngine.Bookmarks.INSTANCE));
+            mBinding.executePendingBindings();
             if (mAccountManager.isEngineEnabled(SyncEngine.Bookmarks.INSTANCE)) {
-                mBinding.syncButton.setEnabled(false);
-                mBinding.syncButton.setHovered(false);
                 mSyncingAnimation.setDuration(500);
                 mSyncingAnimation.start();
             }
@@ -238,50 +226,27 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
 
         @Override
         public void onIdle() {
-            mIsSyncEnabled = mAccountManager.isEngineEnabled(SyncEngine.Bookmarks.INSTANCE);
-            if (mIsSyncEnabled) {
-                mBinding.syncButton.setEnabled(true);
-                mBinding.syncButton.setHovered(false);
+            if (mAccountManager.isEngineEnabled(SyncEngine.Bookmarks.INSTANCE)) {
                 mSyncingAnimation.cancel();
+                mBinding.setLastSync(mAccountManager.getLastSync());
             }
-            updateUi();
         }
 
         @Override
         public void onError(@Nullable Exception e) {
+            mBinding.setIsSyncEnabled(mAccountManager.isEngineEnabled(SyncEngine.Bookmarks.INSTANCE));
+            mBinding.executePendingBindings();
             if (mAccountManager.isEngineEnabled(SyncEngine.Bookmarks.INSTANCE)) {
-                mBinding.syncButton.setEnabled(true);
-                mBinding.syncButton.setHovered(false);
                 mSyncingAnimation.cancel();
-                mBinding.syncDescription.setText(getContext().getString(R.string.fxa_account_last_no_synced));
             }
         }
     };
-
-    private void updateCurrentAccountState() {
-        switch(mAccountManager.getAccountStatus()) {
-            case NEEDS_RECONNECT:
-            case SIGNED_OUT:
-                mIsSignedIn = false;
-                updateUi();
-                break;
-
-            case SIGNED_IN:
-                mIsSignedIn = true;
-                updateUi();
-                break;
-
-            default:
-                throw new IllegalStateException("Unexpected value: " + mAccountManager.getAccountStatus());
-        }
-    }
 
     private AccountObserver mAccountListener = new AccountObserver() {
 
         @Override
         public void onAuthenticated(@NotNull OAuthAccount oAuthAccount, @NotNull AuthType authType) {
-            mIsSignedIn = true;
-            updateUi();
+            mBinding.setIsSignedIn(true);
         }
 
         @Override
@@ -290,50 +255,14 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
 
         @Override
         public void onLoggedOut() {
-            mIsSignedIn = false;
-            updateBookmarks();
-            updateUi();
+            mBinding.setIsSignedIn(false);
         }
 
         @Override
         public void onAuthenticationProblems() {
-            mIsSignedIn = false;
-            updateUi();
+            mBinding.setIsSignedIn(false);
         }
     };
-
-    private void updateUi() {
-        if (mIsSignedIn) {
-            mBinding.syncButton.setText(R.string.bookmarks_sync);
-            mBinding.syncDescription.setVisibility(VISIBLE);
-
-            if (mIsSyncEnabled) {
-                mBinding.syncButton.setEnabled(true);
-                long lastSync = mAccountManager.getLastSync();
-                if (lastSync == 0) {
-                    mBinding.syncDescription.setText(getContext().getString(R.string.fxa_account_last_no_synced));
-
-                } else {
-                    long timeDiff = System.currentTimeMillis() - lastSync;
-                    if (timeDiff < 60000) {
-                        mBinding.syncDescription.setText(getContext().getString(R.string.fxa_account_last_synced_now));
-
-                    } else {
-                        mBinding.syncDescription.setText(getContext().getString(R.string.fxa_account_last_synced, timeDiff / 60000));
-                    }
-                }
-
-            } else {
-                mBinding.syncButton.setEnabled(false);
-                mBinding.syncDescription.setVisibility(GONE);
-            }
-
-        } else {
-            mBinding.syncButton.setEnabled(true);
-            mBinding.syncButton.setText(R.string.fxa_account_sing_to_sync);
-            mBinding.syncDescription.setVisibility(GONE);
-        }
-    }
 
     private void updateBookmarks() {
         SessionStore.get().getBookmarkStore().getTree(BookmarkRoot.Root.getId(), true).thenAcceptAsync(this::showBookmarks, new UIThreadExecutor());
