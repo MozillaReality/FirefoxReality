@@ -99,30 +99,24 @@ public class SessionStore implements GeckoSession.PermissionDelegate {
         mHistoryStore = new HistoryStore(context);
     }
 
-    public Session createSession(boolean privateMode) {
-        Session session = new Session(mContext, mRuntime, privateMode);
+    public Session createSession(boolean aPrivateMode) {
+        return createSession(aPrivateMode, null);
+    }
+
+    public Session createSession(boolean aPrivateMode, @Nullable SessionSettings aSettings) {
+        Session session = new Session(mContext, mRuntime, aPrivateMode, aSettings);
         session.setPermissionDelegate(this);
         mSessions.add(session);
 
         return session;
     }
 
-    public Session createSession(Session from) {
-        Session session = new Session(mContext, mRuntime, from);
+    public Session createSession(SessionState aRestoreState) {
+        Session session = new Session(mContext, mRuntime, aRestoreState);
         session.setPermissionDelegate(this);
         mSessions.add(session);
 
         return session;
-    }
-
-    public ArrayList<Session> restoreSessions(ArrayList<Session> aSessions) {
-        ArrayList<Session> result = new ArrayList<>();
-        for (Session restore: aSessions) {
-            Session newSession = createSession(restore);
-            newSession.restore(restore);
-            result.add(newSession);
-        }
-        return result;
     }
 
     public void destroySession(Session aSession) {
@@ -133,10 +127,9 @@ public class SessionStore implements GeckoSession.PermissionDelegate {
         }
     }
 
-    public void setActiveStore(Session aSession) {
+    public void setActiveSession(Session aSession) {
         mActiveSession = aSession;
     }
-
 
     public Session getActiveSession() {
         return mActiveSession;

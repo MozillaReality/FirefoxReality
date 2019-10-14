@@ -55,7 +55,6 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         GeckoSession.SelectionActionDelegate, SharedPreferences.OnSharedPreferenceChangeListener {
 
     private static final String LOGTAG = SystemUtils.createLogtag(Session.class);
-    // You can test a local file using: "resource://android/assets/webvr/index.html"
 
     private transient LinkedList<GeckoSession.NavigationDelegate> mNavigationListeners;
     private transient LinkedList<GeckoSession.ProgressDelegate> mProgressListeners;
@@ -71,7 +70,6 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     private transient GeckoSession.PermissionDelegate mPermissionDelegate;
     private transient GeckoSession.PromptDelegate mPromptDelegate;
     private transient GeckoSession.HistoryDelegate mHistoryDelegate;
-    private String mRegion;
     private transient Context mContext;
     private transient SharedPreferences mPrefs;
     private transient GeckoRuntime mRuntime;
@@ -83,20 +81,31 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     }
 
     protected Session(Context aContext, GeckoRuntime aRuntime, boolean aUsePrivateMode) {
+        this(aContext, aRuntime, aUsePrivateMode, null);
+    }
+
+    protected Session(Context aContext, GeckoRuntime aRuntime, boolean aUsePrivateMode,
+                      @Nullable SessionSettings aSettings) {
         mContext = aContext;
         mRuntime = aRuntime;
         mUsePrivateMode = aUsePrivateMode;
         initialize();
-        mState = createSession();
+        if (aSettings != null) {
+            mState = createSession(aSettings);
+        } else {
+            mState = createSession();
+        }
+
         setupSessionListeners(mState.mSession);
     }
 
-    protected Session(Context aContext, GeckoRuntime aRuntime, Session aFrom) {
+    protected Session(Context aContext, GeckoRuntime aRuntime, SessionState aRestoreState) {
         mContext = aContext;
         mRuntime = aRuntime;
-        mUsePrivateMode = aFrom.isPrivateMode();
+        mUsePrivateMode = false;
         initialize();
-        mState = createSession(aFrom.mState.mSettings);
+        mState = aRestoreState;
+        restore();
         setupSessionListeners(mState.mSession);
     }
 
@@ -288,14 +297,25 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         aSession.setSelectionActionDelegate(null);
     }
 
-    public void restore(Session store) {
-        mRegion = store.mRegion;
-        if (store.mState.mLastUse > 0) {
-            mState.mLastUse = store.mState.mLastUse;
+    private void restore() {
+        SessionSettings settings = mState.mSettings;
+        if (settings == null) {
+            settings = new SessionSettings.Builder()
+                    .withDefaultSettings(mContext)
+                    .build();
         }
-        if (mState.mSession != null && store.mState.mSessionState != null) {
-            mState.mSessionState = store.mState.mSessionState;
-            mState.mSession.restoreState(store.mState.mSessionState);
+
+        mState.mSession = createGeckoSession(settings);
+        if (!mState.mSession.isOpen()) {
+            mState.mSession.open(mRuntime);
+        }
+        
+        if (mState.mSessionState != null) {
+            mState.mSession.restoreState(mState.mSessionState);
+        }
+
+        for (SessionChangeListener listener: mSessionChangeListeners) {
+            listener.onNewSession(mState.mSession);
         }
 
         if (mUsePrivateMode) {
@@ -319,27 +339,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     private SessionState createSession(@NonNull SessionSettings aSettings) {
         SessionState state = new SessionState();
         state.mSettings = aSettings;
-
-        GeckoSessionSettings geckoSettings = new GeckoSessionSettings.Builder()
-            .useMultiprocess(aSettings.isMultiprocessEnabled())
-            .usePrivateMode(mUsePrivateMode)
-            .useTrackingProtection(aSettings.isTrackingProtectionEnabled())
-            .build();
-
-        if (aSettings.isServoEnabled()) {
-            if (isServoAvailable()) {
-                mState.mSession = createServoSession(mContext);
-            } else {
-                Log.e(LOGTAG, "Attempt to create a ServoSession. Servo hasn't been enable at build time. Using a GeckoSession instead.");
-                state.mSession = new GeckoSession(geckoSettings);
-            }
-        } else {
-            state.mSession = new GeckoSession(geckoSettings);
-        }
-
-        state.mSession.getSettings().setSuspendMediaWhenInactive(aSettings.isSuspendMediaWhenInactiveEnabled());
-        state.mSession.getSettings().setUserAgentMode(aSettings.getUserAgentMode());
-        state.mSession.getSettings().setUserAgentOverride(aSettings.getUserAgentOverride());
+        state.mSession = createGeckoSession(aSettings);
 
         if (!state.mSession.isOpen()) {
             state.mSession.open(mRuntime);
@@ -350,6 +350,27 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         }
 
         return state;
+    }
+
+    private GeckoSession createGeckoSession(@NonNull SessionSettings aSettings) {
+        GeckoSessionSettings geckoSettings = new GeckoSessionSettings.Builder()
+                .useMultiprocess(aSettings.isMultiprocessEnabled())
+                .usePrivateMode(mUsePrivateMode)
+                .useTrackingProtection(aSettings.isTrackingProtectionEnabled())
+                .build();
+
+        GeckoSession session;
+        if (aSettings.isServoEnabled() && isServoAvailable()) {
+            session = createServoSession(mContext);
+        } else {
+            session = new GeckoSession(geckoSettings);
+        }
+
+        session.getSettings().setSuspendMediaWhenInactive(aSettings.isSuspendMediaWhenInactiveEnabled());
+        session.getSettings().setUserAgentMode(aSettings.getUserAgentMode());
+        session.getSettings().setUserAgentOverride(aSettings.getUserAgentOverride());
+
+        return session;
     }
 
     private void recreateSession() {
@@ -398,7 +419,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
 
     public void setRegion(String aRegion) {
         Log.d(LOGTAG, "Session setRegion: " + aRegion);
-        mRegion = aRegion != null ? aRegion.toLowerCase() : "worldwide";
+        mState.mRegion = aRegion != null ? aRegion.toLowerCase() : "worldwide";
 
         // There is a region initialize and the home is already loaded
         if (mState.mSession != null && isHomeUri(getCurrentUri())) {
@@ -408,8 +429,8 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
 
     public String getHomeUri() {
         String homepage = SettingsStore.getInstance(mContext).getHomepage();
-        if (homepage.equals(mContext.getString(R.string.homepage_url)) && mRegion != null) {
-            homepage = homepage + "?region=" + mRegion;
+        if (homepage.equals(mContext.getString(R.string.homepage_url)) && mState.mRegion != null) {
+            homepage = homepage + "?region=" + mState.mRegion;
         }
         return homepage;
     }
@@ -652,6 +673,10 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         return mState.mLastUse;
     }
 
+    public @NonNull SessionState getSessionState() {
+        return mState;
+    }
+
     // NavigationDelegate
 
     @Override
@@ -668,7 +693,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         }
 
         // The homepage finishes loading after the region has been updated
-        if (mRegion != null && aUri.equalsIgnoreCase(SettingsStore.getInstance(mContext).getHomepage())) {
+        if (mState.mRegion != null && aUri.equalsIgnoreCase(SettingsStore.getInstance(mContext).getHomepage())) {
             aSession.loadUri("javascript:window.location.replace('" + getHomeUri() + "');");
         }
     }
@@ -759,7 +784,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     public GeckoResult<GeckoSession> onNewSession(@NonNull GeckoSession aSession, @NonNull String aUri) {
         Log.d(LOGTAG, "Session onNewSession: " + aUri);
 
-        Session session = SessionStore.get().createSession(this);
+        Session session = SessionStore.get().createSession(mUsePrivateMode, mState.mSettings);
         return GeckoResult.fromValue(session.getGeckoSession());
     }
 

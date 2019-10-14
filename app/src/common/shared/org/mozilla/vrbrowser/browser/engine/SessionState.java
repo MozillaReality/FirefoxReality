@@ -40,6 +40,7 @@ public class SessionState {
     @JsonAdapter(SessionState.GeckoSessionStateAdapter.class)
     public GeckoSession.SessionState mSessionState;
     public long mLastUse;
+    public String mRegion;
 
     public static class GeckoSessionStateAdapter extends TypeAdapter<GeckoSession.SessionState> {
         @Override
@@ -80,6 +81,7 @@ public class SessionState {
                             out.name("mFullScreen").value(session.mFullScreen);
                             out.name("mSettings").jsonValue(gson.toJson(session.mSettings));
                             out.name("mLastUse").value(session.mLastUse);
+                            out.name("mRegion").value(session.mRegion);
                             if (session.mSession != null) {
                                 if (session.mSession.getSettings().getUsePrivateMode()) {
                                     out.name("mSessionState").jsonValue(null);

@@ -449,7 +449,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
             uri = Uri.parse(intent.getExtras().getString("url"));
         }
 
-        Session activeStore = SessionStore.get().getActiveSession();
+        Session activeSession = SessionStore.get().getActiveSession();
 
         Bundle extras = intent.getExtras();
         if (extras != null && extras.containsKey("homepage")) {
@@ -465,10 +465,10 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
             }
         }
 
-        if (activeStore != null) {
+        if (activeSession != null) {
             if (uri != null) {
                 Log.d(LOGTAG, "Loading URI from intent: " + uri.toString());
-                activeStore.loadUri(uri.toString());
+                activeSession.loadUri(uri.toString());
             } else {
                 mWindows.getFocusedWindow().loadHomeIfNotRestored();
             }
@@ -998,8 +998,8 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
             if (window == null) {
                 return;
             }
-            final String originalUrl = window.getSession().getCurrentUri();
-            if (mPoorPerformanceWhiteList.contains(originalUrl)) {
+            final String originalUri = window.getSession().getCurrentUri();
+            if (mPoorPerformanceWhiteList.contains(originalUri)) {
                 return;
             }
             window.getSession().loadHomePage();
@@ -1008,8 +1008,8 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
                 @Override
                 public void confirm(int index) {
                     if (index == GeckoSession.PromptDelegate.ButtonPrompt.Type.NEGATIVE) {
-                        mPoorPerformanceWhiteList.add(originalUrl);
-                        window.getSession().loadUri(originalUrl);
+                        mPoorPerformanceWhiteList.add(originalUri);
+                        window.getSession().loadUri(originalUri);
                     }
                 }
 

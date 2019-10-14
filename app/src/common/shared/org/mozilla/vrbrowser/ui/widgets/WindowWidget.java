@@ -605,7 +605,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     public void setActiveWindow(boolean active) {
         mActive = active;
         if (active) {
-            SessionStore.get().setActiveStore(mSession);
+            SessionStore.get().setActiveSession(mSession);
             GeckoSession session = mSession.getGeckoSession();
             if (session != null) {
                 session.getTextInput().setView(this);

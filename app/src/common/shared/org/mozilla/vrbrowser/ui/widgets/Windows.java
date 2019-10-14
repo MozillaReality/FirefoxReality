@@ -15,6 +15,7 @@ import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.browser.Media;
 import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.browser.engine.Session;
+import org.mozilla.vrbrowser.browser.engine.SessionState;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
 import org.mozilla.vrbrowser.utils.SystemUtils;
@@ -27,6 +28,8 @@ import java.io.Reader;
 import java.io.Writer;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWidget.Delegate,
         GeckoSession.ContentDelegate, WindowWidget.WindowListener {
@@ -42,7 +45,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         float worldWidth;
         int tabIndex = -1;
 
-        public void load(WindowWidget aWindow, WindowsState aState) {
+        public void load(WindowWidget aWindow, WindowsState aState, int aTabIndex) {
             WidgetPlacement widgetPlacement;
             if (aWindow.isFullScreen()) {
                 widgetPlacement = aWindow.getBeforeFullscreenPlacement();
@@ -58,14 +61,14 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             textureWidth = widgetPlacement.width;
             textureHeight = widgetPlacement.height;
             worldWidth = widgetPlacement.worldWidth;
-            tabIndex = aState.tabs.indexOf(aWindow.getSession());
+            tabIndex = aTabIndex;
         }
     }
 
     class WindowsState {
         WindowPlacement focusedWindowPlacement = WindowPlacement.FRONT;
         ArrayList<WindowState> regularWindowsState = new ArrayList<>();
-        ArrayList<Session> tabs = new ArrayList<>();
+        ArrayList<SessionState> tabs = new ArrayList<>();
         boolean privateMode = false;
     }
 
@@ -126,10 +129,11 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             WindowsState state = new WindowsState();
             state.privateMode = mPrivateMode;
             state.focusedWindowPlacement = mFocusedWindow.isFullScreen() ?  mFocusedWindow.getmWindowPlacementBeforeFullscreen() : mFocusedWindow.getWindowPlacement();
-            state.tabs = new ArrayList<Session>(SessionStore.get().getSortedSessions(false));
+            ArrayList<Session> sessions = SessionStore.get().getSortedSessions(false);
+            state.tabs = sessions.stream().map(Session::getSessionState).collect(Collectors.toCollection(ArrayList::new));
             for (WindowWidget window : mRegularWindows) {
                 WindowState windowState = new WindowState();
-                windowState.load(window, state);
+                windowState.load(window, state, sessions.indexOf(window.getSession()));
                 state.regularWindowsState.add(windowState);
             }
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -575,8 +579,8 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         WindowsState windowsState = restoreState();
         if (windowsState != null) {
             ArrayList<Session> restoredSessions = new ArrayList<>();
-            if (windowsState.tabs != null && windowsState.tabs.size() > 0) {
-                restoredSessions = SessionStore.get().restoreSessions(windowsState.tabs);
+            if (windowsState.tabs != null) {
+                windowsState.tabs.forEach(state -> restoredSessions.add(SessionStore.get().createSession(state)));
             }
             mPrivateMode = false;
             for (WindowState windowState : windowsState.regularWindowsState) {
@@ -1030,11 +1034,11 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             aWindow.releaseDisplay(moveTo.getGeckoSession());
             windowToMove.setSession(moveTo);
             aWindow.setSession(moveFrom);
-            SessionStore.get().setActiveStore(aWindow.getSession());
+            SessionStore.get().setActiveSession(aWindow.getSession());
 
         } else{
             aWindow.setSession(aTab);
-            SessionStore.get().setActiveStore(aTab);
+            SessionStore.get().setActiveSession(aTab);
         }
     }
 
@@ -1051,7 +1055,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         mWidgetManager.updateWidget(aWindow);
         aWindow.setSession(session);
         session.loadHomePage();
-        SessionStore.get().setActiveStore(session);
+        SessionStore.get().setActiveSession(session);
     }
 
     @Override
@@ -1102,6 +1106,6 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             SessionStore.get().destroySession(session);
         }
 
-        SessionStore.get().setActiveStore(aWindow.getSession());
+        SessionStore.get().setActiveSession(aWindow.getSession());
     }
 }
