@@ -676,8 +676,8 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
                 Log.d(LOGTAG, "Widget: " + aHandle + " (" + aWidth + "x" + aHeight + ") received a null surface texture.");
             } else {
                 Runnable aFirstDrawCallback = () -> {
-                    if (!widget.isComposited()) {
-                        widget.setComposited(true);
+                    if (!widget.isFirstPaintReady()) {
+                        widget.setFirstPaintReady(true);
                         updateWidget(widget);
                     }
                 };
@@ -705,8 +705,8 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
                 if (aNativeCallback != 0) {
                     queueRunnable(() -> runCallbackNative(aNativeCallback));
                 }
-                if (aSurface != null && !widget.isComposited()) {
-                    widget.setComposited(true);
+                if (aSurface != null && !widget.isFirstPaintReady()) {
+                    widget.setFirstPaintReady(true);
                     updateWidget(widget);
                 }
             };
@@ -1129,7 +1129,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     public void removeWidget(final Widget aWidget) {
         mWidgets.remove(aWidget.getHandle());
         mWidgetContainer.removeView((View) aWidget);
-        aWidget.setComposited(false);
+        aWidget.setFirstPaintReady(false);
         queueRunnable(() -> removeWidgetNative(aWidget.getHandle()));
         if (aWidget == mActiveDialog) {
             mActiveDialog = null;

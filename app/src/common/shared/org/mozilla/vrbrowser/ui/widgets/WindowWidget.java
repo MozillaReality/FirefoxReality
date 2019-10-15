@@ -944,9 +944,9 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
 
 
     @Override
-    public void setComposited(final boolean aIsComposited) {
-        mWidgetPlacement.composited = aIsComposited;
-        if (!aIsComposited) {
+    public void setFirstPaintReady(final boolean aFirstPaintReady) {
+        mWidgetPlacement.composited = aFirstPaintReady;
+        if (!aFirstPaintReady) {
             mAfterFirstPaint = false;
         }
     }
@@ -956,7 +956,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     }
 
     @Override
-    public boolean isComposited() {
+    public boolean isFirstPaintReady() {
         return mWidgetPlacement.composited;
     }
 
@@ -1617,9 +1617,10 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
             return;
         }
 
+        final Session session = mSession;
         mDisplay.capturePixels().then(bitmap -> {
             if (bitmap != null) {
-                mSession.setBitmap(bitmap, mSession.getGeckoSession());
+                session.setBitmap(bitmap, session.getGeckoSession());
             }
             return null;
         });

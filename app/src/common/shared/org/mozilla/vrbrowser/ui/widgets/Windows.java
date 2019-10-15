@@ -28,7 +28,6 @@ import java.io.Reader;
 import java.io.Writer;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWidget.Delegate,
@@ -1045,10 +1044,10 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
     @Override
     public void onTabAdd(@NonNull WindowWidget aWindow) {
         Session session = SessionStore.get().createSession(aWindow.getSession().isPrivateMode());
-        aWindow.setComposited(false);
+        aWindow.setFirstPaintReady(false);
         aWindow.setFirstDrawCallback(() -> {
-            if (!aWindow.isComposited()) {
-                aWindow.setComposited(true);
+            if (!aWindow.isFirstPaintReady()) {
+                aWindow.setFirstPaintReady(true);
                 mWidgetManager.updateWidget(aWindow);
             }
         });
