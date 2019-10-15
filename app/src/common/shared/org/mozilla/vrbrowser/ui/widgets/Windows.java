@@ -14,7 +14,8 @@ import com.google.gson.reflect.TypeToken;
 import org.jetbrains.annotations.NotNull;
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.R;
-import org.mozilla.vrbrowser.browser.AccountsManager;
+import org.mozilla.vrbrowser.VRBrowserApplication;
+import org.mozilla.vrbrowser.browser.Accounts;
 import org.mozilla.vrbrowser.browser.Media;
 import org.mozilla.vrbrowser.browser.PromptDelegate;
 import org.mozilla.vrbrowser.browser.SettingsStore;
@@ -100,7 +101,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
     private boolean mIsPaused = false;
     private PromptDelegate mPromptDelegate;
     private TabsWidget mTabsWidget;
-    private AccountsManager mAccountManager;
+    private Accounts mAccounts;
 
     public enum WindowPlacement{
         FRONT(0),
@@ -136,8 +137,8 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
 
         mStoredCurvedMode = SettingsStore.getInstance(mContext).getCylinderDensity() > 0.0f;
 
-        mAccountManager = SessionStore.get().getAccountsManager();
-        mAccountManager.addAccountListener(mAccountObserver);
+        mAccounts = ((VRBrowserApplication)mContext.getApplicationContext()).getAccounts();
+        mAccounts.addAccountListener(mAccountObserver);
 
         restoreWindows();
     }
@@ -435,7 +436,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         for (WindowWidget window: mPrivateWindows) {
             window.close();
         }
-        mAccountManager.removeAccountListener(mAccountObserver);
+        mAccounts.removeAccountListener(mAccountObserver);
     }
 
     public boolean isInPrivateMode() {
@@ -879,7 +880,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
 
         @Override
         public void onAuthenticated(@NotNull OAuthAccount oAuthAccount, @NotNull AuthType authType) {
-            switch (mAccountManager.getLoginOrigin()) {
+            switch (mAccounts.getLoginOrigin()) {
                 case BOOKMARKS:
                     getFocusedWindow().switchBookmarks();
                     break;

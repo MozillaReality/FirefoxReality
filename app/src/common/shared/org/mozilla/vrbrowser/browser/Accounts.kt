@@ -27,9 +27,9 @@ import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
 
-class AccountsManager constructor(val context: Context) {
+class Accounts constructor(val context: Context) {
 
-    private val LOGTAG = SystemUtils.createLogtag(AccountsManager::class.java)
+    private val LOGTAG = SystemUtils.createLogtag(Accounts::class.java)
 
     enum class AccountStatus {
         SIGNED_IN,
@@ -86,6 +86,12 @@ class AccountsManager constructor(val context: Context) {
     private val accountObserver = object : AccountObserver {
         override fun onAuthenticated(account: OAuthAccount, authType: AuthType) {
             accountStatus = AccountStatus.SIGNED_IN
+
+            // Enable syncing after signing in
+            syncStorage.setStatus(SyncEngine.Bookmarks, SettingsStore.getInstance(context).isBookmarksSyncEnabled)
+            syncStorage.setStatus(SyncEngine.History, SettingsStore.getInstance(context).isHistorySyncEnabled)
+            services.accountManager.syncNowAsync(SyncReason.EngineChange, false)
+
             account.deviceConstellation().refreshDevicesAsync()
             accountListeners.toMutableList().forEach {
                 Handler(Looper.getMainLooper()).post {
@@ -194,6 +200,12 @@ class AccountsManager constructor(val context: Context) {
     }
 
     fun setSyncStatus(engine: SyncEngine, value: Boolean) {
+
+        when(engine) {
+            SyncEngine.Bookmarks -> SettingsStore.getInstance(context).isBookmarksSyncEnabled = value
+            SyncEngine.History -> SettingsStore.getInstance(context).isHistorySyncEnabled = value
+        }
+
         syncStorage.setStatus(engine, value)
     }
 

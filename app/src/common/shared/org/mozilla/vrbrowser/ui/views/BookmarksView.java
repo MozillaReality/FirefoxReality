@@ -22,7 +22,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.mozilla.vrbrowser.R;
-import org.mozilla.vrbrowser.browser.AccountsManager;
+import org.mozilla.vrbrowser.VRBrowserApplication;
+import org.mozilla.vrbrowser.browser.Accounts;
 import org.mozilla.vrbrowser.browser.BookmarksStore;
 import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.browser.engine.Session;
@@ -52,7 +53,7 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
 
     private BookmarksBinding mBinding;
     private ObjectAnimator mSyncingAnimation;
-    private AccountsManager mAccountManager;
+    private Accounts mAccounts;
     private BookmarkAdapter mBookmarkAdapter;
     private boolean mIgnoreNextListener;
     private ArrayList<BookmarksCallback> mBookmarksViewListeners;
@@ -101,12 +102,12 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
         mSyncingAnimation = ObjectAnimator.ofInt(drawables[0], "level", 0, 10000);
         mSyncingAnimation.setRepeatCount(ObjectAnimator.INFINITE);
 
-        mAccountManager = SessionStore.get().getAccountsManager();
-        mAccountManager.addAccountListener(mAccountListener);
-        mAccountManager.addSyncListener(mSyncListener);
+        mAccounts = ((VRBrowserApplication)getContext().getApplicationContext()).getAccounts();
+        mAccounts.addAccountListener(mAccountListener);
+        mAccounts.addSyncListener(mSyncListener);
 
-        mBinding.setIsSignedIn(mAccountManager.isSignedIn());
-        mBinding.setIsSyncEnabled(mAccountManager.isEngineEnabled(SyncEngine.Bookmarks.INSTANCE));
+        mBinding.setIsSignedIn(mAccounts.isSignedIn());
+        mBinding.setIsSyncEnabled(mAccounts.isEngineEnabled(SyncEngine.Bookmarks.INSTANCE));
 
         updateBookmarks();
         SessionStore.get().getBookmarkStore().addListener(this);
@@ -121,8 +122,8 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
 
     public void onDestroy() {
         SessionStore.get().getBookmarkStore().removeListener(this);
-        mAccountManager.removeAccountListener(mAccountListener);
-        mAccountManager.removeSyncListener(mSyncListener);
+        mAccounts.removeAccountListener(mAccountListener);
+        mAccounts.removeSyncListener(mSyncListener);
     }
 
     private final BookmarkItemCallback mBookmarkItemCallback = new BookmarkItemCallback() {
@@ -184,14 +185,14 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
 
         @Override
         public void onSyncBookmarks(@NonNull View view) {
-            mAccountManager.syncNowAsync(SyncReason.User.INSTANCE, false);
+            mAccounts.syncNowAsync(SyncReason.User.INSTANCE, false);
         }
 
         @Override
         public void onFxALogin(@NonNull View view) {
-            mAccountManager.getAuthenticationUrlAsync().thenAcceptAsync((url) -> {
+            mAccounts.getAuthenticationUrlAsync().thenAcceptAsync((url) -> {
                 if (url != null) {
-                    mAccountManager.setLoginOrigin(AccountsManager.LoginOrigin.HISTORY);
+                    mAccounts.setLoginOrigin(Accounts.LoginOrigin.BOOKMARKS);
                     SessionStore.get().getActiveStore().loadUri(url);
                 }
             });
@@ -216,9 +217,10 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
     private SyncStatusObserver mSyncListener = new SyncStatusObserver() {
         @Override
         public void onStarted() {
-            mBinding.setIsSyncEnabled(mAccountManager.isEngineEnabled(SyncEngine.Bookmarks.INSTANCE));
+            boolean isSyncEnabled = mAccounts.isEngineEnabled(SyncEngine.Bookmarks.INSTANCE);
+            mBinding.setIsSyncEnabled(isSyncEnabled);
             mBinding.executePendingBindings();
-            if (mAccountManager.isEngineEnabled(SyncEngine.Bookmarks.INSTANCE)) {
+            if (isSyncEnabled) {
                 mSyncingAnimation.setDuration(500);
                 mSyncingAnimation.start();
             }
@@ -226,17 +228,17 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
 
         @Override
         public void onIdle() {
-            if (mAccountManager.isEngineEnabled(SyncEngine.Bookmarks.INSTANCE)) {
+            if (mAccounts.isEngineEnabled(SyncEngine.Bookmarks.INSTANCE)) {
                 mSyncingAnimation.cancel();
-                mBinding.setLastSync(mAccountManager.getLastSync());
+                mBinding.setLastSync(mAccounts.getLastSync());
             }
         }
 
         @Override
         public void onError(@Nullable Exception e) {
-            mBinding.setIsSyncEnabled(mAccountManager.isEngineEnabled(SyncEngine.Bookmarks.INSTANCE));
+            mBinding.setIsSyncEnabled(mAccounts.isEngineEnabled(SyncEngine.Bookmarks.INSTANCE));
             mBinding.executePendingBindings();
-            if (mAccountManager.isEngineEnabled(SyncEngine.Bookmarks.INSTANCE)) {
+            if (mAccounts.isEngineEnabled(SyncEngine.Bookmarks.INSTANCE)) {
                 mSyncingAnimation.cancel();
             }
         }

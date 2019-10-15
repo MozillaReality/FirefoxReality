@@ -214,8 +214,6 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         SessionStore.get().setContext(this, extras);
         SessionStore.get().initializeStores(this);
 
-        SessionStore.get().initializeAccounts(this);
-
         // Create broadcast receiver for getting crash messages from crash process
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(CrashReporterService.CRASH_ACTION);
@@ -393,7 +391,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
 
         // If we're signed-in, poll for any new device events (e.g. received tabs) on activity resume.
         // There's no push support right now, so this helps with the perception of speedy tab delivery.
-        SessionStore.get().getAccountsManager().refreshDevicesAsync();
+        ((VRBrowserApplication)getApplicationContext()).getAccounts().refreshDevicesAsync();
 
         super.onResume();
     }

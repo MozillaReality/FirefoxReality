@@ -26,10 +26,11 @@ import org.jetbrains.annotations.NotNull;
 import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.vrbrowser.BuildConfig;
 import org.mozilla.vrbrowser.R;
+import org.mozilla.vrbrowser.VRBrowserApplication;
 import org.mozilla.vrbrowser.audio.AudioEngine;
 import org.mozilla.vrbrowser.browser.engine.Session;
 import org.mozilla.vrbrowser.browser.Services;
-import org.mozilla.vrbrowser.browser.AccountsManager;
+import org.mozilla.vrbrowser.browser.Accounts;
 import org.mozilla.vrbrowser.browser.engine.SessionStack;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.databinding.SettingsBinding;
@@ -60,7 +61,7 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
     private int mViewMarginV;
     private int mRestartDialogHandle = -1;
     private int mAlertDialogHandle = -1;
-    private AccountsManager mAccountManager;
+    private Accounts mAccounts;
 
     class VersionGestureListener extends GestureDetector.SimpleOnGestureListener {
 
@@ -100,8 +101,8 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
 
         mWidgetManager.addWorldClickListener(this);
 
-        mAccountManager = SessionStore.get().getAccountsManager();
-        mAccountManager.addAccountListener(mAccountObserver);
+        mAccounts = ((VRBrowserApplication)getContext().getApplicationContext()).getAccounts();
+        mAccounts.addAccountListener(mAccountObserver);
 
         mBinding.backButton.setOnClickListener(v -> {
             if (mAudio != null) {
@@ -218,7 +219,7 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
     @Override
     public void releaseWidget() {
         mWidgetManager.removeWorldClickListener(this);
-        mAccountManager.removeAccountListener(mAccountObserver);
+        mAccounts.removeAccountListener(mAccountObserver);
 
         super.releaseWidget();
     }
@@ -269,13 +270,13 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
     }
 
     private void manageAccount() {
-        switch(mAccountManager.getAccountStatus()) {
+        switch(mAccounts.getAccountStatus()) {
             case SIGNED_OUT:
             case NEEDS_RECONNECT:
-                mAccountManager.getAuthenticationUrlAsync().thenAcceptAsync((url) -> {
+                mAccounts.getAuthenticationUrlAsync().thenAcceptAsync((url) -> {
                     if (url != null) {
                         post(() -> {
-                            mAccountManager.setLoginOrigin(AccountsManager.LoginOrigin.SETTINGS);
+                            mAccounts.setLoginOrigin(Accounts.LoginOrigin.SETTINGS);
                             SessionStore.get().getActiveStore().loadUri(url);
                             hide(REMOVE_WIDGET);
                         });
@@ -290,19 +291,19 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
     }
 
     private void updateCurrentAccountState() {
-        switch(mAccountManager.getAccountStatus()) {
+        switch(mAccounts.getAccountStatus()) {
             case NEEDS_RECONNECT:
                 mBinding.fxaButton.setText(R.string.settings_fxa_account_reconnect);
                 break;
 
             case SIGNED_IN:
                 mBinding.fxaButton.setText(R.string.settings_fxa_account_manage);
-                updateProfile(mAccountManager.accountProfile());
+                updateProfile(mAccounts.accountProfile());
                 break;
 
             case SIGNED_OUT:
                 mBinding.fxaButton.setText(R.string.settings_fxa_account_sign_in);
-                updateProfile(mAccountManager.accountProfile());
+                updateProfile(mAccounts.accountProfile());
                 break;
         }
     }

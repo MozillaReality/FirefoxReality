@@ -23,7 +23,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.mozilla.vrbrowser.R;
-import org.mozilla.vrbrowser.browser.AccountsManager;
+import org.mozilla.vrbrowser.VRBrowserApplication;
+import org.mozilla.vrbrowser.browser.Accounts;
 import org.mozilla.vrbrowser.browser.HistoryStore;
 import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.browser.engine.Session;
@@ -58,7 +59,7 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
 
     private HistoryBinding mBinding;
     private ObjectAnimator mSyncingAnimation;
-    private AccountsManager mAccountManager;
+    private Accounts mAccounts;
     private HistoryAdapter mHistoryAdapter;
     private boolean mIgnoreNextListener;
     private ArrayList<HistoryCallback> mHistoryViewListeners;
@@ -104,12 +105,12 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
         mSyncingAnimation = ObjectAnimator.ofInt(drawables[0], "level", 0, 10000);
         mSyncingAnimation.setRepeatCount(ObjectAnimator.INFINITE);
 
-        mAccountManager = SessionStore.get().getAccountsManager();
-        mAccountManager.addAccountListener(mAccountListener);
-        mAccountManager.addSyncListener(mSyncListener);
+        mAccounts = ((VRBrowserApplication)getContext().getApplicationContext()).getAccounts();
+        mAccounts.addAccountListener(mAccountListener);
+        mAccounts.addSyncListener(mSyncListener);
 
-        mBinding.setIsSignedIn(mAccountManager.isSignedIn());
-        mBinding.setIsSyncEnabled(mAccountManager.isEngineEnabled(SyncEngine.History.INSTANCE));
+        mBinding.setIsSignedIn(mAccounts.isSignedIn());
+        mBinding.setIsSyncEnabled(mAccounts.isEngineEnabled(SyncEngine.History.INSTANCE));
 
         updateHistory();
         SessionStore.get().getHistoryStore().addListener(this);
@@ -124,8 +125,8 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
 
     public void onDestroy() {
         SessionStore.get().getHistoryStore().removeListener(this);
-        mAccountManager.removeAccountListener(mAccountListener);
-        mAccountManager.removeSyncListener(mSyncListener);
+        mAccounts.removeAccountListener(mAccountListener);
+        mAccounts.removeSyncListener(mSyncListener);
     }
 
     private final HistoryItemCallback mHistoryItemCallback = new HistoryItemCallback() {
@@ -181,14 +182,14 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
 
         @Override
         public void onSyncHistory(@NonNull View view) {
-            mAccountManager.syncNowAsync(SyncReason.User.INSTANCE, false);
+            mAccounts.syncNowAsync(SyncReason.User.INSTANCE, false);
         }
 
         @Override
         public void onFxALogin(@NonNull View view) {
-            mAccountManager.getAuthenticationUrlAsync().thenAcceptAsync((url) -> {
+            mAccounts.getAuthenticationUrlAsync().thenAcceptAsync((url) -> {
                 if (url != null) {
-                    mAccountManager.setLoginOrigin(AccountsManager.LoginOrigin.HISTORY);
+                    mAccounts.setLoginOrigin(Accounts.LoginOrigin.HISTORY);
                     SessionStore.get().getActiveStore().loadUri(url);
                 }
             });
@@ -213,9 +214,10 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
     private SyncStatusObserver mSyncListener = new SyncStatusObserver() {
         @Override
         public void onStarted() {
-            mBinding.setIsSyncEnabled(mAccountManager.isEngineEnabled(SyncEngine.History.INSTANCE));
+            boolean isSyncEnabled = mAccounts.isEngineEnabled(SyncEngine.History.INSTANCE);
+            mBinding.setIsSyncEnabled(isSyncEnabled);
             mBinding.executePendingBindings();
-            if (mAccountManager.isEngineEnabled(SyncEngine.History.INSTANCE)) {
+            if (isSyncEnabled) {
                 mSyncingAnimation.setDuration(500);
                 mSyncingAnimation.start();
             }
@@ -223,17 +225,17 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
 
         @Override
         public void onIdle() {
-            if (mAccountManager.isEngineEnabled(SyncEngine.History.INSTANCE)) {
+            if (mAccounts.isEngineEnabled(SyncEngine.History.INSTANCE)) {
                 mSyncingAnimation.cancel();
-                mBinding.setLastSync(mAccountManager.getLastSync());
+                mBinding.setLastSync(mAccounts.getLastSync());
             }
         }
 
         @Override
         public void onError(@Nullable Exception e) {
-            mBinding.setIsSyncEnabled(mAccountManager.isEngineEnabled(SyncEngine.History.INSTANCE));
+            mBinding.setIsSyncEnabled(mAccounts.isEngineEnabled(SyncEngine.History.INSTANCE));
             mBinding.executePendingBindings();
-            if (mAccountManager.isEngineEnabled(SyncEngine.History.INSTANCE)) {
+            if (mAccounts.isEngineEnabled(SyncEngine.History.INSTANCE)) {
                 mSyncingAnimation.cancel();
             }
         }

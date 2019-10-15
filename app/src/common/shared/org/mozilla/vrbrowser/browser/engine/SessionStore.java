@@ -18,7 +18,6 @@ import org.mozilla.vrbrowser.browser.HistoryStore;
 import org.mozilla.vrbrowser.browser.PermissionDelegate;
 import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.crashreporting.CrashReporterService;
-import org.mozilla.vrbrowser.browser.AccountsManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,7 +47,6 @@ public class SessionStore implements GeckoSession.PermissionDelegate {
     private PermissionDelegate mPermissionDelegate;
     private BookmarksStore mBookmarksStore;
     private HistoryStore mHistoryStore;
-    private AccountsManager mAccountsManager;
 
     private SessionStore() {
         mSessions = new ArrayList<>();
@@ -169,10 +167,6 @@ public class SessionStore implements GeckoSession.PermissionDelegate {
         }
     }
 
-    public AccountsManager getAccountsManager() {
-        return mAccountsManager;
-    }
-
     public void onPause() {
         for (Session session: mSessions) {
             session.setActive(false);
@@ -196,11 +190,6 @@ public class SessionStore implements GeckoSession.PermissionDelegate {
 
         if (mHistoryStore != null) {
             mHistoryStore.removeAllListeners();
-        }
-
-        if (mAccountsManager != null) {
-            mAccountsManager.removeAllAccountListeners();
-            mAccountsManager.removeAllSyncListeners();
         }
     }
 
