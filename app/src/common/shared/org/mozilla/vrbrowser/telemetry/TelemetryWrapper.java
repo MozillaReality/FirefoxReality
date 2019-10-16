@@ -6,7 +6,9 @@ import android.os.StrictMode;
 import android.os.SystemClock;
 import android.util.Log;
 
-import mozilla.components.lib.fetch.httpurlconnection.HttpURLConnectionClient;
+import androidx.annotation.NonNull;
+import androidx.annotation.UiThread;
+
 import org.mozilla.telemetry.Telemetry;
 import org.mozilla.telemetry.TelemetryHolder;
 import org.mozilla.telemetry.config.TelemetryConfiguration;
@@ -15,7 +17,6 @@ import org.mozilla.telemetry.measurement.SearchesMeasurement;
 import org.mozilla.telemetry.net.TelemetryClient;
 import org.mozilla.telemetry.ping.TelemetryCorePingBuilder;
 import org.mozilla.telemetry.ping.TelemetryMobileEventPingBuilder;
-import org.mozilla.telemetry.ping.TelemetryPingBuilder;
 import org.mozilla.telemetry.schedule.TelemetryScheduler;
 import org.mozilla.telemetry.schedule.jobscheduler.JobSchedulerTelemetryScheduler;
 import org.mozilla.telemetry.serialize.JSONPingSerializer;
@@ -33,11 +34,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.UiThread;
+import mozilla.components.lib.fetch.httpurlconnection.HttpURLConnectionClient;
 
 import static java.lang.Math.toIntExact;
-import static org.mozilla.vrbrowser.ui.widgets.Windows.*;
+import static org.mozilla.vrbrowser.ui.widgets.Windows.MAX_WINDOWS;
+import static org.mozilla.vrbrowser.ui.widgets.Windows.WindowPlacement;
 
 
 public class TelemetryWrapper {
@@ -171,6 +172,19 @@ public class TelemetryWrapper {
             TelemetryHolder.set(new Telemetry(configuration, storage, client, scheduler)
                     .addPingBuilder(new TelemetryCorePingBuilder(configuration))
                     .addPingBuilder(new TelemetryMobileEventPingBuilder(configuration)));
+
+            // Check if the Telemetry status has ever been saved (enabled/disabled)
+            boolean saved = SettingsStore.getInstance(aContext).telemetryStatusSaved();
+            // Check if we have already sent the previous status event
+            boolean sent = SettingsStore.getInstance(aContext).isTelemetryPingUpdateSent();
+            // If the Telemetry status has been changed but that ping has not been sent, we send it now
+            // This should only been true for versions of the app prior to implementing the Telemetry status ping
+            // We only send the status ping if it was disabled
+            if (saved && !sent && !telemetryEnabled) {
+                telemetryStatus(false);
+                SettingsStore.getInstance(aContext).setTelemetryPingUpdateSent(true);
+            }
+
         } finally {
             StrictMode.setThreadPolicy(threadPolicy);
         }
