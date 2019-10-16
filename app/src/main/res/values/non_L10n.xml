@@ -81,6 +81,7 @@
     <string name="language_it_IT" translatable="false">Italiano</string>
     <string name="language_pl_PL" translatable="false">Polski</string>
     <string name="language_da_DK" translatable="false">Dansk</string>
+    <string name="language_sv_SE" translatable="false">Svensk</string>
 
     <string name="pinyin_spacebar_selection" translatable="false">选定</string>
     <string name="pinyin_spacebar_space" translatable="false">空格</string>
@@ -147,6 +148,14 @@
     <string name="keyboard_da_DK_popup_æ" translatable="false">æä</string>
     <string name="keyboard_da_DK_popup_ø" translatable="false">øö</string>
     <string name="keyboard_da_DK_popup_n" translatable="false">nñń</string>
+
+    <!-- Keyboard Swedish -->
+    <string name="keyboard_sv_SE_popup_a" translatable="false">aà</string>
+    <string name="keyboard_sv_SE_popup_e" translatable="false">eéèêëę</string>
+    <string name="keyboard_sv_SE_popup_u" translatable="false">ûuüùûū</string>
+    <string name="keyboard_sv_SE_popup_o" translatable="false">oœôóòõō</string>
+    <string name="keyboard_sv_SE_popup_ö" translatable="false">öø</string>
+    <string name="keyboard_sv_SE_popup_ä" translatable="false">äæ</string>
 
     <!-- SEARCH ENGINES -->
     <string name="geolocation_api_url" translatable="false">https://location.services.mozilla.com/v1/country</string>
