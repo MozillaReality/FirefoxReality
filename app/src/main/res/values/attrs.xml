@@ -27,6 +27,7 @@
         <attr name="tooltipLayout" />
     </declare-styleable>
 
+    <attr name="buttonText" format="string" />
     <attr name="title" format="string" />
     <attr name="description" format="string" />
     <attr name="tooltipDelay" format="integer" />
@@ -63,7 +64,7 @@
 
     <declare-styleable name="ButtonSetting">
         <attr name="description" />
-        <attr name="buttonText" format="string" />
+        <attr name="buttonText" />
     </declare-styleable>
 
     <declare-styleable name="SettingsHeader">
@@ -76,6 +77,7 @@
     </declare-styleable>
 
     <declare-styleable name="SettingsFooter">
+        <attr name="buttonText" />
         <attr name="description" />
     </declare-styleable>
 

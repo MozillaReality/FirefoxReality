@@ -55,7 +55,12 @@ public class SettingsFooter extends FrameLayout {
         mBinding = DataBindingUtil.inflate(inflater, R.layout.options_footer, this, true);
 
         if (attributes != null) {
+            String buttonText = attributes.getString(R.styleable.SettingsFooter_buttonText);
             String description = attributes.getString(R.styleable.SettingsFooter_description);
+
+            if (buttonText != null) {
+                mBinding.setButtonText(description);
+            }
 
             if (description != null) {
                 mBinding.setDescription(description);
