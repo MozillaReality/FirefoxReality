@@ -10,9 +10,7 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.res.Resources;
-import android.graphics.Rect;
 import android.text.Editable;
-import android.text.Selection;
 import android.text.SpannableString;
 import android.text.TextWatcher;
 import android.text.style.ForegroundColorSpan;
@@ -60,7 +58,6 @@ import java.net.URLDecoder;
 import java.util.ArrayList;
 
 import kotlin.Unit;
-import kotlin.jvm.functions.Function2;
 import mozilla.components.browser.domains.autocomplete.DomainAutocompleteResult;
 import mozilla.components.browser.domains.autocomplete.ShippedDomainsProvider;
 import mozilla.components.ui.autocomplete.InlineAutocompleteEditText;
@@ -69,7 +66,7 @@ public class NavigationURLBar extends FrameLayout {
 
     private static final String LOGTAG = SystemUtils.createLogtag(NavigationURLBar.class);
 
-    private InlineAutocompleteEditText mURL;
+    private CustomInlineAutocompleteEditText mURL;
     private UIButton mMicrophoneButton;
     private UIButton mUAModeButton;
     private ImageView mInsecureIcon;
@@ -95,7 +92,6 @@ public class NavigationURLBar extends FrameLayout {
     private SelectionActionWidget mSelectionMenu;
     private boolean mWasFocusedWhenTouchBegan = false;
     private boolean mLongPressed = false;
-    private float lastTouchDownX = 0;
     private int lastTouchDownOffset = 0;
 
     private Unit domainAutocompleteFilter(String text) {
@@ -169,7 +165,6 @@ public class NavigationURLBar extends FrameLayout {
         mURL.setOnTouchListener((view, motionEvent) -> {
             if (motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
                 mWasFocusedWhenTouchBegan = view.isFocused();
-                lastTouchDownX = motionEvent.getX();
                 lastTouchDownOffset = ViewUtils.getCursorOffset(mURL, motionEvent.getX());
             } else if (mLongPressed && motionEvent.getAction() == MotionEvent.ACTION_MOVE) {
                 // Selection gesture while longpressing
@@ -178,6 +173,10 @@ public class NavigationURLBar extends FrameLayout {
                 mLongPressed = false;
             }
             if (gd.onTouchEvent(motionEvent)) {
+                return true;
+            }
+            if (mLongPressed) {
+                // Do not scroll editable when selecting text after a long press.
                 return true;
             }
             return view.onTouchEvent(motionEvent);
@@ -204,12 +203,17 @@ public class NavigationURLBar extends FrameLayout {
         });
         mURL.addTextChangedListener(mURLTextWatcher);
 
-        mURL.setOnSelectionChangedListener((integer, integer2) -> {
-            if (mSelectionMenu != null && mDelegate != null) {
-                mDelegate.onLongPress(getSelectionCenterX(), mSelectionMenu);
-                mSelectionMenu.updateWidget();
+        mURL.setOnSelectionChangedCallback((start, end) -> {
+            if (mSelectionMenu != null) {
+                boolean hasCopy = mSelectionMenu.hasAction(GeckoSession.SelectionActionDelegate.ACTION_COPY);
+                boolean showCopy = end > start;
+                if (hasCopy != showCopy) {
+                    handleLongPress();
+                } else {
+                    mDelegate.onLongPress(getSelectionCenterX(), mSelectionMenu);
+                    mSelectionMenu.updateWidget();
+                }
             }
-            return null;
         });
 
         mURL.setOnScrollChangeListener((v, scrollX, scrollY, oldScrollX, oldScrollY) -> {
@@ -726,7 +730,6 @@ public class NavigationURLBar extends FrameLayout {
     };
 
     private void handleLongPress() {
-        hideSelectionMenu();
         ArrayList<String> actions = new ArrayList<>();
         if (mURL.getSelectionEnd() > mURL.getSelectionStart()) {
             actions.add(GeckoSession.SelectionActionDelegate.ACTION_CUT);
@@ -742,49 +745,58 @@ public class NavigationURLBar extends FrameLayout {
         }
 
         if (actions.size() == 0) {
+            hideSelectionMenu();
             return;
         }
 
-        mSelectionMenu = new SelectionActionWidget(getContext());
-        mSelectionMenu.setActions(actions.toArray(new String[0]));
-        mSelectionMenu.setDelegate(new SelectionActionWidget.Delegate() {
-            @Override
-            public void onAction(String action) {
-                int startSelection = mURL.getSelectionStart();
-                int endSelection = mURL.getSelectionEnd();
-                boolean selectionValid = endSelection > startSelection;
+        String[] actionsArray = actions.toArray(new String[0]);
+        if (mSelectionMenu != null && !mSelectionMenu.hasSameActions(actionsArray)) {
+            // Release current selection menu to recreate it with different actions.
+            hideSelectionMenu();
+        }
 
-                if (action.equals(GeckoSession.SelectionActionDelegate.ACTION_CUT) && selectionValid) {
-                    String selectedText = mURL.getText().toString().substring(startSelection, endSelection);
-                    clipboard.setPrimaryClip(ClipData.newPlainText("text", selectedText));
-                    mURL.setText(StringUtils.removeRange(mURL.getText().toString(), startSelection, endSelection));
-                } else if (action.equals(GeckoSession.SelectionActionDelegate.ACTION_COPY) && selectionValid) {
-                    String selectedText = mURL.getText().toString().substring(startSelection, endSelection);
-                    clipboard.setPrimaryClip(ClipData.newPlainText("text", selectedText));
-                } else if (action.equals(GeckoSession.SelectionActionDelegate.ACTION_PASTE) && clipboard.hasPrimaryClip()) {
-                    ClipData.Item item = clipboard.getPrimaryClip().getItemAt(0);
-                    if (selectionValid) {
+        if (mSelectionMenu == null) {
+            mSelectionMenu = new SelectionActionWidget(getContext());
+            mSelectionMenu.setActions(actionsArray);
+            mSelectionMenu.setDelegate(new SelectionActionWidget.Delegate() {
+                @Override
+                public void onAction(String action) {
+                    int startSelection = mURL.getSelectionStart();
+                    int endSelection = mURL.getSelectionEnd();
+                    boolean selectionValid = endSelection > startSelection;
+
+                    if (action.equals(GeckoSession.SelectionActionDelegate.ACTION_CUT) && selectionValid) {
+                        String selectedText = mURL.getText().toString().substring(startSelection, endSelection);
+                        clipboard.setPrimaryClip(ClipData.newPlainText("text", selectedText));
                         mURL.setText(StringUtils.removeRange(mURL.getText().toString(), startSelection, endSelection));
-                    }
-                    if (item != null && item.getText() != null) {
-                        mURL.getText().insert(mURL.getSelectionStart(), item.getText());
-                    } else if (item != null && item.getUri() != null) {
-                        mURL.getText().insert(mURL.getSelectionStart(), item.getUri().toString());
-                    }
-                } else if (action.equals(GeckoSession.SelectionActionDelegate.ACTION_SELECT_ALL)) {
-                    mURL.selectAll();
-                    handleLongPress();
-                    return;
+                    } else if (action.equals(GeckoSession.SelectionActionDelegate.ACTION_COPY) && selectionValid) {
+                        String selectedText = mURL.getText().toString().substring(startSelection, endSelection);
+                        clipboard.setPrimaryClip(ClipData.newPlainText("text", selectedText));
+                    } else if (action.equals(GeckoSession.SelectionActionDelegate.ACTION_PASTE) && clipboard.hasPrimaryClip()) {
+                        ClipData.Item item = clipboard.getPrimaryClip().getItemAt(0);
+                        if (selectionValid) {
+                            mURL.setText(StringUtils.removeRange(mURL.getText().toString(), startSelection, endSelection));
+                        }
+                        if (item != null && item.getText() != null) {
+                            mURL.getText().insert(mURL.getSelectionStart(), item.getText());
+                        } else if (item != null && item.getUri() != null) {
+                            mURL.getText().insert(mURL.getSelectionStart(), item.getUri().toString());
+                        }
+                    } else if (action.equals(GeckoSession.SelectionActionDelegate.ACTION_SELECT_ALL)) {
+                        mURL.selectAll();
+                        handleLongPress();
+                        return;
 
+                    }
+                    hideSelectionMenu();
                 }
-                hideSelectionMenu();
-            }
 
-            @Override
-            public void onDismiss() {
-                hideSelectionMenu();
-            }
-        });
+                @Override
+                public void onDismiss() {
+                    hideSelectionMenu();
+                }
+            });
+        }
 
         if (mDelegate != null) {
             mDelegate.onLongPress(getSelectionCenterX(), mSelectionMenu);
@@ -795,9 +807,6 @@ public class NavigationURLBar extends FrameLayout {
 
 
     private float getSelectionCenterX() {
-        int startSelection = mURL.getSelectionStart();
-        int endSelection = mURL.getSelectionEnd();
-        boolean selectionValid = endSelection > startSelection;
         float start = 0;
         if (mURL.getSelectionStart() >= 0) {
             start = ViewUtils.GetLetterPositionX(mURL, mURL.getSelectionStart(), true);

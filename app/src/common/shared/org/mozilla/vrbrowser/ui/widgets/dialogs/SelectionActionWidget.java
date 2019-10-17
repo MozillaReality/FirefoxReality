@@ -20,6 +20,7 @@ import org.mozilla.vrbrowser.utils.StringUtils;
 import org.mozilla.vrbrowser.utils.ViewUtils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import static android.view.Gravity.CENTER_VERTICAL;
 
@@ -33,6 +34,7 @@ public class SelectionActionWidget extends UIWidget implements WidgetManagerDele
     private Point mPosition;
     private LinearLayout mContainer;
     private int mMinButtonWidth;
+    private String[] mActions;
 
     public SelectionActionWidget(Context aContext) {
         super(aContext);
@@ -101,23 +103,24 @@ public class SelectionActionWidget extends UIWidget implements WidgetManagerDele
         }
     }
 
-    public void setActions(@NonNull String[] actions) {
+    public void setActions(@NonNull String[] aActions) {
+        mActions = aActions;
         mContainer.removeAllViews();
         ArrayList<UITextButton> buttons = new ArrayList<>();
 
-        if (StringUtils.contains(actions, GeckoSession.SelectionActionDelegate.ACTION_CUT)) {
+        if (StringUtils.contains(aActions, GeckoSession.SelectionActionDelegate.ACTION_CUT)) {
             buttons.add(createButton(R.string.context_menu_cut_text, GeckoSession.SelectionActionDelegate.ACTION_CUT, this::handleAction));
         }
-        if (StringUtils.contains(actions, GeckoSession.SelectionActionDelegate.ACTION_COPY)) {
+        if (StringUtils.contains(aActions, GeckoSession.SelectionActionDelegate.ACTION_COPY)) {
             buttons.add(createButton(R.string.context_menu_copy_text, GeckoSession.SelectionActionDelegate.ACTION_COPY, this::handleAction));
         }
-        if (StringUtils.contains(actions, GeckoSession.SelectionActionDelegate.ACTION_PASTE)) {
+        if (StringUtils.contains(aActions, GeckoSession.SelectionActionDelegate.ACTION_PASTE)) {
             buttons.add(createButton(R.string.context_menu_paste_text, GeckoSession.SelectionActionDelegate.ACTION_PASTE, this::handleAction));
         }
-        if (StringUtils.contains(actions, GeckoSession.SelectionActionDelegate.ACTION_SELECT_ALL)) {
+        if (StringUtils.contains(aActions, GeckoSession.SelectionActionDelegate.ACTION_SELECT_ALL)) {
             buttons.add(createButton(R.string.context_menu_select_all_text, GeckoSession.SelectionActionDelegate.ACTION_SELECT_ALL, this::handleAction));
         }
-        if (StringUtils.contains(actions, GeckoSession.SelectionActionDelegate.ACTION_UNSELECT)) {
+        if (StringUtils.contains(aActions, GeckoSession.SelectionActionDelegate.ACTION_UNSELECT)) {
             buttons.add(createButton(R.string.context_menu_unselect, GeckoSession.SelectionActionDelegate.ACTION_UNSELECT, this::handleAction));
         }
 
@@ -137,6 +140,14 @@ public class SelectionActionWidget extends UIWidget implements WidgetManagerDele
             }
             buttons.get(i).setBackgroundDrawable(getContext().getDrawable(backgroundId));
         }
+    }
+
+    public boolean hasAction(String aAction) {
+        return mActions != null && StringUtils.contains(mActions, aAction);
+    }
+
+    public boolean hasSameActions(@NonNull String[] aActions) {
+        return Arrays.deepEquals(mActions, aActions);
     }
 
     private UITextButton createButton(int aStringId, String aAction, OnClickListener aHandler) {
