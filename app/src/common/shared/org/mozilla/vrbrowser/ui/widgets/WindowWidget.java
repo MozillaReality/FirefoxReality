@@ -73,7 +73,7 @@ import static org.mozilla.vrbrowser.utils.ServoUtils.isInstanceOfServoSession;
 
 public class WindowWidget extends UIWidget implements SessionChangeListener,
         GeckoSession.ContentDelegate, GeckoSession.NavigationDelegate, VideoAvailabilityListener,
-        GeckoSession.HistoryDelegate, GeckoSession.ProgressDelegate {
+        GeckoSession.HistoryDelegate, GeckoSession.ProgressDelegate, GeckoSession.SelectionActionDelegate {
 
     public interface HistoryViewDelegate {
         default void onHistoryViewShown(WindowWidget aWindow) {}
@@ -1296,6 +1296,29 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
                     isLastVisibleItem);
         }
     };
+
+    private void hideContextMenus() {
+        if (mContextMenu != null) {
+            mContextMenu.hide(REMOVE_WIDGET);
+            mContextMenu.releaseWidget();
+            mContextMenu = null;
+        }
+        if (mSelectionMenu != null) {
+            mSelectionMenu.setDelegate((SelectionActionWidget.Delegate)null);
+            mSelectionMenu.hide(REMOVE_WIDGET);
+            mSelectionMenu.releaseWidget();
+            mSelectionMenu = null;
+        }
+
+        if (mWidgetPlacement.tintColor != 0xFFFFFFFF) {
+            mWidgetPlacement.tintColor = 0xFFFFFFFF;
+            mWidgetManager.updateWidget(this);
+        }
+
+        if (mLibraryItemContextMenu != null && mLibraryItemContextMenu.isVisible()) {
+            mLibraryItemContextMenu.hide(REMOVE_WIDGET);
+        }
+    }
 
     // GeckoSession.ContentDelegate
 
