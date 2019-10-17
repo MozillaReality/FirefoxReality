@@ -65,6 +65,10 @@ public class DataRepository implements LifecycleOwner {
         mExecutors.diskIO().execute(() -> mDatabase.popUpSiteDao().insert(new PopUpSite(url, allowed)));
     }
 
+    public void insertPopUpSite(final @NonNull PopUpSite site) {
+        mExecutors.diskIO().execute(() -> mDatabase.popUpSiteDao().insert(site));
+    }
+
     public void deletePopUpSite(final @NonNull PopUpSite site) {
         mExecutors.diskIO().execute(() -> mDatabase.popUpSiteDao().delete(site));
     }

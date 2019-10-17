@@ -39,6 +39,10 @@ public class PopUpsViewModel extends AndroidViewModel {
         mRepository.insertPopUpSite(url, allowed);
     }
 
+    public void insertSite(@NonNull PopUpSite site) {
+        mRepository.insertPopUpSite(site);
+    }
+
     public void deleteSite(@NonNull PopUpSite site) {
         mRepository.deletePopUpSite(site);
     }

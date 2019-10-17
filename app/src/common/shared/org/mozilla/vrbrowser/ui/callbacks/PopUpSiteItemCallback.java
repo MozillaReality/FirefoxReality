@@ -6,4 +6,5 @@ import org.mozilla.vrbrowser.db.PopUpSite;
 
 public interface PopUpSiteItemCallback {
     void onDelete(@NonNull PopUpSite item);
+    void onSwitch(@NonNull PopUpSite item, boolean value);
 }

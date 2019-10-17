@@ -3,7 +3,6 @@ package org.mozilla.vrbrowser.ui.adapters;
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
-import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
@@ -94,6 +93,11 @@ public class PopUpAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
             return false;
         });
+        binding.site.setOnCheckedChangeListener((compoundButton, value, apply) -> {
+            if (mCallback != null) {
+                mCallback.onSwitch(binding.getItem(), value);
+            }
+        });
 
         return new PopUpSiteViewHolder(binding);
     }
@@ -101,7 +105,9 @@ public class PopUpAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
         PopUpSiteViewHolder siteHolder = (PopUpSiteViewHolder) holder;
-        siteHolder.binding.setItem(mDisplayList.get(position));
+        PopUpSite site = mDisplayList.get(position);
+        siteHolder.binding.setItem(site);
+        siteHolder.binding.site.setChecked(site.allowed);
     }
 
     @Override

@@ -42,6 +42,7 @@
         <attr name="description" />
         <attr name="on_text" format="string" />
         <attr name="off_text" format="string" />
+        <attr name="layout_height" format="dimension" />
     </declare-styleable>
 
     <declare-styleable name="RadioGroupSetting">

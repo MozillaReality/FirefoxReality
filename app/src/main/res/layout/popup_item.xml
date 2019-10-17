@@ -34,22 +34,19 @@
             android:focusable="true"
             android:onClick="@{(view) -> callback != null ? callback.onDelete(item) : void}" />
 
-        <TextView
-            android:id="@+id/title"
-            style="@style/settingsText"
+        <org.mozilla.vrbrowser.ui.views.settings.SwitchSetting
+            android:id="@+id/site"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="30dp"
             android:layout_toEndOf="@id/delete"
             android:layout_alignParentEnd="true"
-            android:requiresFadingEdge="horizontal"
-            android:fadingEdgeLength="@dimen/pop_up_row_fade_size"
-            android:ellipsize="none"
             android:gravity="center_vertical"
             android:paddingStart="5dp"
             android:paddingEnd="5dp"
-            android:singleLine="true"
-            android:text="@{item.url}"
-            tool:text="http://mozilla.org" />
+            app:description="@{item.url}"
+            app:on_text="@string/pop_up_site_switch_allow"
+            app:off_text="@string/pop_up_site_switch_Deny"
+            tool:text="http://mozilla.org"/>
 
     </RelativeLayout>
 </layout>

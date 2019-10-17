@@ -24,7 +24,6 @@ import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
 import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 class AllowedPopUpsOptionsView extends SettingsView {
 
@@ -97,7 +96,7 @@ class AllowedPopUpsOptionsView extends SettingsView {
         @Override
         public void onChanged(List<PopUpSite> popUpSites) {
             if (popUpSites != null) {
-                mAdapter.setSites(popUpSites.stream().filter((site) -> site.allowed).collect(Collectors.toList()));
+                mAdapter.setSites(popUpSites);
             }
         }
     };
@@ -106,6 +105,12 @@ class AllowedPopUpsOptionsView extends SettingsView {
         @Override
         public void onDelete(@NonNull PopUpSite item) {
             mViewModel.deleteSite(item);
+        }
+
+        @Override
+        public void onSwitch(@NonNull PopUpSite item, boolean on) {
+            item.allowed = on;
+            mViewModel.insertSite(item);
         }
     };
 }

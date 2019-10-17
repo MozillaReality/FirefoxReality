@@ -13,8 +13,10 @@ public class PopUpSite {
         this.allowed = allowed;
     }
 
+    @PrimaryKey(autoGenerate = true)
+    public int id;
+
     @NonNull
-    @PrimaryKey
     public String url;
 
     @ColumnInfo(name = "allowed")
