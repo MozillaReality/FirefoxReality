@@ -611,6 +611,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
             if (session != null) {
                 session.getTextInput().setView(this);
             }
+            mSession.updateLastUse();
         } else {
             updateTitleBar();
         }
