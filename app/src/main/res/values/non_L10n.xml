@@ -161,7 +161,7 @@
     <string name="keyboard_nb_NO_popup_æ" translatable="false">æä</string>
     <string name="keyboard_nb_NO_popup_ø" translatable="false">øö</string>
 
-  <!-- Keyboard Swedish -->
+    <!-- Keyboard Swedish -->
     <string name="keyboard_sv_SE_popup_a" translatable="false">aà</string>
     <string name="keyboard_sv_SE_popup_e" translatable="false">eéèêëę</string>
     <string name="keyboard_sv_SE_popup_u" translatable="false">ûuüùûū</string>
@@ -169,7 +169,7 @@
     <string name="keyboard_sv_SE_popup_ö" translatable="false">öø</string>
     <string name="keyboard_sv_SE_popup_ä" translatable="false">äæ</string>
 
-  <!-- Keyboard Finnish -->
+    <!-- Keyboard Finnish -->
     <string name="keyboard_fi_FI_popup_a" translatable="false">aæàáâãā</string>
     <string name="keyboard_fi_FI_popup_d" translatable="false">dđ</string>
     <string name="keyboard_fi_FI_popup_e" translatable="false">eéèëê</string>
