@@ -99,6 +99,8 @@
         <item>@string/language_da_DK</item>
         <item>@string/language_pl_PL</item>
         <item>@string/language_sv_SE</item>
+        <item>@string/language_fi_FI</item>
+        <item>@string/language_nl_NL</item>
     </string-array>
 
     <string-array name="developer_options_voice_search_languages_values" translatable="false">
@@ -115,6 +117,8 @@
         <item>da-DK</item>
         <item>pl-PL</item>
         <item>sv-SE</item>
+        <item>fi-FI</item>
+        <item>nl-NL</item>
     </string-array>
 
     <!-- Language Options -->
@@ -133,6 +137,8 @@
         <item>@string/language_da_DK</item>
         <item>@string/language_pl_PL</item>
         <item>@string/language_sv_SE</item>
+        <item>@string/language_fi_FI</item>
+        <item>@string/language_nl_NL</item>
     </string-array>
 
     <string-array name="developer_options_display_languages_values" translatable="false">
@@ -150,6 +156,8 @@
         <item>da-DK</item>
         <item>pl-PL</item>
         <item>sv-SE</item>
+        <item>fi-FI</item>
+        <item>nl-NL</item>
     </string-array>
 
     <!-- Clear Cache Options -->

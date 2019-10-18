@@ -38,6 +38,8 @@ import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.input.CustomKeyboard;
 import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
 import org.mozilla.vrbrowser.ui.keyboards.DanishKeyboard;
+import org.mozilla.vrbrowser.ui.keyboards.FinnishKeyboard;
+import org.mozilla.vrbrowser.ui.keyboards.DutchKeyboard;
 import org.mozilla.vrbrowser.ui.keyboards.ItalianKeyboard;
 import org.mozilla.vrbrowser.ui.keyboards.FrenchKeyboard;
 import org.mozilla.vrbrowser.ui.keyboards.GermanKeyboard;
@@ -189,6 +191,8 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
         mKeyboards.add(new PolishKeyboard(aContext));
         mKeyboards.add(new DanishKeyboard(aContext));
         mKeyboards.add(new SwedishKeyboard(aContext));
+        mKeyboards.add(new FinnishKeyboard(aContext));
+        mKeyboards.add(new DutchKeyboard(aContext));
 
         mDefaultKeyboardSymbols = new CustomKeyboard(aContext.getApplicationContext(), R.xml.keyboard_symbols);
         mKeyboardNumeric = new CustomKeyboard(aContext.getApplicationContext(), R.xml.keyboard_numeric);
@@ -717,6 +721,9 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
         handleShift(false);
         hideOverlays();
         updateCandidates();
+
+        String spaceText = mCurrentKeyboard.getSpaceKeyText(mComposingText).toUpperCase();
+        mCurrentKeyboard.getAlphabeticKeyboard().setSpaceKeyLabel(spaceText);
     }
 
     private void disableShift(@NonNull CustomKeyboard keyboard) {
@@ -904,11 +911,9 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
     }
 
     private void updateSpecialKeyLabels() {
-        String spaceText = mCurrentKeyboard.getSpaceKeyText(mComposingText).toUpperCase();
         String enterText = mCurrentKeyboard.getEnterKeyText(mEditorInfo.imeOptions, mComposingText);
         String modeChangeText = mCurrentKeyboard.getModeChangeKeyText();
-        boolean changed = mCurrentKeyboard.getAlphabeticKeyboard().setSpaceKeyLabel(spaceText);
-        changed |= mCurrentKeyboard.getAlphabeticKeyboard().setEnterKeyLabel(enterText);
+        boolean changed = mCurrentKeyboard.getAlphabeticKeyboard().setEnterKeyLabel(enterText);
         CustomKeyboard symbolsKeyboard = getSymbolsKeyboard();
         changed |= symbolsKeyboard.setModeChangeKeyLabel(modeChangeText);
         symbolsKeyboard.setEnterKeyLabel(enterText);
