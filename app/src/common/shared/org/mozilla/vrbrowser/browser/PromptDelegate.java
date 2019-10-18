@@ -47,6 +47,7 @@ public class PromptDelegate implements GeckoSession.PromptDelegate {
         mContext = context;
         mExecutors = ((VRBrowserApplication)context.getApplicationContext()).getExecutors();
         mViewModel = new PopUpsViewModel(((Application)context.getApplicationContext()));
+        mAllowedPopUpSites = new ArrayList<>();
     }
 
     public void attachToWindow(@NonNull WindowWidget window) {
@@ -58,8 +59,6 @@ public class PromptDelegate implements GeckoSession.PromptDelegate {
         mAttachedWindow = window;
         mAttachedWindow.getSessionStack().setPromptDelegate(this);
         mViewModel.getAll().observeForever(mObserver);
-
-        mAllowedPopUpSites = new ArrayList<>();
     }
 
     public void detachFromWindow() {
