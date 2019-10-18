@@ -172,7 +172,10 @@ public class TabsWidget extends UIWidget implements WidgetManagerDelegate.FocusC
         void updateTabs(ArrayList<Session> aTabs) {
             mTabs = aTabs;
             notifyDataSetChanged();
+            updateTabCounter();
+        }
 
+        void updateTabCounter() {
             if (mTabs.size() > 1) {
                 mTabsAvailableCounter.setText(getContext().getString(R.string.tabs_counter_plural, String.valueOf(mTabs.size())));
             } else {
@@ -207,8 +210,14 @@ public class TabsWidget extends UIWidget implements WidgetManagerDelegate.FocusC
                         mTabDelegate.onTabsClose(closed);
                     }
                     if (mTabs.size() > 1) {
+                        ArrayList<Session> latestTabs = SessionStore.get().getSortedSessions(mPrivateMode);
+                        if (latestTabs.size() != (mTabs.size() - 1) && latestTabs.size() > 0) {
+                            aSender.attachToSession(latestTabs.get(0));
+                            return;
+                        }
                         mTabs.remove(holder.getAdapterPosition() - 1);
                         mAdapter.notifyItemRemoved(holder.getAdapterPosition());
+                        updateTabCounter();
                     } else {
                         onDismiss();
                     }
