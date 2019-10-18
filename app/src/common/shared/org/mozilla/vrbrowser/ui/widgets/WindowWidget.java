@@ -320,9 +320,10 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
             mWidgetManager.removeWidget(mTitleBar);
         }
         if (mTabsWidget != null) {
-            if (!mTabsWidget.isReleased()) {
-                mTabsWidget.releaseWidget();
+            if (mTabsWidget.isVisible()) {
+                mTabsWidget.hide(REMOVE_WIDGET);
             }
+            mTabsWidget.releaseWidget();
             mTabsWidget = null;
         }
         mListeners.clear();
