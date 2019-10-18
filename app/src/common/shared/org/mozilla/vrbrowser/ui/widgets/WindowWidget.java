@@ -1062,6 +1062,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     }
 
     public void showTabsMenu() {
+        hideContextMenus();
         if (mTabsWidget == null) {
             mTabsWidget = new TabsWidget(getContext(), mSession.isPrivateMode());
             mTabsWidget.getPlacement().parentHandle = mHandle;
@@ -1551,6 +1552,10 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         
         if (mLibraryItemContextMenu != null && mLibraryItemContextMenu.isVisible()) {
             mLibraryItemContextMenu.hide(REMOVE_WIDGET);
+        }
+
+        if (mTabsWidget != null && mTabsWidget.isVisible()) {
+            mTabsWidget.onDismiss();
         }
     }
 
