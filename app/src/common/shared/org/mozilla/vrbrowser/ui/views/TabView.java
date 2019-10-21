@@ -136,7 +136,11 @@ public class TabView extends LinearLayout implements GeckoSession.ContentDelegat
 
         mURL.setText(UrlUtils.stripProtocol(aSession.getCurrentUri()));
         if (!mShowAddTab) {
-            mTitle.setText(aSession.getCurrentTitle());
+            if (mSession.getCurrentUri().equals(mSession.getHomeUri())) {
+                mTitle.setText(getResources().getString(R.string.url_home_title, getResources().getString(R.string.app_name)));
+            } else {
+                mTitle.setText(aSession.getCurrentTitle());
+            }
         }
     }
 
