@@ -44,8 +44,8 @@
             android:paddingStart="5dp"
             android:paddingEnd="5dp"
             app:description="@{item.url}"
-            app:off_text="@string/pop_up_site_switch_allow"
-            app:on_text="@string/pop_up_site_switch_block"
+            app:on_text="@string/pop_up_site_switch_allow"
+            app:off_text="@string/pop_up_site_switch_block"
             tool:text="http://mozilla.org"/>
 
     </RelativeLayout>
