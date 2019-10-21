@@ -779,7 +779,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         ArrayList<WindowWidget> windows = getCurrentWindows();
         WindowWidget leftWindow = getLeftWindow();
         WindowWidget rightWindow = getRightWindow();
-        boolean visible = mFullscreenWindow == null;// && (windows.size() > 1 || isInPrivateMode());
+        boolean visible = mFullscreenWindow == null && (windows.size() > 1 || isInPrivateMode());
         for (WindowWidget window: windows) {
             window.getTopBar().setVisible(visible);
             window.getTopBar().setClearMode((windows.size() == 1 && isInPrivateMode()));

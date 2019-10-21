@@ -690,7 +690,6 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
             aTexture.setDefaultBufferSize(aWidth, aHeight);
             mSurface = new Surface(aTexture);
             if (mDisplay == null) {
-                Log.e("VRB", "makelele acquireDisplay1");
                 mDisplay = session.acquireDisplay();
             } else {
                 Log.e(LOGTAG, "GeckoDisplay was not null in BrowserWidget.setSurfaceTexture()");
@@ -714,7 +713,6 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
             mSurface = aSurface;
             mFirstDrawCallback = aFirstDrawCallback;
             if (mDisplay == null) {
-                Log.e("VRB", "makelele acquireDisplay1");
                 mDisplay = session.acquireDisplay();
             } else {
                 Log.e(LOGTAG, "GeckoDisplay was not null in BrowserWidget.setSurfaceTexture()");
@@ -1037,7 +1035,6 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         releaseDisplay(aOldSession);
         mWidgetManager.setIsServoSession(isInstanceOfServoSession(aSession));
 
-        Log.e("VRB", "makelele acquireDisplay3");
         mDisplay = aSession.acquireDisplay();
         Log.d(LOGTAG, "surfaceChanged: " + aSession.hashCode());
         callSurfaceChanged();

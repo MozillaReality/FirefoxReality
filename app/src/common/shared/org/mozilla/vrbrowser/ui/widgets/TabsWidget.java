@@ -8,6 +8,7 @@ import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import androidx.core.graphics.drawable.RoundedBitmapDrawableFactory;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -36,7 +37,6 @@ public class TabsWidget extends UIWidget implements WidgetManagerDelegate.FocusC
     protected UITextButton mSelectAllButton;
     protected UITextButton mUnselectTabs;
     protected LinearLayout mTabsSelectModeView;
-    protected View mTabSelectModeSeparator;
 
     protected boolean mSelecting;
     protected ArrayList<Session> mSelectedTabs = new ArrayList<>();
@@ -63,7 +63,7 @@ public class TabsWidget extends UIWidget implements WidgetManagerDelegate.FocusC
         aPlacement.anchorY = 0.5f;
         aPlacement.parentAnchorX = 0.5f;
         aPlacement.parentAnchorY = 0.5f;
-        aPlacement.translationZ = WidgetPlacement.floatDimension(context, R.dimen.context_menu_z_distance);
+        aPlacement.translationZ = WidgetPlacement.unitFromMeters(context, R.dimen.tab_dialog_z);
         aPlacement.visible = false;
     }
 
@@ -78,7 +78,6 @@ public class TabsWidget extends UIWidget implements WidgetManagerDelegate.FocusC
 
         mTabsAvailableCounter = findViewById(R.id.tabsAvailableCounter);
         mSelectedTabsCounter = findViewById(R.id.tabsSelectedCounter);
-        mTabSelectModeSeparator = findViewById(R.id.tabsSelectModeSeparator);
 
         // specify an adapter (see also next example)
         mAdapter = new TabAdapter();
@@ -287,7 +286,6 @@ public class TabsWidget extends UIWidget implements WidgetManagerDelegate.FocusC
 
     private void updateSelectionMode() {
         mTabsSelectModeView.setVisibility(mSelecting ? View.VISIBLE : View.GONE);
-        mTabSelectModeSeparator.setVisibility(mSelecting ? View.VISIBLE : View.GONE);
         if (mSelectedTabs.size() > 0) {
             mCloseTabsButton.setVisibility(View.VISIBLE);
             mUnselectTabs.setVisibility(View.VISIBLE);
@@ -320,22 +318,19 @@ public class TabsWidget extends UIWidget implements WidgetManagerDelegate.FocusC
     public class GridSpacingItemDecoration extends RecyclerView.ItemDecoration {
         private int mColumns;
         private int mSpacing;
-        private int mSpacingFirst;
 
         public GridSpacingItemDecoration(Context aContext, int aColumns) {
             mColumns = aColumns;
             mSpacing = WidgetPlacement.pixelDimension(aContext, R.dimen.tabs_spacing);
-            mSpacingFirst = WidgetPlacement.pixelDimension(aContext, R.dimen.tabs_spacing_first_column);
         }
 
         @Override
         public void getItemOffsets(Rect outRect, View view, RecyclerView parent, RecyclerView.State state) {
             int position = parent.getChildAdapterPosition(view); // item position
-            int column = position % mColumns; // item column
             int row = position / mColumns;
 
-            outRect.left = column > 0 ? mSpacing / 2 : mSpacingFirst;
-            outRect.right = column == mColumns - 1 ? mSpacingFirst:  mSpacing / 2;
+            outRect.left = mSpacing / 2;
+            outRect.right = mSpacing / 2;
             outRect.top = row > 0 ? mSpacing : 0;
         }
     }

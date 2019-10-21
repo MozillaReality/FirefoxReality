@@ -118,8 +118,10 @@
     <dimen name="tabs_width">600dp</dimen>
     <dimen name="tabs_height">350dp</dimen>
     <dimen name="tabs_spacing">10dp</dimen>
-    <dimen name="tabs_spacing_first_column">20dp</dimen>
-    <dimen name="tab_view_height">90dp</dimen>
+    <dimen name="tab_view_height">80dp</dimen>
+    <item name="tab_dialog_z" format="float" type="dimen">1.0</item>
+    <dimen name="tabs_icon_padding_max">7dp</dimen>
+    <dimen name="tabs_icon_padding_min">3dp</dimen>
 
     <!-- No Internet toast -->
     <dimen name="no_internet_width">400dp</dimen>
