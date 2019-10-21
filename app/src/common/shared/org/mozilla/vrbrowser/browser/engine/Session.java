@@ -81,19 +81,19 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     }
 
     protected Session(Context aContext, GeckoRuntime aRuntime, boolean aUsePrivateMode) {
-        this(aContext, aRuntime, aUsePrivateMode, null);
+        this(aContext, aRuntime, aUsePrivateMode, null, true);
     }
 
     protected Session(Context aContext, GeckoRuntime aRuntime, boolean aUsePrivateMode,
-                      @Nullable SessionSettings aSettings) {
+                      @Nullable SessionSettings aSettings, boolean aOpen) {
         mContext = aContext;
         mRuntime = aRuntime;
         mUsePrivateMode = aUsePrivateMode;
         initialize();
         if (aSettings != null) {
-            mState = createSession(aSettings);
+            mState = createSession(aSettings, aOpen);
         } else {
-            mState = createSession();
+            mState = createSession(aOpen);
         }
 
         setupSessionListeners(mState.mSession);
@@ -328,20 +328,20 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         dumpAllState();
     }
 
-    private SessionState createSession() {
+    private SessionState createSession(boolean aOpen) {
         SessionSettings settings = new SessionSettings.Builder()
                 .withDefaultSettings(mContext)
                 .build();
 
-        return createSession(settings);
+        return createSession(settings, aOpen);
     }
 
-    private SessionState createSession(@NonNull SessionSettings aSettings) {
+    private SessionState createSession(@NonNull SessionSettings aSettings, boolean aOpen) {
         SessionState state = new SessionState();
         state.mSettings = aSettings;
         state.mSession = createGeckoSession(aSettings);
 
-        if (!state.mSession.isOpen()) {
+        if (aOpen && !state.mSession.isOpen()) {
             state.mSession.open(mRuntime);
         }
 
@@ -376,7 +376,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     private void recreateSession() {
         SessionState previous = mState;
 
-        mState = createSession(previous.mSettings);
+        mState = createSession(previous.mSettings, true);
         if (previous.mSessionState != null)
             mState.mSession.restoreState(previous.mSessionState);
         if (previous.mSession != null) {
@@ -540,7 +540,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
                 .withServo(!isInstanceOfServoSession(mState.mSession))
                 .build();
 
-        mState = createSession(settings);
+        mState = createSession(settings, true);
         closeSession(previous.mSession);
         loadUri(uri);
     }
@@ -784,7 +784,10 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     public GeckoResult<GeckoSession> onNewSession(@NonNull GeckoSession aSession, @NonNull String aUri) {
         Log.d(LOGTAG, "Session onNewSession: " + aUri);
 
-        Session session = SessionStore.get().createSession(mUsePrivateMode, mState.mSettings);
+        Session session = SessionStore.get().createSession(mUsePrivateMode, mState.mSettings, false);
+        for (SessionChangeListener listener: mSessionChangeListeners) {
+            listener.onNewTab(session);
+        }
         return GeckoResult.fromValue(session.getGeckoSession());
     }
 

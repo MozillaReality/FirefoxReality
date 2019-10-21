@@ -100,11 +100,11 @@ public class SessionStore implements GeckoSession.PermissionDelegate {
     }
 
     public Session createSession(boolean aPrivateMode) {
-        return createSession(aPrivateMode, null);
+        return createSession(aPrivateMode, null, true);
     }
 
-    public Session createSession(boolean aPrivateMode, @Nullable SessionSettings aSettings) {
-        Session session = new Session(mContext, mRuntime, aPrivateMode, aSettings);
+    public Session createSession(boolean aPrivateMode, @Nullable SessionSettings aSettings, boolean aOpen) {
+        Session session = new Session(mContext, mRuntime, aPrivateMode, aSettings, aOpen);
         session.setPermissionDelegate(this);
         mSessions.add(session);
 

@@ -1048,6 +1048,13 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         }
     }
 
+    @Override
+    public void onNewTab(Session aTab) {
+        // e.g. tab opened via window.open()
+        setSession(aTab);
+        SessionStore.get().setActiveSession(aTab);
+    }
+
     public void showTabsMenu() {
         hideContextMenus();
         if (mTabsWidget == null) {
