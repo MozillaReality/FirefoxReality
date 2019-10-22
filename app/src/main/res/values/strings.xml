@@ -906,6 +906,9 @@
     <!-- This string is shown in the context menu after a longpress on a link. When clicked it opens the target url in a new window. -->
     <string name="context_menu_open_new_window">Open in a new window.</string>
 
+    <!-- This string is shown in the context menu after a longpress on a link. When clicked it opens the target url in a new tab. -->
+    <string name="context_menu_open_new_tab">Open in a new tab.</string>
+
     <!-- This string is shown in the context menu after a longpress on a link. When clicked it copies the target to the clipboard -->
     <string name="context_menu_copy_link">Copy link</string>
 
@@ -1123,4 +1126,8 @@ the Select` button. When clicked it closes all the previously selected tabs -->
     <!-- This string is for the tooltip that appears when the users hovers in the tabs icon in the browser's
         tray menu. When clicked it opens the tray dialog in the current active window -->
     <string name="tabs_tray_tooltip">Tabs</string>
+
+    <!-- This string is displayed in a tooltip that appears in the tray bar on top of the
+     tabs tray button then a tab has been added on the background. -->
+    <string name="tab_added_notification">New Tab Added!</string>
 </resources>

@@ -1377,11 +1377,22 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     }
 
     @Override
+    public boolean canOpenNewWindow() {
+        return mWindows.canOpenNewWindow();
+    }
+
+    @Override
     public void openNewWindow(String uri) {
         WindowWidget newWindow = mWindows.addWindow();
         if (newWindow != null) {
             newWindow.getSession().loadUri(uri);
         }
+    }
+
+    @Override
+    public void openNewTab(@NonNull String uri) {
+        mWindows.addBackgroundTab(mWindows.getFocusedWindow(), uri);
+        mTray.showTabAddedNotification();
     }
 
     @Override

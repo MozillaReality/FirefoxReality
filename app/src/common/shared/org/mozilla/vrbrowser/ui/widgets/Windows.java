@@ -743,6 +743,10 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         return getCurrentWindows().size();
     }
 
+    public boolean canOpenNewWindow() {
+        return getWindowsCount() < MAX_WINDOWS;
+    }
+
     private void switchTopBars(WindowWidget w1, WindowWidget w2) {
         // Used to fix a minor visual glitch.
         // See https://github.com/MozillaReality/FirefoxReality/issues/1722
@@ -1063,7 +1067,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         }
     }
 
-    private void onTabAdd(WindowWidget targetWindow) {
+    public void addTab(WindowWidget targetWindow) {
         Session session = SessionStore.get().createSession(targetWindow.getSession().isPrivateMode());
         targetWindow.setFirstPaintReady(false);
         targetWindow.setFirstDrawCallback(() -> {
@@ -1079,9 +1083,16 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         SessionStore.get().setActiveSession(session);
     }
 
+    public void addBackgroundTab(WindowWidget targetWindow, String aUri) {
+        Session session = SessionStore.get().createSession(targetWindow.getSession().isPrivateMode());
+        session.loadUri(aUri);
+        session.updateLastUse();
+        mFocusedWindow.getSession().updateLastUse();
+    }
+
     @Override
     public void onTabAdd() {
-     onTabAdd(mFocusedWindow);
+        addTab(mFocusedWindow);
     }
 
     @Override
@@ -1126,7 +1137,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
                 available.remove(0);
             } else {
                 // We don't have more tabs available for the front window, load home.
-                onTabAdd(window);
+                addTab(window);
             }
         }
 

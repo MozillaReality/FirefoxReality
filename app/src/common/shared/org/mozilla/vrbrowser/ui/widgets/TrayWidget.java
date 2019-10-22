@@ -292,7 +292,8 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
 
     @Override
     public void hide(@HideFlags int aHideFlags) {
-        hideBookmarkNotification.run();
+        hideNotification(mBookmarksButton);
+        hideNotification(mTabsButton);
 
         if (mWidgetPlacement.visible) {
             mWidgetPlacement.visible = false;
@@ -306,7 +307,8 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
 
     @Override
     public void detachFromWindow() {
-        hideBookmarkNotification.run();
+        hideNotification(mBookmarksButton);
+        hideNotification(mTabsButton);
         
         if (mSession != null) {
             mSession.removeSessionChangeListener(this);
@@ -469,6 +471,11 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
         }
     }
 
+    public void showTabAddedNotification() {
+        mTabsButton.setNotificationMode(true);
+        ThreadUtils.postToUiThread(() -> showNotification(mTabsButton, R.string.tab_added_notification));
+    }
+
     private BookmarksStore.BookmarkListener mBookmarksListener = new BookmarksStore.BookmarkListener() {
         @Override
         public void onBookmarksUpdated() {
@@ -478,48 +485,40 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
         @Override
         public void onBookmarkAdded() {
             mBookmarksButton.setNotificationMode(true);
-            ThreadUtils.postToUiThread(showBookmarkNotification);
+            ThreadUtils.postToUiThread(() -> showNotification(mBookmarksButton, R.string.bookmarks_saved_notification));
         }
     };
 
-    private Runnable showBookmarkNotification = new Runnable() {
-        @Override
-        public void run() {
-            if (mLibraryNotification != null && mLibraryNotification.isVisible()) {
-                return;
-            }
-
-            Rect offsetViewBounds = new Rect();
-            getDrawingRect(offsetViewBounds);
-            offsetDescendantRectToMyCoords(mBookmarksButton, offsetViewBounds);
-
-            float ratio = WidgetPlacement.viewToWidgetRatio(getContext(), TrayWidget.this);
-
-            mLibraryNotification = new TooltipWidget(getContext(), R.layout.library_notification);
-            mLibraryNotification.getPlacement().parentHandle = getHandle();
-            mLibraryNotification.getPlacement().anchorY = 0.0f;
-            mLibraryNotification.getPlacement().translationX = (offsetViewBounds.left + mBookmarksButton.getWidth() / 2.0f) * ratio;
-            mLibraryNotification.getPlacement().translationY = ((offsetViewBounds.top - 60) * ratio);
-            mLibraryNotification.getPlacement().translationZ = 25.0f;
-            mLibraryNotification.getPlacement().density = WidgetPlacement.floatDimension(getContext(), R.dimen.tray_tooltip_density);
-            mLibraryNotification.setText(R.string.bookmarks_saved_notification);
-            mLibraryNotification.setCurvedMode(false);
-            mLibraryNotification.show(UIWidget.CLEAR_FOCUS);
-
-            ThreadUtils.postDelayedToUiThread(hideBookmarkNotification, LIBRARY_NOTIFICATION_DURATION);
+    private void showNotification(UIButton button, int stringRes) {
+        if (mLibraryNotification != null && mLibraryNotification.isVisible()) {
+            return;
         }
-    };
 
-    private Runnable hideBookmarkNotification = new Runnable() {
-        @Override
-        public void run() {
-            if (mLibraryNotification != null) {
-                mLibraryNotification.hide(UIWidget.REMOVE_WIDGET);
-                mLibraryNotification = null;
-                mBookmarksButton.setNotificationMode(false);
-            }
+        Rect offsetViewBounds = new Rect();
+        getDrawingRect(offsetViewBounds);
+        offsetDescendantRectToMyCoords(button, offsetViewBounds);
+
+        float ratio = WidgetPlacement.viewToWidgetRatio(getContext(), TrayWidget.this);
+
+        mLibraryNotification = new TooltipWidget(getContext(), R.layout.library_notification);
+        mLibraryNotification.getPlacement().parentHandle = getHandle();
+        mLibraryNotification.getPlacement().anchorY = 0.0f;
+        mLibraryNotification.getPlacement().translationX = (offsetViewBounds.left + button.getWidth() / 2.0f) * ratio;
+        mLibraryNotification.getPlacement().translationY = ((offsetViewBounds.top - 60) * ratio);
+        mLibraryNotification.getPlacement().translationZ = 25.0f;
+        mLibraryNotification.getPlacement().density = WidgetPlacement.floatDimension(getContext(), R.dimen.tray_tooltip_density);
+        mLibraryNotification.setText(stringRes);
+        mLibraryNotification.setCurvedMode(false);
+        mLibraryNotification.show(UIWidget.CLEAR_FOCUS);
+
+        ThreadUtils.postDelayedToUiThread(() -> hideNotification(button), LIBRARY_NOTIFICATION_DURATION);
+    }
+
+    private void hideNotification(UIButton button) {
+        if (mLibraryNotification != null) {
+            mLibraryNotification.hide(UIWidget.REMOVE_WIDGET);
+            mLibraryNotification = null;
         }
-    };
-
-
+        button.setNotificationMode(false);
+    }
 }
