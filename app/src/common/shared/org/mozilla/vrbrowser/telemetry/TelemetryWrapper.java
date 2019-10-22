@@ -89,7 +89,7 @@ public class TelemetryWrapper {
         // TODO: Support "select_query" after providing search suggestion.
         private static final String VOICE_QUERY = "voice_query";
         private static final String IMMERSIVE_MODE = "immersive_mode";
-        private static final String TELEMETRY_STATUS = "telemetry_status";
+        private static final String TELEMETRY_STATUS = "status";
 
         // How many max-windows dialogs happen / what percentage
         private static final String MAX_WINDOWS_DIALOG = "max_windows_dialog";
