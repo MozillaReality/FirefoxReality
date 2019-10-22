@@ -421,6 +421,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     public void showBookmarks(boolean switchSurface) {
         if (mView == null) {
             setView(mBookmarksView, switchSurface);
+            mBookmarksView.onShow();
             for (BookmarksViewDelegate listener : mBookmarksViewListeners) {
                 listener.onBookmarksShown(this);
             }
@@ -464,6 +465,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     public void showHistory(boolean switchSurface) {
         if (mView == null) {
             setView(mHistoryView, switchSurface);
+            mHistoryView.onShow();
             for (HistoryViewDelegate listener : mHistoryViewListeners) {
                 listener.onHistoryViewShown(this);
             }

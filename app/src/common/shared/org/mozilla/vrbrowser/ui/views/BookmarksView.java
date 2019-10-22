@@ -101,6 +101,8 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
 
         mBinding.setIsSignedIn(mAccounts.isSignedIn());
         mBinding.setIsSyncEnabled(mAccounts.isEngineEnabled(SyncEngine.Bookmarks.INSTANCE));
+        mBinding.setIsNarrow(false);
+        mBinding.executePendingBindings();
 
         updateBookmarks();
         SessionStore.get().getBookmarkStore().addListener(this);
@@ -111,6 +113,10 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
             v.requestFocusFromTouch();
             return false;
         });
+    }
+
+    public void onShow() {
+        updateLayout();
     }
 
     public void onDestroy() {
@@ -224,7 +230,7 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
         @Override
         public void onIdle() {
             mBinding.setIsSyncing(false);
-            mBinding.syncButton.setHovered(false);
+            findViewById(R.id.syncButton).setHovered(false);
             if (mAccounts.isEngineEnabled(SyncEngine.Bookmarks.INSTANCE)) {
                 mBinding.setLastSync(mAccounts.getLastSync());
             }
@@ -280,10 +286,24 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
         super.onLayout(changed, left, top, right, bottom);
 
-        double width = Math.ceil(getWidth()/getContext().getResources().getDisplayMetrics().density);
-        int firstVisibleItem = ((LinearLayoutManager)mBinding.bookmarksList.getLayoutManager()).findFirstVisibleItemPosition();
-        int lastVisibleItem = ((LinearLayoutManager)mBinding.bookmarksList.getLayoutManager()).findLastVisibleItemPosition();
-        mBookmarkAdapter.setNarrow(width < SettingsStore.WINDOW_WIDTH_DEFAULT, firstVisibleItem, lastVisibleItem);
+        updateLayout();
+    }
+
+    private void updateLayout() {
+        post(() -> {
+            double width = Math.ceil(getWidth()/getContext().getResources().getDisplayMetrics().density);
+            boolean isNarrow = width < SettingsStore.WINDOW_WIDTH_DEFAULT;
+            if (isNarrow != mBinding.getIsNarrow()) {
+                int firstVisibleItem = ((LinearLayoutManager) mBinding.bookmarksList.getLayoutManager()).findFirstVisibleItemPosition();
+                int lastVisibleItem = ((LinearLayoutManager) mBinding.bookmarksList.getLayoutManager()).findLastVisibleItemPosition();
+                mBookmarkAdapter.setNarrow(isNarrow, firstVisibleItem, lastVisibleItem);
+
+                requestLayout();
+            }
+
+            mBinding.setIsNarrow(isNarrow);
+            mBinding.executePendingBindings();
+        });
     }
 
     // BookmarksStore.BookmarksViewListener

@@ -104,6 +104,8 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
 
         mBinding.setIsSignedIn(mAccounts.isSignedIn());
         mBinding.setIsSyncEnabled(mAccounts.isEngineEnabled(SyncEngine.History.INSTANCE));
+        mBinding.setIsNarrow(false);
+        mBinding.executePendingBindings();
 
         updateHistory();
         SessionStore.get().getHistoryStore().addListener(this);
@@ -120,6 +122,10 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
         SessionStore.get().getHistoryStore().removeListener(this);
         mAccounts.removeAccountListener(mAccountListener);
         mAccounts.removeSyncListener(mSyncListener);
+    }
+
+    public void onShow() {
+        updateLayout();
     }
 
     private final HistoryItemCallback mHistoryItemCallback = new HistoryItemCallback() {
@@ -221,7 +227,7 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
         @Override
         public void onIdle() {
             mBinding.setIsSyncing(false);
-            mBinding.syncButton.setHovered(false);
+            findViewById(R.id.syncButton).setHovered(false);
             if (mAccounts.isEngineEnabled(SyncEngine.History.INSTANCE)) {
                 mBinding.setLastSync(mAccounts.getLastSync());
             }
@@ -323,10 +329,25 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
         super.onLayout(changed, left, top, right, bottom);
 
-        double width = Math.ceil(getWidth()/getContext().getResources().getDisplayMetrics().density);
-        int firstVisibleItem = ((LinearLayoutManager)mBinding.historyList.getLayoutManager()).findFirstVisibleItemPosition();
-        int lastVisibleItem = ((LinearLayoutManager)mBinding.historyList.getLayoutManager()).findLastVisibleItemPosition();
-        mHistoryAdapter.setNarrow(width < SettingsStore.WINDOW_WIDTH_DEFAULT, firstVisibleItem, lastVisibleItem);
+        updateLayout();
+    }
+
+    private void updateLayout() {
+        post(() -> {
+            double width = Math.ceil(getWidth()/getContext().getResources().getDisplayMetrics().density);
+            boolean isNarrow = width < SettingsStore.WINDOW_WIDTH_DEFAULT;
+
+            if (isNarrow != mBinding.getIsNarrow()) {
+                int firstVisibleItem = ((LinearLayoutManager) mBinding.historyList.getLayoutManager()).findFirstVisibleItemPosition();
+                int lastVisibleItem = ((LinearLayoutManager) mBinding.historyList.getLayoutManager()).findLastVisibleItemPosition();
+                mHistoryAdapter.setNarrow(width < SettingsStore.WINDOW_WIDTH_DEFAULT, firstVisibleItem, lastVisibleItem);
+
+                requestLayout();
+            }
+
+            mBinding.setIsNarrow(isNarrow);
+            mBinding.executePendingBindings();
+        });
     }
 
     // HistoryStore.HistoryListener
