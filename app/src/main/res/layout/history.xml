@@ -98,6 +98,7 @@
             app:visibleGone="@{isLoading}" />
 
         <include
+            android:id="@+id/history_narrow"
             layout="@layout/history_narrow"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -110,10 +111,11 @@
             app:isSyncEnabled="@{isSyncEnabled}"
             app:lastSync="@{lastSync}"
             app:isSyncing="@{isSyncing}"
-            app:callback="@{callback}"
-            android:visibility="@{isNarrow ? View.VISIBLE : View.GONE}"/>
+            app:isNarrow="@{isNarrow}"
+            app:callback="@{callback}" />
 
         <include
+            android:id="@+id/history_wide"
             layout="@layout/history_wide"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -126,8 +128,8 @@
             app:isSyncEnabled="@{isSyncEnabled}"
             app:lastSync="@{lastSync}"
             app:isSyncing="@{isSyncing}"
-            app:callback="@{callback}"
-            android:visibility="@{!isNarrow ? View.VISIBLE : View.GONE}"/>
+            app:isNarrow="@{isNarrow}"
+            app:callback="@{callback}" />
 
         <org.mozilla.vrbrowser.ui.views.CustomRecyclerView
             android:id="@+id/history_list"

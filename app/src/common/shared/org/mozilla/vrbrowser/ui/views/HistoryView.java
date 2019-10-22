@@ -227,9 +227,8 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
         @Override
         public void onIdle() {
             mBinding.setIsSyncing(false);
-            findViewById(R.id.syncButton).setHovered(false);
             if (mAccounts.isEngineEnabled(SyncEngine.History.INSTANCE)) {
-                mBinding.setLastSync(mAccounts.getLastSync());
+                mBinding.setLastSync(mAccounts.lastSync());
             }
             mBinding.executePendingBindings();
         }
@@ -342,11 +341,11 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
                 int lastVisibleItem = ((LinearLayoutManager) mBinding.historyList.getLayoutManager()).findLastVisibleItemPosition();
                 mHistoryAdapter.setNarrow(width < SettingsStore.WINDOW_WIDTH_DEFAULT, firstVisibleItem, lastVisibleItem);
 
+                mBinding.setIsNarrow(isNarrow);
+                mBinding.executePendingBindings();
+
                 requestLayout();
             }
-
-            mBinding.setIsNarrow(isNarrow);
-            mBinding.executePendingBindings();
         });
     }
 

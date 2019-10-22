@@ -20,6 +20,7 @@ import mozilla.components.service.fxa.SyncEngine
 import mozilla.components.service.fxa.manager.SyncEnginesStorage
 import mozilla.components.service.fxa.sync.SyncReason
 import mozilla.components.service.fxa.sync.SyncStatusObserver
+import mozilla.components.service.fxa.sync.getLastSynced
 import mozilla.components.support.base.log.logger.Logger
 import org.mozilla.vrbrowser.VRBrowserApplication
 import org.mozilla.vrbrowser.utils.SystemUtils
@@ -50,7 +51,6 @@ class Accounts constructor(val context: Context) {
     private val syncListeners = ArrayList<SyncStatusObserver>()
     private val services = (context.applicationContext as VRBrowserApplication).services
     private val syncStorage = SyncEnginesStorage(context)
-    var lastSync = 0L
     var isSyncing = false
 
     private val syncStatusObserver = object : SyncStatusObserver {
@@ -65,7 +65,6 @@ class Accounts constructor(val context: Context) {
 
         override fun onIdle() {
             isSyncing = false
-            lastSync = System.currentTimeMillis()
             syncListeners.toMutableList().forEach {
                 Handler(Looper.getMainLooper()).post {
                     it.onIdle()
@@ -192,7 +191,7 @@ class Accounts constructor(val context: Context) {
         }
     }
 
-    fun syncNowAsync(reason: SyncReason = SyncReason.Startup,
+    fun syncNowAsync(reason: SyncReason = SyncReason.User,
                      debounce: Boolean = false): CompletableFuture<Unit?>?{
         return CoroutineScope(Dispatchers.Main).future {
             services.accountManager.syncNowAsync(reason, debounce).await()
@@ -272,6 +271,10 @@ class Accounts constructor(val context: Context) {
 
     fun isSignedIn(): Boolean {
         return (accountStatus == AccountStatus.SIGNED_IN)
+    }
+
+    fun lastSync(): Long {
+        return getLastSynced(context)
     }
 
 }

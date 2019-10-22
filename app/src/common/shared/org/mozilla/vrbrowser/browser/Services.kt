@@ -27,10 +27,13 @@ import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.base.log.sink.AndroidLogSink
 import mozilla.components.support.rusthttp.RustHttpConfig
 import mozilla.components.support.rustlog.RustLog
+import org.mozilla.geckoview.AllowOrDeny
+import org.mozilla.geckoview.GeckoResult
+import org.mozilla.geckoview.GeckoSession
 import org.mozilla.vrbrowser.browser.engine.SessionStore
 import org.mozilla.vrbrowser.R
 
-class Services(context: Context, places: Places) {
+class Services(context: Context, places: Places): GeckoSession.NavigationDelegate {
     companion object {
         const val CLIENT_ID = "7ad9917f6c55fb77"
         const val REDIRECT_URL = "https://accounts.firefox.com/oauth/success/$CLIENT_ID"
@@ -72,7 +75,7 @@ class Services(context: Context, places: Places) {
                 Logger(logTag).info("Received ${events.size} device event(s)")
                 events.filterIsInstance(DeviceEvent.TabReceived::class.java).forEach {
                     // Just load the first tab that was sent.
-                    // TODO is there a notifications API of sorts here?
+                    // TODO Update when there is a push notifications API available
                     SessionStore.get().activeStore.loadUri(it.entries[0].url)
                 }
             }
@@ -90,9 +93,7 @@ class Services(context: Context, places: Places) {
             type = DeviceType.VR,
             capabilities = setOf(DeviceCapability.SEND_TAB)
         ),
-        // If background syncing is desired, pass in a 'syncPeriodInMinutes' parameter.
-        // As-is, sync will run on app startup.
-        syncConfig = SyncConfig(setOf(SyncEngine.History, SyncEngine.Bookmarks), syncPeriodInMinutes = 15L)
+        syncConfig = SyncConfig(setOf(SyncEngine.History, SyncEngine.Bookmarks), syncPeriodInMinutes = 1440L)
 
     ).also {
         it.registerForDeviceEvents(deviceEventObserver, ProcessLifecycleOwner.get(), true)
@@ -104,19 +105,21 @@ class Services(context: Context, places: Places) {
         }
     }
 
-    /**
-     * Call this for every loaded URL to enable FxA sign-in to finish. It's a bit of a hack, but oh well.
-     */
-    fun interceptFxaUrl(uri: String) {
-        if (!uri.startsWith(REDIRECT_URL)) return
-        val parsedUri = Uri.parse(uri)
+    override fun onLoadRequest(geckoSession: GeckoSession, loadRequest: GeckoSession.NavigationDelegate.LoadRequest): GeckoResult<AllowOrDeny>? {
+        if (loadRequest.uri.startsWith(REDIRECT_URL)) {
+            val parsedUri = Uri.parse(loadRequest.uri)
 
-        parsedUri.getQueryParameter("code")?.let { code ->
-            val state = parsedUri.getQueryParameter("state") as String
-            val action = parsedUri.getQueryParameter("action") as String
+            parsedUri.getQueryParameter("code")?.let { code ->
+                val state = parsedUri.getQueryParameter("state") as String
+                val action = parsedUri.getQueryParameter("action") as String
 
-            // Notify the state machine about our success.
-            accountManager.finishAuthenticationAsync(FxaAuthData(action.toAuthType(), code = code, state = state))
+                // Notify the state machine about our success.
+                accountManager.finishAuthenticationAsync(FxaAuthData(action.toAuthType(), code = code, state = state))
+
+                return GeckoResult.ALLOW
+            }
         }
+
+        return GeckoResult.DENY
     }
 }

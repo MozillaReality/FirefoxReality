@@ -113,8 +113,8 @@
             app:isSyncEnabled="@{isSyncEnabled}"
             app:lastSync="@{lastSync}"
             app:isSyncing="@{isSyncing}"
-            app:callback="@{callback}"
-            android:visibility="@{isNarrow ? View.VISIBLE : View.GONE}"/>
+            app:isNarrow="@{isNarrow}"
+            app:callback="@{callback}"/>
 
         <include layout="@layout/bookmarks_wide"
             android:layout_width="match_parent"
@@ -128,8 +128,8 @@
             app:isSyncEnabled="@{isSyncEnabled}"
             app:lastSync="@{lastSync}"
             app:isSyncing="@{isSyncing}"
-            app:callback="@{callback}"
-            android:visibility="@{!isNarrow ? View.VISIBLE : View.GONE}"/>
+            app:isNarrow="@{isNarrow}"
+            app:callback="@{callback}"/>
 
         <org.mozilla.vrbrowser.ui.views.CustomRecyclerView
             android:id="@+id/bookmarks_list"

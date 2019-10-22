@@ -115,8 +115,10 @@ public class Bookmark {
                     children.add(bookmark);
                 }
 
-            } else if (node.getTitle() != null && !node.getUrl().startsWith("place:")){
-                // Exclude "place" items as we don't support them right now
+            } else if (node.getTitle() != null &&
+                    !node.getUrl().startsWith("place:") &&
+                    !node.getUrl().startsWith("about:reader")){
+                // Exclude "place" and "about:reader" items as we don't support them right now
                 Bookmark bookmark = new Bookmark(node, level, false);
                 children.add(bookmark);
             }

@@ -13,9 +13,11 @@ import org.mozilla.geckoview.GeckoRuntimeSettings;
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.geckoview.WebExtension;
 import org.mozilla.vrbrowser.BuildConfig;
+import org.mozilla.vrbrowser.VRBrowserApplication;
 import org.mozilla.vrbrowser.browser.BookmarksStore;
 import org.mozilla.vrbrowser.browser.HistoryStore;
 import org.mozilla.vrbrowser.browser.PermissionDelegate;
+import org.mozilla.vrbrowser.browser.Services;
 import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.crashreporting.CrashReporterService;
 
@@ -47,6 +49,7 @@ public class SessionStore implements GeckoSession.PermissionDelegate {
     private PermissionDelegate mPermissionDelegate;
     private BookmarksStore mBookmarksStore;
     private HistoryStore mHistoryStore;
+    private Services mServices;
 
     private SessionStore() {
         mSessions = new ArrayList<>();
@@ -96,6 +99,10 @@ public class SessionStore implements GeckoSession.PermissionDelegate {
 
     public GeckoRuntime getRuntime() {
         return mRuntime;
+    }
+
+    public void initializeServices() {
+        mServices = ((VRBrowserApplication)mContext.getApplicationContext()).getServices();
     }
 
     public void initializeStores(Context context) {

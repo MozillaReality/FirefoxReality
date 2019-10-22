@@ -20,6 +20,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
+import androidx.annotation.NonNull;
 import androidx.databinding.DataBindingUtil;
 
 import org.jetbrains.annotations.NotNull;
@@ -53,6 +54,10 @@ import mozilla.components.concept.sync.OAuthAccount;
 import mozilla.components.concept.sync.Profile;
 
 public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.WorldClickListener, SettingsView.Delegate {
+
+    public enum SettingDialog {
+        MAIN, LANGUAGE, DISPLAY, PRIVACY, DEVELOPER, FXA, ENVIRONMENT, CONTROLLER
+    }
 
     private SettingsBinding mBinding;
     private AudioEngine mAudio;
@@ -285,7 +290,7 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
                 break;
 
             case SIGNED_IN:
-                post(() -> showView(new FxAAccountOptionsView(getContext(), mWidgetManager)));
+                post(this::showFXAOptionsDialog);
                 break;
         }
     }
@@ -389,6 +394,10 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
         }
     }
 
+    private void showPrivacyOptionsDialog() {
+        showView(new PrivacyOptionsView(getContext(), mWidgetManager));
+    }
+
     private void showDeveloperOptionsDialog() {
         showView(new DeveloperOptionsView(getContext(), mWidgetManager));
     }
@@ -411,6 +420,10 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
         showView(new EnvironmentOptionsView(getContext(), mWidgetManager));
     }
 
+    private void showFXAOptionsDialog() {
+        showView(new FxAAccountOptionsView(getContext(), mWidgetManager));
+    }
+
     // WindowManagerDelegate.FocusChangeListener
     @Override
     public void onGlobalFocusChanged(View oldFocus, View newFocus) {
@@ -418,6 +431,34 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
             mCurrentView.onGlobalFocusChanged(oldFocus, newFocus);
         } else if (oldFocus == this && isVisible()) {
             onDismiss();
+        }
+    }
+
+    public void show(@ShowFlags int aShowFlags, @NonNull SettingDialog settingDialog) {
+        show(aShowFlags);
+
+        switch (settingDialog) {
+            case LANGUAGE:
+                showLanguageOptionsDialog();
+                break;
+            case DISPLAY:
+                showDisplayOptionsDialog();
+                break;
+            case PRIVACY:
+                showPrivacyOptionsDialog();
+                break;
+            case DEVELOPER:
+                showDeveloperOptionsDialog();
+                break;
+            case FXA:
+                showFXAOptionsDialog();
+                break;
+            case ENVIRONMENT:
+                showEnvironmentOptionsDialog();
+                break;
+            case CONTROLLER:
+                showControllerOptionsDialog();
+                break;
         }
     }
 

@@ -230,9 +230,8 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
         @Override
         public void onIdle() {
             mBinding.setIsSyncing(false);
-            findViewById(R.id.syncButton).setHovered(false);
             if (mAccounts.isEngineEnabled(SyncEngine.Bookmarks.INSTANCE)) {
-                mBinding.setLastSync(mAccounts.getLastSync());
+                mBinding.setLastSync(mAccounts.lastSync());
             }
         }
 
@@ -298,11 +297,11 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
                 int lastVisibleItem = ((LinearLayoutManager) mBinding.bookmarksList.getLayoutManager()).findLastVisibleItemPosition();
                 mBookmarkAdapter.setNarrow(isNarrow, firstVisibleItem, lastVisibleItem);
 
+                mBinding.setIsNarrow(isNarrow);
+                mBinding.executePendingBindings();
+
                 requestLayout();
             }
-
-            mBinding.setIsNarrow(isNarrow);
-            mBinding.executePendingBindings();
         });
     }
 

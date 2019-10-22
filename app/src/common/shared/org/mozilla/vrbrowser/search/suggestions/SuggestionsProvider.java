@@ -81,6 +81,7 @@ public class SuggestionsProvider {
 
     public CompletableFuture<List<SuggestionItem>> getBookmarkSuggestions(@NonNull List<SuggestionItem> items) {
         CompletableFuture future = new CompletableFuture();
+        // Explicitly passing  Root will look in all the bookmarks, default is just to look in the mobile bookmarks.
         SessionStore.get().getBookmarkStore().getBookmarks(BookmarkRoot.Root.getId()).thenAcceptAsync((bookmarks) -> {
             bookmarks.stream().
                     filter(b -> b.getUrl().toLowerCase().contains(mFilterText) ||

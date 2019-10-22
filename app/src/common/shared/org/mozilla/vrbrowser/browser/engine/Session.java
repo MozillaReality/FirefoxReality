@@ -739,8 +739,6 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
 
         Log.d(LOGTAG, "onLoadRequest: " + uri);
 
-        ((VRBrowserApplication) mContext.getApplicationContext()).getServices().interceptFxaUrl(uri);
-
         String uriOverride = SessionUtils.checkYoutubeOverride(uri);
         if (uriOverride != null) {
             aSession.loadUri(uriOverride);

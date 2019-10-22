@@ -12,6 +12,7 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.future.future
 import mozilla.components.concept.storage.PageObservation
+import mozilla.components.concept.storage.PageVisit
 import mozilla.components.concept.storage.VisitInfo
 import mozilla.components.concept.storage.VisitType
 import mozilla.components.service.fxa.sync.SyncStatusObserver
@@ -81,8 +82,8 @@ class HistoryStore constructor(val context: Context) {
                 VisitType.REDIRECT_PERMANENT))
     }
 
-    fun recordVisit(aURL: String, visitType: VisitType) = GlobalScope.future {
-        storage.recordVisit(aURL, visitType)
+    fun recordVisit(aURL: String, pageVisit: PageVisit) = GlobalScope.future {
+        storage.recordVisit(aURL, pageVisit)
         notifyListeners()
     }
 

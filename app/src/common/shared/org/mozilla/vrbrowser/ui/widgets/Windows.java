@@ -24,6 +24,7 @@ import org.mozilla.vrbrowser.browser.engine.SessionState;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
 import org.mozilla.vrbrowser.utils.BitmapCache;
+import org.mozilla.vrbrowser.ui.widgets.settings.SettingsWidget;
 import org.mozilla.vrbrowser.utils.SystemUtils;
 
 import java.io.File;
@@ -890,7 +891,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
                     break;
 
                 case SETTINGS:
-                    mWidgetManager.getTray().toggleSettingsDialog();
+                    mWidgetManager.getTray().toggleSettingsDialog(SettingsWidget.SettingDialog.FXA);
                     break;
             }
         }
