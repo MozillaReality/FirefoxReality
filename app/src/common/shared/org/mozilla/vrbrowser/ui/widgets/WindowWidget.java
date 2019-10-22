@@ -1323,6 +1323,11 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
                             LibraryItemContextMenu.LibraryItemType.BOOKMARKS),
                     isLastVisibleItem);
         }
+
+        @Override
+        public void onFxASynSettings(@NonNull View view) {
+            mWidgetManager.getTray().toggleSettingsDialog();
+        }
     };
 
     private HistoryCallback mHistoryListener = new HistoryCallback() {
@@ -1341,6 +1346,11 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
                             item.getTitle(),
                             LibraryItemContextMenu.LibraryItemType.HISTORY),
                     isLastVisibleItem);
+        }
+
+        @Override
+        public void onFxASynSettings(@NonNull View view) {
+            mWidgetManager.getTray().toggleSettingsDialog();
         }
     };
 

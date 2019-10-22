@@ -5,10 +5,8 @@
 
 package org.mozilla.vrbrowser.ui.views;
 
-import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -58,7 +56,6 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
     private static final String LOGTAG = SystemUtils.createLogtag(HistoryView.class);
 
     private HistoryBinding mBinding;
-    private ObjectAnimator mSyncingAnimation;
     private Accounts mAccounts;
     private HistoryAdapter mHistoryAdapter;
     private boolean mIgnoreNextListener;
@@ -100,10 +97,6 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
         mBinding.historyList.setDrawingCacheQuality(View.DRAWING_CACHE_QUALITY_HIGH);
 
         mBinding.setIsLoading(true);
-
-        Drawable[] drawables = mBinding.syncButton.getCompoundDrawables();
-        mSyncingAnimation = ObjectAnimator.ofInt(drawables[0], "level", 0, 10000);
-        mSyncingAnimation.setRepeatCount(ObjectAnimator.INFINITE);
 
         mAccounts = ((VRBrowserApplication)getContext().getApplicationContext()).getAccounts();
         mAccounts.addAccountListener(mAccountListener);
@@ -196,6 +189,11 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
         }
 
         @Override
+        public void onFxASynSettings(@NonNull View view) {
+            mHistoryViewListeners.forEach((listener) -> listener.onFxASynSettings(view));
+        }
+
+        @Override
         public void onShowContextMenu(@NonNull View view, @NonNull VisitInfo item, boolean isLastVisibleItem) {
             mHistoryViewListeners.forEach((listener) -> listener.onShowContextMenu(view, item, isLastVisibleItem));
         }
@@ -216,28 +214,25 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
         public void onStarted() {
             boolean isSyncEnabled = mAccounts.isEngineEnabled(SyncEngine.History.INSTANCE);
             mBinding.setIsSyncEnabled(isSyncEnabled);
+            mBinding.setIsSyncing(true);
             mBinding.executePendingBindings();
-            if (isSyncEnabled) {
-                mSyncingAnimation.setDuration(500);
-                mSyncingAnimation.start();
-            }
         }
 
         @Override
         public void onIdle() {
+            mBinding.setIsSyncing(false);
+            mBinding.syncButton.setHovered(false);
             if (mAccounts.isEngineEnabled(SyncEngine.History.INSTANCE)) {
-                mSyncingAnimation.cancel();
                 mBinding.setLastSync(mAccounts.getLastSync());
             }
+            mBinding.executePendingBindings();
         }
 
         @Override
         public void onError(@Nullable Exception e) {
+            mBinding.setIsSyncing(false);
             mBinding.setIsSyncEnabled(mAccounts.isEngineEnabled(SyncEngine.History.INSTANCE));
             mBinding.executePendingBindings();
-            if (mAccounts.isEngineEnabled(SyncEngine.History.INSTANCE)) {
-                mSyncingAnimation.cancel();
-            }
         }
     };
 
@@ -335,6 +330,7 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
     }
 
     // HistoryStore.HistoryListener
+
     @Override
     public void onHistoryUpdated() {
         if (mIgnoreNextListener) {

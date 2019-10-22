@@ -5,10 +5,8 @@
 
 package org.mozilla.vrbrowser.ui.views;
 
-import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -52,7 +50,6 @@ import mozilla.components.service.fxa.sync.SyncStatusObserver;
 public class BookmarksView extends FrameLayout implements BookmarksStore.BookmarkListener {
 
     private BookmarksBinding mBinding;
-    private ObjectAnimator mSyncingAnimation;
     private Accounts mAccounts;
     private BookmarkAdapter mBookmarkAdapter;
     private boolean mIgnoreNextListener;
@@ -97,10 +94,6 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
         mLayoutManager = (CustomLinearLayoutManager) mBinding.bookmarksList.getLayoutManager();
 
         mBinding.setIsLoading(true);
-
-        Drawable[] drawables = mBinding.syncButton.getCompoundDrawables();
-        mSyncingAnimation = ObjectAnimator.ofInt(drawables[0], "level", 0, 10000);
-        mSyncingAnimation.setRepeatCount(ObjectAnimator.INFINITE);
 
         mAccounts = ((VRBrowserApplication)getContext().getApplicationContext()).getAccounts();
         mAccounts.addAccountListener(mAccountListener);
@@ -199,6 +192,11 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
         }
 
         @Override
+        public void onFxASynSettings(@NonNull View view) {
+            mBookmarksViewListeners.forEach((listener) -> listener.onFxASynSettings(view));
+        }
+
+        @Override
         public void onShowContextMenu(@NonNull View view, Bookmark item, boolean isLastVisibleItem) {
             mBookmarksViewListeners.forEach((listener) -> listener.onShowContextMenu(view, item, isLastVisibleItem));
         }
@@ -219,28 +217,24 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
         public void onStarted() {
             boolean isSyncEnabled = mAccounts.isEngineEnabled(SyncEngine.Bookmarks.INSTANCE);
             mBinding.setIsSyncEnabled(isSyncEnabled);
+            mBinding.setIsSyncing(true);
             mBinding.executePendingBindings();
-            if (isSyncEnabled) {
-                mSyncingAnimation.setDuration(500);
-                mSyncingAnimation.start();
-            }
         }
 
         @Override
         public void onIdle() {
+            mBinding.setIsSyncing(false);
+            mBinding.syncButton.setHovered(false);
             if (mAccounts.isEngineEnabled(SyncEngine.Bookmarks.INSTANCE)) {
-                mSyncingAnimation.cancel();
                 mBinding.setLastSync(mAccounts.getLastSync());
             }
         }
 
         @Override
         public void onError(@Nullable Exception e) {
+            mBinding.setIsSyncing(false);
             mBinding.setIsSyncEnabled(mAccounts.isEngineEnabled(SyncEngine.Bookmarks.INSTANCE));
             mBinding.executePendingBindings();
-            if (mAccounts.isEngineEnabled(SyncEngine.Bookmarks.INSTANCE)) {
-                mSyncingAnimation.cancel();
-            }
         }
     };
 
@@ -293,6 +287,7 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
     }
 
     // BookmarksStore.BookmarksViewListener
+
     @Override
     public void onBookmarksUpdated() {
         if (mIgnoreNextListener) {

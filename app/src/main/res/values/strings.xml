@@ -512,6 +512,9 @@
     <!-- This string is used to in the Library panels in the sync button when the user is not signed in. -->
     <string name="fxa_account_sing_to_sync">Sign Into Account To Sync</string>
 
+    <!-- This string is used to in the Library panels in the sync button when syncing is off. -->
+    <string name="fxa_account_sync_settings">Sync Settings</string>
+
     <!-- This string is used to in the Library panels to the left of the sync button to indicate
          when that the content was just synced. -->
     <string name="fxa_account_last_synced_now">Last synced now</string>
@@ -519,6 +522,10 @@
     <!-- This string is used to in the Library panels to the left of the sync button to indicate
          that the content has never been synced yet. -->
     <string name="fxa_account_last_no_synced">No synced yet</string>
+
+    <!-- This string is used to in the Library panels to the left of the sync button to indicate
+         that the syncing is off. -->
+    <string name="fxa_account_syncing_off">Syncing is turned off</string>
 
     <!-- This string is used to in the Library panels to the left of the sync button to indicate
          that there was an error while syncing. -->
@@ -825,6 +832,9 @@
     <!-- This string is displayed is the "Sync" button in the history panel. When pressed the
          history is synced with the Firefox account. -->
     <string name="fxa_sync">Sync</string>
+
+    <!-- This string is displayed is the "Sync" button in the history panel when the sync is in progress. -->
+    <string name="fxa_syncing">Syncing…</string>
 
     <!-- This string is displayed is the "Cancel" button from the clear history dialog.
          When pressed the dialog is closed. -->
