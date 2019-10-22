@@ -94,7 +94,7 @@
             android:id="@+id/footer_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:description="@string/fxa_account_options_reset"
+            app:buttonText="@string/fxa_account_options_reset"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent" />
