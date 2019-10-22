@@ -57,7 +57,6 @@ import org.mozilla.vrbrowser.ui.widgets.dialogs.SelectionActionWidget;
 import org.mozilla.vrbrowser.ui.widgets.prompts.AlertPromptWidget;
 import org.mozilla.vrbrowser.ui.widgets.prompts.ConfirmPromptWidget;
 import org.mozilla.vrbrowser.ui.widgets.prompts.PromptWidget;
-import org.mozilla.vrbrowser.utils.BitmapCache;
 import org.mozilla.vrbrowser.utils.SystemUtils;
 import org.mozilla.vrbrowser.utils.ViewUtils;
 
@@ -75,8 +74,7 @@ import static org.mozilla.vrbrowser.utils.ServoUtils.isInstanceOfServoSession;
 
 public class WindowWidget extends UIWidget implements SessionChangeListener,
         GeckoSession.ContentDelegate, GeckoSession.NavigationDelegate, VideoAvailabilityListener,
-        GeckoSession.HistoryDelegate, GeckoSession.ProgressDelegate, GeckoSession.SelectionActionDelegate,
-        TabsWidget.TabDelegate {
+        GeckoSession.HistoryDelegate, GeckoSession.ProgressDelegate, GeckoSession.SelectionActionDelegate {
 
     public interface HistoryViewDelegate {
         default void onHistoryViewShown(WindowWidget aWindow) {}
@@ -134,14 +132,10 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     private boolean mIsResizing;
     private boolean mIsFullScreen;
     private boolean mAfterFirstPaint;
-    private TabsWidget mTabsWidget;
 
     public interface WindowListener {
         default void onFocusRequest(@NonNull WindowWidget aWindow) {}
         default void onBorderChanged(@NonNull WindowWidget aWindow) {}
-        default void onTabSelect(@NonNull WindowWidget aWindow, Session aTab) {}
-        default void onTabAdd(@NonNull WindowWidget aWindow) {}
-        default void onTabsClose(@NonNull WindowWidget aWindow, ArrayList<Session> aTabs) {}
         default void onSessionChanged(@NonNull Session aOldSession, @NonNull Session aSession) {}
     }
 
@@ -309,13 +303,6 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         }
         if (mTitleBar != null) {
             mWidgetManager.removeWidget(mTitleBar);
-        }
-        if (mTabsWidget != null && !mTabsWidget.isReleased()) {
-            if (mTabsWidget.isVisible()) {
-                mTabsWidget.hide(REMOVE_WIDGET);
-            }
-            mTabsWidget.releaseWidget();
-            mTabsWidget = null;
         }
         mListeners.clear();
     }
@@ -1053,20 +1040,6 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         SessionStore.get().setActiveSession(aTab);
     }
 
-    public void showTabsMenu() {
-        hideContextMenus();
-        if (mTabsWidget == null) {
-            mTabsWidget = new TabsWidget(getContext(), mSession.isPrivateMode());
-            mTabsWidget.getPlacement().parentHandle = mHandle;
-            mTabsWidget.setTabDelegate(this);
-        }
-        if (mTabsWidget.isVisible()) {
-            mTabsWidget.onDismiss();
-        } else {
-            mTabsWidget.show(REQUEST_FOCUS);
-        }
-    }
-
     // View
     @Override
     public InputConnection onCreateInputConnection(final EditorInfo outAttrs) {
@@ -1405,10 +1378,6 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         if (mLibraryItemContextMenu != null && mLibraryItemContextMenu.isVisible()) {
             mLibraryItemContextMenu.hide(REMOVE_WIDGET);
         }
-
-        if (mTabsWidget != null && mTabsWidget.isVisible()) {
-            mTabsWidget.onDismiss();
-        }
     }
 
     // GeckoSession.ContentDelegate
@@ -1591,28 +1560,5 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     @Override
     public void onHideAction(@NonNull GeckoSession aSession, int aHideReason) {
         hideContextMenus();
-    }
-
-    // TabsWidget.TabDelegate
-
-    @Override
-    public void onTabSelect(Session aTab) {
-        for (WindowListener listener: mListeners) {
-            listener.onTabSelect(this, aTab);
-        }
-    }
-
-    @Override
-    public void onTabAdd() {
-        for (WindowListener listener: mListeners) {
-            listener.onTabAdd(this);
-        }
-    }
-
-    @Override
-    public void onTabsClose(ArrayList<Session> aTabs) {
-        for (WindowListener listener : mListeners) {
-            listener.onTabsClose(this, aTabs);
-        }
     }
 }

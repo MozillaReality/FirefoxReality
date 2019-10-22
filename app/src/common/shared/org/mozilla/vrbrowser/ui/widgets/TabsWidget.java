@@ -2,6 +2,7 @@ package org.mozilla.vrbrowser.ui.widgets;
 
 import android.content.Context;
 import android.graphics.Rect;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,12 +19,13 @@ import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.ui.views.TabView;
 import org.mozilla.vrbrowser.ui.views.UIButton;
 import org.mozilla.vrbrowser.ui.views.UITextButton;
+import org.mozilla.vrbrowser.ui.widgets.dialogs.UIDialog;
 import org.mozilla.vrbrowser.utils.BitmapCache;
 import org.mozilla.vrbrowser.utils.ViewUtils;
 
 import java.util.ArrayList;
 
-public class TabsWidget extends UIWidget implements WidgetManagerDelegate.FocusChangeListener {
+public class TabsWidget extends UIDialog implements WidgetManagerDelegate.WorldClickListener {
     protected BitmapCache mBitmapCache;
     protected RecyclerView mTabsList;
     protected GridLayoutManager mLayoutManager;
@@ -49,10 +51,9 @@ public class TabsWidget extends UIWidget implements WidgetManagerDelegate.FocusC
         void onTabsClose(ArrayList<Session> aTabs);
     }
 
-    public TabsWidget(Context aContext, boolean aPrivateMode) {
+    public TabsWidget(Context aContext) {
         super(aContext);
         mBitmapCache = BitmapCache.getInstance(aContext);
-        mPrivateMode = aPrivateMode;
         initialize();
     }
 
@@ -133,15 +134,29 @@ public class TabsWidget extends UIWidget implements WidgetManagerDelegate.FocusC
             mAdapter.notifyDataSetChanged();
             updateSelectionMode();
         });
+
+        mWidgetManager.addWorldClickListener(this);
     }
 
+    public void attachToWindow(WindowWidget aWindow) {
+        mPrivateMode = aWindow.getSession().isPrivateMode();
+        mWidgetPlacement.parentHandle = aWindow.getHandle();
+    }
+
+    @Override
+    public void releaseWidget() {
+        if (mWidgetManager != null) {
+            mWidgetManager.removeWorldClickListener(this);
+        }
+        super.releaseWidget();
+    }
 
     @Override
     public void show(int aShowFlags) {
         super.show(aShowFlags);
         mAdapter.updateTabs(SessionStore.get().getSortedSessions(mPrivateMode));
         mWidgetManager.pushWorldBrightness(this, WidgetManagerDelegate.DEFAULT_DIM_BRIGHTNESS);
-        mWidgetManager.addFocusChangeListener(this);
+        mTabsList.requestFocusFromTouch();
     }
 
     @Override
@@ -149,7 +164,6 @@ public class TabsWidget extends UIWidget implements WidgetManagerDelegate.FocusC
         super.hide(aHideFlags);
 
         mWidgetManager.popWorldBrightness(this);
-        mWidgetManager.removeFocusChangeListener(this);
     }
 
     public void setTabDelegate(TabDelegate aDelegate) {
@@ -315,7 +329,7 @@ public class TabsWidget extends UIWidget implements WidgetManagerDelegate.FocusC
     @Override
     protected void onDismiss() {
         exitSelectMode();
-        super.onDismiss();
+        hide(KEEP_WIDGET);
     }
 
     public class GridSpacingItemDecoration extends RecyclerView.ItemDecoration {
@@ -340,9 +354,17 @@ public class TabsWidget extends UIWidget implements WidgetManagerDelegate.FocusC
 
     @Override
     public void onGlobalFocusChanged(View oldFocus, View newFocus) {
-        if (ViewUtils.isChildrenOf(this, oldFocus) && this.isVisible() &&
-                !ViewUtils.isChildrenOf(this, newFocus)) {
+        if (ViewUtils.isEqualOrChildrenOf(this, oldFocus) && this.isVisible() &&
+                !ViewUtils.isEqualOrChildrenOf(this, newFocus)) {
             onDismiss();
         }
     }
+
+    @Override
+    public void onWorldClick() {
+        if (this.isVisible()) {
+            onDismiss();
+        }
+    }
+
 }

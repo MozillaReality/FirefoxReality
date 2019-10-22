@@ -136,8 +136,8 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
                 mAudio.playSound(AudioEngine.Sound.CLICK);
             }
 
-            notifyTabsClicked();
             view.requestFocusFromTouch();
+            notifyTabsClicked();
         });
         mHistoryButton.setCurvedTooltip(false);
 

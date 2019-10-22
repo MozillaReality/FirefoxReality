@@ -2,6 +2,7 @@ package org.mozilla.vrbrowser.ui.widgets;
 
 import android.content.Context;
 import android.util.Log;
+import android.widget.TabWidget;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -32,8 +33,10 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
 
+import static org.mozilla.vrbrowser.ui.widgets.UIWidget.REQUEST_FOCUS;
+
 public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWidget.Delegate,
-        GeckoSession.ContentDelegate, WindowWidget.WindowListener {
+        GeckoSession.ContentDelegate, WindowWidget.WindowListener, TabsWidget.TabDelegate {
 
     private static final String LOGTAG = SystemUtils.createLogtag(Windows.class);
 
@@ -89,6 +92,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
     private boolean mForcedCurvedMode = false;
     private boolean mIsPaused = false;
     private PromptDelegate mPromptDelegate;
+    private TabsWidget mTabsWidget;
 
     public enum WindowPlacement{
         FRONT(0),
@@ -888,8 +892,15 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
 
     @Override
     public void onTabsClicked() {
+        if (mTabsWidget == null) {
+            mTabsWidget = new TabsWidget(mContext);
+            mTabsWidget.setTabDelegate(this);
+        }
+
         if (mFocusedWindow != null) {
-            mFocusedWindow.showTabsMenu();
+            mTabsWidget.getPlacement().parentHandle = mFocusedWindow.getHandle();
+            mTabsWidget.attachToWindow(mFocusedWindow);
+            mTabsWidget.show(UIWidget.KEEP_FOCUS);
         }
     }
 
@@ -1031,42 +1042,51 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
     }
 
     @Override
-    public void onTabSelect(@NonNull WindowWidget aWindow, Session aTab) {
+    public void onTabSelect(Session aTab) {
+        WindowWidget targetWindow = mFocusedWindow;
         WindowWidget windowToMove = getWindowWithSession(aTab);
-        if (windowToMove != null && windowToMove != aWindow) {
+        if (windowToMove != null && windowToMove != targetWindow) {
             // Move session between windows
             Session moveFrom = windowToMove.getSession();
-            Session moveTo = aWindow.getSession();
+            Session moveTo = targetWindow.getSession();
             windowToMove.releaseDisplay(moveFrom.getGeckoSession());
-            aWindow.releaseDisplay(moveTo.getGeckoSession());
+            targetWindow.releaseDisplay(moveTo.getGeckoSession());
             windowToMove.setSession(moveTo);
-            aWindow.setSession(moveFrom);
-            SessionStore.get().setActiveSession(aWindow.getSession());
+            targetWindow.setSession(moveFrom);
+            SessionStore.get().setActiveSession(targetWindow.getSession());
 
         } else{
-            aWindow.setSession(aTab);
+            targetWindow.getSession().setActive(false);
+            targetWindow.setSession(aTab);
+            targetWindow.getSession().setActive(true);
             SessionStore.get().setActiveSession(aTab);
         }
     }
 
-    @Override
-    public void onTabAdd(@NonNull WindowWidget aWindow) {
-        Session session = SessionStore.get().createSession(aWindow.getSession().isPrivateMode());
-        aWindow.setFirstPaintReady(false);
-        aWindow.setFirstDrawCallback(() -> {
-            if (!aWindow.isFirstPaintReady()) {
-                aWindow.setFirstPaintReady(true);
-                mWidgetManager.updateWidget(aWindow);
+    private void onTabAdd(WindowWidget targetWindow) {
+        Session session = SessionStore.get().createSession(targetWindow.getSession().isPrivateMode());
+        targetWindow.setFirstPaintReady(false);
+        targetWindow.setFirstDrawCallback(() -> {
+            if (!targetWindow.isFirstPaintReady()) {
+                targetWindow.setFirstPaintReady(true);
+                mWidgetManager.updateWidget(targetWindow);
             }
         });
-        mWidgetManager.updateWidget(aWindow);
-        aWindow.setSession(session);
+        mWidgetManager.updateWidget(targetWindow);
+        targetWindow.getSession().setActive(false);
+        targetWindow.setSession(session);
         session.loadHomePage();
         SessionStore.get().setActiveSession(session);
     }
 
     @Override
-    public void onTabsClose(@NonNull WindowWidget aWindow, ArrayList<Session> aTabs) {
+    public void onTabAdd() {
+     onTabAdd(mFocusedWindow);
+    }
+
+    @Override
+    public void onTabsClose(ArrayList<Session> aTabs) {
+        WindowWidget targetWindow = mFocusedWindow;
         // Prepare available tabs to choose from
         ArrayList<Session> available = SessionStore.get().getSortedSessions(mPrivateMode);
         available.removeAll(aTabs);
@@ -1077,10 +1097,10 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         ArrayList<WindowWidget> windows =  new ArrayList<>(getCurrentWindows());
         windows.sort((w1, w2) -> {
             // Max priority for the target window
-            if (w1 == aWindow) {
+            if (w1 == targetWindow) {
                 return -1;
             }
-            if (w2 == aWindow) {
+            if (w2 == targetWindow) {
                 return 1;
             }
             // Front window has next max priority
@@ -1102,6 +1122,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             if (available.size() > 0) {
                 // Window contains a closed tab and we have a tab available from the list
                 window.setSession(available.get(0));
+                window.getSession().setActive(true);
                 available.remove(0);
             } else {
                 // We don't have more tabs available for the front window, load home.
@@ -1115,6 +1136,6 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             SessionStore.get().destroySession(session);
         }
 
-        SessionStore.get().setActiveSession(aWindow.getSession());
+        SessionStore.get().setActiveSession(targetWindow.getSession());
     }
 }
