@@ -25,7 +25,11 @@ import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.browser.engine.Session;
 import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
 import org.mozilla.vrbrowser.utils.AnimationHelper;
+import org.mozilla.vrbrowser.utils.BitmapCache;
 import org.mozilla.vrbrowser.utils.UrlUtils;
+
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 public class TabView extends LinearLayout implements GeckoSession.ContentDelegate, Session.BitmapChangedListener {
     protected RelativeLayout mTabCardView;
@@ -47,6 +51,7 @@ public class TabView extends LinearLayout implements GeckoSession.ContentDelegat
     private int mMinIconPadding;
     private int mMaxIconPadding;
     private boolean mPressed;
+    private CompletableFuture<Bitmap> mBitmapFuture;
     private static final int ICON_ANIMATION_DURATION = 100;
 
     public interface Delegate {
@@ -117,22 +122,29 @@ public class TabView extends LinearLayout implements GeckoSession.ContentDelegat
         }
     };
 
-    public void attachToSession(@Nullable Session aSession) {
+    public void attachToSession(@Nullable Session aSession, @NonNull BitmapCache aBitmapCache) {
         if (mSession != null) {
             mSession.removeContentListener(this);
             mSession.removeBitmapChangedListener(this);
+        }
+        if (mBitmapFuture != null) {
+            mBitmapFuture.cancel(false);
+            mBitmapFuture = null;
         }
         setAddTabMode(false);
         mSession = aSession;
         mSession.addContentListener(this);
         mSession.addBitmapChangedListener(this);
         mShowAddTab = false;
-        Bitmap bitmap = aSession.getBitmap();
-        if (bitmap != null) {
-            mPreview.setImageBitmap(bitmap);
-        } else {
-            mPreview.setImageResource(R.drawable.ic_icon_tabs_placeholder);
-        }
+        mBitmapFuture = aBitmapCache.getBitmap(mSession.getId());
+        mPreview.setImageResource(R.drawable.ic_icon_tabs_placeholder);
+        mBitmapFuture.thenAccept(bitmap -> {
+            mBitmapFuture = null;
+            if (bitmap != null) {
+                mPreview.setImageBitmap(bitmap);
+            }
+        });
+
 
         mURL.setText(UrlUtils.stripProtocol(aSession.getCurrentUri()));
         if (!mShowAddTab) {
@@ -248,7 +260,10 @@ public class TabView extends LinearLayout implements GeckoSession.ContentDelegat
     }
 
     @Override
-    public void onBitmapChanged(Bitmap aBitmap) {
+    public void onBitmapChanged(Session aSession, Bitmap aBitmap) {
+        if (aSession != mSession) {
+            return;
+        }
         if (aBitmap != null) {
             mPreview.setImageBitmap(aBitmap);
         } else {

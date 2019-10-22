@@ -19,6 +19,7 @@ import org.mozilla.vrbrowser.browser.engine.Session;
 import org.mozilla.vrbrowser.browser.engine.SessionState;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
+import org.mozilla.vrbrowser.utils.BitmapCache;
 import org.mozilla.vrbrowser.utils.SystemUtils;
 
 import java.io.File;
@@ -591,8 +592,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             mPrivateMode = false;
             for (WindowState windowState : windowsState.regularWindowsState) {
                 if (windowState.tabIndex >= 0 && windowState.tabIndex < restoredSessions.size()) {
-                    WindowWidget window = addRestoredWindow(windowState, restoredSessions.get(windowState.tabIndex));
-                    window.captureImage();
+                    addRestoredWindow(windowState, restoredSessions.get(windowState.tabIndex));
                 }
             }
             mPrivateMode = !windowsState.privateMode;
@@ -623,6 +623,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
     }
 
     private void removeWindow(@NonNull WindowWidget aWindow) {
+        BitmapCache.getInstance(mContext).removeBitmap(aWindow.getSession().getId());
         mWidgetManager.removeWidget(aWindow);
         mRegularWindows.remove(aWindow);
         mPrivateWindows.remove(aWindow);
@@ -1108,7 +1109,9 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             }
         }
 
+        BitmapCache cache = BitmapCache.getInstance(mContext);
         for (Session session: aTabs) {
+            cache.removeBitmap(session.getId());
             SessionStore.get().destroySession(session);
         }
 

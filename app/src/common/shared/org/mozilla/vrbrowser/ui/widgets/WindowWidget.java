@@ -57,6 +57,7 @@ import org.mozilla.vrbrowser.ui.widgets.dialogs.SelectionActionWidget;
 import org.mozilla.vrbrowser.ui.widgets.prompts.AlertPromptWidget;
 import org.mozilla.vrbrowser.ui.widgets.prompts.ConfirmPromptWidget;
 import org.mozilla.vrbrowser.ui.widgets.prompts.PromptWidget;
+import org.mozilla.vrbrowser.utils.BitmapCache;
 import org.mozilla.vrbrowser.utils.SystemUtils;
 import org.mozilla.vrbrowser.utils.ViewUtils;
 
@@ -1002,17 +1003,14 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
             }
 
             mSession = aSession;
-            setupListeners(mSession);
             if (oldSession != null) {
                 onCurrentSessionChange(oldSession.getGeckoSession(), aSession.getGeckoSession());
             } else {
                 onCurrentSessionChange(null, aSession.getGeckoSession());
             }
+            setupListeners(mSession);
             for (WindowListener listener: mListeners) {
                 listener.onSessionChanged(oldSession, aSession);
-            }
-            if (mSession.getBitmap() == null) {
-                captureImage();
             }
         }
     }
@@ -1473,18 +1471,10 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         captureImage();
     }
 
-    public void captureImage() {
-        if (mDisplay == null || !mSession.getGeckoSession().isOpen()) {
-            return;
+    private void captureImage() {
+        if (mDisplay != null) {
+            mSession.captureBitmap(mDisplay);
         }
-
-        final Session session = mSession;
-        mDisplay.capturePixels().then(bitmap -> {
-            if (bitmap != null) {
-                session.setBitmap(bitmap, session.getGeckoSession());
-            }
-            return null;
-        });
     }
 
     @Override

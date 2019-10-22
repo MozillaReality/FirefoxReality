@@ -20,15 +20,14 @@ import org.mozilla.vrbrowser.browser.Media;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.UUID;
 
 @JsonAdapter(SessionState.SessionStateAdapterFactory.class)
 public class SessionState {
-
     public boolean mCanGoBack;
     public boolean mCanGoForward;
     public boolean mIsLoading;
     public boolean mIsInputActive;
-    public transient @Nullable Bitmap mBitmap;
     public transient GeckoSession.ProgressDelegate.SecurityInformation mSecurityInformation;
     public String mUri = "";
     public String mPreviousUri;
@@ -41,6 +40,7 @@ public class SessionState {
     public GeckoSession.SessionState mSessionState;
     public long mLastUse;
     public String mRegion;
+    public String mId = UUID.randomUUID().toString();
 
     public static class GeckoSessionStateAdapter extends TypeAdapter<GeckoSession.SessionState> {
         @Override
@@ -82,6 +82,7 @@ public class SessionState {
                             out.name("mSettings").jsonValue(gson.toJson(session.mSettings));
                             out.name("mLastUse").value(session.mLastUse);
                             out.name("mRegion").value(session.mRegion);
+                            out.name("mId").value(session.mId);
                             if (session.mSession != null) {
                                 if (session.mSession.getSettings().getUsePrivateMode()) {
                                     out.name("mSessionState").jsonValue(null);

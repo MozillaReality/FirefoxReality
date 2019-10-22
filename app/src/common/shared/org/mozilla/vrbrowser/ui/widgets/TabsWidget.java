@@ -18,11 +18,13 @@ import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.ui.views.TabView;
 import org.mozilla.vrbrowser.ui.views.UIButton;
 import org.mozilla.vrbrowser.ui.views.UITextButton;
+import org.mozilla.vrbrowser.utils.BitmapCache;
 import org.mozilla.vrbrowser.utils.ViewUtils;
 
 import java.util.ArrayList;
 
 public class TabsWidget extends UIWidget implements WidgetManagerDelegate.FocusChangeListener {
+    protected BitmapCache mBitmapCache;
     protected RecyclerView mTabsList;
     protected GridLayoutManager mLayoutManager;
     protected TabAdapter mAdapter;
@@ -49,6 +51,7 @@ public class TabsWidget extends UIWidget implements WidgetManagerDelegate.FocusC
 
     public TabsWidget(Context aContext, boolean aPrivateMode) {
         super(aContext);
+        mBitmapCache = BitmapCache.getInstance(aContext);
         mPrivateMode = aPrivateMode;
         initialize();
     }
@@ -192,7 +195,7 @@ public class TabsWidget extends UIWidget implements WidgetManagerDelegate.FocusC
         public void onBindViewHolder(MyViewHolder holder, int position) {
             if (position > 0) {
                 Session session = mTabs.get(position - 1);
-                holder.tabView.attachToSession(session);
+                holder.tabView.attachToSession(session, mBitmapCache);
             } else {
                 holder.tabView.setAddTabMode(true);
             }
@@ -211,7 +214,7 @@ public class TabsWidget extends UIWidget implements WidgetManagerDelegate.FocusC
                     if (mTabs.size() > 1) {
                         ArrayList<Session> latestTabs = SessionStore.get().getSortedSessions(mPrivateMode);
                         if (latestTabs.size() != (mTabs.size() - 1) && latestTabs.size() > 0) {
-                            aSender.attachToSession(latestTabs.get(0));
+                            aSender.attachToSession(latestTabs.get(0), mBitmapCache);
                             return;
                         }
                         mTabs.remove(holder.getAdapterPosition() - 1);

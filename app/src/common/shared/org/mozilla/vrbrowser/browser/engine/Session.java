@@ -21,6 +21,7 @@ import androidx.annotation.UiThread;
 
 import org.mozilla.geckoview.AllowOrDeny;
 import org.mozilla.geckoview.ContentBlocking;
+import org.mozilla.geckoview.GeckoDisplay;
 import org.mozilla.geckoview.GeckoResponse;
 import org.mozilla.geckoview.GeckoResult;
 import org.mozilla.geckoview.GeckoRuntime;
@@ -36,6 +37,7 @@ import org.mozilla.vrbrowser.browser.UserAgentOverride;
 import org.mozilla.vrbrowser.browser.VideoAvailabilityListener;
 import org.mozilla.vrbrowser.geolocation.GeolocationData;
 import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
+import org.mozilla.vrbrowser.utils.BitmapCache;
 import org.mozilla.vrbrowser.utils.InternalPages;
 import org.mozilla.vrbrowser.utils.SystemUtils;
 
@@ -77,7 +79,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     private transient byte[] mPrivatePage;
 
     public interface BitmapChangedListener {
-        void onBitmapChanged(Bitmap aBitmap);
+        void onBitmapChanged(Session aSession, Bitmap aBitmap);
     }
 
     protected Session(Context aContext, GeckoRuntime aRuntime, boolean aUsePrivateMode) {
@@ -398,17 +400,16 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         aSession.close();
     }
 
-    public void setBitmap(Bitmap aBitmap, GeckoSession aSession) {
-        if (aSession == mState.mSession) {
-            mState.mBitmap = aBitmap;
-            for (BitmapChangedListener listener: mBitmapChangedListeners) {
-                listener.onBitmapChanged(mState.mBitmap);
+    public void captureBitmap(@NonNull GeckoDisplay aDisplay) {
+        aDisplay.capturePixels().then(bitmap -> {
+            if (bitmap != null) {
+                BitmapCache.getInstance(mContext).addBitmap(getId(), bitmap);
+                for (BitmapChangedListener listener: mBitmapChangedListeners) {
+                    listener.onBitmapChanged(this, bitmap);
+                }
             }
-        }
-    }
-
-    public @Nullable Bitmap getBitmap() {
-        return mState.mBitmap;
+            return null;
+        });
     }
 
     public void purgeHistory() {
@@ -557,6 +558,10 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
 
     public GeckoSession getGeckoSession() {
         return mState.mSession;
+    }
+
+    public String getId() {
+        return mState.mId;
     }
 
     public boolean isPrivateMode() {
