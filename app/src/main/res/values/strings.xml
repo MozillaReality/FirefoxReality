@@ -268,7 +268,7 @@
 
     <!-- This string is displayed in the settings header under the Firefox Reality logo. When clicked the settings panel is closed
          a the survey web site in opened in the currently focused window -->
-    <string name="settings_send_your_feedback">&lt;a href="https://qsurvey.mozilla.com/s3/FxR">Send us Your Feedback&lt;/a></string>
+    <string name="settings_send_your_feedback">Send us Your Feedback</string>
 
     <!-- This string is the title of a dialog box shown to the user when a settings
          change requires the application to restart. -->
