@@ -132,6 +132,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     private boolean mIsResizing;
     private boolean mIsFullScreen;
     private boolean mAfterFirstPaint;
+    private boolean mCaptureOnPageStop;
 
     public interface WindowListener {
         default void onFocusRequest(@NonNull WindowWidget aWindow) {}
@@ -1435,9 +1436,19 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     }
 
     // GeckoSession.NavigationDelegate
+
+
+    @Override
+    public void onPageStart(@NonNull GeckoSession geckoSession, @NonNull String s) {
+        mCaptureOnPageStop = true;
+    }
+
     @Override
     public void onPageStop(@NonNull GeckoSession aSession, boolean b) {
-        captureImage();
+        if (mCaptureOnPageStop) {
+            mCaptureOnPageStop = false;
+            captureImage();
+        }
     }
 
     private void captureImage() {

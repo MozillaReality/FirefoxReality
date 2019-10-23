@@ -20,6 +20,7 @@ public class BitmapCache {
     private LruCache<String, Bitmap> mMemoryCache;
     private DiskLruCache mDiskCache;
     private Executor mIOExecutor;
+    private Executor mMainThreadExecutor;
     private final Object mLock = new Object();
     private static final int DISK_CACHE_SIZE = 1024 * 1024 * 100; // 100MB
     private static final String LOGTAG = SystemUtils.createLogtag(BitmapCache.class);
@@ -28,9 +29,10 @@ public class BitmapCache {
         return ((VRBrowserApplication)aContext.getApplicationContext()).getBitmapCache();
     }
 
-    public BitmapCache(@NonNull Context aContext, @NonNull Executor aIOExecutor) {
+    public BitmapCache(@NonNull Context aContext, @NonNull Executor aIOExecutor, @NonNull Executor aMainThreadExecutor) {
         mContext = aContext;
         mIOExecutor = aIOExecutor;
+        mMainThreadExecutor = aMainThreadExecutor;
         initMemoryCache();
         initDiskCache();
     }
@@ -69,7 +71,7 @@ public class BitmapCache {
             try {
                 editor = mDiskCache.edit(aKey);
                 if (editor != null) {
-                    aBitmap.compress(Bitmap.CompressFormat.PNG, 95, editor.newOutputStream(0));
+                    aBitmap.compress(Bitmap.CompressFormat.PNG, 80, editor.newOutputStream(0));
                     editor.commit();
                 }
             }
@@ -98,7 +100,15 @@ public class BitmapCache {
                     if (snapshot != null) {
                         Bitmap bitmap = BitmapFactory.decodeStream(snapshot.getInputStream(0));
                         if (bitmap != null) {
-                            result.complete(bitmap);
+                            mMainThreadExecutor.execute(() -> {
+                                if (mMemoryCache.get(aKey) == null) {
+                                    // Do not update cache if it already contains a value
+                                    // A tab could have saved a new image while we were loading the cached disk image.
+                                    mMemoryCache.put(aKey, bitmap);
+                                }
+                                result.complete(bitmap);
+                            });
+
                             return;
                         }
                     }
@@ -107,7 +117,8 @@ public class BitmapCache {
                     Log.e(LOGTAG, "Failed to get Bitmap from DiskLruCache:" + ex.getMessage());
                 }
 
-                result.complete(null);
+                mMainThreadExecutor.execute(() -> result.complete(null));
+
             });
             return result;
         }
@@ -134,4 +145,37 @@ public class BitmapCache {
         });
     }
 
+    public CompletableFuture<Bitmap> scaleBitmap(Bitmap aBitmap, int aMaxWidth, int aMaxHeight) {
+        int w = aBitmap.getWidth();
+        int h = aBitmap.getHeight();
+        if (w <= aMaxWidth && h <= aMaxHeight) {
+            return CompletableFuture.completedFuture(aBitmap);
+        }
+
+        float aspect = (float)w / (float)h;
+
+        if (w / aMaxWidth > h / aMaxHeight) {
+            w = aMaxWidth;
+            h = (int) (w / aspect);
+        } else {
+            h = aMaxHeight;
+            w = (int)(h * aspect);
+        }
+
+        final int scaledW = w;
+        final int scaleH = h;
+        CompletableFuture<Bitmap> result = new CompletableFuture<>();
+
+        runIO(() -> {
+            Bitmap scaled = Bitmap.createScaledBitmap(aBitmap, scaledW, scaleH, true);
+            if (scaled != null && scaled != aBitmap) {
+                aBitmap.recycle();
+                mMainThreadExecutor.execute(() -> result.complete(scaled));
+            } else {
+                mMainThreadExecutor.execute(() -> result.complete(aBitmap));
+            }
+        });
+
+        return result;
+    }
 }

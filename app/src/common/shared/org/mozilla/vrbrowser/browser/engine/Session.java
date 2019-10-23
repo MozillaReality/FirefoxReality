@@ -46,6 +46,7 @@ import java.net.URISyntaxException;
 import java.util.LinkedList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 import static org.mozilla.vrbrowser.utils.ServoUtils.createServoSession;
 import static org.mozilla.vrbrowser.utils.ServoUtils.isInstanceOfServoSession;
@@ -403,10 +404,12 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     public void captureBitmap(@NonNull GeckoDisplay aDisplay) {
         aDisplay.capturePixels().then(bitmap -> {
             if (bitmap != null) {
-                BitmapCache.getInstance(mContext).addBitmap(getId(), bitmap);
-                for (BitmapChangedListener listener: mBitmapChangedListeners) {
-                    listener.onBitmapChanged(this, bitmap);
-                }
+                BitmapCache.getInstance(mContext).scaleBitmap(bitmap, 500, 280).thenAccept(scaledBitmap -> {
+                    BitmapCache.getInstance(mContext).addBitmap(getId(), scaledBitmap);
+                    for (BitmapChangedListener listener: mBitmapChangedListeners) {
+                        listener.onBitmapChanged(Session.this, scaledBitmap);
+                    }
+                });
             }
             return null;
         });

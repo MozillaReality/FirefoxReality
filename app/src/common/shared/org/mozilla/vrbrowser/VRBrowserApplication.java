@@ -28,7 +28,7 @@ public class VRBrowserApplication extends Application {
 
         mAppExecutors = new AppExecutors();
         mPlaces = new Places(this);
-        mBitmapCache = new BitmapCache(this, mAppExecutors.diskIO());
+        mBitmapCache = new BitmapCache(this, mAppExecutors.diskIO(), mAppExecutors.mainThread());
 
         TelemetryWrapper.init(this);
     }
