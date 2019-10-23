@@ -62,10 +62,10 @@ public class HistoryAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         setHasStableIds(true);
     }
 
-    public void setNarrow(boolean isNarrow, int first, int last) {
+    public void setNarrow(boolean isNarrow) {
         if (mIsNarrowLayout != isNarrow) {
             mIsNarrowLayout = isNarrow;
-            notifyItemRangeChanged(first, last);
+            notifyDataSetChanged();
         }
     }
 

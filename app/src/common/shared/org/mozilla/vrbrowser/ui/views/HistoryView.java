@@ -337,9 +337,7 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
             boolean isNarrow = width < SettingsStore.WINDOW_WIDTH_DEFAULT;
 
             if (isNarrow != mBinding.getIsNarrow()) {
-                int firstVisibleItem = ((LinearLayoutManager) mBinding.historyList.getLayoutManager()).findFirstVisibleItemPosition();
-                int lastVisibleItem = ((LinearLayoutManager) mBinding.historyList.getLayoutManager()).findLastVisibleItemPosition();
-                mHistoryAdapter.setNarrow(width < SettingsStore.WINDOW_WIDTH_DEFAULT, firstVisibleItem, lastVisibleItem);
+                mHistoryAdapter.setNarrow(isNarrow);
 
                 mBinding.setIsNarrow(isNarrow);
                 mBinding.executePendingBindings();

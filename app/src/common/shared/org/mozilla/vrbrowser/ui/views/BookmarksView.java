@@ -292,10 +292,9 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
         post(() -> {
             double width = Math.ceil(getWidth()/getContext().getResources().getDisplayMetrics().density);
             boolean isNarrow = width < SettingsStore.WINDOW_WIDTH_DEFAULT;
+
             if (isNarrow != mBinding.getIsNarrow()) {
-                int firstVisibleItem = ((LinearLayoutManager) mBinding.bookmarksList.getLayoutManager()).findFirstVisibleItemPosition();
-                int lastVisibleItem = ((LinearLayoutManager) mBinding.bookmarksList.getLayoutManager()).findLastVisibleItemPosition();
-                mBookmarkAdapter.setNarrow(isNarrow, firstVisibleItem, lastVisibleItem);
+                mBookmarkAdapter.setNarrow(isNarrow);
 
                 mBinding.setIsNarrow(isNarrow);
                 mBinding.executePendingBindings();

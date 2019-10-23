@@ -521,7 +521,7 @@
 
     <!-- This string is used to in the Library panels to the left of the sync button to indicate
          that the content has never been synced yet. -->
-    <string name="fxa_account_last_no_synced">No synced yet</string>
+    <string name="fxa_account_last_no_synced">Not synced yet</string>
 
     <!-- This string is used to in the Library panels to the left of the sync button to indicate
          that the syncing is off. -->

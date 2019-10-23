@@ -62,10 +62,10 @@ public class BookmarkAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
         setHasStableIds(false);
     }
 
-    public void setNarrow(boolean isNarrow, int first, int last) {
+    public void setNarrow(boolean isNarrow) {
         if (mIsNarrowLayout != isNarrow) {
             mIsNarrowLayout = isNarrow;
-            notifyItemRangeChanged(first, last);
+            notifyDataSetChanged();
         }
     }
 
