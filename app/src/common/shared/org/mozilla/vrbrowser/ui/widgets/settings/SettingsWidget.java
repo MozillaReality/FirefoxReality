@@ -10,6 +10,7 @@ import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Point;
+import android.graphics.drawable.Drawable;
 import android.text.Html;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -158,7 +159,7 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
             PackageInfo pInfo = getContext().getPackageManager().getPackageInfo(getContext().getPackageName(), 0);
             String app_name = getResources().getString(R.string.app_name);
             String[] app_name_parts = app_name.split(" ");
-            versionText.setText(Html.fromHtml("<b>" + app_name_parts[0] + "</b>" +
+            mBinding.versionText.setText(Html.fromHtml("<b>" + app_name_parts[0] + "</b>" +
                     " " + app_name_parts[1] + " " +
                     " <b>" + pInfo.versionName + "</b>",
                     Html.FROM_HTML_MODE_LEGACY));
@@ -169,7 +170,6 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
 
         mBinding.buildText.setText(StringUtils.versionCodeToDate(getContext(), BuildConfig.VERSION_CODE));
 
-        TextView settingsMasthead = findViewById(R.id.buildText);
         final GestureDetector gd = new GestureDetector(getContext(), new VersionGestureListener());
         mBinding.settingsMasthead.setOnTouchListener((view, motionEvent) -> {
             if (gd.onTouchEvent(motionEvent)) {
@@ -178,14 +178,12 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
             return view.performClick();
         });
 
-        TextView surveyLink = findViewById(R.id.surveyLink);
-        surveyLink.setOnClickListener(v -> {
-            SessionStore.get().getActiveSession().loadUri(getResources().getString(R.string.survey_link));
+        mBinding.surveyLink.setOnClickListener(v -> {
+            mWidgetManager.getFocusedWindow().getSessionStack().newSessionWithUrl(getResources().getString(R.string.survey_link));
             exitWholeSettings();
         });
 
-        HoneycombButton reportButton = findViewById(R.id.helpButton);
-        reportButton.setOnClickListener(view -> {
+        mBinding.helpButton.setOnClickListener(view -> {
             if (mAudio != null) {
                 mAudio.playSound(AudioEngine.Sound.CLICK);
             }
