@@ -2,12 +2,14 @@ package org.mozilla.vrbrowser.ui.widgets;
 
 import android.content.Context;
 import android.graphics.Rect;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import androidx.core.graphics.drawable.RoundedBitmapDrawableFactory;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -17,11 +19,14 @@ import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.ui.views.TabView;
 import org.mozilla.vrbrowser.ui.views.UIButton;
 import org.mozilla.vrbrowser.ui.views.UITextButton;
+import org.mozilla.vrbrowser.ui.widgets.dialogs.UIDialog;
+import org.mozilla.vrbrowser.utils.BitmapCache;
 import org.mozilla.vrbrowser.utils.ViewUtils;
 
 import java.util.ArrayList;
 
-public class TabsWidget extends UIWidget implements WidgetManagerDelegate.FocusChangeListener {
+public class TabsWidget extends UIDialog implements WidgetManagerDelegate.WorldClickListener {
+    protected BitmapCache mBitmapCache;
     protected RecyclerView mTabsList;
     protected GridLayoutManager mLayoutManager;
     protected TabAdapter mAdapter;
@@ -36,7 +41,6 @@ public class TabsWidget extends UIWidget implements WidgetManagerDelegate.FocusC
     protected UITextButton mSelectAllButton;
     protected UITextButton mUnselectTabs;
     protected LinearLayout mTabsSelectModeView;
-    protected View mTabSelectModeSeparator;
 
     protected boolean mSelecting;
     protected ArrayList<Session> mSelectedTabs = new ArrayList<>();
@@ -47,24 +51,25 @@ public class TabsWidget extends UIWidget implements WidgetManagerDelegate.FocusC
         void onTabsClose(ArrayList<Session> aTabs);
     }
 
-    public TabsWidget(Context aContext, boolean aPrivateMode) {
+    public TabsWidget(Context aContext) {
         super(aContext);
-        mPrivateMode = aPrivateMode;
+        mBitmapCache = BitmapCache.getInstance(aContext);
         initialize();
     }
 
     @Override
     protected void initializeWidgetPlacement(WidgetPlacement aPlacement) {
-        Context context = getContext();
-        aPlacement.width = WidgetPlacement.dpDimension(context, R.dimen.tabs_width);
-        aPlacement.height = WidgetPlacement.dpDimension(context, R.dimen.tabs_height);
-        aPlacement.worldWidth = WidgetPlacement.floatDimension(getContext(), R.dimen.window_world_width) * aPlacement.width/getWorldWidth();
+        aPlacement.visible = false;
+        aPlacement.width =  WidgetPlacement.dpDimension(getContext(), R.dimen.tabs_width);
+        aPlacement.height = WidgetPlacement.dpDimension(getContext(), R.dimen.tabs_height);
+        aPlacement.parentAnchorX = 0.5f;
+        aPlacement.parentAnchorY = 0.0f;
         aPlacement.anchorX = 0.5f;
         aPlacement.anchorY = 0.5f;
-        aPlacement.parentAnchorX = 0.5f;
-        aPlacement.parentAnchorY = 0.5f;
-        aPlacement.translationZ = WidgetPlacement.floatDimension(context, R.dimen.context_menu_z_distance);
-        aPlacement.visible = false;
+        aPlacement.translationY = WidgetPlacement.unitFromMeters(getContext(), R.dimen.settings_world_y) -
+                WidgetPlacement.unitFromMeters(getContext(), R.dimen.window_world_y);
+        aPlacement.translationZ = WidgetPlacement.unitFromMeters(getContext(), R.dimen.settings_world_z) -
+                WidgetPlacement.unitFromMeters(getContext(), R.dimen.window_world_z);
     }
 
     private void initialize() {
@@ -78,7 +83,6 @@ public class TabsWidget extends UIWidget implements WidgetManagerDelegate.FocusC
 
         mTabsAvailableCounter = findViewById(R.id.tabsAvailableCounter);
         mSelectedTabsCounter = findViewById(R.id.tabsSelectedCounter);
-        mTabSelectModeSeparator = findViewById(R.id.tabsSelectModeSeparator);
 
         // specify an adapter (see also next example)
         mAdapter = new TabAdapter();
@@ -131,15 +135,29 @@ public class TabsWidget extends UIWidget implements WidgetManagerDelegate.FocusC
             mAdapter.notifyDataSetChanged();
             updateSelectionMode();
         });
+
+        mWidgetManager.addWorldClickListener(this);
     }
 
+    public void attachToWindow(WindowWidget aWindow) {
+        mPrivateMode = aWindow.getSession().isPrivateMode();
+        mWidgetPlacement.parentHandle = aWindow.getHandle();
+    }
+
+    @Override
+    public void releaseWidget() {
+        if (mWidgetManager != null) {
+            mWidgetManager.removeWorldClickListener(this);
+        }
+        super.releaseWidget();
+    }
 
     @Override
     public void show(int aShowFlags) {
         super.show(aShowFlags);
         mAdapter.updateTabs(SessionStore.get().getSortedSessions(mPrivateMode));
         mWidgetManager.pushWorldBrightness(this, WidgetManagerDelegate.DEFAULT_DIM_BRIGHTNESS);
-        mWidgetManager.addFocusChangeListener(this);
+        mTabsList.requestFocusFromTouch();
     }
 
     @Override
@@ -147,7 +165,6 @@ public class TabsWidget extends UIWidget implements WidgetManagerDelegate.FocusC
         super.hide(aHideFlags);
 
         mWidgetManager.popWorldBrightness(this);
-        mWidgetManager.removeFocusChangeListener(this);
     }
 
     public void setTabDelegate(TabDelegate aDelegate) {
@@ -186,6 +203,8 @@ public class TabsWidget extends UIWidget implements WidgetManagerDelegate.FocusC
         @Override
         public TabAdapter.MyViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
             TabView view = (TabView)LayoutInflater.from(parent.getContext()).inflate(R.layout.tab_view, parent, false);
+            parent.setClipToPadding(false);
+            parent.setClipChildren(false);
             return new MyViewHolder(view);
         }
 
@@ -193,7 +212,7 @@ public class TabsWidget extends UIWidget implements WidgetManagerDelegate.FocusC
         public void onBindViewHolder(MyViewHolder holder, int position) {
             if (position > 0) {
                 Session session = mTabs.get(position - 1);
-                holder.tabView.attachToSession(session);
+                holder.tabView.attachToSession(session, mBitmapCache);
             } else {
                 holder.tabView.setAddTabMode(true);
             }
@@ -212,7 +231,7 @@ public class TabsWidget extends UIWidget implements WidgetManagerDelegate.FocusC
                     if (mTabs.size() > 1) {
                         ArrayList<Session> latestTabs = SessionStore.get().getSortedSessions(mPrivateMode);
                         if (latestTabs.size() != (mTabs.size() - 1) && latestTabs.size() > 0) {
-                            aSender.attachToSession(latestTabs.get(0));
+                            aSender.attachToSession(latestTabs.get(0), mBitmapCache);
                             return;
                         }
                         mTabs.remove(holder.getAdapterPosition() - 1);
@@ -287,7 +306,6 @@ public class TabsWidget extends UIWidget implements WidgetManagerDelegate.FocusC
 
     private void updateSelectionMode() {
         mTabsSelectModeView.setVisibility(mSelecting ? View.VISIBLE : View.GONE);
-        mTabSelectModeSeparator.setVisibility(mSelecting ? View.VISIBLE : View.GONE);
         if (mSelectedTabs.size() > 0) {
             mCloseTabsButton.setVisibility(View.VISIBLE);
             mUnselectTabs.setVisibility(View.VISIBLE);
@@ -314,37 +332,45 @@ public class TabsWidget extends UIWidget implements WidgetManagerDelegate.FocusC
     @Override
     protected void onDismiss() {
         exitSelectMode();
-        super.onDismiss();
+        hide(KEEP_WIDGET);
     }
 
     public class GridSpacingItemDecoration extends RecyclerView.ItemDecoration {
         private int mColumns;
-        private int mSpacing;
-        private int mSpacingFirst;
+        private int mSpacingH;
+        private int mSpacingV;
+
 
         public GridSpacingItemDecoration(Context aContext, int aColumns) {
             mColumns = aColumns;
-            mSpacing = WidgetPlacement.pixelDimension(aContext, R.dimen.tabs_spacing);
-            mSpacingFirst = WidgetPlacement.pixelDimension(aContext, R.dimen.tabs_spacing_first_column);
+            mSpacingH = WidgetPlacement.pixelDimension(aContext, R.dimen.tabs_spacing_h);
+            mSpacingV = WidgetPlacement.pixelDimension(aContext, R.dimen.tabs_spacing_h);
         }
 
         @Override
         public void getItemOffsets(Rect outRect, View view, RecyclerView parent, RecyclerView.State state) {
             int position = parent.getChildAdapterPosition(view); // item position
-            int column = position % mColumns; // item column
             int row = position / mColumns;
 
-            outRect.left = column > 0 ? mSpacing / 2 : mSpacingFirst;
-            outRect.right = column == mColumns - 1 ? mSpacingFirst:  mSpacing / 2;
-            outRect.top = row > 0 ? mSpacing : 0;
+            outRect.left = mSpacingH / 2;
+            outRect.right = mSpacingH / 2;
+            outRect.top = row > 0 ? mSpacingV : 0;
         }
     }
 
     @Override
     public void onGlobalFocusChanged(View oldFocus, View newFocus) {
-        if (ViewUtils.isChildrenOf(this, oldFocus) && this.isVisible() &&
-                !ViewUtils.isChildrenOf(this, newFocus)) {
+        if (ViewUtils.isEqualOrChildrenOf(this, oldFocus) && this.isVisible() &&
+                !ViewUtils.isEqualOrChildrenOf(this, newFocus)) {
             onDismiss();
         }
     }
+
+    @Override
+    public void onWorldClick() {
+        if (this.isVisible()) {
+            onDismiss();
+        }
+    }
+
 }

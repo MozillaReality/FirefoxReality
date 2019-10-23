@@ -74,8 +74,7 @@ import static org.mozilla.vrbrowser.utils.ServoUtils.isInstanceOfServoSession;
 
 public class WindowWidget extends UIWidget implements SessionChangeListener,
         GeckoSession.ContentDelegate, GeckoSession.NavigationDelegate, VideoAvailabilityListener,
-        GeckoSession.HistoryDelegate, GeckoSession.ProgressDelegate, GeckoSession.SelectionActionDelegate,
-        TabsWidget.TabDelegate {
+        GeckoSession.HistoryDelegate, GeckoSession.ProgressDelegate, GeckoSession.SelectionActionDelegate {
 
     public interface HistoryViewDelegate {
         default void onHistoryViewShown(WindowWidget aWindow) {}
@@ -97,7 +96,6 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     private TitleBarWidget mTitleBar;
     private WidgetManagerDelegate mWidgetManager;
     private AlertPromptWidget mAlertPrompt;
-    private MaxWindowsWidget mMaxWindowsDialog;
     private ConfirmPromptWidget mConfirmPrompt;
     private NoInternetWidget mNoInternetToast;
     private MessageDialogWidget mAppDialog;
@@ -133,14 +131,11 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     private boolean mIsResizing;
     private boolean mIsFullScreen;
     private boolean mAfterFirstPaint;
-    private TabsWidget mTabsWidget;
+    private boolean mCaptureOnPageStop;
 
     public interface WindowListener {
         default void onFocusRequest(@NonNull WindowWidget aWindow) {}
         default void onBorderChanged(@NonNull WindowWidget aWindow) {}
-        default void onTabSelect(@NonNull WindowWidget aWindow, Session aTab) {}
-        default void onTabAdd(@NonNull WindowWidget aWindow) {}
-        default void onTabsClose(@NonNull WindowWidget aWindow, ArrayList<Session> aTabs) {}
         default void onSessionChanged(@NonNull Session aOldSession, @NonNull Session aSession) {}
     }
 
@@ -308,13 +303,6 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         }
         if (mTitleBar != null) {
             mWidgetManager.removeWidget(mTitleBar);
-        }
-        if (mTabsWidget != null) {
-            if (mTabsWidget.isVisible()) {
-                mTabsWidget.hide(REMOVE_WIDGET);
-            }
-            mTabsWidget.releaseWidget();
-            mTabsWidget = null;
         }
         mListeners.clear();
     }
@@ -690,7 +678,6 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
             aTexture.setDefaultBufferSize(aWidth, aHeight);
             mSurface = new Surface(aTexture);
             if (mDisplay == null) {
-                Log.e("VRB", "makelele acquireDisplay1");
                 mDisplay = session.acquireDisplay();
             } else {
                 Log.e(LOGTAG, "GeckoDisplay was not null in BrowserWidget.setSurfaceTexture()");
@@ -714,7 +701,6 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
             mSurface = aSurface;
             mFirstDrawCallback = aFirstDrawCallback;
             if (mDisplay == null) {
-                Log.e("VRB", "makelele acquireDisplay1");
                 mDisplay = session.acquireDisplay();
             } else {
                 Log.e(LOGTAG, "GeckoDisplay was not null in BrowserWidget.setSurfaceTexture()");
@@ -1004,17 +990,14 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
             }
 
             mSession = aSession;
-            setupListeners(mSession);
             if (oldSession != null) {
                 onCurrentSessionChange(oldSession.getGeckoSession(), aSession.getGeckoSession());
             } else {
                 onCurrentSessionChange(null, aSession.getGeckoSession());
             }
+            setupListeners(mSession);
             for (WindowListener listener: mListeners) {
                 listener.onSessionChanged(oldSession, aSession);
-            }
-            if (mSession.getBitmap() == null) {
-                captureImage();
             }
         }
     }
@@ -1037,7 +1020,6 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         releaseDisplay(aOldSession);
         mWidgetManager.setIsServoSession(isInstanceOfServoSession(aSession));
 
-        Log.e("VRB", "makelele acquireDisplay3");
         mDisplay = aSession.acquireDisplay();
         Log.d(LOGTAG, "surfaceChanged: " + aSession.hashCode());
         callSurfaceChanged();
@@ -1051,18 +1033,11 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         }
     }
 
-    public void showTabsMenu() {
-        hideContextMenus();
-        if (mTabsWidget == null) {
-            mTabsWidget = new TabsWidget(getContext(), mSession.isPrivateMode());
-            mTabsWidget.getPlacement().parentHandle = mHandle;
-            mTabsWidget.setTabDelegate(this);
-        }
-        if (mTabsWidget.isVisible()) {
-            mTabsWidget.onDismiss();
-        } else {
-            mTabsWidget.show(REQUEST_FOCUS);
-        }
+    @Override
+    public void onNewTab(Session aTab) {
+        // e.g. tab opened via window.open()
+        setSession(aTab);
+        SessionStore.get().setActiveSession(aTab);
     }
 
     // View
@@ -1246,15 +1221,6 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         mClearCacheDialog.show(REQUEST_FOCUS);
     }
 
-    public void showMaxWindowsDialog(int maxDialogs) {
-        mMaxWindowsDialog = new MaxWindowsWidget(getContext());
-        mMaxWindowsDialog.mWidgetPlacement.parentAnchorY = 0.0f;
-        mMaxWindowsDialog.mWidgetPlacement.translationY = WidgetPlacement.unitFromMeters(getContext(), R.dimen.base_app_dialog_y_distance);
-        mMaxWindowsDialog.mWidgetPlacement.parentHandle = getHandle();
-        mMaxWindowsDialog.setMessage(getContext().getString(R.string.max_windows_msg, String.valueOf(maxDialogs)));
-        mMaxWindowsDialog.show(REQUEST_FOCUS);
-    }
-
     public void setMaxWindowScale(float aScale) {
         if (mMaxWindowScale != aScale) {
             mMaxWindowScale = aScale;
@@ -1403,10 +1369,6 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         if (mLibraryItemContextMenu != null && mLibraryItemContextMenu.isVisible()) {
             mLibraryItemContextMenu.hide(REMOVE_WIDGET);
         }
-
-        if (mTabsWidget != null && mTabsWidget.isVisible()) {
-            mTabsWidget.onDismiss();
-        }
     }
 
     // GeckoSession.ContentDelegate
@@ -1464,23 +1426,25 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     }
 
     // GeckoSession.NavigationDelegate
+
+
     @Override
-    public void onPageStop(@NonNull GeckoSession aSession, boolean b) {
-        captureImage();
+    public void onPageStart(@NonNull GeckoSession geckoSession, @NonNull String s) {
+        mCaptureOnPageStop = true;
     }
 
-    public void captureImage() {
-        if (mDisplay == null || !mSession.getGeckoSession().isOpen()) {
-            return;
+    @Override
+    public void onPageStop(@NonNull GeckoSession aSession, boolean b) {
+        if (mCaptureOnPageStop) {
+            mCaptureOnPageStop = false;
+            captureImage();
         }
+    }
 
-        final Session session = mSession;
-        mDisplay.capturePixels().then(bitmap -> {
-            if (bitmap != null) {
-                session.setBitmap(bitmap, session.getGeckoSession());
-            }
-            return null;
-        });
+    private void captureImage() {
+        if (mDisplay != null) {
+            mSession.captureBitmap(mDisplay);
+        }
     }
 
     @Override
@@ -1597,28 +1561,5 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     @Override
     public void onHideAction(@NonNull GeckoSession aSession, int aHideReason) {
         hideContextMenus();
-    }
-
-    // TabsWidget.TabDelegate
-
-    @Override
-    public void onTabSelect(Session aTab) {
-        for (WindowListener listener: mListeners) {
-            listener.onTabSelect(this, aTab);
-        }
-    }
-
-    @Override
-    public void onTabAdd() {
-        for (WindowListener listener: mListeners) {
-            listener.onTabAdd(this);
-        }
-    }
-
-    @Override
-    public void onTabsClose(ArrayList<Session> aTabs) {
-        for (WindowListener listener : mListeners) {
-            listener.onTabsClose(this, aTabs);
-        }
     }
 }

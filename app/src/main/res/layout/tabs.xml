@@ -4,21 +4,22 @@
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/dialog_background">
+    android:background="@drawable/tabs_dialog_background">
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:paddingStart="20dp"
-        android:paddingEnd="20dp"
-        android:layout_marginTop="5dp">
+        android:paddingStart="35dp"
+        android:paddingEnd="35dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="10dp">
 
         <org.mozilla.vrbrowser.ui.views.UIButton
             android:id="@+id/tabsBackButton"
             style="?attr/navigationBarButtonStyle"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:padding="4dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:padding="8dp"
             app:tintColorList="@drawable/main_button_icon_color_active"
             android:tint="@color/midnight"
             android:src="@drawable/ic_icon_back" />
@@ -51,23 +52,20 @@
     </LinearLayout>
 
     <View
-        android:id="@+id/tabsSelectModeSeparator"
         android:layout_width="match_parent"
         style="?attr/separatorStyle"
-        android:layout_marginStart="20dp"
-        android:layout_marginEnd="20dp"
-        android:layout_marginTop="5dp"
-        android:visibility="gone" />
+        android:layout_marginStart="35dp"
+        android:layout_marginEnd="35dp"
+        android:layout_marginTop="0dp"/>
 
     <LinearLayout
         android:id="@+id/tabsSelectModeView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:paddingStart="20dp"
-        android:paddingEnd="20dp"
-        android:layout_marginTop="5dp"
-        android:layout_marginBottom="5dp"
+        android:paddingStart="35dp"
+        android:paddingEnd="35dp"
+        android:layout_marginTop="10dp"
         android:visibility="gone">
 
         <TextView
@@ -77,7 +75,7 @@
             android:layout_gravity="center_vertical"
             android:textColor="@color/fog_blur"
             android:shadowColor="#00000000"
-            android:textSize="14sp" />
+            android:textSize="12sp" />
 
         <Space
             android:layout_width="0dp"
@@ -86,35 +84,41 @@
 
         <org.mozilla.vrbrowser.ui.views.UITextButton
             android:id="@+id/tabsCloseButton"
-            style="@style/tabsButtonSmall"
+            style="@style/tabsButton"
             android:visibility="gone"
             android:text="@string/tabs_close_selected" />
 
         <org.mozilla.vrbrowser.ui.views.UITextButton
             android:id="@+id/tabsCloseAllButton"
-            style="@style/tabsButtonSmall"
+            style="@style/tabsButton"
             android:text="@string/tabs_close_all" />
 
         <org.mozilla.vrbrowser.ui.views.UITextButton
             android:id="@+id/tabsSelectAllButton"
-            style="@style/tabsButtonSmall"
+            style="@style/tabsButton"
             android:text="@string/tabs_select_all" />
 
         <org.mozilla.vrbrowser.ui.views.UITextButton
             android:id="@+id/tabsUnselectButton"
-            style="@style/tabsButtonSmall"
+            style="@style/tabsButton"
             android:visibility="gone"
             android:text="@string/tabs_unselect" />
-
-
     </LinearLayout>
 
-    <androidx.recyclerview.widget.RecyclerView
+    <org.mozilla.vrbrowser.ui.views.CustomRecyclerView
         android:id="@+id/tabsRecyclerView"
+        style="@style/customRecyclerViewStyle"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:requiresFadingEdge="vertical"
+        android:overScrollMode="never"
+        android:layout_marginStart="15dp"
+        android:layout_marginEnd="15dp"
+        android:paddingStart="15dp"
+        android:paddingEnd="15dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="5dp"
         android:fadingEdgeLength="50dp">
-    </androidx.recyclerview.widget.RecyclerView>
+    </org.mozilla.vrbrowser.ui.views.CustomRecyclerView>
 
 </LinearLayout>

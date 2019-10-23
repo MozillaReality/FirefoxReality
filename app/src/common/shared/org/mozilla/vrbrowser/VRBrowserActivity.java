@@ -271,6 +271,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
             @Override
             public void onFocusedWindowChanged(@NonNull WindowWidget aFocusedWindow, @Nullable WindowWidget aPrevFocusedWindow) {
                 attachToWindow(aFocusedWindow, aPrevFocusedWindow);
+                mTray.setAddWindowVisible(mWindows.canOpenNewWindow());
             }
             @Override
             public void onWindowBorderChanged(@NonNull WindowWidget aChangeWindow) {
@@ -284,6 +285,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
 
             @Override
             public void onWindowClosed() {
+                mTray.setAddWindowVisible(mWindows.canOpenNewWindow());
                 updateWidget(mTray);
             }
         });
@@ -307,6 +309,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
 
         // Add widget listeners
         mTray.addListeners(mWindows);
+        mTray.setAddWindowVisible(mWindows.canOpenNewWindow());
 
         attachToWindow(mWindows.getFocusedWindow(), null);
 
@@ -1377,11 +1380,22 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     }
 
     @Override
+    public boolean canOpenNewWindow() {
+        return mWindows.canOpenNewWindow();
+    }
+
+    @Override
     public void openNewWindow(String uri) {
         WindowWidget newWindow = mWindows.addWindow();
         if (newWindow != null) {
             newWindow.getSession().loadUri(uri);
         }
+    }
+
+    @Override
+    public void openNewTab(@NonNull String uri) {
+        mWindows.addBackgroundTab(mWindows.getFocusedWindow(), uri);
+        mTray.showTabAddedNotification();
     }
 
     @Override

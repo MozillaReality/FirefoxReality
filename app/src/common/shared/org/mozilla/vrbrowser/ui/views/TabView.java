@@ -2,8 +2,8 @@ package org.mozilla.vrbrowser.ui.views;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.Color;
 import android.util.AttributeSet;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -16,24 +16,36 @@ import androidx.annotation.Nullable;
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.browser.engine.Session;
+import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
+import org.mozilla.vrbrowser.utils.AnimationHelper;
+import org.mozilla.vrbrowser.utils.BitmapCache;
 import org.mozilla.vrbrowser.utils.UrlUtils;
 
-public class TabView extends LinearLayout implements GeckoSession.ContentDelegate, Session.BitmapChangedListener {
+import java.util.concurrent.CompletableFuture;
+
+public class TabView extends RelativeLayout implements GeckoSession.ContentDelegate, Session.BitmapChangedListener {
     protected RelativeLayout mTabCardView;
     protected RelativeLayout mTabAddView;
-    protected RelativeLayout mTabActiveView;
-    protected View mTabHoverOverlay;
+    protected View mTabOverlay;
     protected ImageView mPreview;
     protected TextView mURL;
     protected TextView mTitle;
     protected UIButton mCloseButton;
     protected ImageView mSelectionImage;
+    protected ImageView mUnselectImage;
     protected Delegate mDelegate;
     protected Session mSession;
     protected ImageView mTabAddIcon;
+    protected View mTabShadow;
     protected boolean mShowAddTab;
-    private boolean mSelecting;
-    private boolean mActive;
+    protected boolean mSelecting;
+    protected boolean mActive;
+    protected int mMinIconPadding;
+    protected int mMaxIconPadding;
+    protected boolean mPressed;
+    protected CompletableFuture<Bitmap> mBitmapFuture;
+    protected boolean mUsingPlaceholder;
+    private static final int ICON_ANIMATION_DURATION = 100;
 
     public interface Delegate {
         void onClose(TabView aSender);
@@ -60,8 +72,11 @@ public class TabView extends LinearLayout implements GeckoSession.ContentDelegat
         mTabAddView = findViewById(R.id.tabAddView);
         mTabCardView = findViewById(R.id.tabCardView);
 
-        mSelectionImage = findViewById(R.id.tabViewSelection);
+        mSelectionImage = findViewById(R.id.tabViewSelected);
         mSelectionImage.setVisibility(View.GONE);
+
+        mUnselectImage = findViewById(R.id.tabViewUnselect);
+        mUnselectImage.setVisibility(View.GONE);
 
         mCloseButton = findViewById(R.id.tabViewCloseButton);
         mCloseButton.setVisibility(View.GONE);
@@ -71,14 +86,18 @@ public class TabView extends LinearLayout implements GeckoSession.ContentDelegat
                 mDelegate.onClose(this);
             }
         });
+        mCloseButton.setOnHoverListener(mIconHoverListener);
 
         mPreview = findViewById(R.id.tabViewPreview);
         mURL = findViewById(R.id.tabViewUrl);
         mTitle = findViewById(R.id.tabViewTitle);
         mTitle.setVisibility(View.GONE);
         mTabAddIcon = findViewById(R.id.tabAddIcon);
-        mTabActiveView = findViewById(R.id.tabViewActive);
-        mTabHoverOverlay = findViewById(R.id.tabHoverOverlay);
+        mTabOverlay = findViewById(R.id.tabOverlay);
+        mTabShadow = findViewById(R.id.tabShadow);
+
+        mMinIconPadding = WidgetPlacement.pixelDimension(getContext(), R.dimen.tabs_icon_padding_min);
+        mMaxIconPadding = WidgetPlacement.pixelDimension(getContext(), R.dimen.tabs_icon_padding_max);
 
         this.setOnClickListener(mCardClickListener);
     }
@@ -96,27 +115,41 @@ public class TabView extends LinearLayout implements GeckoSession.ContentDelegat
         }
     };
 
-    public void attachToSession(@Nullable Session aSession) {
+    public void attachToSession(@Nullable Session aSession, @NonNull BitmapCache aBitmapCache) {
         if (mSession != null) {
             mSession.removeContentListener(this);
             mSession.removeBitmapChangedListener(this);
+        }
+        if (mBitmapFuture != null) {
+            mBitmapFuture.cancel(false);
+            mBitmapFuture = null;
         }
         setAddTabMode(false);
         mSession = aSession;
         mSession.addContentListener(this);
         mSession.addBitmapChangedListener(this);
         mShowAddTab = false;
-        Bitmap bitmap = aSession.getBitmap();
-        if (bitmap != null) {
-            mPreview.setImageBitmap(bitmap);
-        } else {
-            mPreview.setImageDrawable(null);
-        }
+        mBitmapFuture = aBitmapCache.getBitmap(mSession.getId());
+        mPreview.setImageResource(R.drawable.ic_icon_tabs_placeholder);
+        mUsingPlaceholder = true;
+        mBitmapFuture.thenAccept(bitmap -> {
+            mBitmapFuture = null;
+            if (bitmap != null) {
+                mPreview.setImageBitmap(bitmap);
+                mUsingPlaceholder = false;
+                updateState();
+            }
+        });
 
         mURL.setText(UrlUtils.stripProtocol(aSession.getCurrentUri()));
         if (!mShowAddTab) {
-            mTitle.setText(aSession.getCurrentTitle());
+            if (mSession.getCurrentUri().equals(mSession.getHomeUri())) {
+                mTitle.setText(getResources().getString(R.string.url_home_title, getResources().getString(R.string.app_name)));
+            } else {
+                mTitle.setText(aSession.getCurrentTitle());
+            }
         }
+        updateState();
     }
 
     public Session getSession() {
@@ -154,34 +187,70 @@ public class TabView extends LinearLayout implements GeckoSession.ContentDelegat
     public void setActive(boolean aActive) {
         if (mActive != aActive) {
             mActive = aActive;
-            updateState(isHovered(), isSelected());
+            updateState();
         }
     }
 
     @Override
     public void setSelected(boolean selected) {
         super.setSelected(selected);
-        updateState(isHovered(), selected);
+        updateState();
+        if (selected) {
+            mSelectionImage.setVisibility(View.VISIBLE);
+            mUnselectImage.setVisibility(View.GONE);
+        }
     }
 
     @Override
     public void onHoverChanged(boolean aHovered) {
         super.onHoverChanged(aHovered);
-        boolean hovered = aHovered || mCloseButton.isHovered();
-        updateState(hovered, isSelected());
-
+        updateState();
     }
 
-    private void updateState(boolean aHovered, boolean aSelected) {
-        mCloseButton.setVisibility(aHovered && !aSelected && !mSelecting ? View.VISIBLE : View.GONE);
-        mTitle.setVisibility(aHovered && !aSelected ? View.VISIBLE : View.GONE);
-        mTabHoverOverlay.setVisibility((aHovered || aSelected) ? View.VISIBLE : View.GONE);
-        mSelectionImage.setVisibility(aSelected ? View.VISIBLE : View.GONE);
-        if (mShowAddTab) {
-            mTabAddView.setHovered(aHovered && !mSelecting);
-            mTabAddIcon.setHovered(aHovered && !mSelecting);
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        boolean result = super.onTouchEvent(event);
+        if (event.getAction() == MotionEvent.ACTION_DOWN) {
+            mPressed = true;
+            updateState();
+        } else if (event.getAction() == MotionEvent.ACTION_UP || event.getAction() == MotionEvent.ACTION_CANCEL) {
+            mPressed = false;
+            updateState();
         }
-        mTabActiveView.setVisibility(mActive && !aSelected ? View.VISIBLE : View.GONE);
+        return result;
+    }
+
+    private void updateState() {
+        boolean hovered = isHovered() || mCloseButton.isHovered();
+        boolean interacted = hovered || mPressed;
+        boolean selected = isSelected();
+
+        mCloseButton.setVisibility(interacted && !selected && !mSelecting ? View.VISIBLE : View.GONE);
+        mTitle.setVisibility(interacted && !selected ? View.VISIBLE : View.GONE);
+        mTabOverlay.setHovered(hovered || selected);
+        mTabOverlay.setPressed(mPressed);
+        if (mSelecting) {
+            mTabOverlay.setBackgroundResource(selected ? R.drawable.tab_overlay_checked : R.drawable.tab_overlay_unchecked);
+        } else if (mActive) {
+            mTabOverlay.setBackgroundResource(R.drawable.tab_overlay_active);
+        } else {
+            mTabOverlay.setBackgroundResource(mUsingPlaceholder ? R.drawable.tab_overlay_placeholder : R.drawable.tab_overlay);
+        }
+        mTabShadow.setVisibility(interacted && mSelecting && !mShowAddTab ? View.VISIBLE : View.GONE);
+
+        mSelectionImage.setVisibility(selected && !interacted ? View.VISIBLE : View.GONE);
+        mUnselectImage.setVisibility(selected && interacted ? View.VISIBLE : View.GONE);
+        if (mShowAddTab) {
+            mTabAddView.setHovered(hovered && !mSelecting);
+            mTabAddView.setPressed(mPressed && !mSelecting);
+            mTabAddIcon.setHovered(mTabAddView.isHovered());
+            mTabAddIcon.setPressed(mTabAddView.isPressed());
+            if (mTabAddIcon.isHovered() && mTabAddIcon.getPaddingLeft() != mMinIconPadding) {
+                AnimationHelper.animateViewPadding(mTabAddIcon, mTabAddIcon.getPaddingLeft(), mMinIconPadding, ICON_ANIMATION_DURATION);
+            } else if (!mTabAddIcon.isHovered() && mTabAddIcon.getPaddingLeft() != mMaxIconPadding) {
+                AnimationHelper.animateViewPadding(mTabAddIcon, mTabAddIcon.getPaddingLeft(), mMaxIconPadding, ICON_ANIMATION_DURATION);
+            }
+        }
     }
 
     @Override
@@ -192,9 +261,40 @@ public class TabView extends LinearLayout implements GeckoSession.ContentDelegat
     }
 
     @Override
-    public void onBitmapChanged(Bitmap aBitmap) {
+    public void onBitmapChanged(Session aSession, Bitmap aBitmap) {
+        if (aSession != mSession) {
+            return;
+        }
         if (aBitmap != null) {
             mPreview.setImageBitmap(aBitmap);
+            mUsingPlaceholder = false;
+        } else {
+            mPreview.setImageResource(R.drawable.ic_icon_tabs_placeholder);
+            mUsingPlaceholder = true;
         }
+
+        updateState();
     }
+
+    private View.OnHoverListener mIconHoverListener = (view, motionEvent) -> {
+        int ev = motionEvent.getActionMasked();
+        switch (ev) {
+            case MotionEvent.ACTION_HOVER_ENTER:
+                AnimationHelper.animateViewPadding(view,
+                        mMaxIconPadding,
+                        mMinIconPadding,
+                        ICON_ANIMATION_DURATION);
+                return false;
+
+            case MotionEvent.ACTION_HOVER_EXIT:
+                AnimationHelper.animateViewPadding(view,
+                        mMinIconPadding,
+                        mMaxIconPadding,
+                        ICON_ANIMATION_DURATION,
+                        null);
+                return false;
+        }
+
+        return false;
+    };
 }
