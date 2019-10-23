@@ -12,7 +12,7 @@
     </item>
     <item android:state_hovered="false" android:state_pressed="false">
         <shape>
-            <stroke android:color="@color/rhino" android:width="2dp" />
+            <stroke android:color="@color/azure" android:width="2dp" />
         </shape>
     </item>
 </selector>

@@ -3,14 +3,27 @@
 <org.mozilla.vrbrowser.ui.views.TabView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="@dimen/tab_view_height"
-    xmlns:tools="http://schemas.android.com/tools"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:orientation="vertical">
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <View android:id="@+id/tabShadow"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentStart="true"
+        android:layout_marginBottom="12dp"
+        android:layout_marginStart="3dp"
+        android:visibility="gone"
+        android:background="@drawable/tab_shadow" />
 
     <RelativeLayout
         android:id="@+id/tabCardView"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
+        android:layout_height="match_parent"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentStart="true"
+        android:layout_marginBottom="@dimen/tab_view_url_height"
+        android:paddingStart="@dimen/tab_shadow_padding"
+        android:paddingEnd="@dimen/tab_shadow_padding"
         android:layout_weight="100">
 
         <RelativeLayout
@@ -21,21 +34,13 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:src="@drawable/ic_icon_tabs_placeholder"
+                android:background="#00000000"
                 android:scaleType="centerCrop" />
-
             <View
-                android:id="@+id/tabViewActive"
-                android:layout_width="match_parent"
-                android:layout_height="10dp"
-                android:layout_alignParentBottom="true"
-                android:background="@color/azure"/>
-
-            <View
-                android:id="@+id/tabHoverOverlay"
+                android:id="@+id/tabOverlay"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="@drawable/tab_overlay"
-                android:visibility="gone"/>
+                android:background="@drawable/tab_overlay" />
         </RelativeLayout>
 
 
@@ -89,8 +94,12 @@
     <RelativeLayout
         android:id="@+id/tabAddView"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="100"
+        android:layout_height="match_parent"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentStart="true"
+        android:layout_marginBottom="@dimen/tab_view_url_height"
+        android:paddingStart="@dimen/tab_shadow_padding"
+        android:paddingEnd="@dimen/tab_shadow_padding"
         android:visibility="gone"
         android:background="@drawable/tab_add_background">
         <ImageView
@@ -98,7 +107,7 @@
             android:layout_width="50dp"
             android:layout_height="50dp"
             android:padding="@dimen/tabs_icon_padding_max"
-            android:src="@drawable/ic_icon_add"
+            android:src="@drawable/ic_icon_newtab"
             android:tint="@color/rhino"
             android:tintMode="multiply"
             android:scaleType="fitCenter"
@@ -111,10 +120,13 @@
         android:id="@+id/tabViewUrl"
         android:layout_width="match_parent"
         android:layout_height="15dp"
+        android:paddingStart="@dimen/tab_shadow_padding"
+        android:paddingEnd="@dimen/tab_shadow_padding"
         android:textSize="12sp"
         android:textColor="@color/rhino"
         android:gravity="start"
         android:lines="1"
+        android:layout_alignParentBottom="true"
         android:background="@android:color/transparent"/>
 
 </org.mozilla.vrbrowser.ui.views.TabView>

@@ -59,16 +59,17 @@ public class TabsWidget extends UIDialog implements WidgetManagerDelegate.WorldC
 
     @Override
     protected void initializeWidgetPlacement(WidgetPlacement aPlacement) {
-        Context context = getContext();
-        aPlacement.width = WidgetPlacement.dpDimension(context, R.dimen.tabs_width);
-        aPlacement.height = WidgetPlacement.dpDimension(context, R.dimen.tabs_height);
-        aPlacement.worldWidth = WidgetPlacement.floatDimension(getContext(), R.dimen.window_world_width) * aPlacement.width/getWorldWidth();
+        aPlacement.visible = false;
+        aPlacement.width =  WidgetPlacement.dpDimension(getContext(), R.dimen.tabs_width);
+        aPlacement.height = WidgetPlacement.dpDimension(getContext(), R.dimen.tabs_height);
+        aPlacement.parentAnchorX = 0.5f;
+        aPlacement.parentAnchorY = 0.0f;
         aPlacement.anchorX = 0.5f;
         aPlacement.anchorY = 0.5f;
-        aPlacement.parentAnchorX = 0.5f;
-        aPlacement.parentAnchorY = 0.5f;
-        aPlacement.translationZ = WidgetPlacement.unitFromMeters(context, R.dimen.tab_dialog_z);
-        aPlacement.visible = false;
+        aPlacement.translationY = WidgetPlacement.unitFromMeters(getContext(), R.dimen.settings_world_y) -
+                WidgetPlacement.unitFromMeters(getContext(), R.dimen.window_world_y);
+        aPlacement.translationZ = WidgetPlacement.unitFromMeters(getContext(), R.dimen.settings_world_z) -
+                WidgetPlacement.unitFromMeters(getContext(), R.dimen.window_world_z);
     }
 
     private void initialize() {
@@ -202,6 +203,8 @@ public class TabsWidget extends UIDialog implements WidgetManagerDelegate.WorldC
         @Override
         public TabAdapter.MyViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
             TabView view = (TabView)LayoutInflater.from(parent.getContext()).inflate(R.layout.tab_view, parent, false);
+            parent.setClipToPadding(false);
+            parent.setClipChildren(false);
             return new MyViewHolder(view);
         }
 
@@ -334,11 +337,14 @@ public class TabsWidget extends UIDialog implements WidgetManagerDelegate.WorldC
 
     public class GridSpacingItemDecoration extends RecyclerView.ItemDecoration {
         private int mColumns;
-        private int mSpacing;
+        private int mSpacingH;
+        private int mSpacingV;
+
 
         public GridSpacingItemDecoration(Context aContext, int aColumns) {
             mColumns = aColumns;
-            mSpacing = WidgetPlacement.pixelDimension(aContext, R.dimen.tabs_spacing);
+            mSpacingH = WidgetPlacement.pixelDimension(aContext, R.dimen.tabs_spacing_h);
+            mSpacingV = WidgetPlacement.pixelDimension(aContext, R.dimen.tabs_spacing_h);
         }
 
         @Override
@@ -346,9 +352,9 @@ public class TabsWidget extends UIDialog implements WidgetManagerDelegate.WorldC
             int position = parent.getChildAdapterPosition(view); // item position
             int row = position / mColumns;
 
-            outRect.left = mSpacing / 2;
-            outRect.right = mSpacing / 2;
-            outRect.top = row > 0 ? mSpacing : 0;
+            outRect.left = mSpacingH / 2;
+            outRect.right = mSpacingH / 2;
+            outRect.top = row > 0 ? mSpacingV : 0;
         }
     }
 

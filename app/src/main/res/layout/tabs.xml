@@ -19,7 +19,7 @@
             style="?attr/navigationBarButtonStyle"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:padding="4dp"
+            android:padding="8dp"
             app:tintColorList="@drawable/main_button_icon_color_active"
             android:tint="@color/midnight"
             android:src="@drawable/ic_icon_back" />

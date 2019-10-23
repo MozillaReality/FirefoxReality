@@ -3,21 +3,21 @@
     <item android:state_pressed="true">
         <shape>
             <corners android:radius="5dp" />
-            <stroke android:color="@color/rhino" android:width="3dp" />
+            <stroke android:color="@color/rhino" android:width="2dp" />
             <solid android:color="@color/void_color" />
         </shape>
     </item>
     <item android:state_hovered="true" android:state_pressed="false">
         <shape>
             <corners android:radius="5dp" />
-            <stroke android:color="@color/rhino" android:width="3dp" />
+            <stroke android:color="@color/rhino" android:width="2dp" />
             <solid android:color="@color/fog" />
         </shape>
     </item>
     <item android:state_hovered="false" android:state_pressed="false">
         <shape>
             <corners android:radius="5dp" />
-            <stroke android:color="@color/rhino" android:width="3dp" />
+            <stroke android:color="@color/rhino" android:width="2dp" />
             <solid android:color="@color/asphalt" />
         </shape>
     </item>

@@ -2,13 +2,9 @@ package org.mozilla.vrbrowser.ui.views;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Color;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
@@ -16,9 +12,6 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.graphics.drawable.RoundedBitmapDrawable;
-import androidx.core.graphics.drawable.RoundedBitmapDrawableFactory;
-import androidx.recyclerview.widget.RecyclerView;
 
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.R;
@@ -29,13 +22,11 @@ import org.mozilla.vrbrowser.utils.BitmapCache;
 import org.mozilla.vrbrowser.utils.UrlUtils;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
 
-public class TabView extends LinearLayout implements GeckoSession.ContentDelegate, Session.BitmapChangedListener {
+public class TabView extends RelativeLayout implements GeckoSession.ContentDelegate, Session.BitmapChangedListener {
     protected RelativeLayout mTabCardView;
     protected RelativeLayout mTabAddView;
-    protected View mTabActiveView;
-    protected View mTabHoverOverlay;
+    protected View mTabOverlay;
     protected ImageView mPreview;
     protected TextView mURL;
     protected TextView mTitle;
@@ -45,13 +36,15 @@ public class TabView extends LinearLayout implements GeckoSession.ContentDelegat
     protected Delegate mDelegate;
     protected Session mSession;
     protected ImageView mTabAddIcon;
+    protected View mTabShadow;
     protected boolean mShowAddTab;
-    private boolean mSelecting;
-    private boolean mActive;
-    private int mMinIconPadding;
-    private int mMaxIconPadding;
-    private boolean mPressed;
-    private CompletableFuture<Bitmap> mBitmapFuture;
+    protected boolean mSelecting;
+    protected boolean mActive;
+    protected int mMinIconPadding;
+    protected int mMaxIconPadding;
+    protected boolean mPressed;
+    protected CompletableFuture<Bitmap> mBitmapFuture;
+    protected boolean mUsingPlaceholder;
     private static final int ICON_ANIMATION_DURATION = 100;
 
     public interface Delegate {
@@ -100,8 +93,8 @@ public class TabView extends LinearLayout implements GeckoSession.ContentDelegat
         mTitle = findViewById(R.id.tabViewTitle);
         mTitle.setVisibility(View.GONE);
         mTabAddIcon = findViewById(R.id.tabAddIcon);
-        mTabActiveView = findViewById(R.id.tabViewActive);
-        mTabHoverOverlay = findViewById(R.id.tabHoverOverlay);
+        mTabOverlay = findViewById(R.id.tabOverlay);
+        mTabShadow = findViewById(R.id.tabShadow);
 
         mMinIconPadding = WidgetPlacement.pixelDimension(getContext(), R.dimen.tabs_icon_padding_min);
         mMaxIconPadding = WidgetPlacement.pixelDimension(getContext(), R.dimen.tabs_icon_padding_max);
@@ -138,10 +131,13 @@ public class TabView extends LinearLayout implements GeckoSession.ContentDelegat
         mShowAddTab = false;
         mBitmapFuture = aBitmapCache.getBitmap(mSession.getId());
         mPreview.setImageResource(R.drawable.ic_icon_tabs_placeholder);
+        mUsingPlaceholder = true;
         mBitmapFuture.thenAccept(bitmap -> {
             mBitmapFuture = null;
             if (bitmap != null) {
                 mPreview.setImageBitmap(bitmap);
+                mUsingPlaceholder = false;
+                updateState();
             }
         });
 
@@ -153,6 +149,7 @@ public class TabView extends LinearLayout implements GeckoSession.ContentDelegat
                 mTitle.setText(aSession.getCurrentTitle());
             }
         }
+        updateState();
     }
 
     public Session getSession() {
@@ -230,10 +227,16 @@ public class TabView extends LinearLayout implements GeckoSession.ContentDelegat
 
         mCloseButton.setVisibility(interacted && !selected && !mSelecting ? View.VISIBLE : View.GONE);
         mTitle.setVisibility(interacted && !selected ? View.VISIBLE : View.GONE);
-        mTabHoverOverlay.setVisibility((interacted || selected) ? View.VISIBLE : View.GONE);
-        mTabHoverOverlay.setHovered(hovered || selected);
-        mTabHoverOverlay.setPressed(mPressed);
-        mTabHoverOverlay.setBackgroundResource(mSelecting && !selected ? R.drawable.tab_overlay_selected : R.drawable.tab_overlay);
+        mTabOverlay.setHovered(hovered || selected);
+        mTabOverlay.setPressed(mPressed);
+        if (mSelecting) {
+            mTabOverlay.setBackgroundResource(selected ? R.drawable.tab_overlay_checked : R.drawable.tab_overlay_unchecked);
+        } else if (mActive) {
+            mTabOverlay.setBackgroundResource(R.drawable.tab_overlay_active);
+        } else {
+            mTabOverlay.setBackgroundResource(mUsingPlaceholder ? R.drawable.tab_overlay_placeholder : R.drawable.tab_overlay);
+        }
+        mTabShadow.setVisibility(interacted && mSelecting && !mShowAddTab ? View.VISIBLE : View.GONE);
 
         mSelectionImage.setVisibility(selected && !interacted ? View.VISIBLE : View.GONE);
         mUnselectImage.setVisibility(selected && interacted ? View.VISIBLE : View.GONE);
@@ -248,7 +251,6 @@ public class TabView extends LinearLayout implements GeckoSession.ContentDelegat
                 AnimationHelper.animateViewPadding(mTabAddIcon, mTabAddIcon.getPaddingLeft(), mMaxIconPadding, ICON_ANIMATION_DURATION);
             }
         }
-        mTabActiveView.setVisibility(mActive && !selected ? View.VISIBLE : View.GONE);
     }
 
     @Override
@@ -265,9 +267,13 @@ public class TabView extends LinearLayout implements GeckoSession.ContentDelegat
         }
         if (aBitmap != null) {
             mPreview.setImageBitmap(aBitmap);
+            mUsingPlaceholder = false;
         } else {
             mPreview.setImageResource(R.drawable.ic_icon_tabs_placeholder);
+            mUsingPlaceholder = true;
         }
+
+        updateState();
     }
 
     private View.OnHoverListener mIconHoverListener = (view, motionEvent) -> {
