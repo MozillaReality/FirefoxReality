@@ -39,6 +39,7 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
     private static final int ICON_ANIMATION_DURATION = 200;
     private static final int LIBRARY_NOTIFICATION_DURATION = 3000;
 
+    private UIButton mAddWindowButton;
     private UIButton mSettingsButton;
     private UIButton mPrivateButton;
     private UIButton mBookmarksButton;
@@ -141,9 +142,9 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
         });
         mHistoryButton.setCurvedTooltip(false);
 
-        UIButton addWindowButton = findViewById(R.id.addwindowButton);
-        addWindowButton.setOnHoverListener(mButtonScaleHoverListener);
-        addWindowButton.setOnClickListener(view -> {
+        mAddWindowButton = findViewById(R.id.addwindowButton);
+        mAddWindowButton.setOnHoverListener(mButtonScaleHoverListener);
+        mAddWindowButton.setOnClickListener(view -> {
             if (mAudio != null) {
                 mAudio.playSound(AudioEngine.Sound.CLICK);
             }
@@ -154,7 +155,7 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
 
             notifyAddWindowClicked();
         });
-        addWindowButton.setCurvedTooltip(false);
+        mAddWindowButton.setCurvedTooltip(false);
 
         mAudio = AudioEngine.fromContext(aContext);
 
@@ -426,6 +427,19 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
             return widget.isVisible();
         }
         return false;
+    }
+
+    public void setAddWindowVisible(boolean aVisible) {
+        mAddWindowButton.setVisibility(aVisible ? View.VISIBLE : View.GONE);
+        if (aVisible) {
+            mTabsButton.updateBackgrounds(R.drawable.tray_background_unchecked_middle,
+                    R.drawable.tray_background_middle_private,
+                    R.drawable.tray_background_checked_middle);
+        } else {
+            mTabsButton.updateBackgrounds(R.drawable.tray_background_unchecked_start,
+                    R.drawable.tray_background_start_private,
+                    R.drawable.tray_background_checked_start);
+        }
     }
 
     // BookmarksViewListener

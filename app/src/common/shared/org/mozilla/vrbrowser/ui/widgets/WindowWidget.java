@@ -96,7 +96,6 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     private TitleBarWidget mTitleBar;
     private WidgetManagerDelegate mWidgetManager;
     private AlertPromptWidget mAlertPrompt;
-    private MaxWindowsWidget mMaxWindowsDialog;
     private ConfirmPromptWidget mConfirmPrompt;
     private NoInternetWidget mNoInternetToast;
     private MessageDialogWidget mAppDialog;
@@ -1220,15 +1219,6 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
             }
         });
         mClearCacheDialog.show(REQUEST_FOCUS);
-    }
-
-    public void showMaxWindowsDialog(int maxDialogs) {
-        mMaxWindowsDialog = new MaxWindowsWidget(getContext());
-        mMaxWindowsDialog.mWidgetPlacement.parentAnchorY = 0.0f;
-        mMaxWindowsDialog.mWidgetPlacement.translationY = WidgetPlacement.unitFromMeters(getContext(), R.dimen.base_app_dialog_y_distance);
-        mMaxWindowsDialog.mWidgetPlacement.parentHandle = getHandle();
-        mMaxWindowsDialog.setMessage(getContext().getString(R.string.max_windows_msg, String.valueOf(maxDialogs)));
-        mMaxWindowsDialog.show(REQUEST_FOCUS);
     }
 
     public void setMaxWindowScale(float aScale) {

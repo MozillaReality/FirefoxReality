@@ -1125,7 +1125,7 @@ the Select` button. When clicked it closes all the previously selected tabs -->
 
     <!-- This string is for the tooltip that appears when the users hovers in the tabs icon in the browser's
         tray menu. When clicked it opens the tray dialog in the current active window -->
-    <string name="tabs_tray_tooltip">Tabs</string>
+    <string name="tabs_tray_tooltip">View Tabs</string>
 
     <!-- This string is displayed in a tooltip that appears in the tray bar on top of the
      tabs tray button then a tab has been added on the background. -->

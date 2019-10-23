@@ -189,7 +189,6 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
 
     public WindowWidget addWindow() {
         if (getCurrentWindows().size() >= MAX_WINDOWS) {
-            showMaxWindowsMessage();
             return null;
         }
 
@@ -240,7 +239,6 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
 
     private WindowWidget addRestoredWindow(@NonNull WindowState aState, @NonNull Session aSession) {
         if (getCurrentWindows().size() >= MAX_WINDOWS) {
-            showMaxWindowsMessage();
             return null;
         }
 
@@ -551,11 +549,6 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         for (WindowWidget window: getCurrentWindows()) {
             window.setMaxWindowScale(maxScale);
         }
-    }
-
-    private void showMaxWindowsMessage() {
-        TelemetryWrapper.maxWindowsDialogEvent();
-        mFocusedWindow.showMaxWindowsDialog(MAX_WINDOWS);
     }
 
     public ArrayList<WindowWidget> getCurrentWindows() {
