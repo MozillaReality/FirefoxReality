@@ -166,7 +166,7 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
 
         TextView surveyLink = findViewById(R.id.surveyLink);
         surveyLink.setOnClickListener(v -> {
-            mWidgetManager.getFocusedWindow().getSessionStack().newSessionWithUrl(getResources().getString(R.string.survey_link));
+            SessionStore.get().getActiveSession().loadUri(getResources().getString(R.string.survey_link));
             exitWholeSettings();
         });
 
