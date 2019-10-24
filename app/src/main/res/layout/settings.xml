@@ -211,8 +211,8 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_below="@+id/first_row"
-                        android:layout_marginStart="68.5dp"
-                        android:layout_marginTop="-23dp"
+                        android:layout_marginStart="65dp"
+                        android:layout_marginTop="-28dp"
                         android:orientation="horizontal">
 
                         <org.mozilla.vrbrowser.ui.views.HoneycombButton

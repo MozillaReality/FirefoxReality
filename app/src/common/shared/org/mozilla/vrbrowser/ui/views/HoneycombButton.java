@@ -12,14 +12,13 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import org.mozilla.vrbrowser.utils.DeviceType;
-import org.mozilla.vrbrowser.R;
-import org.mozilla.vrbrowser.utils.SystemUtils;
-
-import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
+
+import org.mozilla.vrbrowser.R;
+import org.mozilla.vrbrowser.utils.DeviceType;
+import org.mozilla.vrbrowser.utils.SystemUtils;
 
 public class HoneycombButton extends LinearLayout {
 
