@@ -76,7 +76,7 @@ class Services(context: Context, places: Places): GeckoSession.NavigationDelegat
                 events.filterIsInstance(DeviceEvent.TabReceived::class.java).forEach {
                     // Just load the first tab that was sent.
                     // TODO Update when there is a push notifications API available
-                    SessionStore.get().activeStore.loadUri(it.entries[0].url)
+                    SessionStore.get().activeSession.loadUri(it.entries[0].url)
                 }
             }
         }

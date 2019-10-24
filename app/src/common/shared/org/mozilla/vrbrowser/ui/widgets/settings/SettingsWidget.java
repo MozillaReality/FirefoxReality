@@ -30,10 +30,8 @@ import org.mozilla.vrbrowser.BuildConfig;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.VRBrowserApplication;
 import org.mozilla.vrbrowser.audio.AudioEngine;
-import org.mozilla.vrbrowser.browser.engine.Session;
-import org.mozilla.vrbrowser.browser.Services;
 import org.mozilla.vrbrowser.browser.Accounts;
-import org.mozilla.vrbrowser.browser.engine.SessionStack;
+import org.mozilla.vrbrowser.browser.engine.Session;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.databinding.SettingsBinding;
 import org.mozilla.vrbrowser.ui.widgets.UIWidget;
@@ -179,7 +177,7 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
         });
 
         mBinding.surveyLink.setOnClickListener(v -> {
-            mWidgetManager.getFocusedWindow().getSessionStack().newSessionWithUrl(getResources().getString(R.string.survey_link));
+            mWidgetManager.getFocusedWindow().getSession().loadUri(getResources().getString(R.string.survey_link));
             exitWholeSettings();
         });
 
@@ -280,7 +278,7 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
                     if (url != null) {
                         post(() -> {
                             mAccounts.setLoginOrigin(Accounts.LoginOrigin.SETTINGS);
-                            SessionStore.get().getActiveStore().loadUri(url);
+                            SessionStore.get().getActiveSession().loadUri(url);
                             hide(REMOVE_WIDGET);
                         });
                     }

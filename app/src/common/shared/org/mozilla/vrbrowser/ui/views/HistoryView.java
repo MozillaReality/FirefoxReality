@@ -189,7 +189,7 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
             mAccounts.getAuthenticationUrlAsync().thenAcceptAsync((url) -> {
                 if (url != null) {
                     mAccounts.setLoginOrigin(Accounts.LoginOrigin.HISTORY);
-                    SessionStore.get().getActiveStore().loadUri(url);
+                    SessionStore.get().getActiveSession().loadUri(url);
                 }
             });
         }

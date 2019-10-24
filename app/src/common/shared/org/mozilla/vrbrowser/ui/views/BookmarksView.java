@@ -192,7 +192,7 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
             mAccounts.getAuthenticationUrlAsync().thenAcceptAsync((url) -> {
                 if (url != null) {
                     mAccounts.setLoginOrigin(Accounts.LoginOrigin.BOOKMARKS);
-                    SessionStore.get().getActiveStore().loadUri(url);
+                    SessionStore.get().getActiveSession().loadUri(url);
                 }
             });
         }

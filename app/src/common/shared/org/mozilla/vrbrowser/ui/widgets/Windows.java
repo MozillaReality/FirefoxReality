@@ -2,7 +2,6 @@ package org.mozilla.vrbrowser.ui.widgets;
 
 import android.content.Context;
 import android.util.Log;
-import android.widget.TabWidget;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -23,8 +22,8 @@ import org.mozilla.vrbrowser.browser.engine.Session;
 import org.mozilla.vrbrowser.browser.engine.SessionState;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
-import org.mozilla.vrbrowser.utils.BitmapCache;
 import org.mozilla.vrbrowser.ui.widgets.settings.SettingsWidget;
+import org.mozilla.vrbrowser.utils.BitmapCache;
 import org.mozilla.vrbrowser.utils.SystemUtils;
 
 import java.io.File;
@@ -41,8 +40,6 @@ import mozilla.components.concept.sync.AccountObserver;
 import mozilla.components.concept.sync.AuthType;
 import mozilla.components.concept.sync.OAuthAccount;
 import mozilla.components.concept.sync.Profile;
-
-import static org.mozilla.vrbrowser.ui.widgets.UIWidget.REQUEST_FOCUS;
 
 public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWidget.Delegate,
         GeckoSession.ContentDelegate, WindowWidget.WindowListener, TabsWidget.TabDelegate {

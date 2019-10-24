@@ -30,7 +30,6 @@ import org.mozilla.geckoview.GeckoSessionSettings;
 import org.mozilla.geckoview.MediaElement;
 import org.mozilla.geckoview.WebRequestError;
 import org.mozilla.vrbrowser.R;
-import org.mozilla.vrbrowser.VRBrowserApplication;
 import org.mozilla.vrbrowser.browser.Media;
 import org.mozilla.vrbrowser.browser.SessionChangeListener;
 import org.mozilla.vrbrowser.browser.SettingsStore;
@@ -47,7 +46,6 @@ import java.net.URISyntaxException;
 import java.util.LinkedList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
 
 import static org.mozilla.vrbrowser.utils.ServoUtils.createServoSession;
 import static org.mozilla.vrbrowser.utils.ServoUtils.isInstanceOfServoSession;

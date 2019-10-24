@@ -26,8 +26,6 @@ import java.util.List;
 
 public class SessionStore implements GeckoSession.PermissionDelegate {
 
-    public final int NO_ACTIVE_STORE_ID = -1;
-
     private static final String[] WEB_EXTENSIONS = new String[] {
             "webcompat_vimeo",
             "webcompat_youtube"
@@ -113,13 +111,11 @@ public class SessionStore implements GeckoSession.PermissionDelegate {
     public Session createSession(boolean aPrivateMode) {
         return createSession(aPrivateMode, null, true);
     }
-    public void initializeAccounts(Context context) {
-        mAccountsManager = new AccountsManager(context);
-    }
 
     public Session createSession(boolean aPrivateMode, @Nullable SessionSettings aSettings, boolean aOpen) {
         Session session = new Session(mContext, mRuntime, aPrivateMode, aSettings, aOpen);
         session.setPermissionDelegate(this);
+        session.addNavigationListener(mServices);
         mSessions.add(session);
 
         return session;
@@ -128,6 +124,7 @@ public class SessionStore implements GeckoSession.PermissionDelegate {
     public Session createSession(SessionState aRestoreState) {
         Session session = new Session(mContext, mRuntime, aRestoreState);
         session.setPermissionDelegate(this);
+        session.addNavigationListener(mServices);
         mSessions.add(session);
 
         return session;
@@ -137,6 +134,7 @@ public class SessionStore implements GeckoSession.PermissionDelegate {
         mSessions.remove(aSession);
         if (aSession != null) {
             aSession.setPermissionDelegate(null);
+            aSession.removeNavigationListener(mServices);
             aSession.shutdown();
         }
     }
