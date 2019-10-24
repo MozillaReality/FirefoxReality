@@ -25,8 +25,8 @@ tasks:
 ###############################################################################
     - $if: 'tasks_for == "github-pull-request" && event["action"] in ["opened", "edited", "reopened", "synchronize"]'
       then:
-        provisionerId: 'aws-provisioner-v1'
-        workerType: 'github-worker'
+        provisionerId: 'proj-FirefoxReality'
+        workerType: 'ci'
         deadline: {$fromNow: 1 day}
         expires: {$fromNow: 1 year}
         payload:
@@ -64,8 +64,8 @@ tasks:
             then: "-f ${event.ref[19:]}"
             else: "-f master"
         in:
-          provisionerId: 'aws-provisioner-v1'
-          workerType: 'github-worker'
+          provisionerId: 'proj-FirefoxReality'
+          workerType: 'ci'
           deadline: {$fromNow: 1 day}
           expires: {$fromNow: 1 year}
           scopes:
@@ -114,8 +114,8 @@ tasks:
 ###############################################################################
     - $if: 'tasks_for == "github-release" && event["action"] == "published"'
       then:
-        provisionerId: 'aws-provisioner-v1'
-        workerType: 'github-worker'
+        provisionerId: 'proj-FirefoxReality'
+        workerType: 'ci'
         deadline: {$fromNow: 1 day}
         expires: {$fromNow: 1 year}
         scopes:
