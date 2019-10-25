@@ -12,10 +12,8 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.future.future
-import mozilla.components.concept.sync.AccountObserver
-import mozilla.components.concept.sync.AuthType
-import mozilla.components.concept.sync.OAuthAccount
-import mozilla.components.concept.sync.Profile
+import kotlinx.coroutines.launch
+import mozilla.components.concept.sync.*
 import mozilla.components.service.fxa.SyncEngine
 import mozilla.components.service.fxa.manager.SyncEnginesStorage
 import mozilla.components.service.fxa.sync.SyncReason
@@ -50,6 +48,7 @@ class Accounts constructor(val context: Context) {
     private val accountListeners = ArrayList<AccountObserver>()
     private val syncListeners = ArrayList<SyncStatusObserver>()
     private val services = (context.applicationContext as VRBrowserApplication).services
+    private var otherDevices = emptyList<Device>()
     private val syncStorage = SyncEnginesStorage(context)
     var isSyncing = false
 
@@ -82,6 +81,12 @@ class Accounts constructor(val context: Context) {
         }
     }
 
+    private val deviceConstellationObserver = object : DeviceConstellationObserver {
+        override fun onDevicesUpdate(constellation: ConstellationState) {
+            otherDevices = constellation.otherDevices
+        }
+    }
+
     private val accountObserver = object : AccountObserver {
         override fun onAuthenticated(account: OAuthAccount, authType: AuthType) {
             accountStatus = AccountStatus.SIGNED_IN
@@ -90,6 +95,13 @@ class Accounts constructor(val context: Context) {
             syncStorage.setStatus(SyncEngine.Bookmarks, SettingsStore.getInstance(context).isBookmarksSyncEnabled)
             syncStorage.setStatus(SyncEngine.History, SettingsStore.getInstance(context).isHistorySyncEnabled)
             services.accountManager.syncNowAsync(SyncReason.EngineChange, false)
+
+            // Update device list
+            account.deviceConstellation().registerDeviceObserver(
+                    deviceConstellationObserver,
+                    ProcessLifecycleOwner.get(),
+                    true
+            )
 
             account.deviceConstellation().refreshDevicesAsync()
             accountListeners.toMutableList().forEach {
@@ -219,6 +231,7 @@ class Accounts constructor(val context: Context) {
     }
 
     fun logoutAsync(): CompletableFuture<Unit?>? {
+        otherDevices = emptyList()
         return CoroutineScope(Dispatchers.Main).future {
             services.accountManager.logoutAsync().await()
         }
@@ -281,6 +294,28 @@ class Accounts constructor(val context: Context) {
 
     fun lastSync(): Long {
         return getLastSynced(context)
+    }
+
+    fun devicesByCapability(capabilities: List<DeviceCapability>): List<Device> {
+        return otherDevices.filter { it.capabilities.containsAll(capabilities) }
+    }
+
+    fun sendTabs(targetDevices: List<Device>, url: String, title: String) {
+        CoroutineScope(Dispatchers.Main).launch {
+            services.accountManager.authenticatedAccount()?.deviceConstellation()?.let { constellation ->
+                // Ignore devices that can't receive tabs or are not in the received list
+                val targets = constellation.state()?.otherDevices?.filter {
+                    it.capabilities.contains(DeviceCapability.SEND_TAB)
+                    targetDevices.contains(it)
+                }
+
+                targets?.forEach {
+                    constellation.sendEventToDeviceAsync(
+                            it.id, DeviceEventOutgoing.SendTab(title, url)
+                    ).await()
+                }
+            }
+        }
     }
 
 }

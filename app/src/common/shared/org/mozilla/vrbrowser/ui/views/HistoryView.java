@@ -110,6 +110,12 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
         updateHistory();
         SessionStore.get().getHistoryStore().addListener(this);
 
+        mBinding.setIsSignedIn(mAccounts.isSignedIn());
+        mBinding.setIsSyncEnabled(mAccounts.isEngineEnabled(SyncEngine.History.INSTANCE));
+
+        updateHistory();
+        SessionStore.get().getHistoryStore().addListener(this);
+
         setVisibility(GONE);
 
         setOnTouchListener((v, event) -> {
@@ -338,6 +344,9 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
 
             if (isNarrow != mBinding.getIsNarrow()) {
                 mHistoryAdapter.setNarrow(isNarrow);
+
+                mBinding.setIsNarrow(isNarrow);
+                mBinding.executePendingBindings();
 
                 mBinding.setIsNarrow(isNarrow);
                 mBinding.executePendingBindings();

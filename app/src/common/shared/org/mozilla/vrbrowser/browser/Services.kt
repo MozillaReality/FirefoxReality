@@ -91,7 +91,6 @@ class Services(context: Context, places: Places): GeckoSession.NavigationDelegat
             // This is a default name, and can be changed once user is logged in.
             // E.g. accountManager.authenticatedAccount()?.deviceConstellation()?.setDeviceNameAsync("new name")
             name = "${context.getString(R.string.app_name)} on ${Build.MANUFACTURER} ${Build.MODEL}",
-            // TODO need a new device type! "VR"
             type = DeviceType.VR,
             capabilities = setOf(DeviceCapability.SEND_TAB)
         ),

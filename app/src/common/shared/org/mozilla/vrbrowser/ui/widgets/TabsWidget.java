@@ -47,6 +47,7 @@ public class TabsWidget extends UIDialog implements WidgetManagerDelegate.WorldC
         void onTabSelect(Session aTab);
         void onTabAdd();
         void onTabsClose(ArrayList<Session> aTabs);
+        void onTabSend(Session aTab);
     }
 
     public TabsWidget(Context aContext) {
@@ -267,6 +268,14 @@ public class TabsWidget extends UIDialog implements WidgetManagerDelegate.WorldC
                 public void onAdd(TabView aSender) {
                     if (mTabDelegate != null) {
                         mTabDelegate.onTabAdd();
+                    }
+                    onDismiss();
+                }
+
+                @Override
+                public void onSend(TabView aSender) {
+                    if (mTabDelegate != null) {
+                        mTabDelegate.onTabSend(aSender.getSession());
                     }
                     onDismiss();
                 }

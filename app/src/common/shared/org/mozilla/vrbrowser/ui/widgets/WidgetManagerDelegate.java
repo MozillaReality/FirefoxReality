@@ -4,6 +4,7 @@ import android.view.View;
 
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.VRBrowserActivity;
+import org.mozilla.vrbrowser.ui.widgets.menus.VideoProjectionMenuWidget;
 
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;

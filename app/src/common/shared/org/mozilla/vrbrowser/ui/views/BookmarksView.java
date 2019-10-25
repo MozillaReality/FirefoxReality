@@ -107,6 +107,12 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
         updateBookmarks();
         SessionStore.get().getBookmarkStore().addListener(this);
 
+        mBinding.setIsSignedIn(mAccounts.isSignedIn());
+        mBinding.setIsSyncEnabled(mAccounts.isEngineEnabled(SyncEngine.Bookmarks.INSTANCE));
+
+        updateBookmarks();
+        SessionStore.get().getBookmarkStore().addListener(this);
+
         setVisibility(GONE);
 
         setOnTouchListener((v, event) -> {
@@ -295,6 +301,9 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
 
             if (isNarrow != mBinding.getIsNarrow()) {
                 mBookmarkAdapter.setNarrow(isNarrow);
+
+                mBinding.setIsNarrow(isNarrow);
+                mBinding.executePendingBindings();
 
                 mBinding.setIsNarrow(isNarrow);
                 mBinding.executePendingBindings();
