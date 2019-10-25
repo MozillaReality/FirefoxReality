@@ -1445,7 +1445,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
 
     @Override
     public void onPageStop(@NonNull GeckoSession aSession, boolean b) {
-        if (mCaptureOnPageStop) {
+        if (mCaptureOnPageStop || !mSession.hasCapturedBitmap()) {
             mCaptureOnPageStop = false;
             captureImage();
         }
