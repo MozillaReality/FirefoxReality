@@ -185,6 +185,12 @@ class Accounts constructor(val context: Context) {
         }
     }
 
+    fun pollForEventsAsync(): CompletableFuture<Boolean?>? {
+        return CoroutineScope(Dispatchers.Main).future {
+            services.accountManager.authenticatedAccount()?.deviceConstellation()?.pollForEventsAsync()?.await()
+        }
+    }
+
     fun updateProfileAsync(): CompletableFuture<Unit?>? {
         return CoroutineScope(Dispatchers.Main).future {
             services.accountManager.updateProfileAsync().await()

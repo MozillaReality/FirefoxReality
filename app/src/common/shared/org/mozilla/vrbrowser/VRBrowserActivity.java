@@ -388,11 +388,12 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
             widget.onResume();
         }
         handleConnectivityChange();
-        mConnectivityReceiver.register(this, () -> runOnUiThread(() -> handleConnectivityChange()));
+        mConnectivityReceiver.register(this, () -> runOnUiThread(this::handleConnectivityChange));
 
         // If we're signed-in, poll for any new device events (e.g. received tabs) on activity resume.
         // There's no push support right now, so this helps with the perception of speedy tab delivery.
         ((VRBrowserApplication)getApplicationContext()).getAccounts().refreshDevicesAsync();
+        ((VRBrowserApplication)getApplicationContext()).getAccounts().pollForEventsAsync();
 
         super.onResume();
     }
