@@ -1137,10 +1137,10 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         mWidgetManager.updateWidget(targetWindow);
         targetWindow.getSession().setActive(false);
         targetWindow.setSession(session);
-        if (url == null || url.isEmpty()) {
+        if (aUri == null || aUri.isEmpty()) {
             session.loadHomePage();
         } else {
-            session.loadUri(url);
+            session.loadUri(aUri);
         }
         SessionStore.get().setActiveSession(session);
     }
