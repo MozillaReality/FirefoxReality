@@ -27,11 +27,16 @@ import mozilla.components.support.rustlog.RustLog
 import org.mozilla.geckoview.AllowOrDeny
 import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoSession
+import org.mozilla.geckoview.GeckoSessionSettings
 import org.mozilla.vrbrowser.browser.engine.SessionStore
 import org.mozilla.vrbrowser.R
+import java.net.URI
+import java.net.URISyntaxException
 
 class Services(context: Context, places: Places): GeckoSession.NavigationDelegate {
     companion object {
+        const val ACCOUNTS_HOST = "accounts.firefox.com"
+        const val USER_AGENT_OVERRIDE = "Mozilla/5.0 (Android 7.1.1; Mobile; rv:71.0) Gecko/71.0 Firefox/71.0"
         const val CLIENT_ID = "7ad9917f6c55fb77"
         const val REDIRECT_URL = "https://accounts.firefox.com/oauth/success/$CLIENT_ID"
     }
@@ -83,7 +88,6 @@ class Services(context: Context, places: Places): GeckoSession.NavigationDelegat
             }
         }
     }
-
     val accountManager = FxaAccountManager(
         context = context,
         serverConfig = ServerConfig.release(CLIENT_ID, REDIRECT_URL),
@@ -107,6 +111,18 @@ class Services(context: Context, places: Places): GeckoSession.NavigationDelegat
     }
 
     override fun onLoadRequest(geckoSession: GeckoSession, loadRequest: GeckoSession.NavigationDelegate.LoadRequest): GeckoResult<AllowOrDeny>? {
+        val uri: URI
+        try {
+            // Temporarily set the UA to VR to overcome an issue with the FxA login site not working with a desktop UA in FxR.
+            // Should be removed when that's fixed.
+            uri = URI(loadRequest.uri)
+            if (uri.host.startsWith(ACCOUNTS_HOST)) {
+                SessionStore.get().activeSession.geckoSession.settings.userAgentOverride = USER_AGENT_OVERRIDE
+            }
+
+        } catch (e: URISyntaxException) {
+        }
+
         if (loadRequest.uri.startsWith(REDIRECT_URL)) {
             val parsedUri = Uri.parse(loadRequest.uri)
 
