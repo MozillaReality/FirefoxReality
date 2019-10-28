@@ -1403,6 +1403,11 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     }
 
     @Override
+    public void openNewTabForeground(@NonNull String uri) {
+        mWindows.addTab(mWindows.getFocusedWindow(), uri);
+    }
+
+    @Override
     public WindowWidget getFocusedWindow() {
         return mWindows.getFocusedWindow();
     }

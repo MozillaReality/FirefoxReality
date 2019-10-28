@@ -20,7 +20,9 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.mozilla.geckoview.GeckoSessionSettings;
 import org.mozilla.vrbrowser.R;
+import org.mozilla.vrbrowser.VRBrowserActivity;
 import org.mozilla.vrbrowser.VRBrowserApplication;
 import org.mozilla.vrbrowser.browser.Accounts;
 import org.mozilla.vrbrowser.browser.HistoryStore;
@@ -31,6 +33,7 @@ import org.mozilla.vrbrowser.databinding.HistoryBinding;
 import org.mozilla.vrbrowser.ui.adapters.HistoryAdapter;
 import org.mozilla.vrbrowser.ui.callbacks.HistoryCallback;
 import org.mozilla.vrbrowser.ui.callbacks.HistoryItemCallback;
+import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
 import org.mozilla.vrbrowser.utils.SystemUtils;
 import org.mozilla.vrbrowser.utils.UIThreadExecutor;
 
@@ -195,9 +198,11 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
             mAccounts.getAuthenticationUrlAsync().thenAcceptAsync((url) -> {
                 if (url != null) {
                     mAccounts.setLoginOrigin(Accounts.LoginOrigin.HISTORY);
-                    SessionStore.get().getActiveSession().loadUri(url);
+                    WidgetManagerDelegate widgetManager = ((VRBrowserActivity)getContext());
+                    widgetManager.openNewTabForeground(url);
+                    widgetManager.getFocusedWindow().getSession().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_VR);
                 }
-            });
+            }, new UIThreadExecutor());
         }
 
         @Override

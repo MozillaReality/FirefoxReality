@@ -2,12 +2,12 @@ package org.mozilla.vrbrowser.ui.widgets;
 
 import android.view.View;
 
+import androidx.annotation.IntDef;
+import androidx.annotation.NonNull;
+
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.VRBrowserActivity;
 import org.mozilla.vrbrowser.ui.widgets.menus.VideoProjectionMenuWidget;
-
-import androidx.annotation.IntDef;
-import androidx.annotation.NonNull;
 
 public interface WidgetManagerDelegate {
 
@@ -83,6 +83,7 @@ public interface WidgetManagerDelegate {
     boolean canOpenNewWindow();
     void openNewWindow(@NonNull String uri);
     void openNewTab(@NonNull String uri);
+    void openNewTabForeground(@NonNull String uri);
     WindowWidget getFocusedWindow();
     TrayWidget getTray();
 }
