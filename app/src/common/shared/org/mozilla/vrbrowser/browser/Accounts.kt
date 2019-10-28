@@ -47,6 +47,7 @@ class Accounts constructor(val context: Context) {
     var accountStatus = AccountStatus.SIGNED_OUT
     private val accountListeners = ArrayList<AccountObserver>()
     private val syncListeners = ArrayList<SyncStatusObserver>()
+    private val deviceConstellationListeners = ArrayList<DeviceConstellationObserver>()
     private val services = (context.applicationContext as VRBrowserApplication).services
     private var otherDevices = emptyList<Device>()
     private val syncStorage = SyncEnginesStorage(context)
@@ -84,6 +85,11 @@ class Accounts constructor(val context: Context) {
     private val deviceConstellationObserver = object : DeviceConstellationObserver {
         override fun onDevicesUpdate(constellation: ConstellationState) {
             otherDevices = constellation.otherDevices
+            deviceConstellationListeners.toMutableList().forEach {
+                Handler(Looper.getMainLooper()).post {
+                    it.onDevicesUpdate(constellation)
+                }
+            }
         }
     }
 
@@ -183,6 +189,20 @@ class Accounts constructor(val context: Context) {
 
     fun removeAllSyncListeners() {
         syncListeners.clear()
+    }
+
+    fun addDeviceConstellationListener(aListener: DeviceConstellationObserver) {
+        if (!deviceConstellationListeners.contains(aListener)) {
+            deviceConstellationListeners.add(aListener)
+        }
+    }
+
+    fun removeDeviceConstellationListener(aListener: DeviceConstellationObserver) {
+        deviceConstellationListeners.remove(aListener)
+    }
+
+    fun removeAllDeviceConstellationListeners() {
+        deviceConstellationListeners.clear()
     }
 
     fun authUrlAsync(): CompletableFuture<String?>? {

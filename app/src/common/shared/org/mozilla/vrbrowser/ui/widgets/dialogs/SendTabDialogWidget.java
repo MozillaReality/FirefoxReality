@@ -12,6 +12,7 @@ import android.view.View;
 import androidx.annotation.NonNull;
 import androidx.databinding.DataBindingUtil;
 
+import org.jetbrains.annotations.NotNull;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.VRBrowserApplication;
 import org.mozilla.vrbrowser.browser.Accounts;
@@ -22,11 +23,14 @@ import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
+import mozilla.components.concept.sync.ConstellationState;
 import mozilla.components.concept.sync.Device;
 import mozilla.components.concept.sync.DeviceCapability;
+import mozilla.components.concept.sync.DeviceConstellationObserver;
 
-public class SendTabDialogWidget extends SettingDialogWidget {
+public class SendTabDialogWidget extends SettingDialogWidget implements DeviceConstellationObserver {
 
     private SendTabsDisplayBinding mSendTabsDialogBinding;
     private Accounts mAccounts;
@@ -46,6 +50,7 @@ public class SendTabDialogWidget extends SettingDialogWidget {
         mSendTabsDialogBinding = DataBindingUtil.inflate(inflater, R.layout.send_tabs_display, mBinding.content, true);
 
         mAccounts = ((VRBrowserApplication)getContext().getApplicationContext()).getAccounts();
+        mAccounts.addDeviceConstellationListener(this);
 
         mBinding.headerLayout.setTitle(getResources().getString(R.string.send_tab_dialog_title));
         mBinding.headerLayout.setDescription(R.string.send_tab_dialog_description);
@@ -54,7 +59,7 @@ public class SendTabDialogWidget extends SettingDialogWidget {
             Device device = mDevicesList.get(mSendTabsDialogBinding.devicesList.getCheckedRadioButtonId());
             String uri = SessionStore.get().getActiveSession().getCurrentUri();
             String title = SessionStore.get().getActiveSession().getCurrentTitle();
-            // At some point we will support sending multiple devices or all of them
+            // At some point we will support sending to multiple devices or to all of them
             mAccounts.sendTabs(Collections.singletonList(device), uri, title);
 
             // Show the tab sent notifications in the tray
@@ -67,19 +72,33 @@ public class SendTabDialogWidget extends SettingDialogWidget {
     }
 
     @Override
+    public void releaseWidget() {
+        mAccounts.removeDeviceConstellationListener(this);
+
+        super.releaseWidget();
+    }
+
+    @Override
     public void show(int aShowFlags) {
-        mSendTabsDialogBinding.devicesList.setChecked(0, true);
-
-        // In the future we might be able to narrow down the list filtering by other capabilities
-        mDevicesList = mAccounts.devicesByCapability(Collections.singletonList(DeviceCapability.SEND_TAB));
-
-        mSendTabsDialogBinding.setIsEmpty(mDevicesList.isEmpty());
-        mBinding.footerLayout.setFooterButtonVisibility(mDevicesList.isEmpty() ? View.GONE : View.VISIBLE);
-
-        List<String> devicesNamesList = new ArrayList<>();
-        mDevicesList.forEach((device) -> devicesNamesList.add(device.getDisplayName()));
-        mSendTabsDialogBinding.devicesList.setOptions(devicesNamesList.toArray(new String[]{}));
+        mAccounts.refreshDevicesAsync();
 
         super.show(aShowFlags);
+    }
+
+    @Override
+    public void onDevicesUpdate(@NotNull ConstellationState constellationState) {
+        post(() -> {
+            List<Device> list = constellationState.getOtherDevices().stream()
+                    .filter(device -> device.getCapabilities().contains(DeviceCapability.SEND_TAB)).collect(Collectors.toList());
+            if (!mDevicesList.equals(list)) {
+                mDevicesList = list;
+                mSendTabsDialogBinding.setIsEmpty(mDevicesList.isEmpty());
+                mBinding.footerLayout.setFooterButtonVisibility(mDevicesList.isEmpty() ? View.GONE : View.VISIBLE);
+
+                List<String> devicesNamesList = new ArrayList<>();
+                mDevicesList.forEach((device) -> devicesNamesList.add(device.getDisplayName()));
+                mSendTabsDialogBinding.devicesList.setOptions(devicesNamesList.toArray(new String[]{}));
+            }
+        });
     }
 }
