@@ -287,7 +287,10 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
 
     @Override
     public void detachFromWindow() {
-        mAttachedWindow.removeWindowListener(this);
+        if (mAttachedWindow != null) {
+            mAttachedWindow.removeWindowListener(this);
+        }
+        
         if (mSession != null) {
             mSession.removeTextInputListener(this);
             mSession = null;
