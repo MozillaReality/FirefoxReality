@@ -80,7 +80,13 @@ public class SendTabDialogWidget extends SettingDialogWidget implements DeviceCo
 
     @Override
     public void show(int aShowFlags) {
-        mAccounts.refreshDevicesAsync();
+        if (mAccounts.isSignedIn()) {
+            mAccounts.refreshDevicesAsync();
+
+        } else {
+            mSendTabsDialogBinding.setIsEmpty(true);
+            mBinding.footerLayout.setFooterButtonVisibility(View.GONE);
+        }
 
         super.show(aShowFlags);
     }
@@ -92,13 +98,14 @@ public class SendTabDialogWidget extends SettingDialogWidget implements DeviceCo
                     .filter(device -> device.getCapabilities().contains(DeviceCapability.SEND_TAB)).collect(Collectors.toList());
             if (!mDevicesList.equals(list)) {
                 mDevicesList = list;
-                mSendTabsDialogBinding.setIsEmpty(mDevicesList.isEmpty());
-                mBinding.footerLayout.setFooterButtonVisibility(mDevicesList.isEmpty() ? View.GONE : View.VISIBLE);
 
                 List<String> devicesNamesList = new ArrayList<>();
                 mDevicesList.forEach((device) -> devicesNamesList.add(device.getDisplayName()));
                 mSendTabsDialogBinding.devicesList.setOptions(devicesNamesList.toArray(new String[]{}));
             }
+
+            mSendTabsDialogBinding.setIsEmpty(mDevicesList.isEmpty());
+            mBinding.footerLayout.setFooterButtonVisibility(mDevicesList.isEmpty() ? View.GONE : View.VISIBLE);
         });
     }
 }
