@@ -64,6 +64,6 @@
             android:layout_marginStart="10dp"
             android:layout_weight="1"
             android:src="@drawable/ic_icon_hamburger_menu"
-            android:tooltipText="@string/resize_tooltip" />
+            android:tooltipText="@string/hamburger_menu_tooltip" />
     </LinearLayout>
 </merge>
