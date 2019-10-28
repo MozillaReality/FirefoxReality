@@ -1398,15 +1398,6 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         }
     }
 
-    public void setTabSentCheckVisible(boolean visible) {
-        if (visible) {
-            setView(mSendTabCheckLayout, true);
-
-        } else {
-            unsetView(mSendTabCheckLayout, true);
-        }
-    }
-
     // GeckoSession.ContentDelegate
 
     @Override

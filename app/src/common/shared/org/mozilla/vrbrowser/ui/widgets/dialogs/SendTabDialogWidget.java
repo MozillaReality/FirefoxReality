@@ -18,7 +18,6 @@ import org.mozilla.vrbrowser.browser.Accounts;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.databinding.SendTabsDisplayBinding;
 import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
-import org.mozilla.vrbrowser.ui.widgets.WindowWidget;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -58,12 +57,8 @@ public class SendTabDialogWidget extends SettingDialogWidget {
             // At some point we will support sending multiple devices or all of them
             mAccounts.sendTabs(Collections.singletonList(device), uri, title);
 
-            // Dime the window and show the check mark for 2 seconds
-            WindowWidget window = mWidgetManager.getFocusedWindow();
-            window.setTabSentCheckVisible(true);
-            postDelayed(() -> {
-                window.setTabSentCheckVisible(false);
-            }, 2000);
+            // Show the tab sent notifications in the tray
+            mWidgetManager.getTray().showTabSentNotification();
 
             onDismiss();
         });
