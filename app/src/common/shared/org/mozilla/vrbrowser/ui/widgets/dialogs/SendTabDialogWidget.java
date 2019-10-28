@@ -48,6 +48,8 @@ public class SendTabDialogWidget extends SettingDialogWidget implements DeviceCo
 
         // Inflate this data binding layout
         mSendTabsDialogBinding = DataBindingUtil.inflate(inflater, R.layout.send_tabs_display, mBinding.content, true);
+        mSendTabsDialogBinding.setIsSyncing(false);
+        mSendTabsDialogBinding.setIsEmpty(false);
 
         mAccounts = ((VRBrowserApplication)getContext().getApplicationContext()).getAccounts();
         mAccounts.addDeviceConstellationListener(this);
@@ -82,6 +84,7 @@ public class SendTabDialogWidget extends SettingDialogWidget implements DeviceCo
     public void show(int aShowFlags) {
         if (mAccounts.isSignedIn()) {
             mAccounts.refreshDevicesAsync();
+            mSendTabsDialogBinding.setIsSyncing(true);
 
         } else {
             mSendTabsDialogBinding.setIsEmpty(true);
@@ -94,6 +97,8 @@ public class SendTabDialogWidget extends SettingDialogWidget implements DeviceCo
     @Override
     public void onDevicesUpdate(@NotNull ConstellationState constellationState) {
         post(() -> {
+            mSendTabsDialogBinding.setIsSyncing(false);
+
             List<Device> list = constellationState.getOtherDevices().stream()
                     .filter(device -> device.getCapabilities().contains(DeviceCapability.SEND_TAB)).collect(Collectors.toList());
             if (!mDevicesList.equals(list)) {

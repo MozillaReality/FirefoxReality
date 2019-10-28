@@ -1262,6 +1262,9 @@ the Select` button. When clicked it closes all the previously selected tabs -->
     <!-- This string is displayed instead of the devices list if there are no available devices. -->
     <string name="send_tab_dialog_no_devices">No devices connected.</string>
 
+    <!-- This string is displayed instead of the devices list if the devices list is being synced. -->
+    <string name="send_tab_dialog_syncing">Syncing...</string>
+
     <!-- This string is displayed in the button of the Send Tab to device dialog. When clicked the current tab is sent to the selected device -->
     <string name="send_tab_dialog_button">Send</string>
 </resources>
