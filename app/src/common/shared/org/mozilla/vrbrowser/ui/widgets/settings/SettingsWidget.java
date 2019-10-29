@@ -282,7 +282,7 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
                         mAccounts.setLoginOrigin(Accounts.LoginOrigin.SETTINGS);
                         WidgetManagerDelegate widgetManager = ((VRBrowserActivity)getContext());
                         widgetManager.openNewTabForeground(url);
-                        widgetManager.getFocusedWindow().getSession().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_VR);
+                        widgetManager.getFocusedWindow().getSession().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_MOBILE);
                         hide(REMOVE_WIDGET);
                     }
                 }, new UIThreadExecutor());

@@ -200,7 +200,7 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
                     mAccounts.setLoginOrigin(Accounts.LoginOrigin.HISTORY);
                     WidgetManagerDelegate widgetManager = ((VRBrowserActivity)getContext());
                     widgetManager.openNewTabForeground(url);
-                    widgetManager.getFocusedWindow().getSession().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_VR);
+                    widgetManager.getFocusedWindow().getSession().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_MOBILE);
                 }
             }, new UIThreadExecutor());
         }

@@ -203,7 +203,7 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
                     mAccounts.setLoginOrigin(Accounts.LoginOrigin.BOOKMARKS);
                     WidgetManagerDelegate widgetManager = ((VRBrowserActivity)getContext());
                     widgetManager.openNewTabForeground(url);
-                    widgetManager.getFocusedWindow().getSession().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_VR);
+                    widgetManager.getFocusedWindow().getSession().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_MOBILE);
                 }
             }, new UIThreadExecutor());
         }

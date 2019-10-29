@@ -76,11 +76,11 @@ public class HamburgerMenuWidget extends MenuWidget implements WidgetManagerDele
     public void setUAMode(int uaMode) {
         switch (uaMode) {
             case GeckoSessionSettings.USER_AGENT_MODE_DESKTOP:
-                case GeckoSessionSettings.USER_AGENT_MODE_VR:
                     mItems.get(SWITCH_MODE).mImageId = R.drawable.ic_icon_ua_desktop;
                     break;
 
             case GeckoSessionSettings.USER_AGENT_MODE_MOBILE:
+            case GeckoSessionSettings.USER_AGENT_MODE_VR:
                 mItems.get(SWITCH_MODE).mImageId = R.drawable.ic_icon_ua_default;
                 break;
 

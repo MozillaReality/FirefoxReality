@@ -1111,7 +1111,6 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         if (mHamburgerMenu == null) {
             mHamburgerMenu = new HamburgerMenuWidget(getContext());
             mHamburgerMenu.getPlacement().parentHandle = getHandle();
-            mHamburgerMenu.setUAMode(mAttachedWindow.getSession().getUaMode());
             mHamburgerMenu.setDelegate(new HamburgerMenuWidget.MenuDelegate() {
                 @Override
                 public void onSendTab() {
@@ -1130,8 +1129,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
                 @Override
                 public void onSwitchMode() {
                     int uaMode = mAttachedWindow.getSession().getUaMode();
-                    if (uaMode == GeckoSessionSettings.USER_AGENT_MODE_DESKTOP ||
-                            uaMode == GeckoSessionSettings.USER_AGENT_MODE_VR) {
+                    if (uaMode == GeckoSessionSettings.USER_AGENT_MODE_DESKTOP) {
                         mHamburgerMenu.setUAMode(GeckoSessionSettings.USER_AGENT_MODE_MOBILE);
                         mAttachedWindow.getSession().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_MOBILE);
 
@@ -1145,6 +1143,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
             });
         }
 
+        mHamburgerMenu.setUAMode(mAttachedWindow.getSession().getUaMode());
         mHamburgerMenu.show(UIWidget.KEEP_FOCUS);
     }
 
