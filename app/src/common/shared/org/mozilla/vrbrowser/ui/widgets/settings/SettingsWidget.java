@@ -350,7 +350,7 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
             });
 
         } else {
-            mBinding.fxaButton.setImageDrawable(getContext().getDrawable(R.drawable.ic_icon_settings_sign_in));
+            mBinding.fxaButton.setImageDrawable(getContext().getDrawable(R.drawable.ic_icon_settings_account));
         }
     }
 
