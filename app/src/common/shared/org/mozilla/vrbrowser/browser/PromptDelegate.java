@@ -275,12 +275,14 @@ public class PromptDelegate implements
 
             Optional<PopUpSite> site = mAllowedPopUpSites.stream().filter((item) -> item.url.equals(uri)).findFirst();
             if (site.isPresent()) {
-                if (site.get().allowed) {
-                    result.complete(popupPrompt.confirm(AllowOrDeny.ALLOW));
+                mAttachedWindow.postDelayed(() -> {
+                    if (site.get().allowed) {
+                        result.complete(popupPrompt.confirm(AllowOrDeny.ALLOW));
 
-                } else {
-                    result.complete(popupPrompt.dismiss());
-                }
+                    } else {
+                        result.complete(popupPrompt.dismiss());
+                    }
+                }, 500);
 
             } else {
                 PopUpRequest request = PopUpRequest.newRequest(popupPrompt, result, sessionId);
