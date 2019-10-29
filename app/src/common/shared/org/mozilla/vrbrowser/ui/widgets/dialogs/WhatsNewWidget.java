@@ -10,6 +10,7 @@ import android.content.Context;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 
+import androidx.annotation.NonNull;
 import androidx.databinding.DataBindingUtil;
 
 import org.mozilla.geckoview.GeckoSessionSettings;
@@ -17,16 +18,17 @@ import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.VRBrowserApplication;
 import org.mozilla.vrbrowser.browser.Accounts;
 import org.mozilla.vrbrowser.browser.SettingsStore;
-import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.databinding.WhatsNewBinding;
 import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
 import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
 import org.mozilla.vrbrowser.utils.UIThreadExecutor;
 
-public class WhatsNewWidget extends UIDialog {
+public class WhatsNewWidget extends UIDialog implements WidgetManagerDelegate.WorldClickListener {
 
     private WhatsNewBinding mBinding;
     private Accounts mAccounts;
+    private Runnable mSignInCallback;
+    private Runnable mStartBrowsingCallback;
 
     public WhatsNewWidget(Context aContext) {
         super(aContext);
@@ -43,6 +45,14 @@ public class WhatsNewWidget extends UIDialog {
         initialize();
     }
 
+    public void setSignInCallback(@NonNull Runnable callback) {
+        mSignInCallback = callback;
+    }
+
+    public void setStartBrowsingCallback(@NonNull Runnable callback) {
+        mStartBrowsingCallback = callback;
+    }
+
     @SuppressLint("ClickableViewAccessibility")
     private void initialize() {
         LayoutInflater inflater = LayoutInflater.from(getContext());
@@ -53,7 +63,11 @@ public class WhatsNewWidget extends UIDialog {
         mBinding = DataBindingUtil.inflate(inflater, R.layout.whats_new, this, true);
 
         mBinding.signInButton.setOnClickListener(v -> signIn());
-        mBinding.startBrowsingButton.setOnClickListener(v -> onDismiss());
+        mBinding.startBrowsingButton.setOnClickListener((v) -> {
+            if (mStartBrowsingCallback != null) {
+                mStartBrowsingCallback.run();
+            }
+        });
     }
 
     @Override
@@ -75,6 +89,7 @@ public class WhatsNewWidget extends UIDialog {
     public void show(@ShowFlags int aShowFlags) {
         super.show(aShowFlags);
 
+        mWidgetManager.addWorldClickListener(this);
         mWidgetManager.pushWorldBrightness(this, WidgetManagerDelegate.DEFAULT_DIM_BRIGHTNESS);
     }
 
@@ -85,18 +100,37 @@ public class WhatsNewWidget extends UIDialog {
         SettingsStore.getInstance(getContext()).setWhatsNewDisplayed(true);
 
         mWidgetManager.popWorldBrightness(this);
+        mWidgetManager.removeWorldClickListener(this);
+    }
+
+    @Override
+    protected void onDismiss() {
+        if (mDelegate != null) {
+            mDelegate.onDismiss();
+        }
     }
 
     private void signIn() {
         mAccounts.getAuthenticationUrlAsync().thenAcceptAsync((url) -> {
             if (url != null) {
-                mAccounts.setLoginOrigin(Accounts.LoginOrigin.SETTINGS);
+                mAccounts.setLoginOrigin(Accounts.LoginOrigin.SEND_TABS);
                 mWidgetManager.openNewTabForeground(url);
                 mWidgetManager.getFocusedWindow().getSession().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_VR);
                 mWidgetManager.getFocusedWindow().getSession().loadUri(url);
-                onDismiss();
             }
+
+            if (mSignInCallback != null) {
+                mSignInCallback.run();
+            }
+
         }, new UIThreadExecutor());
+    }
+
+    // WidgetManagerDelegate.WorldClickListener
+
+    @Override
+    public void onWorldClick() {
+        onDismiss();
     }
 
 }
