@@ -143,9 +143,10 @@
                         app:visibleGone="@{!isPopUpAvailable}"/>
                 </LinearLayout>
 
-                <FrameLayout
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:orientation="horizontal"
                     android:layout_toEndOf="@id/startButtonsLayout"
                     android:layout_centerVertical="true">
                     <ImageView
@@ -162,7 +163,7 @@
                         android:contentDescription="SSL icon"
                         android:src="@drawable/ic_icon_security_state_insecure"
                         app:visibleGone="@{isInsecure}" />
-                </FrameLayout>
+                </LinearLayout>
 
             </RelativeLayout>
 
