@@ -18,6 +18,7 @@ import org.mozilla.vrbrowser.VRBrowserApplication;
 import org.mozilla.vrbrowser.browser.Accounts;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.databinding.SendTabsDisplayBinding;
+import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
 import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
 
 import java.util.ArrayList;
@@ -30,7 +31,9 @@ import mozilla.components.concept.sync.Device;
 import mozilla.components.concept.sync.DeviceCapability;
 import mozilla.components.concept.sync.DeviceConstellationObserver;
 
-public class SendTabDialogWidget extends SettingDialogWidget implements DeviceConstellationObserver {
+public class SendTabDialogWidget extends SettingDialogWidget implements
+        DeviceConstellationObserver,
+        WidgetManagerDelegate.WorldClickListener {
 
     private SendTabsDisplayBinding mSendTabsDialogBinding;
     private Accounts mAccounts;
@@ -74,6 +77,17 @@ public class SendTabDialogWidget extends SettingDialogWidget implements DeviceCo
     }
 
     @Override
+    protected void initializeWidgetPlacement(WidgetPlacement aPlacement) {
+        super.initializeWidgetPlacement(aPlacement);
+
+        mWidgetPlacement.parentAnchorY = 0.0f;
+        mWidgetPlacement.translationY = WidgetPlacement.unitFromMeters(getContext(), R.dimen.settings_world_y) -
+                WidgetPlacement.unitFromMeters(getContext(), R.dimen.window_world_y);
+        mWidgetPlacement.translationZ = WidgetPlacement.unitFromMeters(getContext(), R.dimen.settings_world_z) -
+                WidgetPlacement.unitFromMeters(getContext(), R.dimen.window_world_z);
+    }
+
+    @Override
     public void releaseWidget() {
         mAccounts.removeDeviceConstellationListener(this);
 
@@ -91,7 +105,18 @@ public class SendTabDialogWidget extends SettingDialogWidget implements DeviceCo
             mBinding.footerLayout.setFooterButtonVisibility(View.GONE);
         }
 
+        mWidgetManager.addWorldClickListener(this);
+        mWidgetManager.pushWorldBrightness(this, WidgetManagerDelegate.DEFAULT_DIM_BRIGHTNESS);
+
         super.show(aShowFlags);
+    }
+
+    @Override
+    public void hide(int aHideFlags) {
+        super.hide(aHideFlags);
+
+        mWidgetManager.popWorldBrightness(this);
+        mWidgetManager.removeWorldClickListener(this);
     }
 
     @Override
@@ -112,5 +137,12 @@ public class SendTabDialogWidget extends SettingDialogWidget implements DeviceCo
             mSendTabsDialogBinding.setIsEmpty(mDevicesList.isEmpty());
             mBinding.footerLayout.setFooterButtonVisibility(mDevicesList.isEmpty() ? View.GONE : View.VISIBLE);
         });
+    }
+
+    // WidgetManagerDelegate.WorldClickListener
+
+    @Override
+    public void onWorldClick() {
+        onDismiss();
     }
 }

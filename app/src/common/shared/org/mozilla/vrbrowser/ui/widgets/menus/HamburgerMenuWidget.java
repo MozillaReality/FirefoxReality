@@ -89,7 +89,7 @@ public class HamburgerMenuWidget extends MenuWidget implements WidgetManagerDele
         mListView.invalidateViews();
     }
 
-    public void setDelegate(MenuDelegate delegate) {
+    public void setMenuDelegate(MenuDelegate delegate) {
         mMenuDelegate = Optional.ofNullable(delegate);
     }
 
@@ -123,7 +123,7 @@ public class HamburgerMenuWidget extends MenuWidget implements WidgetManagerDele
     @Override
     public void onGlobalFocusChanged(View oldFocus, View newFocus) {
         if (!ViewUtils.isChildrenOf(menuContainer, newFocus)) {
-            onDismiss();
+            hide(KEEP_WIDGET);
         }
     }
 }

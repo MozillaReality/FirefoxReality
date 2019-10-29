@@ -23,9 +23,6 @@ import org.mozilla.vrbrowser.browser.engine.Session;
 import org.mozilla.vrbrowser.browser.engine.SessionState;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
-import org.mozilla.vrbrowser.ui.widgets.dialogs.SendTabDialogWidget;
-import org.mozilla.vrbrowser.ui.widgets.settings.SettingsWidget;
-import org.mozilla.vrbrowser.utils.BitmapCache;
 import org.mozilla.vrbrowser.ui.widgets.settings.SettingsWidget;
 import org.mozilla.vrbrowser.utils.BitmapCache;
 import org.mozilla.vrbrowser.utils.SystemUtils;
@@ -106,7 +103,6 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
     private boolean mIsPaused = false;
     private PromptDelegate mPromptDelegate;
     private TabsWidget mTabsWidget;
-    private SendTabDialogWidget mSendTabDialog;
     private Accounts mAccounts;
     private Services mServices;
 
@@ -1236,18 +1232,5 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         if (mTabsWidget != null && mTabsWidget.isVisible()) {
             mTabsWidget.refreshTabs();
         }
-    }
-
-
-    @Override
-    public void onTabSend(Session aTab) {
-        if (mSendTabDialog == null) {
-            mSendTabDialog = new SendTabDialogWidget(mContext);
-            mSendTabDialog.mWidgetPlacement.parentHandle = mFocusedWindow.getHandle();
-            mSendTabDialog.mWidgetPlacement.parentAnchorY = 0.0f;
-            mSendTabDialog.mWidgetPlacement.translationY = WidgetPlacement.unitFromMeters(mContext, R.dimen.base_app_dialog_y_distance);
-        }
-
-        mSendTabDialog.show(UIWidget.REQUEST_FOCUS);
     }
 }

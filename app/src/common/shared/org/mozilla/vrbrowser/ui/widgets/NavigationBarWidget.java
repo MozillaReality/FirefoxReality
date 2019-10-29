@@ -36,7 +36,6 @@ import org.mozilla.vrbrowser.ui.views.CustomUIButton;
 import org.mozilla.vrbrowser.ui.views.NavigationURLBar;
 import org.mozilla.vrbrowser.ui.views.UIButton;
 import org.mozilla.vrbrowser.ui.views.UITextButton;
-import org.mozilla.vrbrowser.ui.widgets.dialogs.BaseAppDialogWidget;
 import org.mozilla.vrbrowser.ui.widgets.dialogs.SelectionActionWidget;
 import org.mozilla.vrbrowser.ui.widgets.dialogs.SendTabDialogWidget;
 import org.mozilla.vrbrowser.ui.widgets.dialogs.VoiceSearchWidget;
@@ -1111,7 +1110,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         if (mHamburgerMenu == null) {
             mHamburgerMenu = new HamburgerMenuWidget(getContext());
             mHamburgerMenu.getPlacement().parentHandle = getHandle();
-            mHamburgerMenu.setDelegate(new HamburgerMenuWidget.MenuDelegate() {
+            mHamburgerMenu.setMenuDelegate(new HamburgerMenuWidget.MenuDelegate() {
                 @Override
                 public void onSendTab() {
                     hideMenu();
@@ -1149,19 +1148,17 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
 
     private void hideMenu() {
         if (mHamburgerMenu != null) {
-            mHamburgerMenu.setDelegate((HamburgerMenuWidget.Delegate) null);
             mHamburgerMenu.hide(UIWidget.REMOVE_WIDGET);
         }
     }
 
     public void showSendTabDialog() {
-        if (mSendTabDialog == null) {
-            mSendTabDialog = new SendTabDialogWidget(getContext());
-            mSendTabDialog.mWidgetPlacement.parentAnchorY = 0.0f;
-            mSendTabDialog.mWidgetPlacement.translationY = WidgetPlacement.unitFromMeters(getContext(), R.dimen.base_app_dialog_y_distance);
-        }
-
+        mSendTabDialog = new SendTabDialogWidget(getContext());
         mSendTabDialog.mWidgetPlacement.parentHandle = mAttachedWindow.getHandle();
+        mSendTabDialog.setDelegate(() -> {
+            mSendTabDialog.releaseWidget();
+            mSendTabDialog = null;
+        });
         mSendTabDialog.show(REQUEST_FOCUS);
     }
 }
