@@ -86,7 +86,7 @@ public class HamburgerMenuWidget extends MenuWidget implements WidgetManagerDele
 
         }
 
-        mAdapter.notifyDataSetChanged();
+        mListView.invalidateViews();
     }
 
     public void setDelegate(MenuDelegate delegate) {
