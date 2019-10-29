@@ -440,11 +440,9 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
                     }
                 });
             }
-            ((Activity)mContext).runOnUiThread(() -> {
-                display.surfaceDestroyed();
-                session.releaseDisplay(display);
-                BitmapCache.getInstance(mContext).releaseCaptureSurface();
-            });
+            display.surfaceDestroyed();
+            session.releaseDisplay(display);
+            BitmapCache.getInstance(mContext).releaseCaptureSurface();
             return null;
         });
     }

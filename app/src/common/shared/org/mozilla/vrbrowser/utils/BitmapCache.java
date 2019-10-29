@@ -203,6 +203,7 @@ public class BitmapCache {
         if (mCapturedAcquired) {
             return null;
         }
+        mCapturedAcquired = true;
         mCaptureSurfaceTexture.setDefaultBufferSize(width, height);
         return mCaptureSurface;
     }
