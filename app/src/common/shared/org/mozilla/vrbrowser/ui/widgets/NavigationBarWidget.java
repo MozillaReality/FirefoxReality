@@ -1195,18 +1195,8 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         } else {
             final WhatsNewWidget whatsNew = new WhatsNewWidget(getContext());
             whatsNew.getPlacement().parentHandle = mWidgetManager.getFocusedWindow().getHandle();
-            whatsNew.setStartBrowsingCallback(() -> {
-                whatsNew.hide(REMOVE_WIDGET);
-                whatsNew.releaseWidget();
-            });
-            whatsNew.setSignInCallback(() -> {
-                whatsNew.hide(REMOVE_WIDGET);
-                whatsNew.releaseWidget();
-            });
-            whatsNew.setDelegate(() -> {
-                whatsNew.hide(REMOVE_WIDGET);
-                whatsNew.releaseWidget();
-            });
+            whatsNew.setStartBrowsingCallback(() -> whatsNew.hide(UIWidget.REMOVE_WIDGET));
+            whatsNew.setSignInCallback(() -> whatsNew.hide(UIWidget.REMOVE_WIDGET));
             whatsNew.show(UIWidget.REQUEST_FOCUS);
         }
     }

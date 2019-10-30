@@ -328,6 +328,8 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         if (!SettingsStore.getInstance(this).isWhatsNewDisplayed() && BuildConfig.VERSION_NAME.equals("6")) {
             WhatsNewWidget whatsNew = new WhatsNewWidget(this);
             whatsNew.getPlacement().parentHandle = mWindows.getFocusedWindow().getHandle();
+            whatsNew.setStartBrowsingCallback(() -> whatsNew.hide(UIWidget.REMOVE_WIDGET));
+            whatsNew.setSignInCallback(() -> whatsNew.hide(UIWidget.REMOVE_WIDGET));
             whatsNew.show(UIWidget.REQUEST_FOCUS);
         }
     }

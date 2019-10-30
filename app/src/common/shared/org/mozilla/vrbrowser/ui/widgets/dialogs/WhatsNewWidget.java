@@ -103,13 +103,6 @@ public class WhatsNewWidget extends UIDialog implements WidgetManagerDelegate.Wo
         mWidgetManager.removeWorldClickListener(this);
     }
 
-    @Override
-    protected void onDismiss() {
-        if (mDelegate != null) {
-            mDelegate.onDismiss();
-        }
-    }
-
     private void signIn() {
         mAccounts.getAuthenticationUrlAsync().thenAcceptAsync((url) -> {
             if (url != null) {

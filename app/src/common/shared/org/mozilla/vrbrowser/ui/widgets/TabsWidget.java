@@ -296,19 +296,13 @@ public class TabsWidget extends UIDialog implements WidgetManagerDelegate.WorldC
                         whatsNew.getPlacement().parentHandle = mWidgetManager.getFocusedWindow().getHandle();
                         whatsNew.setStartBrowsingCallback(() -> {
                             whatsNew.hide(REMOVE_WIDGET);
-                            whatsNew.releaseWidget();
                             show(REQUEST_FOCUS);
                         });
                         whatsNew.setSignInCallback(() -> {
                             whatsNew.hide(REMOVE_WIDGET);
-                            whatsNew.releaseWidget();
                             onDismiss();
                         });
-                        whatsNew.setDelegate(() -> {
-                            whatsNew.hide(REMOVE_WIDGET);
-                            whatsNew.releaseWidget();
-                            show(REQUEST_FOCUS);
-                        });
+                        whatsNew.setDelegate(() -> show(REQUEST_FOCUS));
                         whatsNew.show(UIWidget.REQUEST_FOCUS);
                     }
                 }
