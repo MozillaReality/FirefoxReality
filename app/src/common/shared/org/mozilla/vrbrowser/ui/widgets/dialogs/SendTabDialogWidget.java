@@ -181,6 +181,10 @@ public class SendTabDialogWidget extends SettingDialogWidget implements
                 mSendTabsDialogBinding.devicesList.setOptions(devicesNamesList.toArray(new String[]{}));
             }
 
+            if (!mDevicesList.isEmpty()) {
+                mSendTabsDialogBinding.devicesList.setChecked(0, false);
+            }
+
             mSendTabsDialogBinding.setIsEmpty(mDevicesList.isEmpty());
             mBinding.footerLayout.setFooterButtonVisibility(mDevicesList.isEmpty() ? View.GONE : View.VISIBLE);
         });
