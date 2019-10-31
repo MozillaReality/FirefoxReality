@@ -1487,6 +1487,14 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     @Override
     public void onPageStart(@NonNull GeckoSession geckoSession, @NonNull String s) {
         mCaptureOnPageStop = true;
+
+        if (isHistoryVisible()) {
+            hideHistory();
+        }
+
+        if (isBookmarksVisible()) {
+            hideBookmarks();
+        }
     }
 
     @Override
@@ -1505,13 +1513,6 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
 
     @Override
     public void onLocationChange(@NonNull GeckoSession session, @Nullable String url) {
-        if (isBookmarksVisible()) {
-            hideBookmarks();
-
-        } else if (isHistoryVisible()) {
-            hideHistory();
-        }
-
         updateTitleBarUrl(url);
     }
 
