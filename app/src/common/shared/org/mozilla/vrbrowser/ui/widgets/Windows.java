@@ -44,8 +44,7 @@ import mozilla.components.concept.sync.Profile;
 import mozilla.components.concept.sync.TabData;
 
 public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWidget.Delegate,
-        GeckoSession.ContentDelegate, WindowWidget.WindowListener, TabsWidget.TabDelegate,
-        Services.TabReceivedDelegate {
+        WindowWidget.WindowListener, TabsWidget.TabDelegate, Services.TabReceivedDelegate {
 
     private static final String LOGTAG = SystemUtils.createLogtag(Windows.class);
 
@@ -207,7 +206,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
 
         if (mFullscreenWindow != null) {
             mFullscreenWindow.getSession().exitFullScreen();
-            onFullScreen(mFullscreenWindow.getSession().getGeckoSession(), false);
+            onFullScreen(mFullscreenWindow, false);
         }
 
         WindowWidget frontWindow = getFrontWindow();
@@ -641,7 +640,6 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         aWindow.removeWindowListener(this);
         aWindow.getTitleBar().setVisible(false);
         aWindow.getTitleBar().setDelegate((TitleBarWidget.Delegate) null);
-        aWindow.getSession().removeContentListener(this);
         aWindow.close();
         updateMaxWindowScales();
         updateCurvedMode(true);
@@ -840,7 +838,6 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         getCurrentWindows().add(window);
         window.getTopBar().setDelegate(this);
         window.getTitleBar().setDelegate(this);
-        window.getSession().addContentListener(this);
 
         if (mPrivateMode) {
             TelemetryWrapper.openWindowsEvent(mPrivateWindows.size() - 1, mPrivateWindows.size(), true);
@@ -1029,36 +1026,6 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         }
     }
 
-    // Content delegate
-    @Override
-    public void onFullScreen(GeckoSession session, boolean aFullScreen) {
-        WindowWidget window = getWindowWithSession(session);
-        if (window == null) {
-            return;
-        }
-
-        if (aFullScreen) {
-            mFullscreenWindow = window;
-            window.saveBeforeFullscreenPlacement();
-            setFullScreenSize(window);
-            placeWindow(window, WindowPlacement.FRONT);
-            focusWindow(window);
-            for (WindowWidget win: getCurrentWindows()) {
-                setWindowVisible(win, win == mFullscreenWindow);
-            }
-            updateMaxWindowScales();
-            updateViews();
-        } else if (mFullscreenWindow != null) {
-            window.restoreBeforeFullscreenPlacement();
-            mFullscreenWindow = null;
-            for (WindowWidget win : getCurrentWindows()) {
-                setWindowVisible(win, true);
-            }
-            updateMaxWindowScales();
-            updateViews();
-        }
-    }
-
     @Nullable
     private WindowWidget getWindowWithSession(GeckoSession aSession) {
         for (WindowWidget window: getCurrentWindows()) {
@@ -1091,6 +1058,30 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             mDelegate.onWindowBorderChanged(aWindow);
         }
 
+    }
+
+    @Override
+    public void onFullScreen(@NonNull WindowWidget aWindow, boolean aFullScreen) {
+        if (aFullScreen) {
+            mFullscreenWindow = aWindow;
+            aWindow.saveBeforeFullscreenPlacement();
+            setFullScreenSize(aWindow);
+            placeWindow(aWindow, WindowPlacement.FRONT);
+            focusWindow(aWindow);
+            for (WindowWidget win: getCurrentWindows()) {
+                setWindowVisible(win, win == mFullscreenWindow);
+            }
+            updateMaxWindowScales();
+            updateViews();
+        } else if (mFullscreenWindow != null) {
+            aWindow.restoreBeforeFullscreenPlacement();
+            mFullscreenWindow = null;
+            for (WindowWidget win : getCurrentWindows()) {
+                setWindowVisible(win, true);
+            }
+            updateMaxWindowScales();
+            updateViews();
+        }
     }
 
     @Override
