@@ -22,6 +22,7 @@ class HistoryStore constructor(val context: Context) {
 
     private val LOGTAG = SystemUtils.createLogtag(HistoryStore::class.java)
 
+    private val handler = Handler(Looper.getMainLooper())
     private var listeners = ArrayList<HistoryListener>()
     private val storage = (context.applicationContext as VRBrowserApplication).places.history
 
@@ -130,7 +131,7 @@ class HistoryStore constructor(val context: Context) {
     private fun notifyListeners() {
         if (listeners.size > 0) {
             val listenersCopy = ArrayList(listeners)
-            Handler(Looper.getMainLooper()).post {
+            handler.post {
                 for (listener in listenersCopy) {
                     listener.onHistoryUpdated()
                 }

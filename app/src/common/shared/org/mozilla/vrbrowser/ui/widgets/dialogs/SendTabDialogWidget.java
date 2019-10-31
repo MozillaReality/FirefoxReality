@@ -121,22 +121,20 @@ public class SendTabDialogWidget extends SettingDialogWidget implements
 
     @Override
     public void onDevicesUpdate(@NotNull ConstellationState constellationState) {
-        post(() -> {
-            mSendTabsDialogBinding.setIsSyncing(false);
+        mSendTabsDialogBinding.setIsSyncing(false);
 
-            List<Device> list = constellationState.getOtherDevices().stream()
-                    .filter(device -> device.getCapabilities().contains(DeviceCapability.SEND_TAB)).collect(Collectors.toList());
-            if (!mDevicesList.equals(list)) {
-                mDevicesList = list;
+        List<Device> list = constellationState.getOtherDevices().stream()
+                .filter(device -> device.getCapabilities().contains(DeviceCapability.SEND_TAB)).collect(Collectors.toList());
+        if (!mDevicesList.equals(list)) {
+            mDevicesList = list;
 
-                List<String> devicesNamesList = new ArrayList<>();
-                mDevicesList.forEach((device) -> devicesNamesList.add(device.getDisplayName()));
-                mSendTabsDialogBinding.devicesList.setOptions(devicesNamesList.toArray(new String[]{}));
-            }
+            List<String> devicesNamesList = new ArrayList<>();
+            mDevicesList.forEach((device) -> devicesNamesList.add(device.getDisplayName()));
+            mSendTabsDialogBinding.devicesList.setOptions(devicesNamesList.toArray(new String[]{}));
+        }
 
-            mSendTabsDialogBinding.setIsEmpty(mDevicesList.isEmpty());
-            mBinding.footerLayout.setFooterButtonVisibility(mDevicesList.isEmpty() ? View.GONE : View.VISIBLE);
-        });
+        mSendTabsDialogBinding.setIsEmpty(mDevicesList.isEmpty());
+        mBinding.footerLayout.setFooterButtonVisibility(mDevicesList.isEmpty() ? View.GONE : View.VISIBLE);
     }
 
     // WidgetManagerDelegate.WorldClickListener

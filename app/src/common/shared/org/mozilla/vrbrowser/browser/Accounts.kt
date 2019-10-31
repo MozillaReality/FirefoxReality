@@ -44,8 +44,9 @@ class Accounts constructor(val context: Context) {
         UNDEFINED
     }
 
-    var loginOrigin: LoginOrigin = LoginOrigin.UNDEFINED
+    var loginOrigin = LoginOrigin.UNDEFINED
     var accountStatus = AccountStatus.SIGNED_OUT
+    private val handler = Handler(Looper.getMainLooper())
     private val accountListeners = ArrayList<AccountObserver>()
     private val syncListeners = ArrayList<SyncStatusObserver>()
     private val deviceConstellationListeners = ArrayList<DeviceConstellationObserver>()
@@ -58,7 +59,7 @@ class Accounts constructor(val context: Context) {
         override fun onStarted() {
             isSyncing = true
             syncListeners.toMutableList().forEach {
-                Handler(Looper.getMainLooper()).post {
+                handler.post {
                     it.onStarted()
                 }
             }
@@ -67,7 +68,7 @@ class Accounts constructor(val context: Context) {
         override fun onIdle() {
             isSyncing = false
             syncListeners.toMutableList().forEach {
-                Handler(Looper.getMainLooper()).post {
+                handler.post {
                     it.onIdle()
                 }
             }
@@ -76,7 +77,7 @@ class Accounts constructor(val context: Context) {
         override fun onError(error: Exception?) {
             isSyncing = false
             syncListeners.toMutableList().forEach {
-                Handler(Looper.getMainLooper()).post {
+                handler.post {
                     it.onError(error)
                 }
             }
@@ -87,7 +88,7 @@ class Accounts constructor(val context: Context) {
         override fun onDevicesUpdate(constellation: ConstellationState) {
             otherDevices = constellation.otherDevices
             deviceConstellationListeners.toMutableList().forEach {
-                Handler(Looper.getMainLooper()).post {
+                handler.post {
                     it.onDevicesUpdate(constellation)
                 }
             }
@@ -112,7 +113,7 @@ class Accounts constructor(val context: Context) {
 
             account.deviceConstellation().refreshDevicesAsync()
             accountListeners.toMutableList().forEach {
-                Handler(Looper.getMainLooper()).post {
+                handler.post {
                     it.onAuthenticated(account, authType)
                 }
             }
@@ -121,7 +122,7 @@ class Accounts constructor(val context: Context) {
         override fun onAuthenticationProblems() {
             accountStatus = AccountStatus.NEEDS_RECONNECT
             accountListeners.toMutableList().forEach {
-                Handler(Looper.getMainLooper()).post {
+                handler.post {
                     it.onAuthenticationProblems()
                 }
             }
@@ -130,7 +131,7 @@ class Accounts constructor(val context: Context) {
         override fun onLoggedOut() {
             accountStatus = AccountStatus.SIGNED_OUT
             accountListeners.toMutableList().forEach {
-                Handler(Looper.getMainLooper()).post {
+                handler.post {
                     it.onLoggedOut()
                 }
             }
@@ -138,7 +139,7 @@ class Accounts constructor(val context: Context) {
 
         override fun onProfileUpdated(profile: Profile) {
             accountListeners.toMutableList().forEach {
-                Handler(Looper.getMainLooper()).post {
+                handler.post {
                     it.onProfileUpdated(profile)
                 }
             }
@@ -287,7 +288,7 @@ class Accounts constructor(val context: Context) {
                 Logger(LOGTAG).debug("Got an auth url: " + url!!)
 
                 // Actually process the url on the main thread.
-                Handler(Looper.getMainLooper()).post {
+                handler.post {
                     Logger(LOGTAG).debug("We got an authentication url, we can continue...")
                     future.complete(url)
                 }

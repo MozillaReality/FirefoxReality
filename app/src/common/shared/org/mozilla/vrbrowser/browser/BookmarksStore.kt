@@ -58,6 +58,7 @@ class BookmarksStore constructor(val context: Context) {
         }
     }
 
+    private val handler = Handler(Looper.getMainLooper())
     private val listeners = ArrayList<BookmarkListener>()
     private val storage = (context.applicationContext as VRBrowserApplication).places.bookmarks
     private val titles = rootTitles(context)
@@ -184,7 +185,7 @@ class BookmarksStore constructor(val context: Context) {
     private fun notifyListeners() {
         if (listeners.size > 0) {
             val listenersCopy = ArrayList(listeners)
-            Handler(Looper.getMainLooper()).post {
+            handler.post {
                 for (listener in listenersCopy) {
                     listener.onBookmarksUpdated()
                 }
@@ -195,7 +196,7 @@ class BookmarksStore constructor(val context: Context) {
     private fun notifyAddedListeners() {
         if (listeners.size > 0) {
             val listenersCopy = ArrayList(listeners)
-            Handler(Looper.getMainLooper()).post {
+            handler.post {
                 for (listener in listenersCopy) {
                     listener.onBookmarkAdded()
                 }

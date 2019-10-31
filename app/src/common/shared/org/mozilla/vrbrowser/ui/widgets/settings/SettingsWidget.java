@@ -289,7 +289,7 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
                 break;
 
             case SIGNED_IN:
-                post(this::showFXAOptionsDialog);
+                showFXAOptionsDialog();
                 break;
         }
     }
@@ -326,12 +326,12 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
 
         @Override
         public void onLoggedOut() {
-            post(() -> mBinding.fxaButton.setText(R.string.settings_fxa_account_sign_in));
+            mBinding.fxaButton.setText(R.string.settings_fxa_account_sign_in);
         }
 
         @Override
         public void onAuthenticationProblems() {
-            post(() -> mBinding.fxaButton.setText(R.string.settings_fxa_account_reconnect));
+            mBinding.fxaButton.setText(R.string.settings_fxa_account_reconnect);
         }
     };
 

@@ -161,17 +161,17 @@ class FxAAccountOptionsView extends SettingsView {
 
         @Override
         public void onProfileUpdated(@NotNull Profile profile) {
-            post(() -> mBinding.accountEmail.setText(profile.getEmail()));
+            mBinding.accountEmail.setText(profile.getEmail());
         }
 
         @Override
         public void onLoggedOut() {
-            post(FxAAccountOptionsView.this::onDismiss);
+            onDismiss();
         }
 
         @Override
         public void onAuthenticationProblems() {
-            post(FxAAccountOptionsView.this::onDismiss);
+            onDismiss();
         }
     };
 
