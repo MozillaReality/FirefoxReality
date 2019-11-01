@@ -122,6 +122,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         void onWindowBorderChanged(@NonNull WindowWidget aChangeWindow);
         void onWindowsMoved();
         void onWindowClosed();
+        void onWindowVideoAvailabilityChanged(@NonNull WindowWidget aWindow);
     }
 
     public Windows(Context aContext) {
@@ -439,6 +440,16 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
 
     public boolean isInPrivateMode() {
         return mPrivateMode;
+    }
+
+    public boolean isVideoAvailable() {
+        for (WindowWidget window: getCurrentWindows()) {
+            if (window.getSession().isVideoAvailable()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public void enterImmersiveMode() {
@@ -1057,7 +1068,13 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         if (mDelegate != null) {
             mDelegate.onWindowBorderChanged(aWindow);
         }
+    }
 
+    @Override
+    public void onVideoAvailabilityChanged(@NonNull WindowWidget aWindow) {
+        if (mDelegate != null) {
+            mDelegate.onWindowVideoAvailabilityChanged(aWindow);
+        }
     }
 
     @Override
