@@ -154,6 +154,7 @@
                         android:id="@+id/loadingView"
                         android:layout_width="24dp"
                         android:layout_height="24dp"
+                        android:paddingEnd="5dp"
                         android:contentDescription="Loading animation"
                         android:src="@drawable/loading_shape"
                         app:visibleGone="@{isLoading}" />
