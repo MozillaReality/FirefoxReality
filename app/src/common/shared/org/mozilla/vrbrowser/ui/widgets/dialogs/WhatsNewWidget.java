@@ -114,6 +114,12 @@ public class WhatsNewWidget extends UIDialog implements WidgetManagerDelegate.Wo
                     mWidgetManager.getFocusedWindow().getSession().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_VR);
                 }
 
+                if (mSignInCallback != null) {
+                    mSignInCallback.run();
+                }
+
+            }, new UIThreadExecutor());
+        }
         }, mUIThreadExecutor).exceptionally(throwable -> {
             Log.d(LOGTAG, "Error getting the authentication URL: " + throwable.getLocalizedMessage());
             throwable.printStackTrace();
