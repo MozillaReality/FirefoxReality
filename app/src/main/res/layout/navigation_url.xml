@@ -182,7 +182,7 @@
                 android:paddingEnd="10dp"
                 android:layout_toStartOf="@id/endButtonsLayout"
                 android:layout_toEndOf="@id/padding"
-                android:foreground="@{isUrlEmpty ? @drawable/url_bar_hint_fading_edge : null}"
+                android:foreground="@{isUrlEmpty ? (isPrivateMode ? @drawable/url_bar_hint_fading_edge_private : @drawable/url_bar_hint_fading_edge) : null}"
                 android:foregroundGravity="fill_vertical|right"
                 android:ems="10"
                 android:fadingEdgeLength="40dp"
