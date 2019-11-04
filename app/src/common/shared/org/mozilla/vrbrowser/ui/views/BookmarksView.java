@@ -214,13 +214,21 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
 
         @Override
         public void onFxALogin(@NonNull View view) {
-            mAccounts.getAuthenticationUrlAsync().thenAcceptAsync((url) -> {
-                if (url != null) {
-                    mAccounts.setLoginOrigin(Accounts.LoginOrigin.BOOKMARKS);
-                    WidgetManagerDelegate widgetManager = ((VRBrowserActivity)getContext());
-                    widgetManager.openNewTabForeground(url);
-                    widgetManager.getFocusedWindow().getSession().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_MOBILE);
-                }
+            if (mAccounts.getAccountStatus() == Accounts.AccountStatus.SIGNED_IN) {
+                mAccounts.logoutAsync();
+
+            } else {
+                mAccounts.authUrlAsync().thenAcceptAsync((url) -> {
+                    if (url == null) {
+                        mAccounts.logoutAsync();
+
+                    } else {
+                        mAccounts.setLoginOrigin(Accounts.LoginOrigin.BOOKMARKS);
+                        WidgetManagerDelegate widgetManager = ((VRBrowserActivity)getContext());
+                        widgetManager.openNewTabForeground(url);
+                        widgetManager.getFocusedWindow().getSession().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_MOBILE);
+                    }
+
             }, mUIThreadExecutor).exceptionally(throwable -> {
                 Log.d(LOGTAG, "Error getting the authentication URL: " + throwable.getLocalizedMessage());
                 throwable.printStackTrace();

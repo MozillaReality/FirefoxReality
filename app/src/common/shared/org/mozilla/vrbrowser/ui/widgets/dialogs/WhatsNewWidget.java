@@ -99,17 +99,20 @@ public class WhatsNewWidget extends UIDialog implements WidgetManagerDelegate.Wo
     }
 
     private void signIn(View view) {
-        mAccounts.getAuthenticationUrlAsync().thenAcceptAsync((url) -> {
-            if (url != null) {
-                mAccounts.setLoginOrigin(mLoginOrigin);
-                mWidgetManager.openNewTabForeground(url);
-                mWidgetManager.getFocusedWindow().getSession().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_VR);
-                mWidgetManager.getFocusedWindow().getSession().loadUri(url);
-            }
+        if (mAccounts.getAccountStatus() == Accounts.AccountStatus.SIGNED_IN) {
+            mAccounts.logoutAsync();
 
-            if (mSignInCallback != null) {
-                mSignInCallback.run();
-            }
+        } else {
+            mAccounts.authUrlAsync().thenAcceptAsync((url) -> {
+                if (url == null) {
+                    mAccounts.logoutAsync();
+
+                } else {
+                    mAccounts.setLoginOrigin(mLoginOrigin);
+                    mWidgetManager.openNewTabForeground(url);
+                    mWidgetManager.getFocusedWindow().getSession().loadUri(url);
+                    mWidgetManager.getFocusedWindow().getSession().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_VR);
+                }
 
         }, mUIThreadExecutor).exceptionally(throwable -> {
             Log.d(LOGTAG, "Error getting the authentication URL: " + throwable.getLocalizedMessage());
