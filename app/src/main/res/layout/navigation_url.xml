@@ -139,7 +139,7 @@
                         app:visibleGone="@{isPopUpAvailable}" />
 
                     <View
-                        android:layout_width="10dp"
+                        android:layout_width="15dp"
                         android:layout_height="match_parent"
                         app:visibleGone="@{!isPopUpAvailable}"/>
                 </LinearLayout>
@@ -170,7 +170,7 @@
 
             <View
                 android:id="@+id/padding"
-                android:layout_width="10dp"
+                android:layout_width="15dp"
                 android:layout_height="match_parent"
                 android:layout_toEndOf="@id/iconsLayout"
                 app:visibleGone="@{isLibraryVisible}"/>
