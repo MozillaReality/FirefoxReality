@@ -9,6 +9,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.Surface;
@@ -1233,7 +1234,13 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
                 mHistoryDelegate.onHistoryStateChange(aSession, historyList);
 
             } else {
-                mQueuedCalls.push(() -> mHistoryDelegate.onHistoryStateChange(aSession, historyList));
+                mQueuedCalls.add(() -> {
+                    new Handler(mContext.getMainLooper()).postDelayed(() -> {
+                        if (mHistoryDelegate != null) {
+                            mHistoryDelegate.onHistoryStateChange(aSession, historyList);
+                        }
+                    }, 100);
+                });
             }
         }
     }
@@ -1247,10 +1254,19 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
 
             } else {
                 final GeckoResult<Boolean> response = new GeckoResult<>();
-                mQueuedCalls.push(() -> Objects.requireNonNull(mHistoryDelegate.onVisited(aSession, url, lastVisitedURL, flags)).then(aBoolean -> {
-                    response.complete(aBoolean);
-                    return null;
-                }));
+                mQueuedCalls.add(() -> {
+                    if (mHistoryDelegate != null) {
+                        Objects.requireNonNull(mHistoryDelegate.onVisited(aSession, url, lastVisitedURL, flags)).then(aBoolean -> {
+                            response.complete(aBoolean);
+                            return null;
+
+                        }).exceptionally(throwable -> {
+                            Log.d(LOGTAG, "Null GeckoResult from onVisited");
+                            return null;
+                        });
+                    }
+                });
+
                 return response;
             }
         }
@@ -1267,10 +1283,18 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
 
             } else {
                 final GeckoResult<boolean[]> response = new GeckoResult<>();
-                mQueuedCalls.push(() -> Objects.requireNonNull(mHistoryDelegate.getVisited(aSession, urls)).then(aBoolean -> {
-                    response.complete(aBoolean);
-                    return null;
-                }));
+                mQueuedCalls.add(() -> {
+                    if (mHistoryDelegate != null) {
+                        Objects.requireNonNull(mHistoryDelegate.getVisited(aSession, urls)).then(aBoolean -> {
+                            response.complete(aBoolean);
+                            return null;
+
+                        }).exceptionally(throwable -> {
+                            Log.d(LOGTAG, "Null GeckoResult from getVisited");
+                            return null;
+                        });
+                    }
+                });
                 return response;
             }
         }
