@@ -51,6 +51,7 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static java.util.Objects.requireNonNull;
 import static org.mozilla.vrbrowser.utils.ServoUtils.createServoSession;
 import static org.mozilla.vrbrowser.utils.ServoUtils.isInstanceOfServoSession;
 import static org.mozilla.vrbrowser.utils.ServoUtils.isServoAvailable;
@@ -1256,14 +1257,19 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
                 final GeckoResult<Boolean> response = new GeckoResult<>();
                 mQueuedCalls.add(() -> {
                     if (mHistoryDelegate != null) {
-                        Objects.requireNonNull(mHistoryDelegate.onVisited(aSession, url, lastVisitedURL, flags)).then(aBoolean -> {
-                            response.complete(aBoolean);
-                            return null;
+                        try {
+                            requireNonNull(mHistoryDelegate.onVisited(aSession, url, lastVisitedURL, flags)).then(aBoolean -> {
+                                response.complete(aBoolean);
+                                return null;
 
-                        }).exceptionally(throwable -> {
-                            Log.d(LOGTAG, "Null GeckoResult from onVisited");
-                            return null;
-                        });
+                            }).exceptionally(throwable -> {
+                                Log.d(LOGTAG, "Null GeckoResult from onVisited");
+                                return null;
+                            });
+
+                        } catch (NullPointerException e) {
+                            e.printStackTrace();
+                        }
                     }
                 });
 
@@ -1285,14 +1291,19 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
                 final GeckoResult<boolean[]> response = new GeckoResult<>();
                 mQueuedCalls.add(() -> {
                     if (mHistoryDelegate != null) {
-                        Objects.requireNonNull(mHistoryDelegate.getVisited(aSession, urls)).then(aBoolean -> {
-                            response.complete(aBoolean);
-                            return null;
+                        try {
+                            requireNonNull(mHistoryDelegate.getVisited(aSession, urls)).then(aBoolean -> {
+                                response.complete(aBoolean);
+                                return null;
 
-                        }).exceptionally(throwable -> {
-                            Log.d(LOGTAG, "Null GeckoResult from getVisited");
-                            return null;
-                        });
+                            }).exceptionally(throwable -> {
+                                Log.d(LOGTAG, "Null GeckoResult from getVisited");
+                                return null;
+                            });
+
+                        } catch (NullPointerException e) {
+                            e.printStackTrace();
+                        }
                     }
                 });
                 return response;
