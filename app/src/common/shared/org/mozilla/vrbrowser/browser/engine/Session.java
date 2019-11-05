@@ -9,7 +9,6 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
-import android.graphics.SurfaceTexture;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.Surface;
@@ -47,6 +46,7 @@ import org.mozilla.vrbrowser.utils.SystemUtils;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.LinkedList;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -72,6 +72,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     private transient UserAgentOverride mUserAgentOverride;
 
     private SessionState mState;
+    private LinkedList<Runnable> mQueuedCalls = new LinkedList<>();
     private transient GeckoSession.PermissionDelegate mPermissionDelegate;
     private transient GeckoSession.PromptDelegate mPromptDelegate;
     private transient GeckoSession.HistoryDelegate mHistoryDelegate;
@@ -81,6 +82,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     private boolean mUsePrivateMode;
     private transient byte[] mPrivatePage;
     private boolean mIsActive;
+
 
     public interface BitmapChangedListener {
         void onBitmapChanged(Session aSession, Bitmap aBitmap);
@@ -163,6 +165,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
             }
         }
 
+        mQueuedCalls.clear();
         mNavigationListeners.clear();
         mProgressListeners.clear();
         mContentListeners.clear();
@@ -219,6 +222,13 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
 
     private void dumpState(VideoAvailabilityListener aListener) {
         aListener.onVideoAvailabilityChanged(mState.mMediaElements != null && mState.mMediaElements.size() > 0);
+    }
+
+    private void flushQueuedEvents() {
+        for (Runnable call: mQueuedCalls) {
+            call.run();
+        }
+        mQueuedCalls.clear();
     }
 
     public void setPermissionDelegate(GeckoSession.PermissionDelegate aDelegate) {
@@ -567,9 +577,15 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     }
 
     public void setActive(boolean aActive) {
+        // Flush the events queued while the session was inactive
+        if (mState.mSession != null && !mIsActive && aActive) {
+            flushQueuedEvents();
+        }
+
         if (mState.mSession != null) {
             mState.mSession.setActive(aActive);
         }
+
         mIsActive = aActive;
 
         for (SessionChangeListener listener: mSessionChangeListeners) {
@@ -1212,16 +1228,31 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
 
     @Override
     public void onHistoryStateChange(@NonNull GeckoSession aSession, @NonNull GeckoSession.HistoryDelegate.HistoryList historyList) {
-        if (mState.mSession == aSession && mHistoryDelegate != null) {
-            mHistoryDelegate.onHistoryStateChange(aSession, historyList);
+        if (mState.mSession == aSession) {
+            if (mHistoryDelegate != null) {
+                mHistoryDelegate.onHistoryStateChange(aSession, historyList);
+
+            } else {
+                mQueuedCalls.push(() -> mHistoryDelegate.onHistoryStateChange(aSession, historyList));
+            }
         }
     }
 
     @Nullable
     @Override
     public GeckoResult<Boolean> onVisited(@NonNull GeckoSession aSession, @NonNull String url, @Nullable String lastVisitedURL, int flags) {
-        if (mState.mSession == aSession && mHistoryDelegate != null) {
-            return mHistoryDelegate.onVisited(aSession, url, lastVisitedURL, flags);
+        if (mState.mSession == aSession) {
+            if (mHistoryDelegate != null) {
+                return mHistoryDelegate.onVisited(aSession, url, lastVisitedURL, flags);
+
+            } else {
+                final GeckoResult<Boolean> response = new GeckoResult<>();
+                mQueuedCalls.push(() -> Objects.requireNonNull(mHistoryDelegate.onVisited(aSession, url, lastVisitedURL, flags)).then(aBoolean -> {
+                    response.complete(aBoolean);
+                    return null;
+                }));
+                return response;
+            }
         }
 
         return GeckoResult.fromValue(false);
@@ -1230,8 +1261,18 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     @UiThread
     @Nullable
     public GeckoResult<boolean[]> getVisited(@NonNull GeckoSession aSession, @NonNull String[] urls) {
-        if (mState.mSession == aSession && mHistoryDelegate != null) {
-            return mHistoryDelegate.getVisited(aSession, urls);
+        if (mState.mSession == aSession) {
+            if (mHistoryDelegate != null) {
+                return mHistoryDelegate.getVisited(aSession, urls);
+
+            } else {
+                final GeckoResult<boolean[]> response = new GeckoResult<>();
+                mQueuedCalls.push(() -> Objects.requireNonNull(mHistoryDelegate.getVisited(aSession, urls)).then(aBoolean -> {
+                    response.complete(aBoolean);
+                    return null;
+                }));
+                return response;
+            }
         }
 
         return GeckoResult.fromValue(new boolean[]{});
