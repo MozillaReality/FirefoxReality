@@ -241,19 +241,12 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
     private SyncStatusObserver mSyncListener = new SyncStatusObserver() {
         @Override
         public void onStarted() {
-            boolean isSyncEnabled = mAccounts.isEngineEnabled(SyncEngine.Bookmarks.INSTANCE);
-            mBinding.setIsSyncEnabled(isSyncEnabled);
-            mBinding.setIsSyncing(true);
-            mBinding.executePendingBindings();
+            updateSyncBindings(true);
         }
 
         @Override
         public void onIdle() {
-            mBinding.setIsSyncing(false);
-            if (mAccounts.isEngineEnabled(SyncEngine.Bookmarks.INSTANCE)) {
-                mBinding.setLastSync(mAccounts.lastSync());
-            }
-            mBinding.executePendingBindings();
+            updateSyncBindings(false);
 
             // This shouldn't be necessary but for some reason the buttons stays hovered after the sync.
             // I guess Android is after enabling it it's state is restored to the latest one (hovered)
@@ -264,11 +257,19 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
 
         @Override
         public void onError(@Nullable Exception e) {
-            mBinding.setIsSyncing(false);
-            mBinding.setIsSyncEnabled(mAccounts.isEngineEnabled(SyncEngine.Bookmarks.INSTANCE));
-            mBinding.executePendingBindings();
+            updateSyncBindings(false);
         }
     };
+
+    private void updateSyncBindings(boolean isSyncing) {
+        boolean isSyncEnabled = mAccounts.isEngineEnabled(SyncEngine.Bookmarks.INSTANCE);
+        mBinding.setIsSyncEnabled(isSyncEnabled);
+        if (isSyncEnabled) {
+            mBinding.setIsSyncing(isSyncing);
+            mBinding.setLastSync(mAccounts.lastSync());
+        }
+        mBinding.executePendingBindings();
+    }
 
     private AccountObserver mAccountListener = new AccountObserver() {
 

@@ -234,19 +234,12 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
     private SyncStatusObserver mSyncListener = new SyncStatusObserver() {
         @Override
         public void onStarted() {
-            boolean isSyncEnabled = mAccounts.isEngineEnabled(SyncEngine.History.INSTANCE);
-            mBinding.setIsSyncEnabled(isSyncEnabled);
-            mBinding.setIsSyncing(true);
-            mBinding.executePendingBindings();
+            updateSyncBindings(true);
         }
 
         @Override
         public void onIdle() {
-            mBinding.setIsSyncing(false);
-            if (mAccounts.isEngineEnabled(SyncEngine.History.INSTANCE)) {
-                mBinding.setLastSync(mAccounts.lastSync());
-            }
-            mBinding.executePendingBindings();
+            updateSyncBindings(false);
 
             // This shouldn't be necessary but for some reason the buttons stays hovered after the sync.
             // I guess Android is after enabling it it's state is restored to the latest one (hovered)
@@ -257,11 +250,19 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
 
         @Override
         public void onError(@Nullable Exception e) {
-            mBinding.setIsSyncing(false);
-            mBinding.setIsSyncEnabled(mAccounts.isEngineEnabled(SyncEngine.History.INSTANCE));
-            mBinding.executePendingBindings();
+            updateSyncBindings(false);
         }
     };
+
+    private void updateSyncBindings(boolean isSyncing) {
+        boolean isSyncEnabled = mAccounts.isEngineEnabled(SyncEngine.History.INSTANCE);
+        mBinding.setIsSyncEnabled(isSyncEnabled);
+        if (isSyncEnabled) {
+            mBinding.setIsSyncing(isSyncing);
+            mBinding.setLastSync(mAccounts.lastSync());
+        }
+        mBinding.executePendingBindings();
+    }
 
     private AccountObserver mAccountListener = new AccountObserver() {
 
