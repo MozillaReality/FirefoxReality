@@ -120,9 +120,6 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
         updateHistory();
         SessionStore.get().getHistoryStore().addListener(this);
 
-        mBinding.setIsSignedIn(mAccounts.isSignedIn());
-        mBinding.setIsSyncEnabled(mAccounts.isEngineEnabled(SyncEngine.History.INSTANCE));
-
         setVisibility(GONE);
 
         setOnTouchListener((v, event) -> {

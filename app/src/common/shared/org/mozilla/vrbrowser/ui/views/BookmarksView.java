@@ -121,9 +121,6 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
         updateBookmarks();
         SessionStore.get().getBookmarkStore().addListener(this);
 
-        mBinding.setIsSignedIn(mAccounts.isSignedIn());
-        mBinding.setIsSyncEnabled(mAccounts.isEngineEnabled(SyncEngine.Bookmarks.INSTANCE));
-
         setVisibility(GONE);
 
         setOnTouchListener((v, event) -> {
