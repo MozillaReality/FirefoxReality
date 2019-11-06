@@ -108,7 +108,12 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
         mAccounts.addSyncListener(mSyncListener);
 
         mBinding.setIsSignedIn(mAccounts.isSignedIn());
-        mBinding.setIsSyncEnabled(mAccounts.isEngineEnabled(SyncEngine.History.INSTANCE));
+        boolean isSyncEnabled = mAccounts.isEngineEnabled(SyncEngine.History.INSTANCE);
+        mBinding.setIsSyncEnabled(isSyncEnabled);
+        if (isSyncEnabled) {
+            mBinding.setLastSync(mAccounts.lastSync());
+            mBinding.setIsSyncing(mAccounts.isSyncing());
+        }
         mBinding.setIsNarrow(false);
         mBinding.executePendingBindings();
 
@@ -245,6 +250,12 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
                 mBinding.setLastSync(mAccounts.lastSync());
             }
             mBinding.executePendingBindings();
+
+            // This shouldn't be necessary but for some reason the buttons stays hovered after the sync.
+            // I guess Android is after enabling it it's state is restored to the latest one (hovered)
+            // Probably an Android bindings bug.
+            mBinding.historyNarrow.syncButton.setHovered(false);
+            mBinding.historyWide.syncButton.setHovered(false);
         }
 
         @Override
