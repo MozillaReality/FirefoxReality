@@ -2,6 +2,12 @@
 <layout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools">
+    <data>
+        <variable
+            name="isSyncing"
+            type="boolean" />
+    </data>
+
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
@@ -74,6 +80,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginLeft="50dp"
+                    android:enabled="@{!isSyncing}"
                     app:description="@string/fxa_account_options_bookmarks_sync"
                     app:on_text="@string/sync"
                     app:off_text="@string/do_not_sync"/>
@@ -83,6 +90,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginLeft="50dp"
+                    android:enabled="@{!isSyncing}"
                     app:description="@string/fxa_account_options_history_sync"
                     app:on_text="@string/sync"
                     app:off_text="@string/do_not_sync"/>
