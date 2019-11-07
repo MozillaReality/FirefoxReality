@@ -194,7 +194,7 @@ class FxAAccountOptionsView extends SettingsView {
     }
 
     private void sync(View view) {
-        mAccounts.syncNowAsync(SyncReason.User.INSTANCE, true);
+        mAccounts.syncNowAsync(SyncReason.User.INSTANCE, false);
     }
 
     private AccountObserver mAccountListener = new AccountObserver() {
