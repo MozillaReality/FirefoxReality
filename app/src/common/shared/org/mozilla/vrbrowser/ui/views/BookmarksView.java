@@ -107,8 +107,10 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
         mBinding.setIsLoading(true);
 
         mAccounts = ((VRBrowserApplication)getContext().getApplicationContext()).getAccounts();
-        mAccounts.addAccountListener(mAccountListener);
-        mAccounts.addSyncListener(mSyncListener);
+        if (ACCOUNTS_UI_ENABLED) {
+            mAccounts.addAccountListener(mAccountListener);
+            mAccounts.addSyncListener(mSyncListener);
+        }
 
         mBinding.setIsSignedIn(mAccounts.isSignedIn());
         boolean isSyncEnabled = mAccounts.isEngineEnabled(SyncEngine.Bookmarks.INSTANCE);
@@ -138,8 +140,11 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
 
     public void onDestroy() {
         SessionStore.get().getBookmarkStore().removeListener(this);
-        mAccounts.removeAccountListener(mAccountListener);
-        mAccounts.removeSyncListener(mSyncListener);
+
+        if (ACCOUNTS_UI_ENABLED) {
+            mAccounts.removeAccountListener(mAccountListener);
+            mAccounts.removeSyncListener(mSyncListener);
+        }
     }
 
     private final BookmarkItemCallback mBookmarkItemCallback = new BookmarkItemCallback() {

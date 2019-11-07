@@ -110,8 +110,10 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
         mBinding.setIsLoading(true);
 
         mAccounts = ((VRBrowserApplication)getContext().getApplicationContext()).getAccounts();
-        mAccounts.addAccountListener(mAccountListener);
-        mAccounts.addSyncListener(mSyncListener);
+        if (ACCOUNTS_UI_ENABLED) {
+            mAccounts.addAccountListener(mAccountListener);
+            mAccounts.addSyncListener(mSyncListener);
+        }
 
         mBinding.setIsSignedIn(mAccounts.isSignedIn());
         boolean isSyncEnabled = mAccounts.isEngineEnabled(SyncEngine.History.INSTANCE);
@@ -137,8 +139,11 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
 
     public void onDestroy() {
         SessionStore.get().getHistoryStore().removeListener(this);
-        mAccounts.removeAccountListener(mAccountListener);
-        mAccounts.removeSyncListener(mSyncListener);
+
+        if (ACCOUNTS_UI_ENABLED) {
+            mAccounts.removeAccountListener(mAccountListener);
+            mAccounts.removeSyncListener(mSyncListener);
+        }
     }
 
     public void onShow() {
