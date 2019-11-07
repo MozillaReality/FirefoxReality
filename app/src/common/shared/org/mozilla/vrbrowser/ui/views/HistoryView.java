@@ -62,6 +62,8 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
 
     private static final String LOGTAG = SystemUtils.createLogtag(HistoryView.class);
 
+    private static final boolean ACCOUNTS_UI_ENABLED = false;
+
     private HistoryBinding mBinding;
     private Accounts mAccounts;
     private HistoryAdapter mHistoryAdapter;
@@ -119,6 +121,7 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
             mBinding.setIsSyncing(mAccounts.isSyncing());
         }
         mBinding.setIsNarrow(false);
+        mBinding.setIsAccountsUIEnabled(ACCOUNTS_UI_ENABLED);
         mBinding.executePendingBindings();
 
         updateHistory();
@@ -246,7 +249,7 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
             updateSyncBindings(false);
 
             // This shouldn't be necessary but for some reason the buttons stays hovered after the sync.
-            // I guess Android is after enabling it it's state is restored to the latest one (hovered)
+            // I guess Android restoring it to the latest state (hovered) before being disabled
             // Probably an Android bindings bug.
             mBinding.historyNarrow.syncButton.setHovered(false);
             mBinding.historyWide.syncButton.setHovered(false);

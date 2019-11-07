@@ -56,6 +56,8 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
 
     private static final String LOGTAG = SystemUtils.createLogtag(BookmarksView.class);
 
+    private static final boolean ACCOUNTS_UI_ENABLED = false;
+
     private BookmarksBinding mBinding;
     private Accounts mAccounts;
     private BookmarkAdapter mBookmarkAdapter;
@@ -116,6 +118,7 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
             mBinding.setIsSyncing(mAccounts.isSyncing());
         }
         mBinding.setIsNarrow(false);
+        mBinding.setIsAccountsUIEnabled(ACCOUNTS_UI_ENABLED);
         mBinding.executePendingBindings();
 
         updateBookmarks();
@@ -249,7 +252,7 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
             updateSyncBindings(false);
 
             // This shouldn't be necessary but for some reason the buttons stays hovered after the sync.
-            // I guess Android is after enabling it it's state is restored to the latest one (hovered)
+            // I guess Android restoring it to the latest state (hovered) before being disabled
             // Probably an Android bindings bug.
             mBinding.bookmarksNarrow.syncButton.setHovered(false);
             mBinding.bookmarksWide.syncButton.setHovered(false);
