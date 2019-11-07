@@ -92,8 +92,8 @@
             app:visibleGone="@{!isLoading &amp;&amp; isEmpty}">
 
             <ImageView
-                android:layout_width="75dp"
-                android:layout_height="75dp"
+                android:layout_width="@{isNarrow ? @dimen/library_icon_size_narrow : @dimen/library_icon_size_wide, default=wrap_content}"
+                android:layout_height="@{isNarrow ? @dimen/library_icon_size_narrow : @dimen/library_icon_size_wide, default=wrap_content}"
                 android:src="@drawable/ic_icon_history"
                 app:srcCompat="@drawable/ic_icon_history" />
 

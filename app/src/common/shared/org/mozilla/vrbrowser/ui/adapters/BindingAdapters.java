@@ -7,6 +7,7 @@ import android.text.SpannableString;
 import android.text.style.ImageSpan;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.DimenRes;
@@ -138,5 +139,19 @@ public class BindingAdapters {
                 view.setDescription(view.getContext().getString(R.string.fxa_account_last_synced, timeDiff / 60000));
             }
         }
+    }
+
+    @BindingAdapter("android:layout_height")
+    public static void setLayoutHeight(@NonNull ImageView view, @NonNull @Dimension float dimen) {
+        ViewGroup.LayoutParams params = view.getLayoutParams();
+        params.width = (int)dimen;
+        view.setLayoutParams(params);
+    }
+
+    @BindingAdapter("android:layout_width")
+    public static void setLayoutWidth(@NonNull ImageView view, @NonNull @Dimension float dimen) {
+        ViewGroup.LayoutParams params = view.getLayoutParams();
+        params.height = (int)dimen;
+        view.setLayoutParams(params);
     }
 }
