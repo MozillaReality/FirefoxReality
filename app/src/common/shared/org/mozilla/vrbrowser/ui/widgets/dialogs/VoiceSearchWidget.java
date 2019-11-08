@@ -343,7 +343,7 @@ public class VoiceSearchWidget extends UIDialog implements WidgetManagerDelegate
         mVoiceSearchSearching.setVisibility(View.INVISIBLE);
 
         stopVoiceSearch();
-        startVoiceSearch();
+        post(this::startVoiceSearch);
     }
 
     private void setPermissionNotGranted() {
