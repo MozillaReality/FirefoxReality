@@ -53,6 +53,20 @@ class Services(context: Context, places: Places): GeckoSession.NavigationDelegat
 
         GlobalSyncableStoreProvider.configureStore(SyncEngine.Bookmarks to places.bookmarks)
         GlobalSyncableStoreProvider.configureStore(SyncEngine.History to places.history)
+
+        // TODO this really shouldn't be necessary, since WorkManager auto-initializes itself, unless
+        // auto-initialization is disabled in the manifest file. We don't disable the initialization,
+        // but i'm seeing crashes locally because WorkManager isn't initialized correctly...
+        // Maybe this is a race of sorts? We're trying to access it before it had a chance to auto-initialize?
+        // It's not well-documented _when_ that auto-initialization is supposed to happen.
+
+        // For now, let's just manually initialize it here, and swallow failures (it's already initialized).
+        try {
+            WorkManager.initialize(
+                    context,
+                    Configuration.Builder().setMinimumLoggingLevel(android.util.Log.INFO).build()
+            )
+        } catch (e: IllegalStateException) {}
     }
 
     // Process received device events, only handling received tabs for now.
