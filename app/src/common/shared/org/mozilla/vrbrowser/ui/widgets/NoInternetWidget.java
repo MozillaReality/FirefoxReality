@@ -11,7 +11,7 @@ import android.widget.Button;
 
 import org.mozilla.vrbrowser.R;
 
-public class NoInternetWidget extends UIWidget {
+public class NoInternetWidget extends UIWidget implements WidgetManagerDelegate.WorldClickListener {
 
     private Button mAcceptButton;
 
@@ -52,6 +52,29 @@ public class NoInternetWidget extends UIWidget {
         aPlacement.parentAnchorY = 0.5f;
         aPlacement.opaque = false;
         aPlacement.visible = false;
+    }
+
+    @Override
+    public void show(int aShowFlags) {
+        super.show(aShowFlags);
+
+        mWidgetManager.addWorldClickListener(this);
+        mWidgetManager.pushWorldBrightness(this, WidgetManagerDelegate.DEFAULT_DIM_BRIGHTNESS);
+    }
+
+    @Override
+    public void hide(int aHideFlags) {
+        super.hide(aHideFlags);
+
+        mWidgetManager.popWorldBrightness(this);
+        mWidgetManager.removeWorldClickListener(this);
+    }
+
+    // WidgetManagerDelegate.WorldClickListener
+
+    @Override
+    public void onWorldClick() {
+        onDismiss();
     }
 
 }
