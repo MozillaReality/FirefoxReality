@@ -42,6 +42,7 @@ import java.util.Comparator;
 import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
@@ -215,22 +216,26 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
                 mAccounts.logoutAsync();
 
             } else {
-                mAccounts.authUrlAsync().thenAcceptAsync((url) -> {
-                    if (url == null) {
-                        mAccounts.logoutAsync();
+                CompletableFuture<String> result = mAccounts.authUrlAsync();
+                if (result != null) {
+                    result.thenAcceptAsync((url) -> {
+                        if (url == null) {
+                            mAccounts.logoutAsync();
 
-                    } else {
-                        mAccounts.setLoginOrigin(Accounts.LoginOrigin.HISTORY);
-                        WidgetManagerDelegate widgetManager = ((VRBrowserActivity)getContext());
-                        widgetManager.openNewTabForeground(url);
-                        widgetManager.getFocusedWindow().getSession().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_MOBILE);
-                    }
+                        } else {
+                            mAccounts.setLoginOrigin(Accounts.LoginOrigin.HISTORY);
+                            WidgetManagerDelegate widgetManager = ((VRBrowserActivity) getContext());
+                            widgetManager.openNewTabForeground(url);
+                            widgetManager.getFocusedWindow().getSession().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_MOBILE);
+                        }
 
-            }, mUIThreadExecutor).exceptionally(throwable -> {
-                Log.d(LOGTAG, "Error getting the authentication URL: " + throwable.getLocalizedMessage());
-                throwable.printStackTrace();
-                return null;
-            });
+                    }, mUIThreadExecutor).exceptionally(throwable -> {
+                        Log.d(LOGTAG, "Error getting the authentication URL: " + throwable.getLocalizedMessage());
+                        throwable.printStackTrace();
+                        return null;
+                    });
+                }
+            }
         }
 
         @Override

@@ -48,6 +48,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
 import mozilla.components.concept.sync.AccountObserver;
@@ -284,23 +285,27 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
                 if (mAccounts.getAccountStatus() == Accounts.AccountStatus.SIGNED_IN) {
                     mAccounts.logoutAsync();
 
-                    mAccounts.authUrlAsync().thenAcceptAsync((url) -> {
                 } else {
-                        if (url == null) {
+                    CompletableFuture<String> result = mAccounts.authUrlAsync();
+                    if (result != null) {
+                        result.thenAcceptAsync((url) -> {
+                            if (url == null) {
+                                mAccounts.logoutAsync();
 
-                            mAccounts.logoutAsync();
-                        } else {
-                            mAccounts.setLoginOrigin(Accounts.LoginOrigin.SETTINGS);
-                            widgetManager.openNewTabForeground(url);
-                            WidgetManagerDelegate widgetManager = ((VRBrowserActivity)getContext());
-                            widgetManager.getFocusedWindow().getSession().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_MOBILE);
-                        }
+                            } else {
+                                mAccounts.setLoginOrigin(Accounts.LoginOrigin.SETTINGS);
+                                mWidgetManager.openNewTabForeground(url);
+                                WidgetManagerDelegate widgetManager = ((VRBrowserActivity)getContext());
+                                widgetManager.getFocusedWindow().getSession().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_MOBILE);
+                            }
 
-                }, mUIThreadExecutor).exceptionally(throwable -> {
-                    Log.d(LOGTAG, "Error getting the authentication URL: " + throwable.getLocalizedMessage());
-                    throwable.printStackTrace();
-                    return null;
-                });
+                        }, mUIThreadExecutor).exceptionally(throwable -> {
+                            Log.d(LOGTAG, "Error getting the authentication URL: " + throwable.getLocalizedMessage());
+                            throwable.printStackTrace();
+                            return null;
+                        });
+                    }
+                }
                 break;
 
             case SIGNED_IN:

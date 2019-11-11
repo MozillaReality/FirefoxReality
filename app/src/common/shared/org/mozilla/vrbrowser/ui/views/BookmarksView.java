@@ -40,6 +40,7 @@ import org.mozilla.vrbrowser.utils.SystemUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
 import mozilla.appservices.places.BookmarkRoot;
@@ -218,22 +219,26 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
                 mAccounts.logoutAsync();
 
             } else {
-                mAccounts.authUrlAsync().thenAcceptAsync((url) -> {
-                    if (url == null) {
-                        mAccounts.logoutAsync();
+                CompletableFuture<String> result = mAccounts.authUrlAsync();
+                if (result != null) {
+                    result.thenAcceptAsync((url) -> {
+                        if (url == null) {
+                            mAccounts.logoutAsync();
 
-                    } else {
-                        mAccounts.setLoginOrigin(Accounts.LoginOrigin.BOOKMARKS);
-                        WidgetManagerDelegate widgetManager = ((VRBrowserActivity)getContext());
-                        widgetManager.openNewTabForeground(url);
-                        widgetManager.getFocusedWindow().getSession().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_MOBILE);
-                    }
+                        } else {
+                            mAccounts.setLoginOrigin(Accounts.LoginOrigin.BOOKMARKS);
+                            WidgetManagerDelegate widgetManager = ((VRBrowserActivity) getContext());
+                            widgetManager.openNewTabForeground(url);
+                            widgetManager.getFocusedWindow().getSession().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_MOBILE);
+                        }
 
-            }, mUIThreadExecutor).exceptionally(throwable -> {
-                Log.d(LOGTAG, "Error getting the authentication URL: " + throwable.getLocalizedMessage());
-                throwable.printStackTrace();
-                return null;
-            });
+                    }, mUIThreadExecutor).exceptionally(throwable -> {
+                        Log.d(LOGTAG, "Error getting the authentication URL: " + throwable.getLocalizedMessage());
+                        throwable.printStackTrace();
+                        return null;
+                    });
+                }
+            }
         }
 
         @Override

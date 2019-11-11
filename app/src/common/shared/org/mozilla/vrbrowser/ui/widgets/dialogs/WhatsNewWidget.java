@@ -23,6 +23,7 @@ import org.mozilla.vrbrowser.databinding.WhatsNewBinding;
 import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
 import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
 public class WhatsNewWidget extends UIDialog implements WidgetManagerDelegate.WorldClickListener {
@@ -103,28 +104,30 @@ public class WhatsNewWidget extends UIDialog implements WidgetManagerDelegate.Wo
             mAccounts.logoutAsync();
 
         } else {
-            mAccounts.authUrlAsync().thenAcceptAsync((url) -> {
-                if (url == null) {
-                    mAccounts.logoutAsync();
+            CompletableFuture<String> result = mAccounts.authUrlAsync();
+            if (result != null) {
+                result.thenAcceptAsync((url) -> {
+                    if (url == null) {
+                        mAccounts.logoutAsync();
 
-                } else {
-                    mAccounts.setLoginOrigin(mLoginOrigin);
-                    mWidgetManager.openNewTabForeground(url);
-                    mWidgetManager.getFocusedWindow().getSession().loadUri(url);
-                    mWidgetManager.getFocusedWindow().getSession().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_VR);
-                }
+                    } else {
+                        mAccounts.setLoginOrigin(mLoginOrigin);
+                        mWidgetManager.openNewTabForeground(url);
+                        mWidgetManager.getFocusedWindow().getSession().loadUri(url);
+                        mWidgetManager.getFocusedWindow().getSession().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_VR);
+                    }
 
-                if (mSignInCallback != null) {
-                    mSignInCallback.run();
-                }
+                    if (mSignInCallback != null) {
+                        mSignInCallback.run();
+                    }
 
-            }, new UIThreadExecutor());
+                }, mUIThreadExecutor).exceptionally(throwable -> {
+                    Log.d(LOGTAG, "Error getting the authentication URL: " + throwable.getLocalizedMessage());
+                    throwable.printStackTrace();
+                    return null;
+                });
+            }
         }
-        }, mUIThreadExecutor).exceptionally(throwable -> {
-            Log.d(LOGTAG, "Error getting the authentication URL: " + throwable.getLocalizedMessage());
-            throwable.printStackTrace();
-            return null;
-        });
     }
 
     private void startBrowsing(View view) {
