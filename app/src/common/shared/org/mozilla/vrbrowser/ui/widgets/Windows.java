@@ -256,6 +256,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             return null;
         }
 
+        aSession.setActive(true);
         WindowWidget newWindow = createWindow(aSession);
         newWindow.getPlacement().width = aState.textureWidth;
         newWindow.getPlacement().height = aState.textureHeight;
@@ -609,7 +610,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         if (windowsState != null) {
             ArrayList<Session> restoredSessions = new ArrayList<>();
             if (windowsState.tabs != null) {
-                windowsState.tabs.forEach(state -> restoredSessions.add(SessionStore.get().createSession(state)));
+                windowsState.tabs.forEach(state -> restoredSessions.add(SessionStore.get().createSuspendedSession(state)));
             }
             mPrivateMode = false;
             for (WindowState windowState : windowsState.regularWindowsState) {
@@ -973,6 +974,19 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         }
     }
 
+    private void setFirstPaint(@NonNull final WindowWidget aWindow, @NonNull final Session aSession) {
+        if (aSession.getGeckoSession() == null) {
+            aWindow.setFirstPaintReady(false);
+            aWindow.setFirstDrawCallback(() -> {
+                if (!aWindow.isFirstPaintReady()) {
+                    aWindow.setFirstPaintReady(true);
+                    mWidgetManager.updateWidget(aWindow);
+                }
+            });
+            mWidgetManager.updateWidget(aWindow);
+        }
+    }
+
     // TopBarWidget Delegate
     @Override
     public void onCloseClicked(TopBarWidget aWidget) {
@@ -1124,10 +1138,11 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             targetWindow.setSession(moveFrom);
             SessionStore.get().setActiveSession(targetWindow.getSession());
 
-        } else{
+        } else {
+            setFirstPaint(targetWindow, aTab);
             targetWindow.getSession().setActive(false);
+            aTab.setActive(true);
             targetWindow.setSession(aTab);
-            targetWindow.getSession().setActive(true);
             SessionStore.get().setActiveSession(aTab);
         }
     }
@@ -1136,16 +1151,9 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         addTab(targetWindow, null);
     }
 
-    public void addTab(WindowWidget targetWindow, @Nullable String aUri) {
+    public void addTab(@NotNull WindowWidget targetWindow, @Nullable String aUri) {
         Session session = SessionStore.get().createSession(targetWindow.getSession().isPrivateMode());
-        targetWindow.setFirstPaintReady(false);
-        targetWindow.setFirstDrawCallback(() -> {
-            if (!targetWindow.isFirstPaintReady()) {
-                targetWindow.setFirstPaintReady(true);
-                mWidgetManager.updateWidget(targetWindow);
-            }
-        });
-        mWidgetManager.updateWidget(targetWindow);
+        setFirstPaint(targetWindow, session);
         targetWindow.getSession().setActive(false);
         targetWindow.setSession(session);
         if (aUri == null || aUri.isEmpty()) {
@@ -1157,8 +1165,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
     }
 
     public void addBackgroundTab(WindowWidget targetWindow, String aUri) {
-        Session session = SessionStore.get().createSession(targetWindow.getSession().isPrivateMode());
-        session.loadUri(aUri);
+        Session session = SessionStore.get().createSuspendedSession(aUri, targetWindow.getSession().isPrivateMode());
         session.updateLastUse();
         mFocusedWindow.getSession().updateLastUse();
         mWidgetManager.getTray().showTabAddedNotification();
@@ -1206,8 +1213,13 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             }
             if (available.size() > 0) {
                 // Window contains a closed tab and we have a tab available from the list
-                window.setSession(available.get(0));
-                window.getSession().setActive(true);
+                Session tab = available.get(0);
+                if (tab != null) {
+                    setFirstPaint(window, tab);
+                    tab.setActive(true);
+                    window.setSession(tab);
+                }
+
                 available.remove(0);
             } else {
                 // We don't have more tabs available for the front window, load home.

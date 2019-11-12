@@ -84,8 +84,8 @@ public class SessionState {
                             out.name("mRegion").value(session.mRegion);
                             out.name("mId").value(session.mId);
                             out.name("mParentId").value(session.mParentId);
-                            if (session.mSession != null) {
-                                if (session.mSession.getSettings().getUsePrivateMode()) {
+                            if (session.mSettings != null) {
+                                if (session.mSettings.isPrivateBrowsingEnabled()) {
                                     out.name("mSessionState").jsonValue(null);
 
                                 } else {
