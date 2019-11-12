@@ -366,6 +366,7 @@ public class NavigationURLBar extends FrameLayout {
         }
 
         mBinding.urlEditText.addTextChangedListener(mURLTextWatcher);
+        requestFocus();
     }
 
     private boolean isEmptyUrl(@NonNull String aURL) {
