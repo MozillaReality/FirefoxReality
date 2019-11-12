@@ -52,6 +52,7 @@ import org.mozilla.vrbrowser.crashreporting.GlobalExceptionHandler;
 import org.mozilla.vrbrowser.geolocation.GeolocationWrapper;
 import org.mozilla.vrbrowser.input.MotionEventGenerator;
 import org.mozilla.vrbrowser.search.SearchEngineWrapper;
+import org.mozilla.vrbrowser.telemetry.GleanMetricsService;
 import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
 import org.mozilla.vrbrowser.ui.OffscreenDisplay;
 import org.mozilla.vrbrowser.ui.widgets.KeyboardWidget;
@@ -380,9 +381,11 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
 
         if (SettingsStore.getInstance(this).getCylinderDensity() > 0.0f) {
             TelemetryWrapper.queueCurvedModeActiveEvent();
+        } else {
         }
 
         TelemetryWrapper.stop();
+        GleanMetricsService.sessionStop();
     }
 
     @Override
@@ -918,6 +921,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         mIsPresentingImmersive = true;
         mWindows.enterImmersiveMode();
         TelemetryWrapper.startImmersive();
+        GleanMetricsService.startImmersive();
         PauseCompositorRunnable runnable = new PauseCompositorRunnable();
 
         synchronized (this) {
@@ -944,6 +948,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         resetUIYaw();
 
         TelemetryWrapper.uploadImmersiveToHistogram();
+        GleanMetricsService.stopImmersive();
         Handler handler = new Handler(Looper.getMainLooper());
         handler.postDelayed(() -> {
             mWindows.resumeCompositor();

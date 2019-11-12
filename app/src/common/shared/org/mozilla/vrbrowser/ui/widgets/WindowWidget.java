@@ -40,6 +40,7 @@ import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.browser.VideoAvailabilityListener;
 import org.mozilla.vrbrowser.browser.engine.Session;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
+import org.mozilla.vrbrowser.telemetry.GleanMetricsService;
 import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
 import org.mozilla.vrbrowser.ui.adapters.Bookmark;
 import org.mozilla.vrbrowser.ui.callbacks.BookmarksCallback;
@@ -202,6 +203,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         setFocusable(true);
 
         TelemetryWrapper.openWindowEvent(mWindowId);
+        GleanMetricsService.openWindowEvent(mWindowId);
 
         if (mSession.getGeckoSession() != null) {
             onCurrentSessionChange(null, mSession.getGeckoSession());
@@ -310,6 +312,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
 
     public void close() {
         TelemetryWrapper.closeWindowEvent(mWindowId);
+        GleanMetricsService.closeWindowEvent(mWindowId);
         hideContextMenus();
         releaseWidget();
         mBookmarksView.onDestroy();
