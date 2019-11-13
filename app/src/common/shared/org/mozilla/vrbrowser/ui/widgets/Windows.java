@@ -1137,8 +1137,8 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             // Move session between windows
             Session moveFrom = windowToMove.getSession();
             Session moveTo = targetWindow.getSession();
-            windowToMove.releaseDisplay(moveFrom.getGeckoSession());
-            targetWindow.releaseDisplay(moveTo.getGeckoSession());
+            moveFrom.surfaceDestroyed();
+            moveTo.surfaceDestroyed();
             windowToMove.setSession(moveTo);
             targetWindow.setSession(moveFrom);
             SessionStore.get().setActiveSession(targetWindow.getSession());

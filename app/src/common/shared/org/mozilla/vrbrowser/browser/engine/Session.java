@@ -82,7 +82,6 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     private transient SharedPreferences mPrefs;
     private transient GeckoRuntime mRuntime;
     private transient byte[] mPrivatePage;
-    private boolean mIsActive;
 
 
     public interface BitmapChangedListener {
@@ -139,6 +138,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
             if (mState.mSession.isOpen()) {
                 mState.mSession.close();
             }
+            mState.mDisplay = null;
             mState.mSession = null;
         }
 
@@ -325,7 +325,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     }
 
     public void suspend() {
-        if (mIsActive) {
+        if (mState.mIsActive) {
             Log.e(LOGTAG, "Active Sessions can not be suspended");
             return;
         }
@@ -333,7 +333,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
             return;
         }
         Log.d(LOGTAG, "Suspending Session: " + mState.mId);
-        closeSession(mState.mSession);
+        closeSession(mState);
         mState.mSession = null;
     }
 
@@ -351,7 +351,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         if (!mState.mSession.isOpen()) {
             mState.mSession.open(mRuntime);
         }
-        
+
         if (mState.mSessionState != null) {
             mState.mSession.restoreState(mState.mSessionState);
         }
@@ -364,7 +364,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
                 (mState.mSessionState != null && mState.mSessionState.size() == 0)) {
             loadHomePage();
         } else if (mState.mUri != null && mState.mUri.contains(".youtube.com")) {
-            mState.mSession.loadUri(mState.mUri);
+            mState.mSession.loadUri(mState.mUri, GeckoSession.LOAD_FLAGS_REPLACE_HISTORY);
         }
 
         dumpAllState();
@@ -414,7 +414,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
             mState.mSession.restoreState(previous.mSessionState);
         }
         if (previous.mSession != null) {
-            closeSession(previous.mSession);
+            closeSession(previous);
         }
 
         for (SessionChangeListener listener : mSessionChangeListeners) {
@@ -422,16 +422,27 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         }
     }
 
-    private void closeSession(@NonNull GeckoSession aSession) {
-        cleanSessionListeners(aSession);
-        aSession.setActive(false);
-        aSession.stop();
-        aSession.close();
-        mIsActive = false;
+    private void closeSession(@NonNull SessionState aState) {
+        if (aState.mSession == null) {
+            return;
+        }
+        cleanSessionListeners(aState.mSession);
+        aState.mSession.setActive(false);
+        aState.mSession.stop();
+        if (aState.mDisplay != null) {
+            aState.mDisplay.surfaceDestroyed();
+            aState.mSession.releaseDisplay(aState.mDisplay);
+            aState.mDisplay = null;
+        }
+        aState.mSession.close();
+        aState.mIsActive = false;
     }
 
-    public void captureBitmap(@NonNull GeckoDisplay aDisplay) {
-        aDisplay.capturePixels().then(bitmap -> {
+    public void captureBitmap() {
+        if (mState.mDisplay == null) {
+            return;
+        }
+        mState.mDisplay.capturePixels().then(bitmap -> {
             if (bitmap != null) {
                 BitmapCache.getInstance(mContext).scaleBitmap(bitmap, 500, 280).thenAccept(scaledBitmap -> {
                     BitmapCache.getInstance(mContext).addBitmap(getId(), scaledBitmap);
@@ -513,10 +524,16 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     }
 
     public String getCurrentUri() {
+        if (mState.mUri == null) {
+            return "";
+        }
         return mState.mUri;
     }
 
     public String getCurrentTitle() {
+        if (mState.mTitle == null) {
+            return "";
+        }
         return mState.mTitle;
     }
 
@@ -579,7 +596,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
 
     public void setActive(boolean aActive) {
         // Flush the events queued while the session was inactive
-        if (mState.mSession != null && !mIsActive && aActive) {
+        if (mState.mSession != null && !mState.mIsActive && aActive) {
             flushQueuedEvents();
         }
 
@@ -589,7 +606,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
             restore();
         }
 
-        mIsActive = aActive;
+        mState.mIsActive = aActive;
 
         for (SessionChangeListener listener: mSessionChangeListeners) {
             listener.onActiveStateChange(this, aActive);
@@ -643,7 +660,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
                 .build();
 
         mState = createSession(settings, SESSION_OPEN);
-        closeSession(previous.mSession);
+        closeSession(previous);
         loadUri(uri);
     }
 
@@ -688,7 +705,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     }
 
     public boolean isActive() {
-        return mIsActive;
+        return mState.mIsActive;
     }
 
     private static final String M_PREFIX = "m.";
@@ -1401,5 +1418,33 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
                 listener.onCanGoBack(this.getGeckoSession(), canGoBack());
             }
         }
+    }
+
+    // Display functions
+    public void releaseDisplay() {
+        surfaceDestroyed();
+        if (mState.mDisplay != null) {
+            if (mState.mSession != null) {
+                mState.mSession.releaseDisplay(mState.mDisplay);
+            }
+            mState.mDisplay = null;
+        }
+    }
+
+    public void surfaceDestroyed() {
+        if (mState.mDisplay != null) {
+            mState.mDisplay.surfaceDestroyed();
+        }
+    }
+
+    public void surfaceChanged(@NonNull final Surface surface, final int left, final int top,
+                               final int width, final int height) {
+        if (mState.mSession == null) {
+            return;
+        }
+        if (mState.mDisplay == null) {
+            mState.mDisplay = mState.mSession.acquireDisplay();
+        }
+        mState.mDisplay.surfaceChanged(surface, left, top, width, height);
     }
 }
