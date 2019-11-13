@@ -984,6 +984,11 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
                 }
             });
             mWidgetManager.updateWidget(aWindow);
+        } else {
+            // If the new session has a GeckoSession there won't be a first paint event.
+            // So trigger the first paint callback in case the window is grayed out
+            // waiting for the first paint event.
+            aWindow.onFirstContentfulPaint(aSession.getGeckoSession());
         }
     }
 
@@ -1152,9 +1157,10 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
     }
 
     public void addTab(@NotNull WindowWidget targetWindow, @Nullable String aUri) {
-        Session session = SessionStore.get().createSession(targetWindow.getSession().isPrivateMode());
+        Session session = SessionStore.get().createSuspendedSession(aUri, targetWindow.getSession().isPrivateMode());
         setFirstPaint(targetWindow, session);
         targetWindow.getSession().setActive(false);
+        session.setActive(true);
         targetWindow.setSession(session);
         if (aUri == null || aUri.isEmpty()) {
             session.loadHomePage();
