@@ -366,7 +366,6 @@ public class NavigationURLBar extends FrameLayout {
         }
 
         mBinding.urlEditText.addTextChangedListener(mURLTextWatcher);
-        requestFocus();
     }
 
     private boolean isEmptyUrl(@NonNull String aURL) {
@@ -409,6 +408,7 @@ public class NavigationURLBar extends FrameLayout {
 
     private void setIsBookmarked(boolean aValue) {
         mBinding.setIsBookmarked(aValue);
+        mBinding.bookmarkButton.clearFocus();
     }
 
     public void setPrivateMode(boolean isEnabled) {
