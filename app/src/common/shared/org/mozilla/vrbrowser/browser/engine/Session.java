@@ -60,6 +60,8 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         GeckoSession.SelectionActionDelegate, SharedPreferences.OnSharedPreferenceChangeListener, SessionChangeListener {
 
     private static final String LOGTAG = SystemUtils.createLogtag(Session.class);
+    private static UserAgentOverride sUserAgentOverride;
+
 
     private transient LinkedList<GeckoSession.NavigationDelegate> mNavigationListeners;
     private transient LinkedList<GeckoSession.ProgressDelegate> mProgressListeners;
@@ -69,7 +71,6 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     private transient LinkedList<VideoAvailabilityListener> mVideoAvailabilityListeners;
     private transient LinkedList<BitmapChangedListener> mBitmapChangedListeners;
     private transient LinkedList<GeckoSession.SelectionActionDelegate> mSelectionActionListeners;
-    private transient UserAgentOverride mUserAgentOverride;
 
     private SessionState mState;
     private LinkedList<Runnable> mQueuedCalls = new LinkedList<>();
@@ -141,9 +142,9 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         InternalPages.PageResources pageResources = InternalPages.PageResources.create(R.raw.private_mode, R.raw.private_style);
         mPrivatePage = InternalPages.createAboutPage(mContext, pageResources);
 
-        if (mUserAgentOverride == null) {
-            mUserAgentOverride = new UserAgentOverride();
-            mUserAgentOverride.loadOverridesFromAssets((Activity)mContext, mContext.getString(R.string.user_agent_override_file));
+        if (sUserAgentOverride == null) {
+            sUserAgentOverride = new UserAgentOverride();
+            sUserAgentOverride.loadOverridesFromAssets((Activity)mContext, mContext.getString(R.string.user_agent_override_file));
         }
     }
 
@@ -849,7 +850,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         if (aSession == mState.mSession) {
             Log.d(LOGTAG, "Testing for UA override");
 
-            final String userAgentOverride = mUserAgentOverride.lookupOverride(uri);
+            final String userAgentOverride = sUserAgentOverride.lookupOverride(uri);
             aSession.getSettings().setUserAgentOverride(userAgentOverride);
             if (mState.mSettings != null) {
                 mState.mSettings.setUserAgentOverride(userAgentOverride);
