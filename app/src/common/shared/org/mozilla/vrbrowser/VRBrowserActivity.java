@@ -281,6 +281,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
             public void onFocusedWindowChanged(@NonNull WindowWidget aFocusedWindow, @Nullable WindowWidget aPrevFocusedWindow) {
                 attachToWindow(aFocusedWindow, aPrevFocusedWindow);
                 mTray.setAddWindowVisible(mWindows.canOpenNewWindow());
+                mNavigationBar.hidePopUpsBlockedNotification();
             }
             @Override
             public void onWindowBorderChanged(@NonNull WindowWidget aChangeWindow) {
@@ -289,12 +290,14 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
 
             @Override
             public void onWindowsMoved() {
+                mNavigationBar.hidePopUpsBlockedNotification();
                 updateWidget(mTray);
             }
 
             @Override
             public void onWindowClosed() {
                 mTray.setAddWindowVisible(mWindows.canOpenNewWindow());
+                mNavigationBar.hidePopUpsBlockedNotification();
                 updateWidget(mTray);
             }
 
