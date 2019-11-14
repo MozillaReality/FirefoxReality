@@ -6,22 +6,24 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.PlatformActivity;
 import org.mozilla.vrbrowser.R;
-import org.mozilla.vrbrowser.ui.widgets.dialogs.PermissionWidget;
+import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
+import org.mozilla.vrbrowser.ui.widgets.dialogs.PermissionWidget;
+import org.mozilla.vrbrowser.utils.SystemUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-
-import androidx.annotation.NonNull;
 
 public class PermissionDelegate implements GeckoSession.PermissionDelegate, WidgetManagerDelegate.PermissionListener {
 
     static final int PERMISSION_REQUEST_CODE = 1143;
 
-    static final String LOGTAG = "VRB";
+    static final String LOGTAG = SystemUtils.createLogtag(PermissionDelegate.class);
     private Context mContext;
     private int mParentWidgetHandle;
     private WidgetManagerDelegate mWidgetManager;
@@ -63,10 +65,10 @@ public class PermissionDelegate implements GeckoSession.PermissionDelegate, Widg
     public void handlePermission(final String aUri, final PermissionWidget.PermissionType aType, final Callback aCallback) {
         if (mPermissionWidget == null) {
             mPermissionWidget = new PermissionWidget(mContext);
-            mPermissionWidget.getPlacement().parentHandle = mParentWidgetHandle;
             mWidgetManager.addWidget(mPermissionWidget);
         }
 
+        mPermissionWidget.getPlacement().parentHandle = mParentWidgetHandle;
         mPermissionWidget.showPrompt(aUri, aType, aCallback);
     }
 

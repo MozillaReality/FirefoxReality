@@ -43,6 +43,9 @@ class UISurfaceTextureRenderer {
             mSurfaceTexture.setDefaultBufferSize(aWidth, aHeight);
         }
     }
+    public boolean isLayer() {
+        return mSurface != null && mSurfaceTexture == null;
+    }
 
     void release() {
         if(mSurface != null){
@@ -74,6 +77,11 @@ class UISurfaceTextureRenderer {
             mSurface.unlockCanvasAndPost(mSurfaceCanvas);
         }
         mSurfaceCanvas = null;
+    }
+
+    void clearSurface() {
+        drawBegin();
+        drawEnd();
     }
 
     int width() {

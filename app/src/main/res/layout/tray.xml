@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<merge xmlns:android="http://schemas.android.com/apk/res/android">
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -11,24 +12,62 @@
             android:orientation="horizontal">
 
             <org.mozilla.vrbrowser.ui.views.UIButton
-                android:id="@+id/helpButton"
+                android:id="@+id/addwindowButton"
                 style="@style/trayButtonStartTheme"
-                android:src="@drawable/ic_icon_tray_help_v2"/>
+                android:tooltipText="@string/new_window_tooltip"
+                app:tooltipDensity="@dimen/tray_tooltip_density"
+                app:tooltipPosition="top"
+                app:tooltipLayout="@layout/tooltip_tray"
+                android:src="@drawable/ic_icon_tray_newwindow"/>
+
+            <org.mozilla.vrbrowser.ui.views.UIButton
+                android:id="@+id/tabsButton"
+                style="@style/trayButtonMiddleTheme"
+                android:tooltipText="@string/tabs_tray_tooltip"
+                app:tooltipDensity="@dimen/tray_tooltip_density"
+                app:tooltipPosition="top"
+                app:tooltipLayout="@layout/tooltip_tray"
+                android:src="@drawable/ic_icon_tray_tabs"/>
 
             <org.mozilla.vrbrowser.ui.views.UIButton
                 android:id="@+id/privateButton"
                 style="@style/trayButtonMiddleTheme"
-                android:src="@drawable/ic_icon_private_browsing"/>
+                android:tooltipText="@string/private_browsing_enter_tooltip"
+                app:tooltipDensity="@dimen/tray_tooltip_density"
+                app:tooltipPosition="top"
+                app:tooltipLayout="@layout/tooltip_tray"
+                android:src="@drawable/ic_icon_tray_private_browsing_v2"/>
+
+            <include layout="@layout/vertical_separator"/>
 
             <org.mozilla.vrbrowser.ui.views.UIButton
                 android:id="@+id/bookmarksButton"
                 style="@style/trayButtonMiddleTheme"
-                android:src="@drawable/ic_icon_bookmarks"/>
+                android:tooltipText="@string/open_bookmarks_tooltip"
+                app:tooltipDensity="@dimen/tray_tooltip_density"
+                app:tooltipPosition="top"
+                app:tooltipLayout="@layout/tooltip_tray"
+                android:src="@drawable/ic_icon_tray_bookmarks_v2"/>
+
+            <org.mozilla.vrbrowser.ui.views.UIButton
+                android:id="@+id/historyButton"
+                style="@style/trayButtonMiddleTheme"
+                android:tooltipText="@string/open_history_tooltip"
+                app:tooltipDensity="@dimen/tray_tooltip_density"
+                app:tooltipPosition="top"
+                app:tooltipLayout="@layout/tooltip_tray"
+                android:src="@drawable/ic_icon_history"/>
+
+            <include layout="@layout/vertical_separator"/>
 
             <org.mozilla.vrbrowser.ui.views.UIButton
                 android:id="@+id/settingsButton"
                 style="@style/trayButtonEndTheme"
-                android:src="@drawable/ic_icon_settings"/>
+                android:tooltipText="@string/settings_tooltip"
+                app:tooltipDensity="@dimen/tray_tooltip_density"
+                app:tooltipPosition="top"
+                app:tooltipLayout="@layout/tooltip_tray"
+                android:src="@drawable/ic_icon_tray_settings_v3"/>
         </LinearLayout>
 
     </RelativeLayout>

@@ -23,7 +23,6 @@ import android.graphics.Paint;
 import android.graphics.Paint.Align;
 import android.graphics.PorterDuff;
 import android.graphics.Rect;
-import android.graphics.Region.Op;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.inputmethodservice.Keyboard;
@@ -32,7 +31,6 @@ import android.media.AudioManager;
 import android.os.Handler;
 import android.os.Message;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.util.TypedValue;
 import android.view.GestureDetector;
 import android.view.Gravity;
@@ -182,6 +180,9 @@ public class CustomKeyboardView extends View implements View.OnClickListener {
             android.R.attr.state_hovered,
             android.R.attr.state_checkable,
             android.R.attr.state_checked
+    };
+
+    private final static int[] KEY_STATE_NORMAL = {
     };
 
     private int mVerticalCorrection;
@@ -738,34 +739,39 @@ public class CustomKeyboardView extends View implements View.OnClickListener {
             if (drawSingleKey && invalidKey != key) {
                 continue;
             }
-            int[] drawableState = key.getCurrentDrawableState();
-            if (mHoveredKey == i && !key.pressed) {
-                // Fork: implement hovered key
-                drawableState = KEY_STATE_HOVERED;
-            }
 
             boolean stateHovered = false;
             boolean statePressed = false;
-            for (int state : drawableState) {
-                if (state == android.R.attr.state_hovered)
-                    stateHovered = true;
-                else if (state == android.R.attr.state_pressed)
-                    statePressed = true;
+            int[] drawableState = key.getCurrentDrawableState();
+
+            if (((CustomKeyboard)mKeyboard).isKeyEnabled(i)) {
+                if (mHoveredKey == i && !key.pressed) {
+                    // Fork: implement hovered key
+                    drawableState = KEY_STATE_HOVERED;
+                }
+
+                for (int state : drawableState) {
+                    if (state == android.R.attr.state_hovered) {
+                        stateHovered = true;
+                    } else if (state == android.R.attr.state_pressed) {
+                        statePressed = true;
+                    }
+                }
+
+            } else {
+                drawableState = KEY_STATE_NORMAL;
             }
+
             Drawable keyBackground = mKeyBackground;
-            int columns = ((CustomKeyboard)mKeyboard).getMaxColums();
+            int columns = ((CustomKeyboard)mKeyboard).getMaxColumns();
             if (mFeaturedKeyBackground != null && mFeaturedKeyCodes.contains(key.codes[0])) {
                 keyBackground = mFeaturedKeyBackground;
-
             } else if ((i == columns && i == keyCount - 1) && mKeySingleBackground != null) {
                 keyBackground = mKeySingleBackground;
-
             } else if ((i == 0 || i == columns) && mKeyCapStartBackground != null) {
                 keyBackground = mKeyCapStartBackground;
-
             } else if ((i == keyCount  - 1 || i == columns - 1)&& mKeyCapEndBackground != null) {
                 keyBackground = mKeyCapEndBackground;
-
             }
             keyBackground.setState(drawableState);
 
@@ -915,7 +921,7 @@ public class CustomKeyboardView extends View implements View.OnClickListener {
     private void detectAndSendKey(int index, int x, int y, long eventTime) {
         if (index != NOT_A_KEY && index < mKeys.length) {
             final Key key = mKeys[index];
-            if (key.text != null) {
+            if (key.text != null && (key.popupCharacters == null || key.popupCharacters.length() == 0)) {
                 if (mKeyboardActionListener != null) {
                     mKeyboardActionListener.onText(key.text);
                     mKeyboardActionListener.onRelease(NOT_A_KEY);
@@ -938,8 +944,9 @@ public class CustomKeyboardView extends View implements View.OnClickListener {
                     }
                     code = key.codes[mTapCount];
 
-                    if (mKeyboardActionListener != null)
+                    if (mKeyboardActionListener != null) {
                         mKeyboardActionListener.onMultiTap(key);
+                    }
                 }
                 if (mKeyboardActionListener != null) {
                     mKeyboardActionListener.onKey(code, codes, hasPopup);
@@ -1218,8 +1225,9 @@ public class CustomKeyboardView extends View implements View.OnClickListener {
         if (event.getAction() != MotionEvent.ACTION_HOVER_EXIT) {
             int touchX = (int) event.getX() - getPaddingLeft();
             int touchY = (int) event.getY() - getPaddingTop();
-            if (touchY >= -mVerticalCorrection)
+            if (touchY >= -mVerticalCorrection) {
                 touchY += mVerticalCorrection;
+            }
             keyIndex = getKeyIndices(touchX, touchY, null);
         }
 
@@ -1245,12 +1253,17 @@ public class CustomKeyboardView extends View implements View.OnClickListener {
     private boolean onModifiedTouchEvent(MotionEvent me, boolean possiblePoly) {
         int touchX = (int) me.getX() - getPaddingLeft();
         int touchY = (int) me.getY() - getPaddingTop();
-        if (touchY >= -mVerticalCorrection)
+        if (touchY >= -mVerticalCorrection) {
             touchY += mVerticalCorrection;
+        }
         final int action = me.getAction();
         final long eventTime = me.getEventTime();
         int keyIndex = getKeyIndices(touchX, touchY, null);
         mPossiblePoly = possiblePoly;
+
+        if (keyIndex != NOT_A_KEY && !((CustomKeyboard)mKeyboard).isKeyEnabled(keyIndex)) {
+            return true;
+        }
 
         // Track the last few movements to look for spurious swipes.
         if (action == MotionEvent.ACTION_DOWN) mSwipeTracker.clear();
@@ -1290,8 +1303,9 @@ public class CustomKeyboardView extends View implements View.OnClickListener {
                 mDownTime = me.getEventTime();
                 mLastMoveTime = mDownTime;
                 checkMultiTap(eventTime, keyIndex);
-                if (mKeyboardActionListener != null)
+                if (mKeyboardActionListener != null) {
                     mKeyboardActionListener.onPress(keyIndex != NOT_A_KEY ? mKeys[keyIndex].codes[0] : 0);
+                }
                 if (mCurrentKey >= 0 && mKeys[mCurrentKey].repeatable) {
                     mRepeatKeyIndex = mCurrentKey;
                     Message msg = mHandler.obtainMessage(MSG_REPEAT);

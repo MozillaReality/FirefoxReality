@@ -9,10 +9,15 @@ import android.graphics.SurfaceTexture;
 import android.view.MotionEvent;
 import android.view.Surface;
 
+import androidx.annotation.NonNull;
+
 public interface Widget {
+
+    int NO_WINDOW_ID = -1;
+
     void onPause();
     void onResume();
-    void setSurfaceTexture(SurfaceTexture aTexture, final int aWidth, final int aHeight);
+    void setSurfaceTexture(SurfaceTexture aTexture, final int aWidth, final int aHeight, Runnable aFirstDrawCallback);
     void setSurface(Surface aSurface, final int aWidth, final int aHeight, Runnable aFirstDrawCallback);
     void resizeSurface(final int aWidth, final int aHeight);
     int getHandle();
@@ -20,11 +25,15 @@ public interface Widget {
     void handleTouchEvent(MotionEvent aEvent);
     void handleHoverEvent(MotionEvent aEvent);
     void handleResizeEvent(float aWorldWidth, float aWorldHeight);
+    void handleMoveEvent(float aDeltaX, float aDeltaY, float aDeltaZ, float aRotation);
     void releaseWidget();
-    void setFirstDraw(boolean aIsFirstDraw);
-    boolean getFirstDraw();
+    void setFirstPaintReady(boolean aIsFirstDraw);
+    boolean isFirstPaintReady();
     boolean isVisible();
     boolean isDialog();
     void setVisible(boolean aVisible);
     void resizeByMultiplier(float aspect, float multiplier);
+    default void detachFromWindow() {}
+    default void attachToWindow(@NonNull WindowWidget window) {}
+    int getBorderWidth();
 }

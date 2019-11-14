@@ -44,9 +44,12 @@ public:
   const vrb::Matrix& GetView(device::Eye aEye) const;
   device::Eye GetCurrentEye() const;
   int32_t GetPriority() const;
+  const vrb::Color& GetClearColor() const;
   const vrb::Color& GetTintColor() const;
   const device::EyeRect& GetTextureRect(device::Eye aEye) const;
   bool GetDrawInFront() const;
+  std::string GetName() const;
+  bool IsComposited() const;
 
   bool ShouldDrawBefore(const VRLayer& aLayer);
   void SetInitialized(bool aInitialized);
@@ -56,10 +59,13 @@ public:
   void SetView(device::Eye aEye, const vrb::Matrix& aModelView);
   void SetCurrentEye(device::Eye aEye);
   void SetPriority(int32_t aPriority);
+  void SetClearColor(const vrb::Color& aClearColor);
   void SetTintColor(const vrb::Color& aTintColor);
   void SetTextureRect(device::Eye aEye, const device::EyeRect& aTextureRect);
   void SetSurfaceChangedDelegate(const SurfaceChangedDelegate& aDelegate);
   void SetDrawInFront(bool aDrawInFront);
+  void SetName(const std::string& aName);
+  void SetComposited(bool aComposited);
   void NotifySurfaceChanged(SurfaceChange aChange, const std::function<void()>& aFirstCompositeCallback);
 protected:
   struct State;
@@ -150,12 +156,13 @@ typedef std::shared_ptr<VRLayerCube> VRLayerCubePtr;
 
 class VRLayerCube: public VRLayer {
 public:
-  static VRLayerCubePtr Create(const int32_t aWidth, const int32_t aHeight);
+  static VRLayerCubePtr Create(const int32_t aWidth, const int32_t aHeight, const GLuint aGLFormat);
 
   int32_t GetWidth() const;
   int32_t GetHeight() const;
   GLuint GetTextureHandle() const;
   bool IsLoaded() const;
+  GLuint GetFormat() const;
 
   void SetTextureHandle(uint32_t aTextureHandle);
   void SetLoaded(bool aReady);

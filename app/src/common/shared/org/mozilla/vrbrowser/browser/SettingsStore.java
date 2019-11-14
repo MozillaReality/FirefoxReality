@@ -6,23 +6,28 @@ import android.graphics.Color;
 import android.os.StrictMode;
 import android.preference.PreferenceManager;
 
+import org.json.JSONArray;
 import org.mozilla.geckoview.GeckoSessionSettings;
 import org.mozilla.telemetry.TelemetryHolder;
-import org.mozilla.vrbrowser.BuildConfig;
 import org.mozilla.vrbrowser.R;
+import org.mozilla.vrbrowser.telemetry.GleanMetricsService;
 import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
+import org.mozilla.vrbrowser.utils.DeviceType;
 import org.mozilla.vrbrowser.utils.LocaleUtils;
 import org.mozilla.vrbrowser.utils.StringUtils;
+import org.mozilla.vrbrowser.utils.SystemUtils;
 
 import androidx.annotation.NonNull;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 import static org.mozilla.vrbrowser.utils.ServoUtils.isServoAvailable;
 
 public class SettingsStore {
 
-    private static final String LOGTAG = "VRB";
+    private static final String LOGTAG = SystemUtils.createLogtag(SettingsStore.class);
 
     private static SettingsStore mSettingsInstance;
 
@@ -43,7 +48,12 @@ public class SettingsStore {
     public final static boolean CONSOLE_LOGS_DEFAULT = false;
     public final static boolean ENV_OVERRIDE_DEFAULT = false;
     public final static boolean MULTIPROCESS_DEFAULT = false;
+    public final static boolean PERFORMANCE_MONITOR_DEFAULT = true;
+    public final static boolean DRM_PLAYBACK_DEFAULT = false;
     public final static boolean TRACKING_DEFAULT = true;
+    public final static boolean NOTIFICATIONS_DEFAULT = true;
+    public final static boolean SPEECH_DATA_COLLECTION_DEFAULT = false;
+    public final static boolean SPEECH_DATA_COLLECTION_REVIEWED_DEFAULT = false;
     public final static boolean SERVO_DEFAULT = false;
     public final static int UA_MODE_DEFAULT = GeckoSessionSettings.USER_AGENT_MODE_VR;
     public final static int INPUT_MODE_DEFAULT = 1;
@@ -56,18 +66,23 @@ public class SettingsStore {
     public final static int POINTER_COLOR_DEFAULT_DEFAULT = Color.parseColor("#FFFFFF");
     public final static int SCROLL_DIRECTION_DEFAULT = 0;
     public final static String ENV_DEFAULT = "offworld";
-    public final static float BROWSER_WORLD_WIDTH_DEFAULT = 4.0f;
-    public final static float BROWSER_WORLD_HEIGHT_DEFAULT = 2.25f;
     public final static int MSAA_DEFAULT_LEVEL = 1;
     public final static boolean AUDIO_ENABLED = false;
     public final static float CYLINDER_DENSITY_ENABLED_DEFAULT = 4680.0f;
     public final static int FOVEATED_APP_DEFAULT_LEVEL = 0;
     public final static int FOVEATED_WEBVR_DEFAULT_LEVEL = 0;
     private final static long CRASH_RESTART_DELTA = 2000;
+    public final static boolean AUTOPLAY_ENABLED = false;
+    public final static boolean DEBUG_LOGGING_DEFAULT = false;
+    public final static boolean POP_UPS_BLOCKING_DEFAULT = true;
+    public final static boolean TELEMETRY_STATUS_UPDATE_SENT_DEFAULT = false;
+    public final static boolean BOOKMARKS_SYNC_DEFAULT = true;
+    public final static boolean HISTORY_SYNC_DEFAULT = true;
+    public final static boolean WHATS_NEW_DISPLAYED = false;
 
     // Enable telemetry by default (opt-out).
-    private final static boolean enableCrashReportingByDefault = false;
-    private final static boolean enableTelemetryByDefault = true;
+    public final static boolean CRASH_REPORTING_DEFAULT = false;
+    public final static boolean TELEMETRY_DEFAULT = true;
 
     private int mCachedScrollDirection = -1;
 
@@ -77,7 +92,7 @@ public class SettingsStore {
     }
 
     public boolean isCrashReportingEnabled() {
-        return mPrefs.getBoolean(mContext.getString(R.string.settings_key_crash), enableCrashReportingByDefault);
+        return mPrefs.getBoolean(mContext.getString(R.string.settings_key_crash), CRASH_REPORTING_DEFAULT);
     }
 
     public void setCrashReportingEnabled(boolean isEnabled) {
@@ -91,7 +106,7 @@ public class SettingsStore {
         final StrictMode.ThreadPolicy threadPolicy = StrictMode.allowThreadDiskReads();
         try {
             return mPrefs.getBoolean(
-                    mContext.getString(R.string.settings_key_telemetry), enableTelemetryByDefault);
+                    mContext.getString(R.string.settings_key_telemetry), TELEMETRY_DEFAULT);
         } finally {
             StrictMode.setThreadPolicy(threadPolicy);
         }
@@ -102,6 +117,11 @@ public class SettingsStore {
         editor.putBoolean(mContext.getString(R.string.settings_key_telemetry), isEnabled);
         editor.commit();
 
+        // We send before disabling in case of opting-out
+        if (!isEnabled) {
+            TelemetryWrapper.telemetryStatus(false);
+        }
+
         // If the state of Telemetry is not the same, we reinitialize it.
         final boolean hasEnabled = isTelemetryEnabled();
         if (hasEnabled != isEnabled) {
@@ -110,6 +130,31 @@ public class SettingsStore {
 
         TelemetryHolder.get().getConfiguration().setUploadEnabled(isEnabled);
         TelemetryHolder.get().getConfiguration().setCollectionEnabled(isEnabled);
+
+        // We send after enabling in case of opting-in
+        if (isEnabled) {
+            TelemetryWrapper.telemetryStatus(true);
+            GleanMetricsService.start();
+        } else {
+            GleanMetricsService.stop();
+        }
+
+        // Update the status sent flag
+        setTelemetryPingUpdateSent(true);
+    }
+
+    public boolean telemetryStatusSaved() {
+        return mPrefs.contains(mContext.getString(R.string.settings_key_telemetry));
+    }
+
+    public boolean isTelemetryPingUpdateSent() {
+        return mPrefs.getBoolean(mContext.getString(R.string.settings_key_telemetry_status_update_sent), TELEMETRY_STATUS_UPDATE_SENT_DEFAULT);
+    }
+
+    public void setTelemetryPingUpdateSent(boolean isSent) {
+        SharedPreferences.Editor editor = mPrefs.edit();
+        editor.putBoolean(mContext.getString(R.string.settings_key_telemetry_status_update_sent), isSent);
+        editor.commit();
     }
 
     public void setGeolocationData(String aGeolocationData) {
@@ -144,6 +189,17 @@ public class SettingsStore {
         editor.commit();
     }
 
+    public boolean isDrmContentPlaybackEnabled() {
+        return mPrefs.getBoolean(
+                mContext.getString(R.string.settings_key_drm_playback), DRM_PLAYBACK_DEFAULT);
+    }
+
+    public void setDrmContentPlaybackEnabled(boolean isEnabled) {
+        SharedPreferences.Editor editor = mPrefs.edit();
+        editor.putBoolean(mContext.getString(R.string.settings_key_drm_playback), isEnabled);
+        editor.commit();
+    }
+
     public boolean isTrackingProtectionEnabled() {
         return mPrefs.getBoolean(
                 mContext.getString(R.string.settings_key_tracking_protection), TRACKING_DEFAULT);
@@ -175,6 +231,17 @@ public class SettingsStore {
     public void setMultiprocessEnabled(boolean isEnabled) {
         SharedPreferences.Editor editor = mPrefs.edit();
         editor.putBoolean(mContext.getString(R.string.settings_key_multiprocess), isEnabled);
+        editor.commit();
+    }
+
+    public boolean isPerformanceMonitorEnabled() {
+        // Disabling Performance Monitor until it can properly handle multi-window
+        return false; // mPrefs.getBoolean(mContext.getString(R.string.settings_key_performance_monitor), PERFORMANCE_MONITOR_DEFAULT);
+    }
+
+    public void setPerformanceMonitorEnabled(boolean isEnabled) {
+        SharedPreferences.Editor editor = mPrefs.edit();
+        editor.putBoolean(mContext.getString(R.string.settings_key_performance_monitor), isEnabled);
         editor.commit();
     }
 
@@ -234,25 +301,11 @@ public class SettingsStore {
     }
 
     public int getWindowWidth() {
-        return mPrefs.getInt(
-                mContext.getString(R.string.settings_key_window_width), WINDOW_WIDTH_DEFAULT);
-    }
-
-    public void setWindowWidth(int aWindowWidth) {
-        SharedPreferences.Editor editor = mPrefs.edit();
-        editor.putInt(mContext.getString(R.string.settings_key_window_width), aWindowWidth);
-        editor.commit();
+        return WINDOW_WIDTH_DEFAULT;
     }
 
     public int getWindowHeight() {
-        return mPrefs.getInt(
-                mContext.getString(R.string.settings_key_window_height), WINDOW_HEIGHT_DEFAULT);
-    }
-
-    public void setWindowHeight(int aWindowHeight) {
-        SharedPreferences.Editor editor = mPrefs.edit();
-        editor.putInt(mContext.getString(R.string.settings_key_window_height), aWindowHeight);
-        editor.commit();
+        return WINDOW_HEIGHT_DEFAULT;
     }
 
     public float getWindowAspect() {
@@ -271,25 +324,11 @@ public class SettingsStore {
     }
 
     public int getMaxWindowWidth() {
-        return mPrefs.getInt(
-                mContext.getString(R.string.settings_key_max_window_width), MAX_WINDOW_WIDTH_DEFAULT);
-    }
-
-    public void setMaxWindowWidth(int aMaxWindowWidth) {
-        SharedPreferences.Editor editor = mPrefs.edit();
-        editor.putInt(mContext.getString(R.string.settings_key_max_window_width), aMaxWindowWidth);
-        editor.commit();
+        return MAX_WINDOW_WIDTH_DEFAULT;
     }
 
     public int getMaxWindowHeight() {
-        return mPrefs.getInt(
-                mContext.getString(R.string.settings_key_max_window_height), MAX_WINDOW_HEIGHT_DEFAULT);
-    }
-
-    public void setMaxWindowHeight(int aMaxWindowHeight) {
-        SharedPreferences.Editor editor = mPrefs.edit();
-        editor.putInt(mContext.getString(R.string.settings_key_max_window_height), aMaxWindowHeight);
-        editor.commit();
+        return MAX_WINDOW_HEIGHT_DEFAULT;
     }
 
     public String getEnvironment() {
@@ -299,28 +338,6 @@ public class SettingsStore {
     public void setEnvironment(String aEnv) {
         SharedPreferences.Editor editor = mPrefs.edit();
         editor.putString(mContext.getString(R.string.settings_key_env), aEnv);
-        editor.commit();
-    }
-
-    public float getBrowserWorldWidth() {
-        return mPrefs.getFloat(
-                mContext.getString(R.string.settings_key_browser_world_width), BROWSER_WORLD_WIDTH_DEFAULT);
-    }
-
-    public void setBrowserWorldWidth(float aBrowserWorldWidth) {
-        SharedPreferences.Editor editor = mPrefs.edit();
-        editor.putFloat(mContext.getString(R.string.settings_key_browser_world_width), aBrowserWorldWidth);
-        editor.commit();
-    }
-
-    public float getBrowserWorldHeight() {
-        return mPrefs.getFloat(
-                mContext.getString(R.string.settings_key_browser_world_height), BROWSER_WORLD_HEIGHT_DEFAULT);
-    }
-
-    public void setBrowserWorldHeight(float aBrowserWorldHeight) {
-        SharedPreferences.Editor editor = mPrefs.edit();
-        editor.putFloat(mContext.getString(R.string.settings_key_browser_world_height), aBrowserWorldHeight);
         editor.commit();
     }
 
@@ -362,7 +379,7 @@ public class SettingsStore {
     }
 
     public boolean getLayersEnabled() {
-        if (BuildConfig.FLAVOR_platform.equalsIgnoreCase("oculusvr")) {
+        if (DeviceType.isOculusBuild()) {
             return true;
         }
         return false;
@@ -382,18 +399,60 @@ public class SettingsStore {
         editor.commit();
     }
 
-    public String getVoiceSearchLanguage() {
+    public String getVoiceSearchLocale() {
         String language = mPrefs.getString(
                 mContext.getString(R.string.settings_key_voice_search_language), null);
         if (language == null) {
-            return LocaleUtils.getDefaultVoiceSearchLanguage(mContext);
+            return LocaleUtils.getDefaultVoiceSearchLocale(mContext);
         }
         return language;
     }
 
-    public void setVoiceSearchLanguage(String language) {
+    public void setVoiceSearchLocale(String language) {
         SharedPreferences.Editor editor = mPrefs.edit();
         editor.putString(mContext.getString(R.string.settings_key_voice_search_language), language);
+        editor.commit();
+    }
+
+    public String getDisplayLocale() {
+        String language = mPrefs.getString(
+                mContext.getString(R.string.settings_key_display_language), null);
+        if (language == null) {
+            return LocaleUtils.getDefaultDisplayLocale(mContext);
+        }
+        return language;
+    }
+
+    public void setDisplayLocale(String language) {
+        SharedPreferences.Editor editor = mPrefs.edit();
+        editor.putString(mContext.getString(R.string.settings_key_display_language), language);
+        editor.commit();
+    }
+
+    public ArrayList<String> getContentLocales() {
+        ArrayList<String> result = new ArrayList<>();
+
+        String json = mPrefs.getString(
+                mContext.getString(R.string.settings_key_content_languages),
+                null);
+
+        try {
+            JSONArray jsonArray = new JSONArray(json);
+            for (int i=0; i<jsonArray.length(); i++) {
+                result.add(jsonArray.getString(i));
+            }
+
+            return result;
+
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public void setContentLocales(List<String> languages) {
+        JSONArray json = new JSONArray(languages);
+        SharedPreferences.Editor editor = mPrefs.edit();
+        editor.putString(mContext.getString(R.string.settings_key_content_languages), json.toString());
         editor.commit();
     }
 
@@ -404,6 +463,7 @@ public class SettingsStore {
     public void setCylinderDensity(float aDensity) {
         SharedPreferences.Editor editor = mPrefs.edit();
         editor.putFloat(mContext.getString(R.string.settings_key_cylinder_density), aDensity);
+        editor.commit();
     }
 
     public int getFoveatedLevelApp() {
@@ -471,5 +531,108 @@ public class SettingsStore {
         editor.putLong(mContext.getString(R.string.settings_key_crash_restart_count), 0);
         editor.commit();
     }
+
+    public boolean isSpeechDataCollectionEnabled() {
+        return mPrefs.getBoolean(
+                mContext.getString(R.string.settings_key_speech_data_collection), SPEECH_DATA_COLLECTION_DEFAULT);
+    }
+
+    public void setSpeechDataCollectionEnabled(boolean isEnabled) {
+        SharedPreferences.Editor editor = mPrefs.edit();
+        editor.putBoolean(mContext.getString(R.string.settings_key_speech_data_collection), isEnabled);
+        editor.commit();
+    }
+
+    public boolean isNotificationsEnabled() {
+        return mPrefs.getBoolean(
+                mContext.getString(R.string.settings_key_notifications), NOTIFICATIONS_DEFAULT);
+    }
+
+    public void setNotificationsEnabled(boolean isEnabled) {
+        SharedPreferences.Editor editor = mPrefs.edit();
+        editor.putBoolean(mContext.getString(R.string.settings_key_notifications), isEnabled);
+        editor.commit();
+    }
+
+    public boolean isSpeechDataCollectionReviewed() {
+        return mPrefs.getBoolean(
+                mContext.getString(R.string.settings_key_speech_data_collection_reviewed), SPEECH_DATA_COLLECTION_REVIEWED_DEFAULT);
+    }
+
+    public void setSpeechDataCollectionReviewed(boolean isEnabled) {
+        SharedPreferences.Editor editor = mPrefs.edit();
+        editor.putBoolean(mContext.getString(R.string.settings_key_speech_data_collection_reviewed), isEnabled);
+        editor.commit();
+    }
+
+    public boolean isDebugLogginEnabled() {
+        return mPrefs.getBoolean(mContext.getString(R.string.settings_key_debug_logging), DEBUG_LOGGING_DEFAULT);
+    }
+
+    public void setDebugLoggingEnabled(boolean isEnabled) {
+        SharedPreferences.Editor editor = mPrefs.edit();
+        editor.putBoolean(mContext.getString(R.string.settings_key_debug_logging), isEnabled);
+        editor.commit();
+    }
+
+    public boolean isAutoplayEnabled() {
+        return mPrefs.getBoolean(mContext.getString(R.string.settings_key_autoplay), AUTOPLAY_ENABLED);
+    }
+
+    public void setAutoplayEnabled(boolean isEnabled) {
+        SharedPreferences.Editor editor = mPrefs.edit();
+        editor.putBoolean(mContext.getString(R.string.settings_key_autoplay), isEnabled);
+        editor.commit();
+    }
+
+    public void setPid(int aPid) {
+        SharedPreferences.Editor editor = mPrefs.edit();
+        editor.putInt(mContext.getString(R.string.settings_key_pid), aPid);
+        editor.commit();
+    }
+
+    public int getPid() {
+        return mPrefs.getInt(mContext.getString(R.string.settings_key_pid), 0);
+    }
+
+    public boolean isPopUpsBlockingEnabled() {
+        return mPrefs.getBoolean(mContext.getString(R.string.settings_key_pop_up_blocking), POP_UPS_BLOCKING_DEFAULT);
+    }
+
+    public void setPopUpsBlockingEnabled(boolean isEnabled) {
+        SharedPreferences.Editor editor = mPrefs.edit();
+        editor.putBoolean(mContext.getString(R.string.settings_key_pop_up_blocking), isEnabled);
+        editor.commit();
+    }
+    public void setBookmarksSyncEnabled(boolean isEnabled) {
+        SharedPreferences.Editor editor = mPrefs.edit();
+        editor.putBoolean(mContext.getString(R.string.settings_key_bookmarks_sync), isEnabled);
+        editor.commit();
+    }
+
+    public boolean isBookmarksSyncEnabled() {
+        return mPrefs.getBoolean(mContext.getString(R.string.settings_key_bookmarks_sync), BOOKMARKS_SYNC_DEFAULT);
+    }
+
+    public void setHistorySyncEnabled(boolean isEnabled) {
+        SharedPreferences.Editor editor = mPrefs.edit();
+        editor.putBoolean(mContext.getString(R.string.settings_key_history_sync), isEnabled);
+        editor.commit();
+    }
+
+    public boolean isHistorySyncEnabled() {
+        return mPrefs.getBoolean(mContext.getString(R.string.settings_key_history_sync), HISTORY_SYNC_DEFAULT);
+    }
+
+    public void setWhatsNewDisplayed(boolean isEnabled) {
+        SharedPreferences.Editor editor = mPrefs.edit();
+        editor.putBoolean(mContext.getString(R.string.settings_key_whats_new_displayed), isEnabled);
+        editor.commit();
+    }
+
+    public boolean isWhatsNewDisplayed() {
+        return mPrefs.getBoolean(mContext.getString(R.string.settings_key_whats_new_displayed), WHATS_NEW_DISPLAYED);
+    }
+
 }
 

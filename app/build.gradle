@@ -1,6 +1,11 @@
+plugins {
+    id "com.jetbrains.python.envs" version "0.0.26"
+}
+
 apply plugin: 'com.android.application'
 apply from: "$project.rootDir/tools/gradle/versionCode.gradle"
 apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-android-extensions'
 
 def getGitHash = { ->
     def stdout = new ByteArrayOutputStream()
@@ -12,25 +17,30 @@ def getGitHash = { ->
 }
 
 def getCrashRestartDisabled = { ->
-    if (gradle.hasProperty("disableCrashRestart")) {
-        return gradle.disableCrashRestart
+    if (gradle.hasProperty("userProperties.disableCrashRestart")) {
+        return gradle."userProperties.disableCrashRestart"
     }
     return "false"
 }
 
-def getDevApplicationIdSufix = { ->
-    if (gradle.hasProperty("simultaneousDevProduction")) {
-        return gradle.simultaneousDevProduction == "true" ? ".dev" : ""
+def getDevApplicationIdSuffix = { ->
+    if (gradle.hasProperty("userProperties.simultaneousDevProduction")) {
+        return gradle."userProperties.simultaneousDevProduction" == "true" ? ".dev" : ""
     }
     return ""
 }
 
 def getUseDebugSigningOnRelease = { ->
-    if (gradle.hasProperty("useDebugSigningOnRelease")) {
-        return gradle.useDebugSigningOnRelease == "true"
+    if (gradle.hasProperty("userProperties.useDebugSigningOnRelease")) {
+        return gradle."userProperties.useDebugSigningOnRelease" == "true"
     }
     return false
 }
+
+// Generate markdown docs for the collected metrics.
+ext.gleanGenerateMarkdownDocs = true
+ext.gleanDocsDirectory = "$rootDir/docs"
+apply from: 'https://github.com/mozilla-mobile/android-components/raw/v' + deps.android_components_version + '/components/service/glean/scripts/sdk_generator.gradle'
 
 android {
     compileSdkVersion build_versions.target_sdk
@@ -39,7 +49,7 @@ android {
         minSdkVersion build_versions.min_sdk
         targetSdkVersion build_versions.target_sdk
         versionCode 1
-        versionName "1.2.3"
+        versionName "7"
         buildConfigField "String", "GIT_HASH", "\"${getGitHash()}\""
         buildConfigField "Boolean", "DISABLE_CRASH_RESTART", getCrashRestartDisabled()
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -51,15 +61,18 @@ android {
                 arguments "-DANDROID_STL=c++_shared"
             }
         }
-
         javaCompileOptions {
             annotationProcessorOptions {
-                arguments = ["room.schemaLocation": "$projectDir/schemas".toString()]
+                arguments = [
+                        "room.schemaLocation":"$projectDir/schemas".toString(),
+                        "room.incremental":"true",
+                        "room.expandProjection":"true"]
             }
         }
+
     }
 
-    if (gradle.hasProperty('taskclusterBuild')) {
+    if (gradle.hasProperty('userProperties.taskclusterBuild')) {
         project.archivesBaseName = "FirefoxReality-$defaultConfig.versionName-$generatedVersionCode"
         defaultConfig.versionCode = generatedVersionCode
     } else {
@@ -78,7 +91,7 @@ android {
             signingConfig getUseDebugSigningOnRelease() ? debug.signingConfig : release.signingConfig
         }
         debug {
-            applicationIdSuffix getDevApplicationIdSufix()
+            applicationIdSuffix getDevApplicationIdSuffix()
             pseudoLocalesEnabled true
         }
     }
@@ -94,7 +107,7 @@ android {
     }
 
     lintOptions {
-        disable "LogUsage", "ExtraTranslation"
+        disable "ExtraTranslation"
     }
 
     packagingOptions {
@@ -121,25 +134,41 @@ android {
             externalNativeBuild {
                 cmake {
                     cppFlags " -I" + file("${project.rootDir}/third_party/ovr_mobile/VrApi/Include").absolutePath +
+                            " -I" + file("${project.rootDir}/third_party/OVRPlatformSDK/Include").absolutePath +
                             " -I" + file("${project.rootDir}/app/src/oculusvr/cpp").absolutePath +
-                            " -DOCULUSVR"
-                    arguments "-DVR_SDK_LIB=oculusvr-lib", "-DOCULUSVR=ON"
+                            " -DOCULUSVR -DSTORE_BUILD=0"
+                    arguments "-DVR_SDK_LIB=oculusvr-lib", "-DVR_SDK_EXTRA_LIB=ovrplatform-lib", "-DOCULUSVR=ON"
                 }
             }
-            manifestPlaceholders = [ headtrackingRequired:"true" ]
+            manifestPlaceholders = [ headtrackingRequired:"false", permissionToRemove:"android.permission.RECEIVE_BOOT_COMPLETED" ]
         }
 
-        oculusvr3dof {
+        oculusvrStore {
             dimension "platform"
             externalNativeBuild {
                 cmake {
                     cppFlags " -I" + file("${project.rootDir}/third_party/ovr_mobile/VrApi/Include").absolutePath +
+                            " -I" + file("${project.rootDir}/third_party/OVRPlatformSDK/Include").absolutePath +
                             " -I" + file("${project.rootDir}/app/src/oculusvr/cpp").absolutePath +
-                            " -DOCULUSVR"
-                    arguments "-DVR_SDK_LIB=oculusvr-lib", "-DOCULUSVR=ON"
+                            " -DOCULUSVR -DSTORE_BUILD=1"
+                    arguments "-DVR_SDK_LIB=oculusvr-lib", "-DVR_SDK_EXTRA_LIB=ovrplatform-lib", "-DOCULUSVR=ON"
                 }
             }
-            manifestPlaceholders = [ headtrackingRequired:"false" ]
+            manifestPlaceholders = [ headtrackingRequired:"true", permissionToRemove:"android.permission.RECEIVE_BOOT_COMPLETED" ]
+        }
+
+        oculusvr3dofStore {
+            dimension "platform"
+            externalNativeBuild {
+                cmake {
+                    cppFlags " -I" + file("${project.rootDir}/third_party/ovr_mobile/VrApi/Include").absolutePath +
+                            " -I" + file("${project.rootDir}/third_party/OVRPlatformSDK/Include").absolutePath +
+                            " -I" + file("${project.rootDir}/app/src/oculusvr/cpp").absolutePath +
+                            " -DOCULUSVR -DSTORE_BUILD=1"
+                    arguments "-DVR_SDK_LIB=oculusvr-lib", "-DVR_SDK_EXTRA_LIB=ovrplatform-lib", "-DOCULUSVR=ON"
+                }
+            }
+            manifestPlaceholders = [ headtrackingRequired:"false", permissionToRemove:"android.permission.CAMERA" ]
         }
 
         svr {
@@ -153,15 +182,32 @@ android {
                 }
             }
         }
+
         wavevr {
+            minSdkVersion build_versions.min_sdk_wave
             dimension "platform"
             externalNativeBuild {
                 cmake {
-                    cppFlags " -I" + file("${project.rootDir}/third_party/wavesdk/build/wvr_client/include").absolutePath
+                    cppFlags " -I" + file("${project.rootDir}/third_party/wavesdk/build/wvr_client/include").absolutePath +
+                            " -DWAVEVR"
+                    arguments "-DVR_SDK_LIB=wavevr-lib", "-DWAVEVR=ON"
+                }
+            }
+            applicationIdSuffix ".wavevr"
+        }
+
+        wavevrStore {
+            minSdkVersion build_versions.min_sdk_wave
+            dimension "platform"
+            externalNativeBuild {
+                cmake {
+                    cppFlags " -I" + file("${project.rootDir}/third_party/wavesdk/build/wvr_client/include").absolutePath +
+                            " -DWAVEVR"
                     arguments "-DVR_SDK_LIB=wavevr-lib", "-DWAVEVR=ON"
                 }
             }
         }
+
         noapi {
             dimension "platform"
             externalNativeBuild {
@@ -187,10 +233,10 @@ android {
             }
         }
 
-        x86 {
+        x86_64 {
             dimension "abi"
             ndk {
-                abiFilters "x86"
+                abiFilters "x86_64"
             }
         }
     }
@@ -205,22 +251,32 @@ android {
                 'oculusvrArmRelease',
                 'oculusvrArm64Debug',
                 'oculusvrArm64Release',
-                'oculusvr3dofArmDebug',
-                'oculusvr3dofArmRelease',
-                'oculusvr3dofArm64Debug',
-                'oculusvr3dofArm64Release',
+                'oculusvrStoreArmDebug',
+                'oculusvrStoreArmRelease',
+                'oculusvrStoreArm64Debug',
+                'oculusvrStoreArm64Release',
+                'oculusvr3dofStoreArmDebug',
+                'oculusvr3dofStoreArmRelease',
+                'oculusvr3dofStoreArm64Debug',
+                'oculusvr3dofStoreArm64Release',
                 'svrArmDebug',
                 'svrArmRelease',
                 'svrArm64Debug',
                 'svrArm64Release',
                 'wavevrArmDebug',
                 'wavevrArmRelease',
+                'wavevrArm64Debug',
+                'wavevrArm64Release',
+                'wavevrStoreArmDebug',
+                'wavevrStoreArmRelease',
+                'wavevrStoreArm64Debug',
+                'wavevrStoreArm64Release',
                 'noapiArmDebug',
                 'noapiArmRelease',
                 'noapiArm64Debug',
                 'noapiArm64Release',
-                'noapiX86Debug',
-                'noapiX86Release'
+                'noapiX86_64Debug',
+                'noapiX86_64Release'
         ]
         variant.setIgnore(!needed)
     }
@@ -253,7 +309,16 @@ android {
             ]
         }
 
-        oculusvr3dof {
+        oculusvrStore {
+            java.srcDirs = [
+                    'src/oculusvr/java'
+            ]
+            assets.srcDirs = [
+                    'src/oculusvr/assets'
+            ]
+        }
+
+        oculusvr3dofStore {
             java.srcDirs = [
                     'src/oculusvr/java'
             ]
@@ -276,20 +341,38 @@ android {
                                                            : "src/oculusvrArmRelease/AndroidManifest.xml"
         }
 
-        oculusvr3dofArmDebug {
+        oculusvrStoreArmDebug {
             manifest.srcFile "src/oculusvrArmDebug/AndroidManifest.xml"
         }
 
-        oculusvr3dofArm64Debug {
+        oculusvrStoreArm64Debug {
             manifest.srcFile "src/oculusvrArmDebug/AndroidManifest.xml"
         }
 
-        oculusvr3dofArmRelease {
+        oculusvrStoreArmRelease {
             manifest.srcFile getUseDebugSigningOnRelease() ? "src/oculusvrArmDebug/AndroidManifest.xml"
                     : "src/oculusvrArmRelease/AndroidManifest.xml"
         }
 
-        oculusvr3dofArm64Release {
+        oculusvrStoreArm64Release {
+            manifest.srcFile getUseDebugSigningOnRelease() ? "src/oculusvrArmDebug/AndroidManifest.xml"
+                    : "src/oculusvrArmRelease/AndroidManifest.xml"
+        }
+
+        oculusvr3dofStoreArmDebug {
+            manifest.srcFile "src/oculusvrArmDebug/AndroidManifest.xml"
+        }
+
+        oculusvr3dofStoreArm64Debug {
+            manifest.srcFile "src/oculusvrArmDebug/AndroidManifest.xml"
+        }
+
+        oculusvr3dofStoreArmRelease {
+            manifest.srcFile getUseDebugSigningOnRelease() ? "src/oculusvrArmDebug/AndroidManifest.xml"
+                    : "src/oculusvrArmRelease/AndroidManifest.xml"
+        }
+
+        oculusvr3dofStoreArm64Release {
             manifest.srcFile getUseDebugSigningOnRelease() ? "src/oculusvrArmDebug/AndroidManifest.xml"
                     : "src/oculusvrArmRelease/AndroidManifest.xml"
         }
@@ -310,6 +393,21 @@ android {
             ]
             jniLibs.srcDirs = ["${project.rootDir}/third_party/wavesdk/build/wvr_client/jni"]
         }
+
+        wavevrStore {
+            java.srcDirs = [
+                    'src/wavevr/java'
+            ]
+            res.srcDirs = [
+                    'src/wavevr/res'
+            ]
+            assets.srcDirs = [
+                    'src/wavevr/assets'
+            ]
+            jniLibs.srcDirs = ["${project.rootDir}/third_party/wavesdk/build/wvr_client/jni"]
+            manifest.srcFile "src/wavevr/AndroidManifest.xml"
+        }
+
         noapi {
             java.srcDirs = [
                     'src/noapi/java'
@@ -332,11 +430,10 @@ repositories {
 
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation deps.openwnn
 
     // Common
     // implementation deps.google_vr.sdk_audio
-    implementation deps.room.runtime
-    annotationProcessor deps.room.compiler
     implementation deps.lifecycle.runtime
     implementation deps.lifecycle.extensions
     implementation deps.support.cardview
@@ -345,6 +442,9 @@ dependencies {
     implementation deps.support.vector_drawable
     implementation deps.support.annotations
     implementation deps.constraint_layout
+    implementation deps.gson
+    implementation deps.room.runtime
+    annotationProcessor deps.room.compiler
 
     // Android Components
     implementation deps.mozilla_speech
@@ -353,9 +453,19 @@ dependencies {
     implementation deps.android_components.browser_search
     implementation deps.android_components.browser_storage
     implementation deps.android_components.browser_domains
+    implementation deps.android_components.service_accounts
     implementation deps.android_components.ui_autocomplete
     implementation deps.android_components.concept_fetch
     implementation deps.android_components.lib_fetch
+    implementation deps.android_components.support_rustlog
+    implementation deps.android_components.support_rusthttp
+    implementation deps.android_components.glean
+
+    // TODO this should not be necessary at all, see Services.kt
+    implementation deps.work.runtime
+
+    // TODO this should not be necessary at all, see Services.kt
+    implementation deps.work.runtime
 
     // Kotlin dependency
     implementation deps.kotlin.stdlib
@@ -365,11 +475,13 @@ dependencies {
     // SQLite helper to handle DBs from assets
     implementation deps.sqlite.sqlite
 
+    // DiskLRUCache used to cache snapshots
+    implementation deps.disklrucache.disklrucache
+
     // Testing
     testImplementation deps.junit
     androidTestImplementation deps.atsl.runner
     androidTestImplementation deps.espresso.core
-    testImplementation deps.room.testing
 
     // Daydream
     googlevrImplementation deps.google_vr.sdk_base
@@ -388,24 +500,29 @@ if (findProject(':servo')) {
 if (findProject(':wavesdk')) {
     dependencies {
         wavevrImplementation project(':wavesdk')
+        wavevrStoreImplementation project(':wavesdk')
     }
 }
 
-if (findProject(':geckoview-local')) {
-    dependencies {
-        implementation project(':geckoview-local')
-        implementation deps.snakeyaml
-    }
-} else {
-    dependencies {
-        // To see what the latest geckoview-nightly version is go here:
-        // https://maven.mozilla.org/?prefix=maven2/org/mozilla/geckoview/geckoview-nightly-armeabi-v7a/
-        armImplementation deps.gecko_view.nightly_armv7a
-        arm64Implementation deps.gecko_view.nightly_arm64
-        x86Implementation deps.gecko_view.nightly_x86
-    }
+dependencies {
+    // To see what the latest geckoview-nightly version is go here:
+    // https://maven.mozilla.org/?prefix=maven2/org/mozilla/geckoview/geckoview-nightly-armeabi-v7a/
+    armImplementation deps.gecko_view.nightly_armv7a
+    arm64Implementation deps.gecko_view.nightly_arm64
+    x86_64Implementation deps.gecko_view.nightly_x86_64
 }
 
+if (gradle.hasProperty('geckoViewLocalArm') || gradle.hasProperty('geckoViewLocalX86')) {
+    throw new GradleException("geckoViewLocal{Arm,X86} are deprecated: use geckoViewLocalTopsrcdir and geckoViewLocalTopobjdir")
+}
+
+if (gradle.hasProperty('localProperties.dependencySubstitutions.geckoviewTopsrcdir')) {
+    if (gradle.hasProperty('localProperties.dependencySubstitutions.geckoviewTopobjdir')) {
+        ext.topobjdir = gradle."localProperties.dependencySubstitutions.geckoviewTopobjdir"
+    }
+    ext.topsrcdir = gradle."localProperties.dependencySubstitutions.geckoviewTopsrcdir"
+    apply from: "${topsrcdir}/substitute-local-geckoview.gradle"
+}
 
 // -------------------------------------------------------------------------------------------------
 //  Dynamically set versionCode (See tools/build/versionCode.gradle
@@ -413,7 +530,7 @@ if (findProject(':geckoview-local')) {
 
 android.applicationVariants.all { variant ->
     def buildType = variant.buildType.name
-    if (gradle.hasProperty('taskclusterBuild')) {
+    if (gradle.hasProperty('userProperties.taskclusterBuild')) {
         def versionCode = generatedVersionCode
 
         // The Google Play Store does not allow multiple APKs for the same app that all have the
@@ -425,8 +542,7 @@ android.applicationVariants.all { variant ->
         // compatibility mode.
         def multiplier = 100000000
 
-        // Currently only support arm7
-        if (variant.flavorName.contains("X86")) {
+        if (variant.flavorName.contains("x86_64")) {
             versionCode = versionCode + (3 * multiplier)
         } else if (variant.flavorName.contains("Aarch64")) {
             versionCode = versionCode + (2 * multiplier)

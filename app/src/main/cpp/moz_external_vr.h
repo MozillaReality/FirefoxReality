@@ -12,18 +12,24 @@
    (uint64_t)(c4) << 32 | (uint64_t)(c5) << 24 | (uint64_t)(c6) << 16 | \
    (uint64_t)(c7) << 8 | (uint64_t)(c8))
 
-#include <stddef.h>
-#include <stdint.h>
-#include <type_traits>
-
 #ifdef MOZILLA_INTERNAL_API
+#  define __STDC_WANT_LIB_EXT1__ 1
+// __STDC_WANT_LIB_EXT1__ required for memcpy_s
+#  include <stdlib.h>
+#  include <string.h>
 #  include "mozilla/TypedEnumBits.h"
 #  include "mozilla/gfx/2D.h"
+#  include <stddef.h>
+#  include <stdint.h>
+#  include <type_traits>
 #endif  // MOZILLA_INTERNAL_API
 
 #if defined(__ANDROID__)
 #  include <pthread.h>
 #endif  // defined(__ANDROID__)
+
+#include <cstdint>
+#include <type_traits>
 
 namespace mozilla {
 #ifdef MOZILLA_INTERNAL_API
@@ -34,7 +40,15 @@ enum class GamepadCapabilityFlags : uint16_t;
 #endif  //  MOZILLA_INTERNAL_API
 namespace gfx {
 
-static const int32_t kVRExternalVersion = 8;
+// If there is any change of "SHMEM_VERSION" or "kVRExternalVersion",
+// we need to change both of them at the same time.
+
+// TODO: we might need to use different names for the mutexes
+// and mapped files if we have both release and nightlies
+// running at the same time? Or...what if we have multiple
+// release builds running on same machine? (Bug 1563232)
+#define SHMEM_VERSION "0.0.4"
+static const int32_t kVRExternalVersion = 11;
 
 // We assign VR presentations to groups with a bitmask.
 // Currently, we will only display either content or chrome.
@@ -112,6 +126,8 @@ enum class ControllerCapabilityFlags : uint16_t {
 
 #endif  // ifndef MOZILLA_INTERNAL_API
 
+enum class VRDisplayBlendMode : uint8_t { Opaque, Additive, AlphaBlend };
+
 enum class VRDisplayCapabilityFlags : uint16_t {
   Cap_None = 0,
   /**
@@ -166,13 +182,31 @@ enum class VRDisplayCapabilityFlags : uint16_t {
    */
       Cap_PositionEmulated = 1 << 9,
   /**
+   * Cap_Inline is set if the device can be used for WebXR inline sessions
+   * where the content is displayed within an element on the page.
+   */
+      Cap_Inline = 1 << 10,
+  /**
+   * Cap_ImmersiveVR is set if the device can give exclusive access to the
+   * XR device display and that content is not intended to be integrated
+   * with the user's environment
+   */
+      Cap_ImmersiveVR = 1 << 11,
+  /**
+   * Cap_ImmersiveAR is set if the device can give exclusive access to the
+   * XR device display and that content is intended to be integrated with
+   * the user's environment.
+   */
+      Cap_ImmersiveAR = 1 << 12,
+  /**
    * Cap_All used for validity checking during IPC serialization
    */
-      Cap_All = (1 << 10) - 1
+      Cap_All = (1 << 13) - 1
 };
 
 #ifdef MOZILLA_INTERNAL_API
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(VRDisplayCapabilityFlags)
+MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(VRDisplayBlendMode)
 #endif  // MOZILLA_INTERNAL_API
 
 struct VRPose {
@@ -269,6 +303,7 @@ struct VRDisplayState {
   //                             ('B'<<8) + 'A').
   uint64_t eightCC;
   VRDisplayCapabilityFlags capabilityFlags;
+  VRDisplayBlendMode blendMode;
   VRFieldOfView eyeFOV[VRDisplayState::NumEyes];
   Point3D_POD eyeTranslation[VRDisplayState::NumEyes];
   IntSize_POD eyeResolution;
@@ -284,6 +319,10 @@ struct VRDisplayState {
   // Telemetry
   bool reportsDroppedFrames;
   uint64_t droppedFrameCount;
+
+#ifdef MOZILLA_INTERNAL_API
+  void Clear() { memset(this, 0, sizeof(VRDisplayState)); }
+#endif
 };
 
 struct VRControllerState {
@@ -311,6 +350,9 @@ struct VRControllerState {
   VRPose pose;
   bool isPositionValid;
   bool isOrientationValid;
+#ifdef MOZILLA_INTERNAL_API
+  void Clear() { memset(this, 0, sizeof(VRControllerState)); }
+#endif
 };
 
 struct VRLayerEyeRect {
@@ -383,6 +425,10 @@ struct VRBrowserState {
   bool navigationTransitionActive;
   VRLayerState layerState[kVRLayerMaxCount];
   VRHapticState hapticState[kVRHapticsMaxCount];
+
+#ifdef MOZILLA_INTERNAL_API
+  void Clear() { memset(this, 0, sizeof(VRBrowserState)); }
+#endif
 };
 
 struct VRSystemState {
@@ -390,6 +436,43 @@ struct VRSystemState {
   VRDisplayState displayState;
   VRHMDSensorState sensorState;
   VRControllerState controllerState[kVRControllerMaxCount];
+};
+
+enum class VRFxEventType : uint8_t {
+  NONE = 0,
+  IME,
+  SHUTDOWN,
+  FULLSCREEN,
+  TOTAL
+};
+
+enum class VRFxEventState : uint8_t {
+  NONE = 0,
+  BLUR,
+  FOCUS,
+  FULLSCREEN_ENTER,
+  FULLSCREEN_EXIT,
+  TOTAL
+};
+
+// Data shared via shmem for running Firefox in a VR windowed environment
+struct VRWindowState {
+  // State from Firefox
+  uint64_t hwndFx;
+  uint32_t widthFx;
+  uint32_t heightFx;
+  VRLayerTextureHandle textureFx;
+  uint32_t windowID;
+  VRFxEventType eventType;
+  VRFxEventState eventState;
+
+  // State from VRHost
+  uint32_t dxgiAdapterHost;
+  uint32_t widthHost;
+  uint32_t heightHost;
+
+  // Name of synchronization primitive to signal change to this struct
+  char signalName[32];
 };
 
 struct VRExternalShmem {
@@ -417,6 +500,31 @@ struct VRExternalShmem {
   int64_t geckoGenerationB;
   int64_t servoGenerationB;
 #endif  // !defined(__ANDROID__)
+#if defined(XP_WIN)
+  VRWindowState windowState;
+#endif
+#ifdef MOZILLA_INTERNAL_API
+  void Clear() volatile {
+/**
+ * When possible we do a memset_s, which is explicitly safe for
+ * the volatile, POD struct.  A memset may be optimized out by
+ * the compiler and will fail to compile due to volatile keyword
+ * propagation.
+ *
+ * A loop-based fallback is provided in case the toolchain does
+ * not include STDC_LIB_EXT1 for memset_s.
+ */
+#  ifdef __STDC_LIB_EXT1__
+    memset_s((void*)this, sizeof(VRExternalShmem), 0, sizeof(VRExternalShmem));
+#  else
+    size_t remaining = sizeof(VRExternalShmem);
+    volatile unsigned char* d = (volatile unsigned char*)this;
+    while (remaining--) {
+      *d++ = 0;
+    }
+#  endif
+  }
+#endif
 };
 
 // As we are memcpy'ing VRExternalShmem and its members around, it must be a POD

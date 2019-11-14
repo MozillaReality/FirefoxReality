@@ -10,10 +10,13 @@
         <attr name="fullScreenLastButtonStyle" format="reference" />
         <attr name="mediaControlsButtonStyle" format="reference" />
         <attr name="navigationBarTextButtonStyle" format="reference" />
+        <attr name="selectionActionButtonStyle" format="reference" />
         <attr name="navigationBarButtonTint" format="reference" />
+        <attr name="separatorStyle" format="reference" />
         <attr name="urlProtocolColor" format="color" />
         <attr name="urlWebsiteColor" format="color" />
         <attr name="scrollbarStyle" format="color" />
+
     </declare-styleable>
 
 
@@ -49,6 +52,11 @@
         <item name="android:padding">0dp</item>
     </style>
 
+    <style name="separatorTheme">
+        <item name="android:background">@drawable/separator_background</item>
+        <item name="android:layout_height">1.5dp</item>
+    </style>
+
     <style name="uiButtonTheme">
         <item name="android:padding">@dimen/tray_icon_padding_max</item>
         <item name="android:layout_gravity">center_vertical</item>
@@ -58,6 +66,7 @@
         <item name="tintColorList">@drawable/main_button_icon_color</item>
         <item name="privateModeTintColorList">@drawable/main_button_icon_color_private</item>
         <item name="activeModeTintColorList">@drawable/main_button_icon_color_active</item>
+        <item name="notificationModeTintColorList">@drawable/main_button_icon_color_notification</item>
     </style>
 
     <style name="navigationBarButtonTheme" parent="uiButtonTheme">
@@ -109,10 +118,10 @@
         <item name="android:orientation">vertical</item>
         <item name="android:layout_width">136dp</item>
         <item name="android:layout_height">136dp</item>
-        <item name="android:background">@drawable/ic_settings_honeycomb_fill</item>
+        <item name="android:layout_marginEnd">-10dp</item>
+        <item name="android:background">@drawable/settings_honeycomb_background</item>
         <item name="android:scaleType">fitCenter</item>
         <item name="android:gravity">center</item>
-        <item name="android:backgroundTint">@drawable/settings_button_color</item>
         <item name="android:icon">@drawable/ic_settings_privacypolicy</item>
         <item name="android:text"></item>
     </style>
@@ -127,6 +136,34 @@
         <item name="android:textAlignment">center</item>
         <item name="tintColorList">@drawable/main_button_icon_color</item>
         <item name="privateModeTintColorList">@drawable/main_button_icon_color_private</item>
+    </style>
+
+    <style name="selectionActionButtonTheme">
+        <item name="android:padding">15dp</item>
+        <item name="android:textColor">@color/fog</item>
+        <item name="android:layout_gravity">center_vertical</item>
+        <item name="android:gravity">center</item>
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textAlignment">center</item>
+        <item name="android:textSize">26sp</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:maxWidth">150dp</item>
+    </style>
+
+    <style name="textButtonTheme">
+        <item name="android:background">@drawable/text_button_private</item>
+        <item name="android:padding">10dp</item>
+        <item name="android:paddingStart">20dp</item>
+        <item name="android:paddingEnd">20dp</item>
+        <item name="android:layout_gravity">center</item>
+        <item name="android:gravity">center</item>
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">40dp</item>
+        <item name="android:textAlignment">center</item>
+        <item name="tintColorList">@drawable/main_button_icon_color</item>
+        <item name="privateModeTintColorList">@drawable/main_button_icon_color_private</item>
+        <item name="privateModeBackground">@drawable/text_button</item>
     </style>
 
     <style name="navigationBarTextButtonStartTheme" parent="navigationBarTextButtonTheme">
@@ -150,6 +187,16 @@
         <item name="android:layout_width">@dimen/url_bar_item_width</item>
         <item name="android:layout_height">match_parent</item>
         <item name="android:scaleType">centerInside</item>
+        <item name="android:gravity">center</item>
+    </style>
+
+    <style name="urlBarIconThemeStart">
+        <item name="android:background">@drawable/url_button_start</item>
+        <item name="tintColorList">@drawable/url_button_icon_color</item>
+        <item name="android:layout_width">@dimen/url_bar_first_item_width</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:scaleType">centerInside</item>
+        <item name="android:gravity">center</item>
     </style>
 
     <style name="urlBarIconThemeEnd">
@@ -158,9 +205,22 @@
         <item name="android:layout_width">@dimen/url_bar_last_item_width</item>
         <item name="android:layout_height">match_parent</item>
         <item name="android:scaleType">centerInside</item>
+        <item name="android:gravity">center</item>
     </style>
 
     <style name="scrollbar">
+        <item name="android:scrollbarAlwaysDrawVerticalTrack">true</item>
+        <item name="android:scrollbarStyle">outsideOverlay</item>
+        <item name="android:scrollbars">vertical</item>
+        <item name="android:fadeScrollbars">false</item>
+        <item name="android:scrollbarThumbVertical">@drawable/scrollbar_thumb</item>
+        <item name="android:fastScrollEnabled">true</item>
+        <item name="android:fastScrollAlwaysVisible">true</item>
+        <item name="android:fadingEdgeLength">60dp</item>
+        <item name="android:requiresFadingEdge">vertical</item>
+    </style>
+
+    <style name="contentScrollbar">
         <item name="android:scrollbarAlwaysDrawVerticalTrack">true</item>
         <item name="android:scrollbarStyle">outsideInset</item>
         <item name="android:scrollbars">vertical</item>
@@ -168,15 +228,35 @@
         <item name="android:scrollbarThumbVertical">@drawable/scrollbar_thumb</item>
         <item name="android:fastScrollEnabled">true</item>
         <item name="android:fastScrollAlwaysVisible">true</item>
+        <item name="android:fadingEdgeLength">60dp</item>
+        <item name="android:requiresFadingEdge">vertical</item>
+    </style>
+
+    <style name="customScrollViewStyle">
+        <item name="android:fastScrollAlwaysVisible">true</item>
+        <item name="android:scrollbarSize">@dimen/scrollbarWidth</item>
+        <item name="android:fastScrollThumbDrawable">@drawable/scrollbar_thumb</item>
+        <item name="dynamicHeight">true</item>
+    </style>
+
+    <style name="customRecyclerViewStyle">
+        <item name="android:fastScrollAlwaysVisible">true</item>
+        <item name="customFastScrollEnabled">true</item>
+        <item name="fastScrollEnabled">false</item>
+        <item name="fastScrollHorizontalThumbDrawable">@drawable/empty_drawable</item>
+        <item name="fastScrollHorizontalTrackDrawable">@drawable/empty_drawable</item>
+        <item name="fastScrollVerticalThumbDrawable">@drawable/scrollbar_thumb</item>
+        <item name="fastScrollVerticalTrackDrawable">@drawable/empty_drawable</item>
+        <item name="android:smoothScrollbar">true</item>
     </style>
 
     <style name="settingsEdit">
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
-        <item name="android:textSize">20sp</item>
+        <item name="android:textSize">@dimen/text_medium_size</item>
         <item name="android:background">@drawable/edittext_background</item>
         <item name="android:textColor">@drawable/edittext_textcolor</item>
-        <item name="android:textColorHighlight">@color/ocean</item>
+        <item name="android:textColorHighlight">@color/rhino</item>
         <item name="android:padding">5dp</item>
         <item name="android:textStyle">bold</item>
         <item name="android:imeActionId">1</item>
@@ -196,12 +276,32 @@
         <item name="android:layout_gravity">center</item>
         <item name="android:gravity">center</item>
         <item name="android:text">@string/developer_options_edit</item>
-        <item name="android:textColor">@drawable/main_button_icon_color</item>
+        <item name="android:textColor">@drawable/main_button_text_color</item>
         <item name="android:textSize">14sp</item>
         <item name="android:typeface">sans</item>
         <item name="android:textStyle">bold</item>
         <item name="android:background">@drawable/rectangle_button_background</item>
         <item name="android:clickable">true</item>
+    </style>
+
+    <style name="tabsButton">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minWidth">120dp</item>
+        <item name="android:layout_marginLeft">5dp</item>
+        <item name="android:layout_gravity">center_vertical</item>
+        <item name="android:textAlignment">center</item>
+        <item name="android:textColor">@drawable/main_button_icon_color</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:typeface">sans</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:paddingStart">12dp</item>
+        <item name="android:paddingEnd">12dp</item>
+        <item name="android:paddingBottom">4dp</item>
+        <item name="android:paddingTop">4dp</item>
+        <item name="android:background">@drawable/rectangle_button_background</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
     </style>
 
     <style name="settingsSwitch">
@@ -225,13 +325,48 @@
         <item name="android:layout_marginEnd">5dp</item>
     </style>
 
+    <style name="settingsHeaderText">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textColor">@color/fog</item>
+        <item name="android:textSize">@dimen/settings_header_text_size</item>
+        <item name="android:fontFamily">sans-serif</item>
+    </style>
+
+    <style name="settingsDescriptionText">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textColor">@color/rhino</item>
+        <item name="android:textSize">@dimen/settings_description_text_size</item>
+        <item name="android:fontFamily">sans-serif</item>
+    </style>
+
+    <style name="settingsText">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textColor">@color/fog</item>
+        <item name="android:textSize">@dimen/settings_text_size</item>
+        <item name="android:fontFamily">sans-serif</item>
+    </style>
+
     <style name="settingsSwitchText">
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:gravity">center</item>
-        <item name="android:textColor">@color/white</item>
-        <item name="android:textSize">@dimen/text_smaller_size</item>
-        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/fog</item>
+        <item name="android:textSize">@dimen/text_medium_size</item>
+        <item name="android:fontFamily">sans-serif</item>
+    </style>
+
+    <style name="settingsButtonDescriptionText">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textColor">@color/fog</item>
+        <item name="android:textSize">@dimen/text_medium_size</item>
         <item name="android:fontFamily">sans-serif</item>
     </style>
 
@@ -239,8 +374,8 @@
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:gravity">center</item>
-        <item name="android:textColor">@color/sky</item>
-        <item name="android:textSize">20dip</item>
+        <item name="android:textColor">@color/rhino</item>
+        <item name="android:textSize">@dimen/text_medium_size</item>
         <item name="android:textStyle">bold</item>
         <item name="android:layout_marginEnd">5dp</item>
     </style>
@@ -250,6 +385,7 @@
         <item name="android:layout_height">wrap_content</item>
         <item name="android:textColor">@color/fog</item>
         <item name="android:textSize">@dimen/text_medium_size</item>
+        <item name="android:linksClickable">true</item>
     </style>
 
     <style name="dialogButtonRegular">
@@ -289,8 +425,10 @@
         <item name="fullScreenFirstButtonStyle">@style/fullScreenFirstButtonTheme</item>
         <item name="fullScreenLastButtonStyle">@style/fullScreenLastButtonTheme</item>
         <item name="mediaControlsButtonStyle">@style/mediaControlsButtonTheme</item>
+        <item name="separatorStyle">@style/separatorTheme</item>
         <item name="uiButtonStyle">@style/uiButtonTheme</item>
         <item name="navigationBarTextButtonStyle">@style/navigationBarTextButtonTheme</item>
+        <item name="selectionActionButtonStyle">@style/selectionActionButtonTheme</item>
         <item name="urlProtocolColor">@color/fog_url_protocol</item>
         <item name="urlWebsiteColor">@color/fog</item>
         <item name="scrollbarStyle">@style/scrollbar</item>
@@ -300,7 +438,7 @@
         <!-- Draggable scrollbar -->
         <item name="android:fastScrollEnabled">true</item>
         <item name="android:fastScrollAlwaysVisible">true</item>
-        <item name="android:scrollbarSize">15dp</item>
+        <item name="android:scrollbarSize">@dimen/scrollbarWidth</item>
         <item name="android:fastScrollThumbDrawable">@drawable/fast_scroll_thumb</item>
         <item name="android:fastScrollStyle">@style/Widget.FastScroll</item>
         <item name="android:fastScrollOverlayPosition">atThumb</item>

@@ -30,14 +30,17 @@ typedef std::shared_ptr<Quad> QuadPtr;
 class Widget;
 typedef std::shared_ptr<Widget> WidgetPtr;
 
+class WidgetResizer;
+typedef std::shared_ptr<WidgetResizer> WidgetResizerPtr;
+
 class WidgetPlacement;
 typedef std::shared_ptr<WidgetPlacement> WidgetPlacementPtr;
 
 class Widget {
 public:
-  static WidgetPtr Create(vrb::RenderContextPtr& aContext, const int aHandle,
+  static WidgetPtr Create(vrb::RenderContextPtr& aContext, const int aHandle, const WidgetPlacementPtr& aPlacement,
                           const int32_t aTextureWidth, const int32_t aTextureHeight, const QuadPtr& aQuad);
-  static WidgetPtr Create(vrb::RenderContextPtr& aContext, const int aHandle, const float aWorldWidth, const float aWorldHeight,
+  static WidgetPtr Create(vrb::RenderContextPtr& aContext, const int aHandle, const WidgetPlacementPtr& aPlacement, const float aWorldWidth, const float aWorldHeight,
                           const int32_t aTextureWidth, const int32_t aTextureHeight, const CylinderPtr& aCylinder);
   uint32_t GetHandle() const;
   void ResetFirstDraw();
@@ -48,9 +51,11 @@ public:
   void GetWidgetMinAndMax(vrb::Vector& aMin, vrb::Vector& aMax) const;
   void SetWorldWidth(float aWorldWidth) const;
   void GetWorldSize(float& aWidth, float& aHeight) const;
-  bool TestControllerIntersection(const vrb::Vector& aStartPoint, const vrb::Vector& aDirection, vrb::Vector& aResult, vrb::Vector& aNormal, bool& aIsInWidget, float& aDistance) const;
+  bool TestControllerIntersection(const vrb::Vector& aStartPoint, const vrb::Vector& aDirection, vrb::Vector& aResult, vrb::Vector& aNormal,
+                                  const bool aClamp, bool& aIsInWidget, float& aDistance) const;
   void ConvertToWidgetCoordinates(const vrb::Vector& aPoint, float& aX, float& aY) const;
-  void ConvertToWorldCoordinates(const vrb::Vector& aPoint, vrb::Vector& aResult) const;
+  vrb::Vector ConvertToWorldCoordinates(const vrb::Vector& aLocalPoint) const;
+  vrb::Vector ConvertToWorldCoordinates(const float aWidgetX, const float aWidgetY) const;
   const vrb::Matrix GetTransform() const;
   void SetTransform(const vrb::Matrix& aTransform);
   void ToggleWidget(const bool aEnabled);
@@ -58,18 +63,23 @@ public:
   vrb::NodePtr GetRoot() const;
   QuadPtr GetQuad() const;
   CylinderPtr GetCylinder() const;
-  void SetQuad(const QuadPtr& aQuad) const;
-  void SetCylinder(const CylinderPtr& aCylinder) const;
+  void SetQuad(const QuadPtr& aQuad);
+  void SetCylinder(const CylinderPtr& aCylinder);
   VRLayerSurfacePtr GetLayer() const;
   vrb::TransformPtr GetTransformNode() const;
   const WidgetPlacementPtr& GetPlacement() const;
   void SetPlacement(const WidgetPlacementPtr& aPlacement);
-  void StartResize();
+  WidgetResizerPtr StartResize(const vrb::Vector& aMaxSize,  const vrb::Vector& aMinSize);
   void FinishResize();
   bool IsResizing() const;
+  bool IsResizingActive() const;
   void HandleResize(const vrb::Vector& aPoint, bool aPressed, bool& aResized, bool &aResizeEnded);
   void HoverExitResize();
   void SetCylinderDensity(const float aDensity);
+  float GetCylinderDensity() const;
+  void SetBorderColor(const vrb::Color& aColor);
+  void SetProxifyLayer(const bool aValue);
+  void LayoutQuadWithCylinderParent(const WidgetPtr& aParent);
 protected:
   struct State;
   Widget(State& aState, vrb::RenderContextPtr& aContext);

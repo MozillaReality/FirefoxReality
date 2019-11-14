@@ -14,6 +14,8 @@ import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 
+import org.mozilla.vrbrowser.utils.SystemUtils;
+
 import com.google.vr.ndk.base.AndroidCompat;
 import com.google.vr.ndk.base.GvrLayout;
 
@@ -23,8 +25,7 @@ import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
 public class PlatformActivity extends Activity {
-    static String LOGTAG = "VRB";
-
+    static String LOGTAG = SystemUtils.createLogtag(PlatformActivity.class);
     public static boolean filterPermission(final String aPermission) {
         return false;
     }
@@ -191,13 +192,6 @@ public class PlatformActivity extends Activity {
             }
             mPendingEvents.clear();
         }
-    }
-
-    @Override
-    public void onBackPressed() {
-        // Discard back button presses that would otherwise exit the app,
-        // as the UI standard on this platform is to require the use of
-        // the Daydream button to exit application.
     }
 
     private native void activityCreated(Object aAssetManager, final long aContext);

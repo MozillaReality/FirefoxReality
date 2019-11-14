@@ -15,13 +15,16 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.KeyCharacterMap;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.inputmethod.CursorAnchorInfo;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.ExtractedText;
 import android.view.inputmethod.ExtractedTextRequest;
 import android.view.inputmethod.InputConnection;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -30,18 +33,25 @@ import android.widget.TextView;
 
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.R;
-import org.mozilla.vrbrowser.browser.SessionStore;
+import org.mozilla.vrbrowser.browser.engine.Session;
 import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.input.CustomKeyboard;
 import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
+import org.mozilla.vrbrowser.ui.keyboards.DanishKeyboard;
+import org.mozilla.vrbrowser.ui.keyboards.FinnishKeyboard;
+import org.mozilla.vrbrowser.ui.keyboards.DutchKeyboard;
 import org.mozilla.vrbrowser.ui.keyboards.ItalianKeyboard;
 import org.mozilla.vrbrowser.ui.keyboards.FrenchKeyboard;
 import org.mozilla.vrbrowser.ui.keyboards.GermanKeyboard;
 import org.mozilla.vrbrowser.ui.keyboards.ChineseZhuyinKeyboard;
+import org.mozilla.vrbrowser.ui.keyboards.JapaneseKeyboard;
 import org.mozilla.vrbrowser.ui.keyboards.KeyboardInterface;
+import org.mozilla.vrbrowser.ui.keyboards.NorwegianKeyboard;
+import org.mozilla.vrbrowser.ui.keyboards.PolishKeyboard;
 import org.mozilla.vrbrowser.ui.keyboards.RussianKeyboard;
 import org.mozilla.vrbrowser.ui.keyboards.KoreanKeyboard;
 import org.mozilla.vrbrowser.ui.keyboards.SpanishKeyboard;
+import org.mozilla.vrbrowser.ui.keyboards.SwedishKeyboard;
 import org.mozilla.vrbrowser.ui.views.AutoCompletionView;
 import org.mozilla.vrbrowser.ui.views.CustomKeyboardView;
 import org.mozilla.vrbrowser.ui.views.LanguageSelectorView;
@@ -58,9 +68,7 @@ import androidx.annotation.Nullable;
 
 
 public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKeyboardActionListener, AutoCompletionView.Delegate,
-        GeckoSession.TextInputDelegate, WidgetManagerDelegate.FocusChangeListener, VoiceSearchWidget.VoiceSearchDelegate, TextWatcher {
-
-    private static final String LOGTAG = "VRB";
+        GeckoSession.TextInputDelegate, WidgetManagerDelegate.FocusChangeListener, VoiceSearchWidget.VoiceSearchDelegate, TextWatcher, WindowWidget.WindowListener {
 
     private static int MAX_CHARS_PER_POPUP_LINE = 10;
 
@@ -73,11 +81,12 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
     private CustomKeyboard mKeyboardNumeric;
     private Drawable mShiftOnIcon;
     private Drawable mShiftOffIcon;
+    private Drawable mShiftDisabledIcon;
     private Drawable mCapsLockOnIcon;
     private View mFocusedView;
     private LinearLayout mKeyboardLayout;
     private RelativeLayout mKeyboardContainer;
-    private UIWidget mBrowserWidget;
+    private WindowWidget mAttachedWindow;
     private InputConnection mInputConnection;
     private EditorInfo mEditorInfo = new EditorInfo();
     private VoiceSearchWidget mVoiceSearchWidget;
@@ -87,6 +96,7 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
     private int mKeyWidth;
     private int mKeyboardPopupTopMargin;
     private ImageButton mCloseKeyboardButton;
+    private ImageButton mKeyboardMoveButton;
     private boolean mIsLongPress;
     private boolean mIsMultiTap;
     private boolean mIsCapsLock;
@@ -95,6 +105,45 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
     private String mComposingText = "";
     private String mComposingDisplayText = "";
     private boolean mInternalDeleteHint = false;
+    private Session mSession;
+    private boolean mInputRestarted = false;
+
+    private class MoveTouchListener implements OnTouchListener {
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_POINTER_DOWN:
+                case MotionEvent.ACTION_DOWN:
+                    v.setPressed(true);
+                    mWidgetManager.startWidgetMove(KeyboardWidget.this, WidgetManagerDelegate.WIDGET_MOVE_BEHAVIOUR_KEYBOARD);
+                    break;
+                case MotionEvent.ACTION_POINTER_UP:
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    v.setPressed(false);
+                    mWidgetManager.finishWidgetMove();
+                    break;
+                default:
+                    return false;
+
+            }
+            return true;
+        }
+    }
+
+    private class MoveHoverListener implements OnHoverListener {
+        @Override
+        public boolean onHover(View v, MotionEvent event) {
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_HOVER_ENTER:
+                    v.setHovered(true);
+                    break;
+                case MotionEvent.ACTION_HOVER_EXIT:
+                    v.setHovered(false);
+            }
+            return false;
+        }
+    }
 
     public KeyboardWidget(Context aContext) {
         super(aContext);
@@ -139,6 +188,13 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
         mKeyboards.add(new ChinesePinyinKeyboard(aContext));
         mKeyboards.add(new ChineseZhuyinKeyboard(aContext));
         mKeyboards.add(new KoreanKeyboard(aContext));
+        mKeyboards.add(new JapaneseKeyboard(aContext));
+        mKeyboards.add(new PolishKeyboard(aContext));
+        mKeyboards.add(new DanishKeyboard(aContext));
+        mKeyboards.add(new NorwegianKeyboard(aContext));
+        mKeyboards.add(new SwedishKeyboard(aContext));
+        mKeyboards.add(new FinnishKeyboard(aContext));
+        mKeyboards.add(new DutchKeyboard(aContext));
 
         mDefaultKeyboardSymbols = new CustomKeyboard(aContext.getApplicationContext(), R.xml.keyboard_symbols);
         mKeyboardNumeric = new CustomKeyboard(aContext.getApplicationContext(), R.xml.keyboard_numeric);
@@ -174,10 +230,13 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
 
         mShiftOnIcon = getResources().getDrawable(R.drawable.ic_icon_keyboard_shift_on, getContext().getTheme());
         mShiftOffIcon = getResources().getDrawable(R.drawable.ic_icon_keyboard_shift_off, getContext().getTheme());
+        mShiftDisabledIcon = getResources().getDrawable(R.drawable.ic_icon_keyboard_shift_disabled, getContext().getTheme());
         mCapsLockOnIcon = getResources().getDrawable(R.drawable.ic_icon_keyboard_caps, getContext().getTheme());
         mCloseKeyboardButton = findViewById(R.id.keyboardCloseButton);
         mCloseKeyboardButton.setOnClickListener(v -> dismiss());
-
+        mKeyboardMoveButton = findViewById(R.id.keyboardMoveButton);
+        mKeyboardMoveButton.setOnTouchListener(new MoveTouchListener());
+        mKeyboardMoveButton.setOnHoverListener(new MoveHoverListener());
         mKeyWidth = getResources().getDimensionPixelSize(R.dimen.keyboard_key_width);
         mKeyboardPopupTopMargin  = getResources().getDimensionPixelSize(R.dimen.keyboard_key_pressed_padding) * 2;
 
@@ -194,16 +253,15 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
         mAutoCompletionView.setExtendedHeight((int)(mWidgetPlacement.height * mWidgetPlacement.density));
         mAutoCompletionView.setDelegate(this);
 
-        SessionStore.get().addTextInputListener(this);
         updateCandidates();
     }
 
     @Override
     public void releaseWidget() {
+        detachFromWindow();
         mWidgetManager.removeFocusChangeListener(this);
-        SessionStore.get().removeTextInputListener(this);
         mAutoCompletionView.setDelegate(null);
-        mBrowserWidget = null;
+        mAttachedWindow = null;
         super.releaseWidget();
     }
 
@@ -216,14 +274,42 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
         aPlacement.height += WidgetPlacement.dpDimension(context, R.dimen.keyboard_layout_padding);
         aPlacement.anchorX = 0.5f;
         aPlacement.anchorY = 0.0f;
+        aPlacement.parentAnchorY = 0.0f;
         aPlacement.translationX = WidgetPlacement.unitFromMeters(context, R.dimen.keyboard_x);
-        aPlacement.translationY = WidgetPlacement.unitFromMeters(context, R.dimen.keyboard_y);
-        aPlacement.translationZ = WidgetPlacement.unitFromMeters(context, R.dimen.keyboard_z);
+        aPlacement.translationY = WidgetPlacement.unitFromMeters(context, R.dimen.keyboard_y) - WidgetPlacement.unitFromMeters(context, R.dimen.window_world_y);
+        aPlacement.translationZ = WidgetPlacement.unitFromMeters(context, R.dimen.keyboard_z) - WidgetPlacement.unitFromMeters(context, R.dimen.window_world_z);
         aPlacement.rotationAxisX = 1.0f;
         aPlacement.rotation = (float)Math.toRadians(WidgetPlacement.floatDimension(context, R.dimen.keyboard_world_rotation));
         aPlacement.worldWidth = WidgetPlacement.floatDimension(context, R.dimen.keyboard_world_width);
         aPlacement.visible = false;
         aPlacement.cylinder = true;
+    }
+
+    @Override
+    public void detachFromWindow() {
+        if (mAttachedWindow != null) {
+            mAttachedWindow.removeWindowListener(this);
+        }
+        
+        if (mSession != null) {
+            mSession.removeTextInputListener(this);
+            mSession = null;
+        }
+    }
+
+    @Override
+    public void attachToWindow(@NonNull WindowWidget aWindow) {
+        if (mAttachedWindow == aWindow) {
+            return;
+        }
+        mAttachedWindow = aWindow;
+        mAttachedWindow.addWindowListener(this);
+        mWidgetPlacement.parentHandle = aWindow.getHandle();
+
+        mSession = aWindow.getSession();
+        if (mSession != null) {
+            mSession.addTextInputListener(this);
+        }
     }
 
     private int getKeyboardWidth(float aAlphabeticWidth) {
@@ -234,10 +320,6 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
         return (int) width;
     }
 
-    public void setBrowserWidget(UIWidget aWidget) {
-        mBrowserWidget = aWidget;
-    }
-
     private void resetKeyboardLayout() {
         if ((mEditorInfo.inputType & EditorInfo.TYPE_CLASS_NUMBER) == EditorInfo.TYPE_CLASS_NUMBER) {
             mKeyboardView.setKeyboard(getSymbolsKeyboard());
@@ -246,6 +328,10 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
         }
         handleShift(false);
         updateCandidates();
+    }
+
+    private boolean isAttachToWindowWidget() {
+        return mFocusedView instanceof WindowWidget;
     }
 
     public void updateFocusedView(View aFocusedView) {
@@ -278,13 +364,14 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
             mWidgetManager.updateWidget(this);
         }
 
+        mCurrentKeyboard.clear();
         updateCandidates();
         updateSpecialKeyLabels();
     }
 
     public void dismiss() {
         exitVoiceInputMode();
-       if (mFocusedView != null && mFocusedView != mBrowserWidget) {
+       if (mFocusedView != null && mFocusedView != mAttachedWindow) {
            mFocusedView.clearFocus();
        }
        mWidgetPlacement.visible = false;
@@ -296,6 +383,23 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
        mIsLongPress = false;
        handleShift(false);
        hideOverlays();
+    }
+
+    public void proxifyLayerIfNeeded(ArrayList<WindowWidget> aWindows) {
+        if (!SettingsStore.getInstance(getContext()).getLayersEnabled()) {
+            return;
+        }
+        boolean proxify = false;
+        for (WindowWidget window: aWindows) {
+            if (window.getPlacement().borderColor != 0) {
+                proxify = true;
+                break;
+            }
+        }
+        if (mWidgetPlacement.proxifyLayer != proxify) {
+            mWidgetPlacement.proxifyLayer = proxify;
+            mWidgetManager.updateWidget(this);
+        }
     }
 
     private void hideOverlays() {
@@ -310,7 +414,7 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
 
     @Override
     public void onPress(int primaryCode) {
-        Log.d("VRB", "Keyboard onPress " + primaryCode);
+        Log.d(LOGTAG, "Keyboard onPress " + primaryCode);
     }
 
     @Override
@@ -370,7 +474,7 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
 
     @Override
     public void onKey(int primaryCode, int[] keyCodes, boolean hasPopup) {
-        Log.d("VRB", "Keyboard onPress++ " + primaryCode);
+        Log.d(LOGTAG, "Keyboard onPress++ " + primaryCode);
         switch (primaryCode) {
             case Keyboard.KEYCODE_MODE_CHANGE:
                 handleModeChange();
@@ -390,6 +494,9 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
                 break;
             case CustomKeyboard.KEYCODE_LANGUAGE_CHANGE:
                 handleGlobeClick();
+                break;
+            case CustomKeyboard.KEYCODE_EMOJI:
+                handleEmojiInput();
                 break;
             case ' ':
                 handleSpace();
@@ -420,7 +527,11 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
 
     @Override
     public void onText(CharSequence text) {
-        handleText(text.toString());
+        if (!mIsLongPress) {
+            handleText(text.toString());
+        }
+        mIsLongPress = false;
+        mIsMultiTap = false;
     }
 
     @Override
@@ -508,9 +619,14 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
                 // Update shift icon
                 Keyboard.Key key = keyboard.getKeys().get(shiftIndex);
                 if (key != null) {
-                    if (mIsCapsLock) {
+                    if (keyboard == getSymbolsKeyboard()) {
+                        key.icon = mShiftDisabledIcon;
+                        key.pressed = false;
+
+                    } else if (mIsCapsLock) {
                         key.icon = mCapsLockOnIcon;
                         key.pressed = true;
+
                     } else {
                         key.icon = shifted ? mShiftOnIcon : mShiftOffIcon;
                         key.pressed = false;
@@ -570,13 +686,19 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
         if (mLanguageSelectorView.getItems() == null || mLanguageSelectorView.getItems().size() == 0) {
             ArrayList<LanguageSelectorView.Item> items = new ArrayList<>();
             for (KeyboardInterface keyboard: mKeyboards) {
-                items.add(new LanguageSelectorView.Item(keyboard.getKeyboardTitle().toUpperCase(), keyboard));
+                items.add(new LanguageSelectorView.Item(keyboard.getKeyboardTitle(), keyboard));
             }
             mLanguageSelectorView.setItems(items);
         }
         mLanguageSelectorView.setSelectedItem(mCurrentKeyboard);
         mLanguageSelectorView.setVisibility(View.VISIBLE);
         mPopupKeyboardLayer.setVisibility(View.VISIBLE);
+    }
+
+    private void handleEmojiInput() {
+        final KeyboardInterface.CandidatesResult candidates = mCurrentKeyboard.getEmojiCandidates(mComposingText);
+        setAutoCompletionVisible(candidates != null && candidates.words.size() > 0);
+        mAutoCompletionView.setItems(candidates != null ? candidates.words : null);
     }
 
     private void handleLanguageChange(KeyboardInterface aKeyboard) {
@@ -601,9 +723,28 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
 
         SettingsStore.getInstance(getContext()).setSelectedKeyboard(aKeyboard.getLocale());
         mKeyboardView.setKeyboard(mCurrentKeyboard.getAlphabeticKeyboard());
+        updateSpaceBarLanguageLabel();
+        disableShift(getSymbolsKeyboard());
         handleShift(false);
         hideOverlays();
         updateCandidates();
+
+        String spaceText = mCurrentKeyboard.getSpaceKeyText(mComposingText).toUpperCase();
+        mCurrentKeyboard.getAlphabeticKeyboard().setSpaceKeyLabel(spaceText);
+    }
+
+    private void disableShift(@NonNull CustomKeyboard keyboard) {
+        int[] shiftIndices = keyboard.getShiftKeyIndices();
+        for (int shiftIndex: shiftIndices) {
+            if (shiftIndex >= 0) {
+                Keyboard.Key key = keyboard.getKeys().get(shiftIndex);
+                if (key != null) {
+                    key.icon = mShiftDisabledIcon;
+                    key.pressed = false;
+                }
+            }
+        }
+        keyboard.disableKeys(shiftIndices);
     }
 
     private void handleSpace() {
@@ -630,8 +771,9 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
         final int action = mEditorInfo.imeOptions & EditorInfo.IME_MASK_ACTION;
         postInputCommand(() -> connection.performEditorAction(action));
 
-        boolean hide = (action & (EditorInfo.IME_ACTION_DONE | EditorInfo.IME_ACTION_GO |
-                                 EditorInfo.IME_ACTION_SEARCH | EditorInfo.IME_ACTION_SEND)) != 0;
+        boolean hide = (action == EditorInfo.IME_ACTION_DONE) || (action == EditorInfo.IME_ACTION_GO) ||
+                (action == EditorInfo.IME_ACTION_SEARCH) || (action == EditorInfo.IME_ACTION_SEND);
+
         if (hide && mFocusedView != null) {
             mFocusedView.clearFocus();
         }
@@ -643,6 +785,9 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
         Keyboard alphabetic = mCurrentKeyboard.getAlphabeticKeyboard();
         mKeyboardView.setKeyboard(current == alphabetic ? getSymbolsKeyboard() : alphabetic);
         mKeyboardView.setLayoutParams(mKeyboardView.getLayoutParams());
+        if (current == alphabetic) {
+            mCurrentKeyboard.getAlphabeticKeyboard().setSpaceKeyLabel("");
+        }
     }
 
     private void handleKey(int primaryCode, int[] keyCodes) {
@@ -702,7 +847,7 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
         }
         mIsInVoiceInput = true;
         TelemetryWrapper.voiceInputEvent();
-        mVoiceSearchWidget.show(false);
+        mVoiceSearchWidget.show(CLEAR_FOCUS);
         mWidgetPlacement.visible = false;
         mWidgetManager.updateWidget(this);
     }
@@ -712,7 +857,12 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
             return "";
         }
 
-        String fullText = aConnection.getExtractedText(new ExtractedTextRequest(),0).text.toString();
+        ExtractedText extracted = aConnection.getExtractedText(new ExtractedTextRequest(),0);
+        if ((extracted == null) || extracted.text == null) {
+            return "";
+        }
+
+        String fullText = extracted.text.toString();
         return aConnection.getTextBeforeCursor(fullText.length(),0).toString();
     }
 
@@ -768,17 +918,30 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
     }
 
     private void updateSpecialKeyLabels() {
-        String spaceText = mCurrentKeyboard.getSpaceKeyText(mComposingText);
         String enterText = mCurrentKeyboard.getEnterKeyText(mEditorInfo.imeOptions, mComposingText);
         String modeChangeText = mCurrentKeyboard.getModeChangeKeyText();
-        boolean changed = mCurrentKeyboard.getAlphabeticKeyboard().setSpaceKeyLabel(spaceText);
-        changed |= mCurrentKeyboard.getAlphabeticKeyboard().setEnterKeyLabel(enterText);
+        boolean changed = mCurrentKeyboard.getAlphabeticKeyboard().setEnterKeyLabel(enterText);
         CustomKeyboard symbolsKeyboard = getSymbolsKeyboard();
         changed |= symbolsKeyboard.setModeChangeKeyLabel(modeChangeText);
-        symbolsKeyboard.setSpaceKeyLabel(spaceText);
         symbolsKeyboard.setEnterKeyLabel(enterText);
         if (changed) {
             mKeyboardView.invalidateAllKeys();
+        }
+
+        if (!isVisible()) {
+            updateSpaceBarLanguageLabel();
+        }
+    }
+
+    private Runnable mHideSpaceBarLanguageLabel = () -> {
+        mCurrentKeyboard.getAlphabeticKeyboard().setSpaceKeyLabel("");
+        mKeyboardView.invalidateAllKeys();
+    };
+
+    private void updateSpaceBarLanguageLabel() {
+        if (getHandler() != null) {
+            getHandler().removeCallbacks(mHideSpaceBarLanguageLabel);
+            getHandler().postDelayed(mHideSpaceBarLanguageLabel, 3000);
         }
     }
 
@@ -812,30 +975,85 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
         }
     }
 
+    private void moveCursor(final int direction) {
+        EditText textView;
+        if (mFocusedView != null && mFocusedView instanceof EditText) {
+            textView = (EditText)mFocusedView;
+            final int cursor = textView.getSelectionStart() + direction;
+            if ((cursor <= textView.length()) && (cursor >= 0)) {
+                textView.setSelection(cursor);
+            }
+        }
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(final KeyEvent event) {
+        final int keyCode = event.getKeyCode();
+        final InputConnection connection = mInputConnection;
+        if (connection != null) {
+            if (isAttachToWindowWidget()) {
+                connection.sendKeyEvent(event);
+                hide(UIWidget.KEEP_WIDGET);
+                return true;
+            }
+            // Android Components do not support InputConnection.sendKeyEvent()
+            if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                Log.e("reb", "key = " + KeyEvent.keyCodeToString(keyCode));
+
+                switch (keyCode) {
+                    case KeyEvent.KEYCODE_DEL:
+                        handleBackspace(event.isLongPress());
+                        return true;
+                    case KeyEvent.KEYCODE_ENTER:
+                    case KeyEvent.KEYCODE_NUMPAD_ENTER:
+                        handleDone();
+                        return true;
+                    case KeyEvent.KEYCODE_DPAD_LEFT:
+                        moveCursor(-1);
+                        return true;
+                    case KeyEvent.KEYCODE_DPAD_RIGHT:
+                        moveCursor(1);
+                        return true;
+                    default:
+                        break;
+                }
+                if (event.getUnicodeChar() != 0) {
+                    KeyCharacterMap map = event.getKeyCharacterMap();
+                    String value = String.valueOf((char) map.get(keyCode, event.getMetaState()));
+                    connection.commitText(value, 1);
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     // GeckoSession.TextInputDelegate
 
     @Override
     public void restartInput(@NonNull GeckoSession session, int reason) {
         resetKeyboardLayout();
+        mInputRestarted = true;
     }
 
     @Override
     public void showSoftInput(@NonNull GeckoSession session) {
-        if (mFocusedView != mBrowserWidget || getVisibility() != View.VISIBLE) {
-            updateFocusedView(mBrowserWidget);
+        if (mFocusedView != mAttachedWindow || getVisibility() != View.VISIBLE || mInputRestarted) {
+            updateFocusedView(mAttachedWindow);
         }
+        mInputRestarted = false;
     }
 
     @Override
     public void hideSoftInput(@NonNull GeckoSession session) {
-        if (mFocusedView == mBrowserWidget && getVisibility() == View.VISIBLE) {
+        if (mFocusedView == mAttachedWindow && getVisibility() == View.VISIBLE) {
             dismiss();
         }
     }
 
     @Override
     public void updateSelection(@NonNull GeckoSession session, final int selStart, final int selEnd, final int compositionStart, final int compositionEnd) {
-        if (mFocusedView != mBrowserWidget || mInputConnection == null) {
+        if (mFocusedView != mAttachedWindow || mInputConnection == null) {
             return;
         }
 
@@ -849,21 +1067,6 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
                 connection.setSelection(selStart, selEnd);
             }
         });
-    }
-
-    @Override
-    public void updateExtractedText(@NonNull GeckoSession session, @NonNull ExtractedTextRequest request, @NonNull ExtractedText text) {
-
-    }
-
-    @Override
-    public void updateCursorAnchorInfo(@NonNull GeckoSession session, @NonNull CursorAnchorInfo info) {
-
-    }
-
-    @Override
-    public void notifyAutoFill(GeckoSession session, int notification, int virtualId) {
-
     }
 
     // FocusChangeListener
@@ -949,8 +1152,17 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
         if (!mInternalDeleteHint && mCurrentKeyboard.usesComposingText() && mComposingText.length() > 0 && mTextBefore.length() > 0 && aEditable.toString().length() == 0) {
             // Text has been cleared externally (e.g. URLBar text clear button)
             mComposingText = "";
+            mCurrentKeyboard.clear();
             updateCandidates();
         }
         mInternalDeleteHint = false;
+    }
+
+    // WindowListener
+
+    @Override
+    public void onSessionChanged(@NonNull Session aOldSession, @NonNull Session aSession) {
+        aOldSession.removeTextInputListener(this);
+        aSession.addTextInputListener(this);
     }
 }

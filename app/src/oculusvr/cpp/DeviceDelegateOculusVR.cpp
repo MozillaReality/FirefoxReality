@@ -7,6 +7,7 @@
 #include "DeviceUtils.h"
 #include "ElbowModel.h"
 #include "BrowserEGLContext.h"
+#include "VRBrowser.h"
 #include "VRLayer.h"
 
 #include <android_native_app_glue.h>
@@ -30,8 +31,13 @@
 #include "VrApi_Helpers.h"
 #include "VrApi_Input.h"
 #include "VrApi_SystemUtils.h"
+#include "OVR_Platform.h"
+#include "OVR_Message.h"
 
 #include "VRBrowser.h"
+
+#define OCULUS_6DOF_APP_ID "2180252408763702"
+#define OCULUS_3DOF_APP_ID "2208418715853974"
 
 namespace crow {
 
@@ -118,10 +124,18 @@ struct OculusEyeSwapChain {
 class OculusLayer;
 typedef std::shared_ptr<OculusLayer> OculusLayerPtr;
 
+struct SurfaceChangedTarget {
+  OculusLayer * layer;
+  SurfaceChangedTarget(OculusLayer * aLayer): layer(aLayer) {};
+};
+
+typedef std::shared_ptr<SurfaceChangedTarget> SurfaceChangedTargetPtr;
+typedef std::weak_ptr<SurfaceChangedTarget> SurfaceChangedTargetWeakPtr;
+
 class OculusLayer {
 public:
   virtual void Init(JNIEnv * aEnv, vrb::RenderContextPtr& aContext) = 0;
-  virtual void Update(const ovrTracking2& aTracking) = 0;
+  virtual void Update(const ovrTracking2& aTracking, ovrTextureSwapChain* aClearSwapChain) = 0;
   virtual ovrTextureSwapChain * GetSwapChain() const = 0;
   virtual const ovrLayerHeader2 * Header() const = 0;
   virtual void SetCurrentEye(device::Eye aEye) = 0;
@@ -129,10 +143,14 @@ public:
   virtual bool GetDrawInFront() const = 0;
   virtual void ClearRequestDraw() = 0;
   virtual bool IsComposited() const = 0;
+  virtual void SetComposited(bool aValue) = 0;
   virtual VRLayerPtr GetLayer() const = 0;
   virtual void Destroy() = 0;
   typedef std::function<void(const vrb::FBOPtr&, GLenum aTarget, bool aBound)> BindDelegate;
   virtual void SetBindDelegate(const BindDelegate& aDelegate) = 0;
+  virtual jobject GetSurface() const = 0;
+  virtual SurfaceChangedTargetPtr GetSurfaceChangedTarget() const = 0;
+  virtual void HandleResize(ovrTextureSwapChain * newSwapChain, jobject newSurface, vrb::FBOPtr newFBO) = 0;
   virtual ~OculusLayer() {}
 };
 
@@ -140,19 +158,27 @@ template <class T, class U>
 class OculusLayerBase: public OculusLayer {
 public:
   ovrTextureSwapChain * swapChain = nullptr;
-  bool composited = false;
+  SurfaceChangedTargetPtr surfaceChangedTarget;
   T layer;
   U ovrLayer;
 
   void Init(JNIEnv * aEnv, vrb::RenderContextPtr& aContext) override {
     layer->SetInitialized(true);
+    surfaceChangedTarget = std::make_shared<SurfaceChangedTarget>(this);
+    SurfaceChangedTargetWeakPtr weakTarget = surfaceChangedTarget;
     layer->NotifySurfaceChanged(VRLayer::SurfaceChange::Create, [=]() {
-      composited = true;
+      SurfaceChangedTargetPtr target = weakTarget.lock();
+      if (target) {
+        target->layer->SetComposited(true);
+      }
     });
   }
 
-  virtual void Update(const ovrTracking2& aTracking) override{
+  virtual void Update(const ovrTracking2& aTracking, ovrTextureSwapChain* aClearSwapChain) override{
     vrb::Color tintColor = layer->GetTintColor();
+    if (!IsComposited() && layer->GetClearColor().Alpha()) {
+      tintColor = layer->GetClearColor();
+    }
     ovrLayer.Header.ColorScale.x = tintColor.Red();
     ovrLayer.Header.ColorScale.y = tintColor.Green();
     ovrLayer.Header.ColorScale.z = tintColor.Blue();
@@ -172,7 +198,7 @@ public:
   }
 
   virtual bool IsDrawRequested() const override {
-    return swapChain && composited && layer->IsDrawRequested();
+    return layer->IsDrawRequested() && ((swapChain && IsComposited()) || layer->GetClearColor().Alpha() > 0.0f);
   }
 
   bool GetDrawInFront() const override {
@@ -184,7 +210,11 @@ public:
   }
 
   bool IsComposited() const override {
-    return composited;
+    return layer->IsComposited();
+  }
+
+  void SetComposited(bool aValue) override  {
+    layer->SetComposited(aValue);
   }
 
   VRLayerPtr GetLayer() const override  {
@@ -205,11 +235,25 @@ public:
       swapChain = nullptr;
     }
     layer->SetInitialized(false);
-    composited = false;
+    SetComposited(false);
     layer->NotifySurfaceChanged(VRLayer::SurfaceChange::Destroy, nullptr);
   }
 
   void SetBindDelegate(const BindDelegate& aDelegate) override {}
+
+  jobject GetSurface() const override {
+    return nullptr;
+  }
+
+  SurfaceChangedTargetPtr GetSurfaceChangedTarget() const override {
+    return surfaceChangedTarget;
+  }
+
+  void HandleResize(ovrTextureSwapChain * newSwapChain, jobject newSurface, vrb::FBOPtr newFBO) override {}
+
+  ovrTextureSwapChain* GetTargetSwapChain(ovrTextureSwapChain* aClearSwapChain) {
+    return (IsComposited() || layer->GetClearColor().Alpha() == 0) ? swapChain : aClearSwapChain;
+  }
 
   virtual ~OculusLayerBase() {}
 };
@@ -251,18 +295,27 @@ public:
     vrb::FBOPtr newFBO;
     InitSwapChain(newSwapChain, newSurface, newFBO);
     this->layer->SetSurface(newSurface);
+
+    SurfaceChangedTargetWeakPtr weakTarget = this->surfaceChangedTarget;
     this->layer->NotifySurfaceChanged(VRLayer::SurfaceChange::Create, [=]() {
-      if (this->swapChain) {
-        vrapi_DestroyTextureSwapChain(this->swapChain);
+      SurfaceChangedTargetPtr target = weakTarget.lock();
+      if (target && target->layer) {
+        target->layer->HandleResize(newSwapChain, newSurface, newFBO);
       }
-      if (this->surface) {
-        jniEnv->DeleteGlobalRef(this->surface);
-      }
-      this->swapChain = newSwapChain;
-      this->surface = newSurface;
-      this->fbo = newFBO;
-      this->composited = true;
     });
+  }
+
+  void HandleResize(ovrTextureSwapChain * newSwapChain, jobject newSurface, vrb::FBOPtr newFBO) override {
+    if (this->swapChain) {
+      vrapi_DestroyTextureSwapChain(this->swapChain);
+    }
+    if (this->surface) {
+      jniEnv->DeleteGlobalRef(this->surface);
+    }
+    this->swapChain = newSwapChain;
+    this->surface = newSurface;
+    this->fbo = newFBO;
+    this->SetComposited(true);
   }
 
   void Destroy() override {
@@ -284,14 +337,20 @@ public:
     });
   }
 
+  virtual jobject GetSurface() const override {
+    return surface;
+  }
+
 protected:
   void TakeSurface(const OculusLayerPtr& aSource) {
     this->swapChain = aSource->GetSwapChain();
-    VRLayerSurfacePtr sourceLayer = std::dynamic_pointer_cast<VRLayerSurface>(aSource->GetLayer());
-    if (sourceLayer) {
-      this->surface = sourceLayer->GetSurface();
+    this->surface = aSource->GetSurface();
+    this->surfaceChangedTarget = aSource->GetSurfaceChangedTarget();
+    if (this->surfaceChangedTarget) {
+      // Indicate that the first composite notification should be notified to this layer.
+      this->surfaceChangedTarget->layer = this;
     }
-    this->composited = aSource->IsComposited();
+    this->SetComposited(aSource->IsComposited());
     this->layer->SetInitialized(aSource->GetLayer()->IsInitialized());
     this->layer->SetResizeDelegate([=]{
       Resize();
@@ -351,8 +410,8 @@ public:
     OculusLayerSurface<VRLayerQuadPtr, ovrLayerProjection2>::Init(aEnv, aContext);
   }
 
-  void Update(const ovrTracking2& aTracking) override {
-    OculusLayerSurface<VRLayerQuadPtr, ovrLayerProjection2>::Update(aTracking);
+  void Update(const ovrTracking2& aTracking, ovrTextureSwapChain* aClearSwapChain) override {
+    OculusLayerSurface<VRLayerQuadPtr, ovrLayerProjection2>::Update(aTracking, aClearSwapChain);
     const float w = layer->GetWorldWidth();
     const float h = layer->GetWorldHeight();
 
@@ -369,7 +428,7 @@ public:
 
       device::EyeRect textureRect = layer->GetTextureRect(eye);
 
-      ovrLayer.Textures[i].ColorSwapChain = swapChain;
+      ovrLayer.Textures[i].ColorSwapChain = GetTargetSwapChain(aClearSwapChain);
       ovrLayer.Textures[i].SwapChainIndex = 0;
       ovrLayer.Textures[i].TexCoordsFromTanAngles = ovrMatrix4f_TanAngleMatrixFromUnitSquare(&modelView);
       ovrLayer.Textures[i].TextureRect.x = textureRect.mX;
@@ -403,8 +462,8 @@ public:
     OculusLayerSurface<VRLayerCylinderPtr, ovrLayerCylinder2>::Init(aEnv, aContext);
   }
 
-  void Update(const ovrTracking2& aTracking) override {
-    OculusLayerSurface<VRLayerCylinderPtr, ovrLayerCylinder2>::Update(aTracking);
+  void Update(const ovrTracking2& aTracking, ovrTextureSwapChain* aClearSwapChain) override {
+    OculusLayerSurface<VRLayerCylinderPtr, ovrLayerCylinder2>::Update(aTracking, aClearSwapChain);
     const float w = layer->GetWorldWidth();
     const float h = layer->GetWorldHeight();
 
@@ -417,7 +476,7 @@ public:
       vrb::Matrix modelView = layer->GetView(eye).PostMultiply(layer->GetModelTransform(eye));
       ovrMatrix4f matrix = ovrMatrixFrom(modelView);
       ovrLayer.Textures[i].TexCoordsFromTanAngles = ovrMatrix4f_Inverse(&matrix);
-      ovrLayer.Textures[i].ColorSwapChain = swapChain;
+      ovrLayer.Textures[i].ColorSwapChain = GetTargetSwapChain(aClearSwapChain);
       ovrLayer.Textures[i].SwapChainIndex = 0;
 
       const vrb::Vector scale = layer->GetUVTransform(eye).GetScale();
@@ -473,15 +532,15 @@ public:
     return layer->IsLoaded();
   }
 
-  void Update(const ovrTracking2& aTracking) override {
-    OculusLayerBase<VRLayerCubePtr, ovrLayerCube2>::Update(aTracking);
+  void Update(const ovrTracking2& aTracking, ovrTextureSwapChain* aClearSwapChain) override {
+    OculusLayerBase<VRLayerCubePtr, ovrLayerCube2>::Update(aTracking, aClearSwapChain);
     const ovrMatrix4f centerEyeViewMatrix = vrapi_GetViewMatrixFromPose(&aTracking.HeadPose.Pose);
     const ovrMatrix4f cubeMatrix = ovrMatrix4f_TanAngleMatrixForCubeMap(&centerEyeViewMatrix);
     ovrLayer.HeadPose = aTracking.HeadPose;
     ovrLayer.TexCoordsFromTanAngles = cubeMatrix;
 
     for (int i = 0; i < VRAPI_FRAME_LAYER_EYE_MAX; ++i) {
-      ovrLayer.Textures[i].ColorSwapChain = swapChain;
+      ovrLayer.Textures[i].ColorSwapChain = GetTargetSwapChain(aClearSwapChain);
       ovrLayer.Textures[i].SwapChainIndex = 0;
     }
   }
@@ -534,12 +593,12 @@ public:
     return source && source->GetSwapChain() && source->IsComposited() && layer->IsDrawRequested();
   }
 
-  void Update(const ovrTracking2& aTracking) override {
+  void Update(const ovrTracking2& aTracking, ovrTextureSwapChain* aClearSwapChain) override {
     OculusLayerPtr source = sourceLayer.lock();
     if (source) {
       swapChain = source->GetSwapChain();
     }
-    OculusLayerBase<VRLayerEquirectPtr, ovrLayerEquirect2>::Update(aTracking);
+    OculusLayerBase<VRLayerEquirectPtr, ovrLayerEquirect2>::Update(aTracking, aClearSwapChain);
 
     vrb::Quaternion q(layer->GetModelTransform(device::Eye::Left));
     ovrLayer.HeadPose.Pose.Orientation.x  = q.x();
@@ -550,7 +609,7 @@ public:
     bool clip = false;
     for (int i = 0; i < VRAPI_FRAME_LAYER_EYE_MAX; ++i) {
       const device::Eye eye = i == 0 ? device::Eye::Left : device::Eye::Right;
-      ovrLayer.Textures[i].ColorSwapChain = swapChain;
+      ovrLayer.Textures[i].ColorSwapChain = GetTargetSwapChain(aClearSwapChain);
       ovrLayer.Textures[i].SwapChainIndex = 0;
       const vrb::Vector scale = layer->GetUVTransform(eye).GetScale();
       const vrb::Vector translation = layer->GetUVTransform(eye).GetTranslation();
@@ -599,6 +658,7 @@ struct DeviceDelegateOculusVR::State {
   vrb::RenderContextWeak context;
   android_app* app = nullptr;
   bool initialized = false;
+  bool applicationEntitled = false;
   bool layersEnabled = true;
   ovrJava java = {};
   ovrMobile* ovr = nullptr;
@@ -606,6 +666,7 @@ struct DeviceDelegateOculusVR::State {
   OculusLayerCubePtr cubeLayer;
   OculusLayerEquirectPtr equirectLayer;
   std::vector<OculusLayerPtr> uiLayers;
+  ovrTextureSwapChain* clearColorSwapChain = nullptr;
   device::RenderMode renderMode = device::RenderMode::StandAlone;
   vrb::FBOPtr currentFBO;
   vrb::FBOPtr previousFBO;
@@ -624,8 +685,6 @@ struct DeviceDelegateOculusVR::State {
   ControllerDelegatePtr controller;
   ImmersiveDisplayPtr immersiveDisplay;
   int reorientCount = -1;
-  bool headHeightOffsetSet = false;
-  vrb::Vector headHeightOffset;
   vrb::Matrix reorientMatrix = vrb::Matrix::Identity();
   device::CPULevel minCPULevel = device::CPULevel::Normal;
   device::DeviceType deviceType = device::UnknownType;
@@ -686,25 +745,44 @@ struct DeviceDelegateOculusVR::State {
     // Reorient the headset after controller recenter.
     vrapi_SetPropertyInt(&java, VRAPI_REORIENT_HMD_ON_CONTROLLER_RECENTER, 1);
 
+    const char * appId = OCULUS_6DOF_APP_ID;
+
     const int type = vrapi_GetSystemPropertyInt(&java, VRAPI_SYS_PROP_DEVICE_TYPE);
     if ((type >= VRAPI_DEVICE_TYPE_OCULUSGO_START ) && (type <= VRAPI_DEVICE_TYPE_OCULUSGO_END)) {
       VRB_DEBUG("Detected Oculus Go");
       deviceType = device::OculusGo;
+      appId = OCULUS_3DOF_APP_ID;
     } else if ((type >= VRAPI_DEVICE_TYPE_OCULUSQUEST_START) && (type <= VRAPI_DEVICE_TYPE_OCULUSQUEST_END)) {
       VRB_DEBUG("Detected Oculus Quest");
       deviceType = device::OculusQuest;
+    } else if ((type >= VRAPI_DEVICE_TYPE_GEARVR_START) && (type <= VRAPI_DEVICE_TYPE_GEARVR_END)) {
+      VRB_DEBUG("Detected Gear VR");
+      appId = OCULUS_3DOF_APP_ID;
     } else {
       VRB_DEBUG("Detected Unknown Oculus device");
+    }
+
+    if (!ovr_IsPlatformInitialized()) {
+      ovrRequest result = ovr_PlatformInitializeAndroidAsynchronous(appId, java.ActivityObject,
+                                                                    java.Env);
+
+      if (invalidRequestID == result) {
+        // Initialization failed which means either the oculus service isn’t on the machine or they’ve hacked their DLL.
+        VRB_LOG("ovr_PlatformInitializeAndroidAsynchronous failed: %d", (int32_t) result);
+#if STORE_BUILD == 1
+        VRBrowser::HaltActivity(0);
+#endif
+      } else {
+        VRB_LOG("ovr_PlatformInitializeAndroidAsynchronous succeeded");
+        ovr_Entitlement_GetIsViewerEntitled();
+      }
+    } else if (!applicationEntitled) {
+      ovr_Entitlement_GetIsViewerEntitled();
     }
   }
 
   void UpdateTrackingMode() {
-    if (!ovr) {
-      return;
-    }
-    if (renderMode == device::RenderMode::StandAlone && Is6DOF()) {
-      vrapi_SetTrackingSpace(ovr, VRAPI_TRACKING_SPACE_LOCAL_FLOOR);
-    } else {
+    if (ovr) {
       vrapi_SetTrackingSpace(ovr, VRAPI_TRACKING_SPACE_LOCAL);
     }
   }
@@ -915,7 +993,7 @@ struct DeviceDelegateOculusVR::State {
         auto & position = tracking.HeadPose.Pose.Position;
         vrb::Vector headPos(position.x, position.y, position.z);
         if (renderMode == device::RenderMode::StandAlone) {
-          headPos += headHeightOffset;
+          headPos += kAverageHeight;
         }
         controllerState.transform.TranslateInPlace(headPos);
         flags |= device::Position;
@@ -1040,6 +1118,33 @@ struct DeviceDelegateOculusVR::State {
     previousFBO = currentFBO;
     aFBO->Bind(aTarget);
     currentFBO = aFBO;
+  }
+
+  ovrTextureSwapChain* CreateClearColorSwapChain(const float aWidth, const float aHeight) {
+    ovrTextureSwapChain* result = vrapi_CreateTextureSwapChain(VRAPI_TEXTURE_TYPE_2D, VRAPI_TEXTURE_FORMAT_8888, aWidth, aHeight, 1, false);
+    vrb::RenderContextPtr ctx = context.lock();
+    vrb::FBOPtr fbo = vrb::FBO::Create(ctx);
+    GLuint texture = vrapi_GetTextureSwapChainHandle(result, 0);
+    VRB_GL_CHECK(glBindTexture(GL_TEXTURE_2D, texture));
+    VRB_GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER_EXT));
+    VRB_GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER_EXT));
+    float border[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR_EXT, border);
+    VRB_GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+    VRB_GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+    vrb::FBO::Attributes attributes;
+    attributes.depth = false;
+    attributes.samples = 0;
+    VRB_GL_CHECK(fbo->SetTextureHandle(texture, aWidth, aHeight, attributes));
+    if (fbo->IsValid()) {
+      fbo->Bind();
+      VRB_GL_CHECK(glClearColor(1.0f, 1.0f, 1.0f, 1.0f));
+      VRB_GL_CHECK(glClear(GL_COLOR_BUFFER_BIT));
+      fbo->Unbind();
+    } else {
+      VRB_WARN("FAILED to make valid FBO for ClearColorSwapChain");
+    }
+    return result;
   }
 };
 
@@ -1217,7 +1322,45 @@ DeviceDelegateOculusVR::SetCPULevel(const device::CPULevel aLevel) {
 
 void
 DeviceDelegateOculusVR::ProcessEvents() {
+  if (m.applicationEntitled) {
+    return;
+  }
 
+  ovrMessageHandle message;
+  while ((message = ovr_PopMessage()) != nullptr) {
+    switch (ovr_Message_GetType(message)) {
+      case ovrMessage_PlatformInitializeAndroidAsynchronous: {
+        ovrPlatformInitializeHandle handle = ovr_Message_GetPlatformInitialize(message);
+        ovrPlatformInitializeResult result = ovr_PlatformInitialize_GetResult(handle);
+        if (result == ovrPlatformInitialize_Success) {
+          VRB_DEBUG("OVR Platform Initialized.");
+        } else {
+          VRB_ERROR("OVR Platform Initialize failed: %s", ovrPlatformInitializeResult_ToString(result));
+#if STORE_BUILD == 1
+          VRBrowser::HaltActivity(0);
+#endif
+        }
+      }
+        break;
+      case ovrMessage_Entitlement_GetIsViewerEntitled:
+        if (ovr_Message_IsError(message)) {
+          VRB_LOG("User is not entitled");
+#if STORE_BUILD == 1
+          VRBrowser::HaltActivity(0);
+#else
+          // No need to process events anymore.
+          m.applicationEntitled = true;
+#endif
+        }
+        else {
+          VRB_LOG("User is entitled");
+          m.applicationEntitled = true;
+        }
+        break;
+      default:
+        break;
+    }
+  }
 }
 
 void
@@ -1246,15 +1389,7 @@ DeviceDelegateOculusVR::StartFrame() {
 
 
   if (m.renderMode == device::RenderMode::StandAlone) {
-    if (!m.Is6DOF()) {
-      head.TranslateInPlace(kAverageHeight);
-    } else {
-      if (!m.headHeightOffsetSet) {
-        m.headHeightOffset = vrb::Vector(kAverageHeight.x(), kAverageHeight.y() - m.predictedTracking.HeadPose.Pose.Position.y, kAverageHeight.z());
-        m.headHeightOffsetSet = true;
-      }
-      head.TranslateInPlace(m.headHeightOffset);
-    }
+    head.TranslateInPlace(kAverageHeight);
   }
 
   m.cameras[VRAPI_EYE_LEFT]->SetHeadTransform(head);
@@ -1276,12 +1411,7 @@ DeviceDelegateOculusVR::StartFrame() {
   m.UpdateControllers(head);
   bool reoriented = lastReorientCount != m.reorientCount && lastReorientCount > 0 && m.reorientCount > 0;
   if (reoriented && m.renderMode == device::RenderMode::StandAlone) {
-    vrb::Vector height = kAverageHeight;
-    if (m.Is6DOF()) {
-      height.y() = m.predictedTracking.HeadPose.Pose.Position.y;
-      m.headHeightOffset = vrb::Vector(kAverageHeight.x(), kAverageHeight.y() - m.predictedTracking.HeadPose.Pose.Position.y, kAverageHeight.z());
-    }
-    m.reorientMatrix = DeviceUtils::CalculateReorientationMatrix(head, height);
+    m.reorientMatrix = DeviceUtils::CalculateReorientationMatrix(head, kAverageHeight);
   }
 
   VRB_GL_CHECK(glClearColor(m.clearColor.Red(), m.clearColor.Green(), m.clearColor.Blue(), m.clearColor.Alpha()));
@@ -1340,13 +1470,13 @@ DeviceDelegateOculusVR::EndFrame(const bool aDiscard) {
   const ovrLayerHeader2* layers[ovrMaxLayerCount] = {};
 
   if (m.cubeLayer && m.cubeLayer->IsLoaded() && m.cubeLayer->IsDrawRequested()) {
-    m.cubeLayer->Update(m.predictedTracking);
+    m.cubeLayer->Update(m.predictedTracking, m.clearColorSwapChain);
     layers[layerCount++] = m.cubeLayer->Header();
     m.cubeLayer->ClearRequestDraw();
   }
 
   if (m.equirectLayer && m.equirectLayer->IsDrawRequested()) {
-    m.equirectLayer->Update(m.predictedTracking);
+    m.equirectLayer->Update(m.predictedTracking, m.clearColorSwapChain);
     layers[layerCount++] = m.equirectLayer->Header();
     m.equirectLayer->ClearRequestDraw();
   }
@@ -1358,8 +1488,8 @@ DeviceDelegateOculusVR::EndFrame(const bool aDiscard) {
 
   // Draw back layers
   for (const OculusLayerPtr& layer: m.uiLayers) {
-    if (!layer->GetDrawInFront() && layer->IsDrawRequested() && layerCount < ovrMaxLayerCount) {
-      layer->Update(m.predictedTracking);
+    if (!layer->GetDrawInFront() && layer->IsDrawRequested() && (layerCount < ovrMaxLayerCount - 1)) {
+      layer->Update(m.predictedTracking, m.clearColorSwapChain);
       layers[layerCount++] = layer->Header();
       layer->ClearRequestDraw();
     }
@@ -1387,7 +1517,7 @@ DeviceDelegateOculusVR::EndFrame(const bool aDiscard) {
   // Draw front layers
   for (const OculusLayerPtr& layer: m.uiLayers) {
     if (layer->GetDrawInFront() && layer->IsDrawRequested() && layerCount < ovrMaxLayerCount) {
-      layer->Update(m.predictedTracking);
+      layer->Update(m.predictedTracking, m.clearColorSwapChain);
       layers[layerCount++] = layer->Header();
       layer->ClearRequestDraw();
     }
@@ -1487,7 +1617,7 @@ DeviceDelegateOculusVR::CreateLayerCube(int32_t aWidth, int32_t aHeight, GLint a
   if (m.cubeLayer) {
     m.cubeLayer->Destroy();
   }
-  VRLayerCubePtr layer = VRLayerCube::Create(aWidth, aHeight);
+  VRLayerCubePtr layer = VRLayerCube::Create(aWidth, aHeight, aInternalFormat);
   m.cubeLayer = OculusLayerCube::Create(layer, aInternalFormat);
   if (m.ovr) {
     vrb::RenderContextPtr context = m.context.lock();
@@ -1524,8 +1654,14 @@ DeviceDelegateOculusVR::DeleteLayer(const VRLayerPtr& aLayer) {
     m.cubeLayer = nullptr;
     return;
   }
+  if (m.equirectLayer && m.equirectLayer->layer == aLayer) {
+    m.equirectLayer->Destroy();
+    m.equirectLayer = nullptr;
+    return;
+  }
   for (int i = 0; i < m.uiLayers.size(); ++i) {
     if (m.uiLayers[i]->GetLayer() == aLayer) {
+      m.uiLayers[i]->Destroy();
       m.uiLayers.erase(m.uiLayers.begin() + i);
       return;
     }
@@ -1537,6 +1673,8 @@ DeviceDelegateOculusVR::EnterVR(const crow::BrowserEGLContext& aEGLContext) {
   if (m.ovr) {
     return;
   }
+
+  m.clearColorSwapChain = m.CreateClearColorSwapChain(800, 450);
 
   vrb::RenderContextPtr render = m.context.lock();
   for (int i = 0; i < VRAPI_EYE_COUNT; ++i) {
@@ -1594,6 +1732,10 @@ DeviceDelegateOculusVR::LeaveVR() {
     m.equirectLayer->Destroy();
   }
 
+  if (m.clearColorSwapChain) {
+    vrapi_DestroyTextureSwapChain(m.clearColorSwapChain);
+    m.clearColorSwapChain = nullptr;
+  }
   m.currentFBO = nullptr;
   m.previousFBO = nullptr;
 

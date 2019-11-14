@@ -20,10 +20,10 @@ import org.mozilla.vrbrowser.browser.Media;
 import org.mozilla.vrbrowser.ui.views.MediaSeekBar;
 import org.mozilla.vrbrowser.ui.views.UIButton;
 import org.mozilla.vrbrowser.ui.views.VolumeControl;
+import org.mozilla.vrbrowser.ui.widgets.menus.VideoProjectionMenuWidget;
 
 public class MediaControlsWidget extends UIWidget implements MediaElement.Delegate {
 
-    private static final String LOGTAG = "VRB";
     private Media mMedia;
     private MediaSeekBar mSeekBar;
     private VolumeControl mVolumeControl;
@@ -106,6 +106,11 @@ public class MediaControlsWidget extends UIWidget implements MediaElement.Delega
             placement.worldWidth = 0.5f;
             placement.parentAnchorX = 0.65f;
             placement.parentAnchorY = 0.4f;
+            placement.cylinderMapRadius = 0.0f;
+            if (mWidgetManager.getCylinderDensity() > 0) {
+                placement.rotationAxisY = 1.0f;
+                placement.rotation = (float) Math.toRadians(-7);
+            }
             mProjectionMenu.getPlacement().visible = !mProjectionMenu.getPlacement().visible;
             mWidgetManager.updateWidget(mProjectionMenu);
         });
@@ -219,6 +224,7 @@ public class MediaControlsWidget extends UIWidget implements MediaElement.Delega
         aPlacement.anchorY = 0.5f;
         aPlacement.parentAnchorX = 0.5f;
         aPlacement.parentAnchorY = 0.5f;
+        aPlacement.cylinderMapRadius = 0.0f; // Do not map X when this widget uses cylindrical layout.
     }
 
     public void setParentWidget(int aHandle) {
@@ -243,7 +249,7 @@ public class MediaControlsWidget extends UIWidget implements MediaElement.Delega
             return;
         }
         if (mMedia != null) {
-            mMedia.setDelegate(null);
+            mMedia.removeMediaListener(this);
         }
         mMedia = aMedia;
         boolean enabled = mMedia != null;
@@ -265,7 +271,7 @@ public class MediaControlsWidget extends UIWidget implements MediaElement.Delega
             onPlaybackStateChange(mMedia.getMediaElement(), MediaElement.MEDIA_STATE_PLAY);
         }
 
-        mMedia.setDelegate(this);
+        mMedia.addMediaListener(this);
     }
 
     public void setProjectionSelectorEnabled(boolean aEnabled) {

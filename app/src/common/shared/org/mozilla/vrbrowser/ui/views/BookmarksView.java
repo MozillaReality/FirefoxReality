@@ -5,45 +5,65 @@
 
 package org.mozilla.vrbrowser.ui.views;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.FrameLayout;
 
-import org.mozilla.geckoview.AllowOrDeny;
-import org.mozilla.geckoview.GeckoResult;
-import org.mozilla.geckoview.GeckoSession;
-import org.mozilla.geckoview.WebRequestError;
+import androidx.annotation.NonNull;
+import androidx.databinding.DataBindingUtil;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.mozilla.geckoview.GeckoSessionSettings;
 import org.mozilla.vrbrowser.R;
-import org.mozilla.vrbrowser.audio.AudioEngine;
+import org.mozilla.vrbrowser.VRBrowserActivity;
+import org.mozilla.vrbrowser.VRBrowserApplication;
+import org.mozilla.vrbrowser.browser.Accounts;
 import org.mozilla.vrbrowser.browser.BookmarksStore;
-import org.mozilla.vrbrowser.browser.SessionStore;
+import org.mozilla.vrbrowser.browser.SettingsStore;
+import org.mozilla.vrbrowser.browser.engine.Session;
+import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.databinding.BookmarksBinding;
+import org.mozilla.vrbrowser.ui.adapters.Bookmark;
 import org.mozilla.vrbrowser.ui.adapters.BookmarkAdapter;
-import org.mozilla.vrbrowser.ui.callbacks.BookmarkClickCallback;
-import org.mozilla.vrbrowser.ui.widgets.BookmarkListener;
-import org.mozilla.vrbrowser.utils.UIThreadExecutor;
+import org.mozilla.vrbrowser.ui.adapters.CustomLinearLayoutManager;
+import org.mozilla.vrbrowser.ui.callbacks.BookmarkItemCallback;
+import org.mozilla.vrbrowser.ui.callbacks.BookmarksCallback;
+import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
+import org.mozilla.vrbrowser.utils.SystemUtils;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Executor;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.databinding.DataBindingUtil;
-
+import mozilla.appservices.places.BookmarkRoot;
 import mozilla.components.concept.storage.BookmarkNode;
+import mozilla.components.concept.sync.AccountObserver;
+import mozilla.components.concept.sync.AuthType;
+import mozilla.components.concept.sync.OAuthAccount;
+import mozilla.components.concept.sync.Profile;
+import mozilla.components.service.fxa.SyncEngine;
+import mozilla.components.service.fxa.sync.SyncReason;
+import mozilla.components.service.fxa.sync.SyncStatusObserver;
 
-public class BookmarksView extends FrameLayout implements GeckoSession.NavigationDelegate, BookmarksStore.BookmarkListener {
+public class BookmarksView extends FrameLayout implements BookmarksStore.BookmarkListener {
 
-    private static final String ABOUT_BLANK = "about:blank";
+    private static final String LOGTAG = SystemUtils.createLogtag(BookmarksView.class);
+
+    private static final boolean ACCOUNTS_UI_ENABLED = false;
 
     private BookmarksBinding mBinding;
+    private Accounts mAccounts;
     private BookmarkAdapter mBookmarkAdapter;
-    private List<BookmarkListener> mBookmarkListeners;
-    private AudioEngine mAudio;
-    private boolean mIgnoreNextListener;
+    private ArrayList<BookmarksCallback> mBookmarksViewListeners;
+    private CustomLinearLayoutManager mLayoutManager;
+    private Executor mUIThreadExecutor;
 
     public BookmarksView(Context aContext) {
         super(aContext);
@@ -60,72 +80,235 @@ public class BookmarksView extends FrameLayout implements GeckoSession.Navigatio
         initialize(aContext);
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     private void initialize(Context aContext) {
-        mBookmarkListeners = new ArrayList<>();
-
-        mAudio = AudioEngine.fromContext(aContext);
-        SessionStore.get().addNavigationListener(this);
         LayoutInflater inflater = LayoutInflater.from(aContext);
+
+        mUIThreadExecutor = ((VRBrowserApplication)getContext().getApplicationContext()).getExecutors().mainThread();
+
+        mBookmarksViewListeners = new ArrayList<>();
 
         // Inflate this data binding layout
         mBinding = DataBindingUtil.inflate(inflater, R.layout.bookmarks, this, true);
-        mBookmarkAdapter = new BookmarkAdapter(mBookmarkClickCallback, aContext);
+        mBinding.setCallback(mBookmarksCallback);
+        mBookmarkAdapter = new BookmarkAdapter(mBookmarkItemCallback, aContext);
         mBinding.bookmarksList.setAdapter(mBookmarkAdapter);
+        mBinding.bookmarksList.setOnTouchListener((v, event) -> {
+            v.requestFocusFromTouch();
+            return false;
+        });
+        mBinding.bookmarksList.setHasFixedSize(true);
+        mBinding.bookmarksList.setItemViewCacheSize(20);
+        mBinding.bookmarksList.setDrawingCacheEnabled(true);
+        mBinding.bookmarksList.setDrawingCacheQuality(View.DRAWING_CACHE_QUALITY_HIGH);
+
+        mLayoutManager = (CustomLinearLayoutManager) mBinding.bookmarksList.getLayoutManager();
+
         mBinding.setIsLoading(true);
+
+        mAccounts = ((VRBrowserApplication)getContext().getApplicationContext()).getAccounts();
+        if (ACCOUNTS_UI_ENABLED) {
+            mAccounts.addAccountListener(mAccountListener);
+            mAccounts.addSyncListener(mSyncListener);
+        }
+
+        mBinding.setIsSignedIn(mAccounts.isSignedIn());
+        boolean isSyncEnabled = mAccounts.isEngineEnabled(SyncEngine.Bookmarks.INSTANCE);
+        mBinding.setIsSyncEnabled(isSyncEnabled);
+        if (isSyncEnabled) {
+            mBinding.setLastSync(mAccounts.lastSync());
+            mBinding.setIsSyncing(mAccounts.isSyncing());
+        }
+        mBinding.setIsNarrow(false);
+        mBinding.setIsAccountsUIEnabled(ACCOUNTS_UI_ENABLED);
         mBinding.executePendingBindings();
-        syncBookmarks();
+
+        updateBookmarks();
         SessionStore.get().getBookmarkStore().addListener(this);
 
         setVisibility(GONE);
+
+        setOnTouchListener((v, event) -> {
+            v.requestFocusFromTouch();
+            return false;
+        });
     }
 
-    public void addListeners(BookmarkListener... listeners) {
-        mBookmarkListeners.addAll(Arrays.asList(listeners));
+    public void onShow() {
+        updateLayout();
     }
 
     public void onDestroy() {
-        mBookmarkListeners.clear();
         SessionStore.get().getBookmarkStore().removeListener(this);
+
+        if (ACCOUNTS_UI_ENABLED) {
+            mAccounts.removeAccountListener(mAccountListener);
+            mAccounts.removeSyncListener(mSyncListener);
+        }
     }
 
-    private void notifyBookmarksShown() {
-        mBookmarkListeners.forEach(BookmarkListener::onBookmarksShown);
-    }
-
-    private void notifyBookmarksHidden() {
-        mBookmarkListeners.forEach(BookmarkListener::onBookmarksHidden);
-    }
-
-    private final BookmarkClickCallback mBookmarkClickCallback = new BookmarkClickCallback() {
+    private final BookmarkItemCallback mBookmarkItemCallback = new BookmarkItemCallback() {
         @Override
-        public void onClick(BookmarkNode bookmark) {
-            if (mAudio != null) {
-                mAudio.playSound(AudioEngine.Sound.CLICK);
-            }
+        public void onClick(@NonNull View view, @NonNull Bookmark item) {
+            mBinding.bookmarksList.requestFocusFromTouch();
 
-            SessionStore.get().loadUri(bookmark.getUrl());
+            Session session = SessionStore.get().getActiveSession();
+            session.loadUri(item.getUrl());
         }
 
         @Override
-        public void onDelete(BookmarkNode bookmark) {
-            if (mAudio != null) {
-                mAudio.playSound(AudioEngine.Sound.CLICK);
-            }
+        public void onDelete(@NonNull View view, @NonNull Bookmark item) {
+            mBinding.bookmarksList.requestFocusFromTouch();
 
-            mIgnoreNextListener = true;
-            SessionStore.get().getBookmarkStore().deleteBookmarkById(bookmark.getGuid());
-            mBookmarkAdapter.removeItem(bookmark);
+            mBookmarkAdapter.removeItem(item);
             if (mBookmarkAdapter.itemCount() == 0) {
                 mBinding.setIsEmpty(true);
                 mBinding.setIsLoading(false);
                 mBinding.executePendingBindings();
             }
+
+            SessionStore.get().getBookmarkStore().deleteBookmarkById(item.getGuid());
+        }
+
+        @Override
+        public void onMore(@NonNull View view, @NonNull Bookmark item) {
+            mBinding.bookmarksList.requestFocusFromTouch();
+
+            int rowPosition = mBookmarkAdapter.getItemPosition(item.getGuid());
+            RecyclerView.ViewHolder row = mBinding.bookmarksList.findViewHolderForLayoutPosition(rowPosition);
+            boolean isLastVisibleItem = false;
+            if (mBinding.bookmarksList.getLayoutManager() instanceof LinearLayoutManager) {
+                LinearLayoutManager layoutManager = (LinearLayoutManager) mBinding.bookmarksList.getLayoutManager();
+                int lastVisibleItem = layoutManager.findLastCompletelyVisibleItemPosition();
+                if (rowPosition == layoutManager.findLastVisibleItemPosition() && rowPosition != lastVisibleItem) {
+                    isLastVisibleItem = true;
+                }
+            }
+
+            mBinding.getCallback().onShowContextMenu(
+                    row.itemView,
+                    item,
+                    isLastVisibleItem);
+        }
+
+        @Override
+        public void onFolderOpened(@NonNull Bookmark item) {
+            int position = mBookmarkAdapter.getItemPosition(item.getGuid());
+            mLayoutManager.scrollToPositionWithOffset(position, 20);
         }
     };
 
+    private BookmarksCallback mBookmarksCallback = new BookmarksCallback() {
+        @Override
+        public void onClearBookmarks(@NonNull View view) {
+            mBookmarksViewListeners.forEach((listener) -> listener.onClearBookmarks(view));
+        }
 
-    private void syncBookmarks() {
-        SessionStore.get().getBookmarkStore().getBookmarks().thenAcceptAsync(this::showBookmarks, new UIThreadExecutor());
+        @Override
+        public void onSyncBookmarks(@NonNull View view) {
+            mAccounts.syncNowAsync(SyncReason.User.INSTANCE, false);
+        }
+
+        @Override
+        public void onFxALogin(@NonNull View view) {
+            mAccounts.getAuthenticationUrlAsync().thenAcceptAsync((url) -> {
+                if (url != null) {
+                    mAccounts.setLoginOrigin(Accounts.LoginOrigin.BOOKMARKS);
+                    WidgetManagerDelegate widgetManager = ((VRBrowserActivity)getContext());
+                    widgetManager.openNewTabForeground(url);
+                    widgetManager.getFocusedWindow().getSession().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_MOBILE);
+                }
+            }, mUIThreadExecutor).exceptionally(throwable -> {
+                Log.d(LOGTAG, "Error getting the authentication URL: " + throwable.getLocalizedMessage());
+                throwable.printStackTrace();
+                return null;
+            });
+        }
+
+        @Override
+        public void onFxASynSettings(@NonNull View view) {
+            mBookmarksViewListeners.forEach((listener) -> listener.onFxASynSettings(view));
+        }
+
+        @Override
+        public void onShowContextMenu(@NonNull View view, Bookmark item, boolean isLastVisibleItem) {
+            mBookmarksViewListeners.forEach((listener) -> listener.onShowContextMenu(view, item, isLastVisibleItem));
+        }
+    };
+
+    public void addBookmarksListener(@NonNull BookmarksCallback listener) {
+        if (!mBookmarksViewListeners.contains(listener)) {
+            mBookmarksViewListeners.add(listener);
+        }
+    }
+
+    public void removeBookmarksListener(@NonNull BookmarksCallback listener) {
+        mBookmarksViewListeners.remove(listener);
+    }
+
+    private SyncStatusObserver mSyncListener = new SyncStatusObserver() {
+        @Override
+        public void onStarted() {
+            updateSyncBindings(true);
+        }
+
+        @Override
+        public void onIdle() {
+            updateSyncBindings(false);
+
+            // This shouldn't be necessary but for some reason the buttons stays hovered after the sync.
+            // I guess Android restoring it to the latest state (hovered) before being disabled
+            // Probably an Android bindings bug.
+            mBinding.bookmarksNarrow.syncButton.setHovered(false);
+            mBinding.bookmarksWide.syncButton.setHovered(false);
+        }
+
+        @Override
+        public void onError(@Nullable Exception e) {
+            updateSyncBindings(false);
+        }
+    };
+
+    private void updateSyncBindings(boolean isSyncing) {
+        boolean isSyncEnabled = mAccounts.isEngineEnabled(SyncEngine.Bookmarks.INSTANCE);
+        mBinding.setIsSyncEnabled(isSyncEnabled);
+        if (isSyncEnabled) {
+            mBinding.setIsSyncing(isSyncing);
+            mBinding.setLastSync(mAccounts.lastSync());
+        }
+        mBinding.executePendingBindings();
+    }
+
+    private AccountObserver mAccountListener = new AccountObserver() {
+
+        @Override
+        public void onAuthenticated(@NotNull OAuthAccount oAuthAccount, @NotNull AuthType authType) {
+            mBinding.setIsSignedIn(true);
+        }
+
+        @Override
+        public void onProfileUpdated(@NotNull Profile profile) {
+        }
+
+        @Override
+        public void onLoggedOut() {
+            mBinding.setIsSignedIn(false);
+        }
+
+        @Override
+        public void onAuthenticationProblems() {
+            mBinding.setIsSignedIn(false);
+        }
+    };
+
+    private void updateBookmarks() {
+        SessionStore.get().getBookmarkStore().getTree(BookmarkRoot.Root.getId(), true).
+                thenAcceptAsync(this::showBookmarks, mUIThreadExecutor).
+                exceptionally(throwable -> {
+                    Log.d(LOGTAG, "Error getting bookmarks: " + throwable.getLocalizedMessage());
+                    throwable.printStackTrace();
+                    return null;
+        });
     }
 
     private void showBookmarks(List<BookmarkNode> aBookmarks) {
@@ -138,66 +321,43 @@ public class BookmarksView extends FrameLayout implements GeckoSession.Navigatio
             mBinding.setIsLoading(false);
             mBookmarkAdapter.setBookmarkList(aBookmarks);
         }
-        mBinding.executePendingBindings();
     }
 
     @Override
-    public void setVisibility(int visibility) {
-        super.setVisibility(visibility);
+    protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
+        super.onLayout(changed, left, top, right, bottom);
 
-        if (visibility == VISIBLE) {
-            notifyBookmarksShown();
-
-        } else {
-            notifyBookmarksHidden();
-        }
+        updateLayout();
     }
 
-    // NavigationDelegate
+    private void updateLayout() {
+        post(() -> {
+            double width = Math.ceil(getWidth()/getContext().getResources().getDisplayMetrics().density);
+            boolean isNarrow = width < SettingsStore.WINDOW_WIDTH_DEFAULT;
 
-    @Override
-    public void onLocationChange(GeckoSession session, String url) {
-        if (getVisibility() == View.VISIBLE &&
-                url != null &&
-                !url.equals(ABOUT_BLANK)) {
-            notifyBookmarksHidden();
-        }
+            if (isNarrow != mBinding.getIsNarrow()) {
+                mBookmarkAdapter.setNarrow(isNarrow);
+
+                mBinding.setIsNarrow(isNarrow);
+                mBinding.executePendingBindings();
+
+                mBinding.setIsNarrow(isNarrow);
+                mBinding.executePendingBindings();
+
+                requestLayout();
+            }
+        });
     }
 
-    @Override
-    public void onCanGoBack(GeckoSession session, boolean canGoBack) {
+    // BookmarksStore.BookmarksViewListener
 
-    }
-
-    @Override
-    public void onCanGoForward(GeckoSession session, boolean canGoForward) {
-
-    }
-
-    @Nullable
-    @Override
-    public GeckoResult<AllowOrDeny> onLoadRequest(@NonNull GeckoSession session, @NonNull LoadRequest request) {
-        return GeckoResult.ALLOW;
-    }
-
-    @Nullable
-    @Override
-    public GeckoResult<GeckoSession> onNewSession(@NonNull GeckoSession session, @NonNull String uri) {
-        return null;
-    }
-
-    @Override
-    public GeckoResult<String> onLoadError(GeckoSession session, String uri, WebRequestError error) {
-        return null;
-    }
-
-    // BookmarksStore.BookmarkListener
     @Override
     public void onBookmarksUpdated() {
-        if (mIgnoreNextListener) {
-            mIgnoreNextListener = false;
-            return;
-        }
-        syncBookmarks();
+        updateBookmarks();
+    }
+
+    @Override
+    public void onBookmarkAdded() {
+        updateBookmarks();
     }
 }

@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <LinearLayout
+        android:id="@+id/layout"
         android:layout_width="match_parent"
         android:layout_height="@dimen/developer_options_row_width"
         android:orientation="vertical">
@@ -18,10 +19,12 @@
                 android:layout_alignParentStart="true"
                 android:layout_centerVertical="true"
                 android:layout_toStartOf="@id/switch_layout"
-                android:gravity="left|center">
+                android:gravity="start">
                 <TextView
                     android:id="@+id/setting_description"
-                    style="@style/settingsDescription"
+                    android:textAlignment="textStart"
+                    android:paddingEnd="20dp"
+                    style="@style/settingsText"
                     tools:text="Switch Setting Description" />
 
                 <org.mozilla.vrbrowser.ui.views.UIButton
@@ -37,12 +40,13 @@
                 android:layout_height="wrap_content"
                 android:layout_alignParentEnd="true"
                 android:layout_centerVertical="true"
-                android:gravity="center"
+                android:gravity="start"
                 android:orientation="horizontal">
 
                 <TextView
                     android:id="@+id/settings_switch_text"
                     style="@style/settingsSwitchText"
+                    android:textAlignment="textStart"
                     android:layout_marginEnd="5dp"
                     tools:text="OFF" />
 

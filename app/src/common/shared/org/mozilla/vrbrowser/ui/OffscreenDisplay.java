@@ -17,8 +17,10 @@ import android.view.Surface;
 import android.view.View;
 import android.view.ViewGroup;
 
+import org.mozilla.vrbrowser.utils.SystemUtils;
+
 public class OffscreenDisplay {
-    final String LOGTAG = "VRB";
+    final String LOGTAG = SystemUtils.createLogtag(OffscreenDisplay.class);
     private Context mContext;
     private int mWidth;
     private int mHeight;
@@ -80,9 +82,7 @@ public class OffscreenDisplay {
             DisplayManager manager = (DisplayManager) mContext.getSystemService(Context.DISPLAY_SERVICE);
             Display defaultDisplay = manager.getDisplay(Display.DEFAULT_DISPLAY);
 
-            int flags = DisplayManager.VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY |
-                    DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION |
-                    DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC;
+            int flags = DisplayManager.VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY;
             defaultDisplay.getMetrics(mDefaultMetrics);
 
             mVirtualDisplay = manager.createVirtualDisplay("OffscreenViews", mWidth, mHeight,

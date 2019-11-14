@@ -53,11 +53,16 @@ public class RussianKeyboard extends BaseKeyboard {
 
     @Override
     public String getKeyboardTitle() {
-        return StringUtils.getStringByLocale(mContext, R.string.settings_language_italian, getLocale());
+        return StringUtils.getStringByLocale(mContext, R.string.settings_language_russian, getLocale());
     }
 
     @Override
     public Locale getLocale() {
         return mLocale;
+    }
+
+    @Override
+    public String getSpaceKeyText(String aComposingText) {
+        return StringUtils.getStringByLocale(mContext, R.string.settings_language_russian, getLocale());
     }
 }

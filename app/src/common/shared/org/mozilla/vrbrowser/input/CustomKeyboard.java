@@ -10,7 +10,6 @@ import android.content.res.Resources;
 import android.content.res.XmlResourceParser;
 import android.inputmethodservice.Keyboard;
 import android.view.KeyEvent;
-import android.view.inputmethod.EditorInfo;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -22,10 +21,12 @@ public class CustomKeyboard extends Keyboard {
     private Key mSpaceKey;
     private Key mModeChangeKey;
     private int mMaxColums;
+    private int[] mDisabledKeysIndexes;
 
     public static final int KEYCODE_SYMBOLS_CHANGE = -10;
     public static final int KEYCODE_VOICE_INPUT = -11;
     public static final int KEYCODE_LANGUAGE_CHANGE = -12;
+    public static final int KEYCODE_EMOJI = -13;
 
     public CustomKeyboard(Context context, int xmlLayoutResId) {
         super(context, xmlLayoutResId, 0);
@@ -71,8 +72,7 @@ public class CustomKeyboard extends Keyboard {
 
             final Key key = new Key(mRows[rowIndex]);
 
-            if (column >= maxColumns
-                    || x + mDefaultWidth + horizontalPadding > mDisplayWidth) {
+            if (column >= maxColumns || x + mDefaultWidth + horizontalPadding > mDisplayWidth) {
 
                 mRows[rowIndex].rowEdgeFlags = EDGE_BOTTOM;
 
@@ -102,8 +102,9 @@ public class CustomKeyboard extends Keyboard {
         }
 
         for (Row row : mRows) {
-            if (rows != null)
+            if (rows != null) {
                 rows.add(row);
+            }
         }
         setParentField(this, "mTotalHeight", y + mDefaultHeight);
     }
@@ -113,7 +114,7 @@ public class CustomKeyboard extends Keyboard {
             Field mField = getField(obj.getClass().getSuperclass(), fieldName);
             mField.setAccessible(true);
             return mField.getInt(obj);
-        } catch (IllegalAccessException e) {
+        } catch (IllegalAccessException | RuntimeException e) {
             e.printStackTrace();
             return 0;
         }
@@ -124,7 +125,7 @@ public class CustomKeyboard extends Keyboard {
             Field mField = getField(obj.getClass(), fieldName);
             mField.setAccessible(true);
             return mField.get(obj);
-        } catch (IllegalAccessException e) {
+        } catch (IllegalAccessException | RuntimeException e) {
             e.printStackTrace();
             return null;
         }
@@ -134,7 +135,7 @@ public class CustomKeyboard extends Keyboard {
             Field mField = getField(obj.getClass().getSuperclass(), fieldName);
             mField.setAccessible(true);
             return mField.get(this);
-        } catch (IllegalAccessException e) {
+        } catch (IllegalAccessException| RuntimeException e) {
             e.printStackTrace();
             return null;
         }
@@ -156,14 +157,15 @@ public class CustomKeyboard extends Keyboard {
     }
 
     public static void setParentField(Object obj, String fieldName, Object value) {
+        if (obj.getClass().getSuperclass() == null) {
+            return;
+        }
         try {
             Field privateField = obj.getClass().getSuperclass().getDeclaredField(fieldName);
             privateField.setAccessible(true);
             privateField.set(obj, value);
 
-        } catch (NoSuchFieldException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
+        } catch (NoSuchFieldException | IllegalAccessException e) {
             e.printStackTrace();
         }
     }
@@ -233,7 +235,23 @@ public class CustomKeyboard extends Keyboard {
         }
     }
 
-    public int getMaxColums() {
+    public int getMaxColumns() {
         return mMaxColums;
+    }
+
+    public void disableKeys(int[] disabledKeyIndexes) {
+        mDisabledKeysIndexes = disabledKeyIndexes;
+    }
+
+    public boolean isKeyEnabled(int keyIndex) {
+        if (mDisabledKeysIndexes != null) {
+            for (int key : mDisabledKeysIndexes) {
+                if (key == keyIndex) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 }

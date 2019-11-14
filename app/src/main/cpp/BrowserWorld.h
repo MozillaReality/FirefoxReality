@@ -46,8 +46,10 @@ public:
   void AddWidget(int32_t aHandle, const WidgetPlacementPtr& placement);
   void UpdateWidget(int32_t aHandle, const WidgetPlacementPtr& aPlacement);
   void RemoveWidget(int32_t aHandle);
-  void StartWidgetResize(int32_t aHandle);
+  void StartWidgetResize(int32_t aHandle, const vrb::Vector& aMaxSize, const vrb::Vector& aMinSize);
   void FinishWidgetResize(int32_t aHandle);
+  void StartWidgetMove(int32_t aHandle, const int32_t aMoveBehavour);
+  void FinishWidgetMove();
   void UpdateVisibleWidgets();
   void LayoutWidget(int32_t aHandle);
   void SetBrightness(const float aBrightness);
@@ -70,7 +72,6 @@ protected:
   void DrawLoadingAnimation();
   void DrawSplashAnimation();
   void CreateSkyBox(const std::string& aBasePath, const std::string& aExtension);
-  float DistanceToPlane(const vrb::NodePtr& aNode, const vrb::Vector& aPosition, const vrb::Vector& aDirection) const;
 private:
   State& m;
   BrowserWorld() = delete;

@@ -22,17 +22,22 @@ struct VRLayer::State {
   vrb::Matrix modelTransform[2];
   vrb::Matrix modelView[2];
   device::Eye currentEye;
+  vrb::Color clearColor;
   vrb::Color tintColor;
   device::EyeRect textureRect[2];
   SurfaceChangedDelegate surfaceChangedDelegate;
   std::function<void()> pendingEvent;
+  std::string name;
+  bool composited;
   State():
       initialized(false),
       priority(0),
       drawIndex(0),
       drawRequested(false),
       drawInFront(false),
+      composited(false),
       currentEye(device::Eye::Left),
+      clearColor(0),
       tintColor(1.0f, 1.0f, 1.0f, 1.0f)
   {
     for (int i = 0; i < 2; ++i) {
@@ -79,6 +84,12 @@ VRLayer::GetPriority() const {
   return m.priority;
 }
 
+
+const vrb::Color&
+VRLayer::GetClearColor() const {
+  return m.clearColor;
+}
+
 const vrb::Color&
 VRLayer::GetTintColor() const {
   return m.tintColor;
@@ -92,6 +103,15 @@ VRLayer::GetTextureRect(crow::device::Eye aEye) const {
 bool
 VRLayer::GetDrawInFront() const {
   return m.drawInFront;
+}
+
+std::string
+VRLayer::GetName() const {
+  return m.name;
+}
+
+bool VRLayer::IsComposited() const {
+  return m.composited;
 }
 
 bool
@@ -153,8 +173,14 @@ VRLayer::VRLayer(State& aState, LayerType aLayerType): m(aState) {
   m.layerType = aLayerType;
 }
 
+
 void
-VRLayer::SetTintColor(const vrb::Color &aTintColor) {
+VRLayer::SetClearColor(const vrb::Color& aClearColor) {
+  m.clearColor = aClearColor;
+}
+
+void
+VRLayer::SetTintColor(const vrb::Color& aTintColor) {
   m.tintColor = aTintColor;
 }
 
@@ -175,6 +201,16 @@ VRLayer::SetSurfaceChangedDelegate(const crow::VRLayer::SurfaceChangedDelegate &
 void
 VRLayer::SetDrawInFront(bool aDrawInFront) {
   m.drawInFront = aDrawInFront;
+}
+
+void
+VRLayer::SetName(const std::string &aName) {
+  m.name = aName;
+}
+
+void
+VRLayer::SetComposited(bool aComposited) {
+  m.composited = aComposited;
 }
 
 void VRLayer::NotifySurfaceChanged(SurfaceChange aChange, const std::function<void()>& aFirstCompositeCallback) {
@@ -372,19 +408,22 @@ struct VRLayerCube::State: public VRLayer::State {
   int32_t height;
   bool loaded;
   uint32_t textureHandle;
+  GLuint  glFormat;
   State():
       width(0),
       height(0),
       loaded(false),
-      textureHandle(0)
+      textureHandle(0),
+      glFormat(GL_RGBA8)
   {}
 };
 
 VRLayerCubePtr
-VRLayerCube::Create(const int32_t aWidth, const int32_t aHeight) {
+VRLayerCube::Create(const int32_t aWidth, const int32_t aHeight, const GLuint aGLFormat) {
   auto result = std::make_shared<vrb::ConcreteClass<VRLayerCube, VRLayerCube::State>>();
   result->m.width = aWidth;
   result->m.height = aHeight;
+  result->m.glFormat = aGLFormat;
   return result;
 }
 
@@ -411,6 +450,11 @@ VRLayerCube::GetTextureHandle() const {
 void
 VRLayerCube::SetTextureHandle(uint32_t aTextureHandle){
   m.textureHandle = aTextureHandle;
+}
+
+GLuint
+VRLayerCube::GetFormat() const {
+  return m.glFormat;
 }
 
 void

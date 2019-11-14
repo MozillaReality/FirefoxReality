@@ -19,26 +19,25 @@ import android.view.animation.RotateAnimation;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import androidx.core.app.ActivityCompat;
+
 import com.mozilla.speechlibrary.ISpeechRecognitionListener;
 import com.mozilla.speechlibrary.MozillaSpeechService;
 import com.mozilla.speechlibrary.STTResult;
 
+import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.audio.AudioEngine;
 import org.mozilla.vrbrowser.browser.SettingsStore;
-import org.mozilla.vrbrowser.input.DeviceType;
+import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.ui.views.UIButton;
-import org.mozilla.vrbrowser.ui.widgets.UIWidget;
 import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
 import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
-
-import androidx.annotation.IdRes;
-import androidx.core.app.ActivityCompat;
+import org.mozilla.vrbrowser.utils.LocaleUtils;
 
 public class VoiceSearchWidget extends UIDialog implements WidgetManagerDelegate.PermissionListener,
         Application.ActivityLifecycleCallbacks {
 
-    private static final String LOGTAG = "VRB";
     private static final int VOICESEARCH_AUDIO_REQUEST_CODE = 7455;
     private static final int ANIMATION_DURATION = 1000;
 
@@ -47,9 +46,9 @@ public class VoiceSearchWidget extends UIDialog implements WidgetManagerDelegate
     private static int MIN_DB = 50;
 
     public interface VoiceSearchDelegate {
-        void OnVoiceSearchResult(String transcription, float confidance);
-        void OnVoiceSearchCanceled();
-        void OnVoiceSearchError();
+        default void OnVoiceSearchResult(String transcription, float confidance) {};
+        default void OnVoiceSearchCanceled() {};
+        default void OnVoiceSearchError() {};
     }
 
     private MozillaSpeechService mMozillaSpeechService;
@@ -91,8 +90,6 @@ public class VoiceSearchWidget extends UIDialog implements WidgetManagerDelegate
 
         mMozillaSpeechService = MozillaSpeechService.getInstance();
         mMozillaSpeechService.setProductTag(getContext().getString(R.string.voice_app_id));
-        mMozillaSpeechService.storeSamples(false);
-        mMozillaSpeechService.storeTranscriptions(false);
 
         mVoiceSearchText1 = findViewById(R.id.voiceSearchText1);
         mVoiceSearchText2 = findViewById(R.id.voiceSearchText2);
@@ -150,8 +147,7 @@ public class VoiceSearchWidget extends UIDialog implements WidgetManagerDelegate
         aPlacement.parentAnchorY = 0.5f;
         aPlacement.anchorX = 0.5f;
         aPlacement.anchorY = 0.5f;
-        aPlacement.translationY = WidgetPlacement.unitFromMeters(getContext(), R.dimen.restart_dialog_world_y);
-        aPlacement.translationZ = WidgetPlacement.unitFromMeters(getContext(), R.dimen.restart_dialog_world_z);
+        aPlacement.translationZ = WidgetPlacement.unitFromMeters(getContext(), R.dimen.voice_search_world_z);
     }
 
     public void setPlacementForKeyboard(int aHandle) {
@@ -188,8 +184,9 @@ public class VoiceSearchWidget extends UIDialog implements WidgetManagerDelegate
                         Log.d(LOGTAG, "===> STT_RESULT");
                         String transcription = ((STTResult)aPayload).mTranscription;
                         float confidence = ((STTResult)aPayload).mConfidence;
-                        if (mDelegate != null)
+                        if (mDelegate != null) {
                             mDelegate.OnVoiceSearchResult(transcription, confidence);
+                        }
                         hide(REMOVE_WIDGET);
                         break;
                     case START_LISTEN:
@@ -202,18 +199,19 @@ public class VoiceSearchWidget extends UIDialog implements WidgetManagerDelegate
                         setResultState();
                         break;
                     case CANCELED:
-                        // Handle when a cancelation was fully executed
+                        // Handle when a cancellation was fully executed
                         Log.d(LOGTAG, "===> CANCELED");
-                        setResultState();
-                        if (mDelegate != null)
+                        if (mDelegate != null) {
                             mDelegate.OnVoiceSearchCanceled();
+                        }
                         break;
                     case ERROR:
                         Log.d(LOGTAG, "===> ERROR: " + aPayload.toString());
                         setResultState();
                         // Handle when any error occurred
-                        if (mDelegate != null)
+                        if (mDelegate != null) {
                             mDelegate.OnVoiceSearchError();
+                        }
                         break;
                     default:
                         break;
@@ -223,8 +221,8 @@ public class VoiceSearchWidget extends UIDialog implements WidgetManagerDelegate
     };
 
     public void startVoiceSearch() {
-        if (ActivityCompat.checkSelfPermission(getContext().getApplicationContext(), Manifest.permission.RECORD_AUDIO)
-                != PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(getContext().getApplicationContext(), Manifest.permission.RECORD_AUDIO) !=
+                PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions((Activity)getContext(), new String[]{Manifest.permission.RECORD_AUDIO},
                     VOICESEARCH_AUDIO_REQUEST_CODE);
         } else {
@@ -267,22 +265,44 @@ public class VoiceSearchWidget extends UIDialog implements WidgetManagerDelegate
             }
 
             if (granted) {
-                show();
+                show(REQUEST_FOCUS);
 
             } else {
-                super.show();
+                super.show(REQUEST_FOCUS);
                 setPermissionNotGranted();
             }
         }
     }
 
     @Override
-    public void show(boolean aFocus) {
-        super.show(aFocus);
+    public void show(@ShowFlags int aShowFlags) {
+        if (SettingsStore.getInstance(getContext()).isSpeechDataCollectionEnabled() ||
+                SettingsStore.getInstance(getContext()).isSpeechDataCollectionReviewed()) {
+            super.show(aShowFlags);
 
-        setStartListeningState();
+            setStartListeningState();
 
-        startVoiceSearch();
+            startVoiceSearch();
+
+        } else {
+            mWidgetManager.getFocusedWindow().showAppDialog(
+                    getResources().getString(R.string.voice_samples_collect_data_dialog_title, getResources().getString(R.string.app_name)),
+                    R.string.voice_samples_collect_dialog_description2,
+                    new int[]{
+                            R.string.voice_samples_collect_dialog_do_not_allow,
+                            R.string.voice_samples_collect_dialog_allow},
+                    index -> {
+                        SettingsStore.getInstance(getContext()).setSpeechDataCollectionReviewed(true);
+                        if (index == MessageDialogWidget.POSITIVE) {
+                            SettingsStore.getInstance(getContext()).setSpeechDataCollectionEnabled(true);
+                        }
+                        ThreadUtils.postToUiThread(() -> show(aShowFlags));
+                    },
+                    url -> {
+                        mWidgetManager.getFocusedWindow().getSession().loadUri(getResources().getString(R.string.private_policy_url));
+                        onDismiss();
+                    });
+        }
     }
 
     @Override
@@ -308,24 +328,25 @@ public class VoiceSearchWidget extends UIDialog implements WidgetManagerDelegate
         mVoiceSearchText2.setVisibility(View.GONE);
         mVoiceSearchText3.setVisibility(View.INVISIBLE);
         mVoiceSearchInput.setVisibility(View.INVISIBLE);
-        if (DeviceType.getType() != DeviceType.OculusQuest) {
-            mVoiceSearchSearching.startAnimation(mSearchingAnimation);
-        }
+        mVoiceSearchSearching.startAnimation(mSearchingAnimation);
         mVoiceSearchSearching.setVisibility(View.VISIBLE);
     }
 
     private void setResultState() {
-        mVoiceSearchText1.setText(R.string.voice_search_error);
-        mVoiceSearchText1.setVisibility(View.VISIBLE);
-        mVoiceSearchText2.setText(R.string.voice_search_try_again);
-        mVoiceSearchText2.setVisibility(View.VISIBLE);
-        mVoiceSearchText3.setVisibility(View.VISIBLE);
-        mVoiceSearchInput.setVisibility(View.VISIBLE);
-        mVoiceSearchSearching.clearAnimation();
-        mVoiceSearchSearching.setVisibility(View.INVISIBLE);
-
         stopVoiceSearch();
-        startVoiceSearch();
+
+        postDelayed(() -> {
+            mVoiceSearchText1.setText(R.string.voice_search_error);
+            mVoiceSearchText1.setVisibility(View.VISIBLE);
+            mVoiceSearchText2.setText(R.string.voice_search_try_again);
+            mVoiceSearchText2.setVisibility(View.VISIBLE);
+            mVoiceSearchText3.setVisibility(View.VISIBLE);
+            mVoiceSearchInput.setVisibility(View.VISIBLE);
+            mVoiceSearchSearching.clearAnimation();
+            mVoiceSearchSearching.setVisibility(View.INVISIBLE);
+
+            startVoiceSearch();
+        }, 100);
     }
 
     private void setPermissionNotGranted() {

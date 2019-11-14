@@ -11,6 +11,7 @@ import com.readystatesoftware.sqliteasset.SQLiteAssetHelper;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.input.CustomKeyboard;
 import org.mozilla.vrbrowser.utils.StringUtils;
+import org.mozilla.vrbrowser.utils.SystemUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -24,7 +25,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 public class ChineseZhuyinKeyboard extends BaseKeyboard {
-    private static final String LOGTAG = "VRB";
+    private static final String LOGTAG = SystemUtils.createLogtag(ChineseZhuyinKeyboard.class);
     private static final String nonZhuyinReg = "[^ㄅ-ㄩ˙ˊˇˋˉ]";
     private CustomKeyboard mKeyboard;
     private DBWordHelper mWordDB;
@@ -152,7 +153,7 @@ public class ChineseZhuyinKeyboard extends BaseKeyboard {
     @Override
     public String getSpaceKeyText(String aComposingText) {
         if (aComposingText == null || aComposingText.trim().isEmpty()) {
-            return mContext.getString(R.string.zhuyin_spacebar_space);
+            return StringUtils.getStringByLocale(mContext, R.string.settings_language_traditional_chinese, getLocale());
         } else {
             return mContext.getString(R.string.zhuyin_spacebar_selection);
         }

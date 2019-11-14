@@ -23,6 +23,11 @@
 
 namespace crow {
 
+// Ratio between world size and cylinder surface size.
+// It should match the values defined in WindowWidget.
+// 800px is the default window size for a 4m world size.
+float Cylinder::kWorldDensityRatio =  800.0f / 4.0f;
+
 struct Cylinder::State {
   vrb::CreationContextWeak context;
   VRLayerCylinderPtr layer;
@@ -213,6 +218,18 @@ Cylinder::Create(vrb::CreationContextPtr aContext, const float aRadius, const fl
 }
 
 CylinderPtr
+Cylinder::Create(vrb::CreationContextPtr aContext, const Cylinder& aCylinder) {
+  CylinderPtr result = std::make_shared<vrb::ConcreteClass<Cylinder, Cylinder::State> >(aContext);
+  result->m.radius = aCylinder.m.radius;
+  result->m.height = aCylinder.m.height;
+  result->m.solidColor = aCylinder.m.solidColor;
+  result->m.border = aCylinder.m.border;;
+  result->m.borderColor = aCylinder.m.borderColor;
+  result->m.Initialize();
+  return result;
+}
+
+CylinderPtr
 Cylinder::Create(vrb::CreationContextPtr aContext, const VRLayerCylinderPtr& aLayer) {
   CylinderPtr result = std::make_shared<vrb::ConcreteClass<Cylinder, Cylinder::State> >(aContext);
   result->m.layer = aLayer;
@@ -338,7 +355,10 @@ Cylinder::TestIntersection(const vrb::Vector& aStartPoint, const vrb::Vector& aD
   vrb::Matrix modelView = worldTransform.AfineInverse();
   vrb::Vector start = modelView.MultiplyPosition(aStartPoint);
   vrb::Vector direction = modelView.MultiplyDirection(aDirection);
-  start = start - direction * 1000.0f;
+  if (vrb::Vector(start.x(), 0.0f, start.z()).Magnitude() <= m.radius) {
+    // Ensure that start of the ray is outside of the cylinder
+    start = start - direction * m.radius * 3.0f;
+  }
 
   const float radius = this->GetCylinderRadius();
 
@@ -503,6 +523,49 @@ float Cylinder::DistanceToBackPlane(const vrb::Vector &aStartPoint, const vrb::V
   result = (worldPoint - aStartPoint).Magnitude();
 
   return result;
+}
+
+// Returns the circle angle of a local point in a cylinder
+float
+Cylinder::GetCylinderAngle(const vrb::Vector& aLocalPoint) const {
+  return atan2f(-aLocalPoint.z(), aLocalPoint.x());
+}
+
+vrb::Vector
+Cylinder::ProjectPointToQuad(const vrb::Vector& aWorldPoint, const float aAnchorX, const float aCylinderDensity, const vrb::Vector& aMin, const vrb::Vector& aMax) const {
+  // For cylinders we want to map the position in the cylinder to the position it would have on a quad.
+  // This way we can reuse the same resize logic between quads and cylinders.
+  // First Convert to world point to local point in the cylinder.
+  vrb::Matrix modelView = GetTransformNode()->GetWorldTransform().AfineInverse();
+  vrb::Vector localPoint = modelView.MultiplyPosition(aWorldPoint);
+  const float pointAngle = GetCylinderAngle(localPoint);
+
+  // Ratio used to convert arc length to quad width.
+  const float thetaRatio = aCylinderDensity * 0.5f / ((float) M_PI * kWorldDensityRatio);
+
+  float x;
+
+  // Handle different anchor points.
+  if (aAnchorX == 1.0f) {
+    // Difference between pointer angle and the right anchor point.
+    const float initialTheta = (aMax.x() - aMin.x()) / thetaRatio;
+    const float initialAngle = (float)M_PI * 0.5f - initialTheta * 0.5f;
+    const float arc = fabsf(pointAngle - initialAngle);
+    x = aMax.x() - arc * thetaRatio;
+  } else if (aAnchorX == 0.0f) {
+    // Difference between pointer angle and the left anchor point.
+    const float initialTheta = (aMax.x() - aMin.x()) / thetaRatio;
+    const float initialAngle = (float)M_PI * 0.5f + initialTheta * 0.5f;
+    const float arc = fabsf(initialAngle - pointAngle);
+    x = aMin.x() + arc * thetaRatio;
+  } else { // Anchor 0.5f
+    // The center of the cylinder is 90º.
+    x  = ((float) M_PI * 0.5f - pointAngle) * thetaRatio;
+  }
+
+  // The mapped position on a quad.
+  const float y = (aMax.y() - aMin.y()) * localPoint.y() * 0.5f;
+  return vrb::Vector(x, y, 0.0f);
 }
 
 Cylinder::Cylinder(State& aState, vrb::CreationContextPtr& aContext) : m(aState) {

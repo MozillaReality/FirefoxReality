@@ -26,6 +26,7 @@ struct Controller {
   uint32_t widget;
   float pointerX;
   float pointerY;
+  vrb::Vector pointerWorldPoint;
   uint32_t buttonState;
   uint32_t lastButtonState;
   bool touched;
@@ -54,6 +55,9 @@ struct Controller {
   bool inDeadZone;
   double lastHoverEvent;
   device::CapabilityFlags deviceCapabilities;
+
+  vrb::Vector StartPoint() const;
+  vrb::Vector Direction() const;
 
   Controller();
   Controller(const Controller& aController);

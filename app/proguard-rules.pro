@@ -47,14 +47,33 @@
     public static android.content.Intent createVoiceRecognizerIntent(java.lang.String);
 }
 
+# --------------------------------------------------------------------
+# Keep classes from FxR
+# --------------------------------------------------------------------
+-keep class org.mozilla.vrbrowser.ui.widgets.WidgetPlacement {*;} # Keep class used in JNI.
+-keep class org.mozilla.vrbrowser.ui.widgets.Windows$** {*;} # Keep state clases used by gson.
+-keep class org.mozilla.vrbrowser.browser.engine.** {*;} # Keep state clases used by gson.
+
+# --------------------------------------------------------------------
+# Keep classes from HTC SDK
+# --------------------------------------------------------------------
+-keep class com.htc.** {*;}
+-keep class com.qualcomm.** {*;}
+
+# --------------------------------------------------------------------
+# Keep rules for mozillaspeechlibrary dependency
+# --------------------------------------------------------------------
+-keep class cz.msebera.android.httpclient.** {*;}
+-keep class com.loopj.android.http.** {*;}
+-keep class com.github.axet.opusjni.Opus {*;}
+
 -dontwarn **
 -target 1.7
 -dontusemixedcaseclassnames
 -dontskipnonpubliclibraryclasses
 -dontpreverify
 -verbose
+-dontobfuscate
 -optimizations !code/simplification/arithmetic,!code/allocation/variable
 -keepattributes *
--keep class !org.mozilla.gecko.Speech* { *; }
--keepclassmembers class !org.mozilla.gecko.Speech*, ** { *; }
 -printconfiguration "build/outputs/mapping/configuration.txt"

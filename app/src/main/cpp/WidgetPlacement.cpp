@@ -7,6 +7,8 @@
 
 namespace crow {
 
+const float WidgetPlacement::kWorldDPIRatio = 2.0f/720.0f;
+
 WidgetPlacementPtr
 WidgetPlacement::FromJava(JNIEnv* aEnv, jobject& aObject) {
   if (!aObject || !aEnv) {
@@ -15,7 +17,7 @@ WidgetPlacement::FromJava(JNIEnv* aEnv, jobject& aObject) {
 
   jclass clazz = aEnv->GetObjectClass(aObject);
 
-  std::shared_ptr<WidgetPlacement> result(new WidgetPlacement());;
+  std::shared_ptr<WidgetPlacement> result(new WidgetPlacement());
 
 #define GET_INT_FIELD(name) { \
   jfieldID f = aEnv->GetFieldID(clazz, #name, "I"); \
@@ -31,6 +33,17 @@ WidgetPlacement::FromJava(JNIEnv* aEnv, jobject& aObject) {
   jfieldID f = aEnv->GetFieldID(clazz, #name, "Z"); \
   result->name = aEnv->GetBooleanField(aObject, f); \
 }
+
+#define GET_STRING_FIELD(name) { \
+  jfieldID f = aEnv->GetFieldID(clazz, #name, "Ljava/lang/String;"); \
+  jstring javaString = (jstring)aEnv->GetObjectField(aObject, f); \
+  if (javaString) { \
+    const char* nativeString = aEnv->GetStringUTFChars(javaString, 0); \
+    result->name = nativeString; \
+    aEnv->ReleaseStringUTFChars(javaString, nativeString); \
+  } \
+}
+
 
   GET_INT_FIELD(width);
   GET_INT_FIELD(height);
@@ -51,12 +64,23 @@ WidgetPlacement::FromJava(JNIEnv* aEnv, jobject& aObject) {
   GET_BOOLEAN_FIELD(visible);
   GET_BOOLEAN_FIELD(opaque);
   GET_BOOLEAN_FIELD(showPointer);
-  GET_BOOLEAN_FIELD(firstDraw);
+  GET_BOOLEAN_FIELD(composited);
   GET_BOOLEAN_FIELD(layer);
-  GET_BOOLEAN_FIELD(cylinder);
+  GET_BOOLEAN_FIELD(proxifyLayer);
   GET_FLOAT_FIELD(textureScale, "textureScale");
+  GET_BOOLEAN_FIELD(cylinder);
+  GET_FLOAT_FIELD(cylinderMapRadius, "cylinderMapRadius");
+  GET_INT_FIELD(tintColor);
+  GET_INT_FIELD(borderColor);
+  GET_STRING_FIELD(name);
+  GET_INT_FIELD(clearColor);
 
   return result;
+}
+
+WidgetPlacementPtr
+WidgetPlacement::Create(const WidgetPlacement& aPlacement) {
+  return WidgetPlacementPtr(new WidgetPlacement(aPlacement));
 }
 
 int32_t
@@ -67,6 +91,16 @@ WidgetPlacement::GetTextureWidth() const{
 int32_t
 WidgetPlacement::GetTextureHeight() const {
   return (int32_t)ceilf(height * density * textureScale);
+}
+
+vrb::Color
+WidgetPlacement::GetClearColor() const {
+  return vrb::Color(clearColor);
+}
+
+vrb::Color
+WidgetPlacement::GetTintColor() const {
+  return vrb::Color(tintColor);
 }
 
 }

@@ -6,24 +6,22 @@
 package org.mozilla.vrbrowser.ui.widgets.settings;
 
 import android.content.Context;
-import android.view.View;
-import android.widget.ScrollView;
+import android.graphics.Point;
+import android.view.LayoutInflater;
+
+import androidx.databinding.DataBindingUtil;
 
 import org.mozilla.vrbrowser.R;
-import org.mozilla.vrbrowser.audio.AudioEngine;
-import org.mozilla.vrbrowser.browser.SettingsStore;
-import org.mozilla.vrbrowser.ui.views.UIButton;
-import org.mozilla.vrbrowser.ui.views.settings.ButtonSetting;
+import org.mozilla.vrbrowser.browser.engine.SessionStore;
+import org.mozilla.vrbrowser.databinding.OptionsLanguageVoiceBinding;
 import org.mozilla.vrbrowser.ui.views.settings.RadioGroupSetting;
 import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
+import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
 import org.mozilla.vrbrowser.utils.LocaleUtils;
 
 class VoiceSearchLanguageOptionsView extends SettingsView {
-    private AudioEngine mAudio;
-    private UIButton mBackButton;
-    private RadioGroupSetting mLanguage;
-    private ButtonSetting mResetButton;
-    private ScrollView mScrollbar;
+
+    private OptionsLanguageVoiceBinding mBinding;
 
     public VoiceSearchLanguageOptionsView(Context aContext, WidgetManagerDelegate aWidgetManager) {
         super(aContext, aWidgetManager);
@@ -31,35 +29,38 @@ class VoiceSearchLanguageOptionsView extends SettingsView {
     }
 
     private void initialize(Context aContext) {
-        inflate(aContext, R.layout.options_language, this);
+        LayoutInflater inflater = LayoutInflater.from(aContext);
 
-        mAudio = AudioEngine.fromContext(aContext);
+        // Inflate this data binding layout
+        mBinding = DataBindingUtil.inflate(inflater, R.layout.options_language_voice, this, true);
 
+        mScrollbar = mBinding.scrollbar;
 
-        mBackButton = findViewById(R.id.backButton);
-        mBackButton.setOnClickListener(view -> {
-            if (mAudio != null) {
-                mAudio.playSound(AudioEngine.Sound.CLICK);
-            }
-
-            onDismiss();
+        // Header
+        mBinding.headerLayout.setBackClickListener(view -> {
+            mDelegate.showView(new LanguageOptionsView(getContext(), mWidgetManager));
+        });
+        mBinding.headerLayout.setHelpClickListener(view -> {
+            SessionStore.get().getActiveSession().loadUri(getResources().getString(R.string.sumo_language_voice_url));
+            mDelegate.exitWholeSettings();
         });
 
-        String language = SettingsStore.getInstance(getContext()).getVoiceSearchLanguage();
-        mLanguage = findViewById(R.id.languageRadio);
-        mLanguage.setOnCheckedChangeListener(mLanguageListener);
-        setLanguage(mLanguage.getIdForValue(language), false);
+        // Footer
+        mBinding.footerLayout.setFooterButtonClickListener(mResetListener);
 
-        mResetButton = findViewById(R.id.resetButton);
-        mResetButton.setOnClickListener(mResetListener);
-
-        mScrollbar = findViewById(R.id.scrollbar);
+        String language = LocaleUtils.getVoiceSearchLocale(getContext());
+        mBinding.languageRadio.setOnCheckedChangeListener(mLanguageListener);
+        setLanguage(mBinding.languageRadio.getIdForValue(language), false);
     }
 
     @Override
-    public void onShown() {
-        super.onShown();
-        mScrollbar.scrollTo(0, 0);
+    protected boolean reset() {
+        String value = mBinding.languageRadio.getValueForId(mBinding.languageRadio.getCheckedRadioButtonId()).toString();
+        if (!value.equals(LocaleUtils.getSystemLocale())) {
+            setLanguage(mBinding.languageRadio.getIdForValue(LocaleUtils.getSystemLocale()), true);
+        }
+
+        return false;
     }
 
     private RadioGroupSetting.OnCheckedChangeListener mLanguageListener = (radioGroup, checkedId, doApply) -> {
@@ -67,17 +68,20 @@ class VoiceSearchLanguageOptionsView extends SettingsView {
     };
 
     private OnClickListener mResetListener = (view) -> {
-        String value = mLanguage.getValueForId(mLanguage.getCheckedRadioButtonId()).toString();
-        if (!value.equals(LocaleUtils.getCurrentLocale())) {
-            setLanguage(mLanguage.getIdForValue(LocaleUtils.getCurrentLocale()), true);
-        }
+        reset();
     };
 
     private void setLanguage(int checkedId, boolean doApply) {
-        mLanguage.setOnCheckedChangeListener(null);
-        mLanguage.setChecked(checkedId, doApply);
-        mLanguage.setOnCheckedChangeListener(mLanguageListener);
+        mBinding.languageRadio.setOnCheckedChangeListener(null);
+        mBinding.languageRadio.setChecked(checkedId, doApply);
+        mBinding.languageRadio.setOnCheckedChangeListener(mLanguageListener);
 
-        SettingsStore.getInstance(getContext()).setVoiceSearchLanguage(mLanguage.getValueForId(checkedId).toString());
+        LocaleUtils.setVoiceSearchLocale(getContext(), mBinding.languageRadio.getValueForId(checkedId).toString());
+    }
+
+    @Override
+    public Point getDimensions() {
+        return new Point( WidgetPlacement.dpDimension(getContext(), R.dimen.language_options_width),
+                WidgetPlacement.dpDimension(getContext(), R.dimen.language_options_height));
     }
 }

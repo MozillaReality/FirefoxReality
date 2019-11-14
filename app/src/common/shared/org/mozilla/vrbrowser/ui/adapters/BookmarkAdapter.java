@@ -1,23 +1,12 @@
 package org.mozilla.vrbrowser.ui.adapters;
 
-import android.animation.Animator;
-import android.animation.ValueAnimator;
+import android.annotation.SuppressLint;
 import android.content.Context;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.ImageView;
-
-import org.mozilla.vrbrowser.R;
-import org.mozilla.vrbrowser.databinding.BookmarkItemBinding;
-import org.mozilla.vrbrowser.ui.callbacks.BookmarkClickCallback;
-import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
-
-import java.util.List;
-import java.util.Objects;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -25,146 +14,325 @@ import androidx.databinding.DataBindingUtil;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
 
-import mozilla.components.concept.storage.BookmarkNode;
+import org.mozilla.vrbrowser.R;
+import org.mozilla.vrbrowser.databinding.BookmarkItemBinding;
+import org.mozilla.vrbrowser.databinding.BookmarkItemFolderBinding;
+import org.mozilla.vrbrowser.databinding.BookmarkSeparatorBinding;
+import org.mozilla.vrbrowser.ui.callbacks.BookmarkItemCallback;
+import org.mozilla.vrbrowser.ui.callbacks.BookmarkItemFolderCallback;
+import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
+import org.mozilla.vrbrowser.utils.AnimationHelper;
+import org.mozilla.vrbrowser.utils.SystemUtils;
 
-public class BookmarkAdapter extends RecyclerView.Adapter<BookmarkAdapter.BookmarkViewHolder> {
-    static final String LOGTAG = "VRB";
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+
+import mozilla.appservices.places.BookmarkRoot;
+import mozilla.components.concept.storage.BookmarkNode;
+import mozilla.components.concept.storage.BookmarkNodeType;
+
+public class BookmarkAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+
+    static final String LOGTAG = SystemUtils.createLogtag(BookmarkAdapter.class);
+
     private static final int ICON_ANIMATION_DURATION = 200;
 
-    private List<? extends BookmarkNode> mBookmarkList;
+    private List<BookmarkNode> mBookmarksList;
+    private List<Bookmark> mDisplayList;
 
     private int mMinPadding;
     private int mMaxPadding;
     private int mIconColorHover;
     private int mIconNormalColor;
+    private boolean mIsNarrowLayout;
 
     @Nullable
-    private final BookmarkClickCallback mBookmarkClickCallback;
+    private final BookmarkItemCallback mBookmarkItemCallback;
 
-    public BookmarkAdapter(@Nullable BookmarkClickCallback clickCallback, Context aContext) {
-        mBookmarkClickCallback = clickCallback;
+    public BookmarkAdapter(@Nullable BookmarkItemCallback clickCallback, Context aContext) {
+        mBookmarkItemCallback = clickCallback;
 
-        mMinPadding = WidgetPlacement.pixelDimension(aContext, R.dimen.tray_icon_padding_min);
-        mMaxPadding = WidgetPlacement.pixelDimension(aContext, R.dimen.tray_icon_padding_max);
+        mMinPadding = WidgetPlacement.pixelDimension(aContext, R.dimen.library_icon_padding_min);
+        mMaxPadding = WidgetPlacement.pixelDimension(aContext, R.dimen.library_icon_padding_max);
 
         mIconColorHover = aContext.getResources().getColor(R.color.white, aContext.getTheme());
         mIconNormalColor = aContext.getResources().getColor(R.color.rhino, aContext.getTheme());
 
-        setHasStableIds(true);
+        mIsNarrowLayout = false;
+
+        setHasStableIds(false);
     }
 
-    public void setBookmarkList(final List<? extends BookmarkNode> bookmarkList) {
-        if (mBookmarkList == null) {
-            mBookmarkList = bookmarkList;
-            notifyItemRangeInserted(0, bookmarkList.size());
-
-        } else {
-            DiffUtil.DiffResult result = DiffUtil.calculateDiff(new DiffUtil.Callback() {
-                @Override
-                public int getOldListSize() {
-                    return mBookmarkList.size();
-                }
-
-                @Override
-                public int getNewListSize() {
-                    return bookmarkList.size();
-                }
-
-                @Override
-                public boolean areItemsTheSame(int oldItemPosition, int newItemPosition) {
-                    return mBookmarkList.get(oldItemPosition).getGuid().equals(bookmarkList.get(newItemPosition).getGuid());
-                }
-
-                @Override
-                public boolean areContentsTheSame(int oldItemPosition, int newItemPosition) {
-                    BookmarkNode newBookmark = bookmarkList.get(newItemPosition);
-                    BookmarkNode oldBookmark = mBookmarkList.get(oldItemPosition);
-                    return newBookmark.getGuid().equals(oldBookmark.getGuid())
-                            && Objects.equals(newBookmark.getTitle(), oldBookmark.getTitle())
-                            && Objects.equals(newBookmark.getUrl(), oldBookmark.getUrl());
-                }
-            });
-
-            mBookmarkList = bookmarkList;
-            result.dispatchUpdatesTo(this);
+    public void setNarrow(boolean isNarrow) {
+        if (mIsNarrowLayout != isNarrow) {
+            mIsNarrowLayout = isNarrow;
+            notifyDataSetChanged();
         }
     }
 
-    public void removeItem(BookmarkNode aBookmark) {
-        int position = mBookmarkList.indexOf(aBookmark);
+    public void setBookmarkList(final List<BookmarkNode> bookmarkList) {
+        mBookmarksList = bookmarkList;
+
+        List<Bookmark> newDisplayList;
+        if (mDisplayList == null || mDisplayList.isEmpty()) {
+            newDisplayList = Bookmark.getDisplayListTree(mBookmarksList, Collections.singletonList(BookmarkRoot.Mobile.getId()));
+            mDisplayList = newDisplayList;
+            for (Bookmark node : mDisplayList) {
+                if (node.isExpanded()) {
+                    if (mBookmarkItemCallback != null) {
+                        mBookmarkItemCallback.onFolderOpened(node);
+                    }
+                }
+            }
+            notifyItemRangeInserted(0, mDisplayList.size());
+
+        } else {
+            List<String> openFoldersGuid = Bookmark.getOpenFoldersGuid(mDisplayList);
+            newDisplayList = Bookmark.getDisplayListTree(mBookmarksList, openFoldersGuid);
+            notifyDiff(newDisplayList);
+        }
+    }
+
+    private void notifyDiff(List<Bookmark> newDisplayList) {
+        DiffUtil.DiffResult result = DiffUtil.calculateDiff(new DiffUtil.Callback() {
+            @Override
+            public int getOldListSize() {
+                return mDisplayList.size();
+            }
+
+            @Override
+            public int getNewListSize() {
+                return newDisplayList.size();
+            }
+
+            @Override
+            public boolean areItemsTheSame(int oldItemPosition, int newItemPosition) {
+                return mDisplayList.get(oldItemPosition).getGuid().equals(newDisplayList.get(newItemPosition).getGuid()) &&
+                        mDisplayList.get(oldItemPosition).isExpanded() == newDisplayList.get(newItemPosition).isExpanded();
+            }
+
+            @Override
+            public boolean areContentsTheSame(int oldItemPosition, int newItemPosition) {
+                Bookmark newBookmark = newDisplayList.get(newItemPosition);
+                Bookmark oldBookmark = mDisplayList.get(oldItemPosition);
+                return newBookmark.getGuid().equals(oldBookmark.getGuid())
+                        && Objects.equals(newBookmark.getTitle(), oldBookmark.getTitle())
+                        && Objects.equals(newBookmark.getUrl(), oldBookmark.getUrl())
+                        && newBookmark.isExpanded() == oldBookmark.isExpanded();
+            }
+        });
+
+        mDisplayList = newDisplayList;
+        result.dispatchUpdatesTo(this);
+    }
+
+    public void removeItem(Bookmark aBookmark) {
+        int position = mDisplayList.indexOf(aBookmark);
         if (position >= 0) {
-            mBookmarkList.remove(position);
+            mDisplayList.remove(position);
             notifyItemRemoved(position);
         }
     }
 
     public int itemCount() {
-        return mBookmarkList != null ? mBookmarkList.size() : 0;
+        return mDisplayList != null ? mDisplayList.size() : 0;
+    }
+
+    public int getItemPosition(String id) {
+        for (int position=0; position<mDisplayList.size(); position++)
+            if (mDisplayList.get(position).getGuid().equalsIgnoreCase(id))
+                return position;
+        return 0;
     }
 
     @Override
-    public BookmarkViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        BookmarkItemBinding binding = DataBindingUtil
-                .inflate(LayoutInflater.from(parent.getContext()), R.layout.bookmark_item,
-                        parent, false);
-        binding.setCallback(mBookmarkClickCallback);
-        binding.trash.setOnHoverListener(mTrashHoverListener);
-        binding.trash.setOnTouchListener((view, motionEvent) -> {
-            int ev = motionEvent.getActionMasked();
-            switch (ev) {
-                case MotionEvent.ACTION_UP:
-                    mBookmarkClickCallback.onDelete(binding.getBookmark());
-                    return true;
+    public int getItemViewType(int position) {
+        switch (mDisplayList.get(position).getType()) {
+            case FOLDER:
+                return BookmarkNodeType.FOLDER.ordinal();
+            case ITEM:
+                return BookmarkNodeType.ITEM.ordinal();
+            case SEPARATOR:
+                return BookmarkNodeType.SEPARATOR.ordinal();
+        }
 
-                case MotionEvent.ACTION_DOWN:
-                    return true;
-            }
-            return false;
-        });
-        return new BookmarkViewHolder(binding);
+        return 0;
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    @Override
+    public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        if (viewType == BookmarkNodeType.ITEM.ordinal()) {
+            BookmarkItemBinding binding = DataBindingUtil
+                    .inflate(LayoutInflater.from(parent.getContext()), R.layout.bookmark_item,
+                            parent, false);
+
+            binding.setCallback(mBookmarkItemCallback);
+            binding.setIsHovered(false);
+            binding.setIsNarrow(mIsNarrowLayout);
+            binding.layout.setOnHoverListener((view, motionEvent) -> {
+                int ev = motionEvent.getActionMasked();
+                switch (ev) {
+                    case MotionEvent.ACTION_HOVER_ENTER:
+                        binding.setIsHovered(true);
+                        return false;
+
+                    case MotionEvent.ACTION_HOVER_EXIT:
+                        binding.setIsHovered(false);
+                        return false;
+                }
+
+                return false;
+            });
+            binding.layout.setOnTouchListener((view, motionEvent) -> {
+                int ev = motionEvent.getActionMasked();
+                switch (ev) {
+                    case MotionEvent.ACTION_UP:
+                        return false;
+
+                    case MotionEvent.ACTION_DOWN:
+                        binding.setIsHovered(true);
+                        return false;
+
+                    case MotionEvent.ACTION_CANCEL:
+                        binding.setIsHovered(false);
+                        return false;
+                }
+                return false;
+            });
+            binding.more.setOnHoverListener(mIconHoverListener);
+            binding.more.setOnTouchListener((view, motionEvent) -> {
+                int ev = motionEvent.getActionMasked();
+                switch (ev) {
+                    case MotionEvent.ACTION_UP:
+                        binding.setIsHovered(true);
+                        if (mBookmarkItemCallback != null) {
+                            mBookmarkItemCallback.onMore(view, binding.getItem());
+                        }
+                        return true;
+
+                    case MotionEvent.ACTION_DOWN:
+                        binding.setIsHovered(true);
+                        return true;
+                }
+                return false;
+            });
+            binding.trash.setOnHoverListener(mIconHoverListener);
+            binding.trash.setOnTouchListener((view, motionEvent) -> {
+                int ev = motionEvent.getActionMasked();
+                switch (ev) {
+                    case MotionEvent.ACTION_UP:
+                        binding.setIsHovered(true);
+                        if (mBookmarkItemCallback != null) {
+                            mBookmarkItemCallback.onDelete(view, binding.getItem());
+                        }
+                        return true;
+
+                    case MotionEvent.ACTION_DOWN:
+                        binding.setIsHovered(true);
+                        return true;
+                }
+                return false;
+            });
+
+            return new BookmarkViewHolder(binding);
+
+        } else if (viewType == BookmarkNodeType.FOLDER.ordinal()) {
+            BookmarkItemFolderBinding binding = DataBindingUtil
+                    .inflate(LayoutInflater.from(parent.getContext()), R.layout.bookmark_item_folder,
+                            parent, false);
+            binding.setCallback(mBookmarkItemFolderCallback);
+
+            return new BookmarkFolderViewHolder(binding);
+
+        } else if (viewType == BookmarkNodeType.SEPARATOR.ordinal()) {
+            BookmarkSeparatorBinding binding = DataBindingUtil
+                    .inflate(LayoutInflater.from(parent.getContext()), R.layout.bookmark_separator,
+                            parent, false);
+
+            return new BookmarkSeparatorViewHolder(binding);
+        }
+
+        throw new IllegalArgumentException("Invalid view Type");
     }
 
     @Override
-    public void onBindViewHolder(@NonNull BookmarkViewHolder holder, int position) {
-        holder.binding.setBookmark(mBookmarkList.get(position));
-        holder.binding.executePendingBindings();
+    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+        Bookmark item = mDisplayList.get(position);
+
+        if (holder instanceof BookmarkViewHolder) {
+            BookmarkViewHolder bookmarkHolder = (BookmarkViewHolder) holder;
+            bookmarkHolder.binding.setItem(item);
+            bookmarkHolder.binding.setIsNarrow(mIsNarrowLayout);
+
+        } else if (holder instanceof BookmarkFolderViewHolder) {
+            BookmarkFolderViewHolder bookmarkHolder = (BookmarkFolderViewHolder) holder;
+            bookmarkHolder.binding.setItem(item);
+            bookmarkHolder.binding.executePendingBindings();
+
+        } else if (holder instanceof BookmarkSeparatorViewHolder) {
+            BookmarkSeparatorViewHolder bookmarkHolder = (BookmarkSeparatorViewHolder) holder;
+            bookmarkHolder.binding.setItem(item);
+        }
     }
 
     @Override
     public int getItemCount() {
-        return mBookmarkList == null ? 0 : mBookmarkList.size();
+        return mDisplayList == null ? 0 : mDisplayList.size();
     }
 
     @Override
     public long getItemId(int position) {
-        BookmarkNode bookmark = mBookmarkList.get(position);
-        return  bookmark.getPosition() != null ? bookmark.getPosition() : RecyclerView.NO_ID;
+        Bookmark bookmark = mDisplayList.get(position);
+        return  bookmark.getPosition();
     }
 
     static class BookmarkViewHolder extends RecyclerView.ViewHolder {
 
         final BookmarkItemBinding binding;
 
-        BookmarkViewHolder(BookmarkItemBinding binding) {
+        BookmarkViewHolder(@NonNull BookmarkItemBinding binding) {
             super(binding.getRoot());
             this.binding = binding;
         }
     }
 
-    private View.OnHoverListener mTrashHoverListener = (view, motionEvent) -> {
+    static class BookmarkFolderViewHolder extends RecyclerView.ViewHolder {
+
+        final BookmarkItemFolderBinding binding;
+
+        BookmarkFolderViewHolder(@NonNull BookmarkItemFolderBinding binding) {
+            super(binding.getRoot());
+            this.binding = binding;
+        }
+    }
+
+    static class BookmarkSeparatorViewHolder extends RecyclerView.ViewHolder {
+
+        final BookmarkSeparatorBinding binding;
+
+        BookmarkSeparatorViewHolder(@NonNull BookmarkSeparatorBinding binding) {
+            super(binding.getRoot());
+            this.binding = binding;
+        }
+    }
+
+    private View.OnHoverListener mIconHoverListener = (view, motionEvent) -> {
         ImageView icon = (ImageView)view;
         int ev = motionEvent.getActionMasked();
         switch (ev) {
             case MotionEvent.ACTION_HOVER_ENTER:
                 icon.setColorFilter(mIconColorHover);
-                animateViewPadding(view,
+                AnimationHelper.animateViewPadding(view,
                         mMaxPadding,
                         mMinPadding,
                         ICON_ANIMATION_DURATION);
                 return false;
 
             case MotionEvent.ACTION_HOVER_EXIT:
-                animateViewPadding(view,
+                AnimationHelper.animateViewPadding(view,
                         mMinPadding,
                         mMaxPadding,
                         ICON_ANIMATION_DURATION,
@@ -175,46 +343,30 @@ public class BookmarkAdapter extends RecyclerView.Adapter<BookmarkAdapter.Bookma
         return false;
     };
 
-    private void animateViewPadding(View view, int paddingStart, int paddingEnd, int duration) {
-        animateViewPadding(view, paddingStart, paddingEnd, duration, null);
-    }
+    private BookmarkItemFolderCallback mBookmarkItemFolderCallback = new BookmarkItemFolderCallback() {
+        @Override
+        public void onClick(View view, Bookmark item) {
+            List<String> openFoldersGuid = Bookmark.getOpenFoldersGuid(mDisplayList);
 
-    private void animateViewPadding(View view, int paddingStart, int paddingEnd, int duration, Runnable onAnimationEnd) {
-        ValueAnimator animation = ValueAnimator.ofInt(paddingStart, paddingEnd);
-        animation.setDuration(duration);
-        animation.setInterpolator(new AccelerateDecelerateInterpolator());
-        animation.addUpdateListener(valueAnimator -> {
-            try {
-                int newPadding = Integer.parseInt(valueAnimator.getAnimatedValue().toString());
-                view.setPadding(newPadding, newPadding, newPadding, newPadding);
-            } catch (NumberFormatException ex) {
-                Log.e(LOGTAG, "Error parsing BookmarkAdapter animation value: " + valueAnimator.getAnimatedValue().toString());
-            }
-        });
-        animation.addListener(new Animator.AnimatorListener() {
-            @Override
-            public void onAnimationStart(Animator animator) {
+            for (Bookmark bookmark : mDisplayList) {
+                if (bookmark.getGuid().equals(item.getGuid())) {
+                    if (item.isExpanded()) {
+                        openFoldersGuid.remove(bookmark.getGuid());
 
-            }
-
-            @Override
-            public void onAnimationEnd(Animator animator) {
-                if (onAnimationEnd != null) {
-                    onAnimationEnd.run();
+                    } else {
+                        openFoldersGuid.add(bookmark.getGuid());
+                    }
+                    break;
                 }
             }
 
-            @Override
-            public void onAnimationCancel(Animator animator) {
+            List<Bookmark> newDisplayList = Bookmark.getDisplayListTree(mBookmarksList, openFoldersGuid);
+            notifyDiff(newDisplayList);
 
+            if (mBookmarkItemCallback != null) {
+                mBookmarkItemCallback.onFolderOpened(item);
             }
-
-            @Override
-            public void onAnimationRepeat(Animator animator) {
-
-            }
-        });
-        animation.start();
-    }
+        }
+    };
 
 }

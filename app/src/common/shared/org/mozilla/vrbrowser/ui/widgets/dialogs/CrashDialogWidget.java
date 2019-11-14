@@ -7,26 +7,22 @@ package org.mozilla.vrbrowser.ui.widgets.dialogs;
 
 import android.content.Context;
 import android.util.AttributeSet;
-import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.TextView;
 
-import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.audio.AudioEngine;
-import org.mozilla.vrbrowser.browser.SessionStore;
+import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.browser.SettingsStore;
-import org.mozilla.vrbrowser.ui.widgets.UIWidget;
 import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
 import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
 
 public class CrashDialogWidget extends UIDialog {
 
-    private static final String LOGTAG = "VRB";
-
     public interface CrashDialogDelegate {
         void onSendData();
+        default void onDoNotSendData() {}
     }
 
     private Button mLearnMoreButton;
@@ -68,13 +64,7 @@ public class CrashDialogWidget extends UIDialog {
                 mAudio.playSound(AudioEngine.Sound.CLICK);
             }
 
-            GeckoSession session = SessionStore.get().getCurrentSession();
-            if (session == null) {
-                int sessionId = SessionStore.get().createSession();
-                SessionStore.get().setCurrentSession(sessionId);
-            }
-
-            SessionStore.get().loadUri(getContext().getString(R.string.crash_dialog_learn_more_url));
+            SessionStore.get().getActiveSession().loadUri(getContext().getString(R.string.crash_dialog_learn_more_url));
 
             onDismiss();
         });
@@ -84,6 +74,9 @@ public class CrashDialogWidget extends UIDialog {
                 mAudio.playSound(AudioEngine.Sound.CLICK);
             }
 
+            if(mCrashDialogDelegate != null) {
+                mCrashDialogDelegate.onDoNotSendData();
+            }
             onDismiss();
         });
 
@@ -134,8 +127,8 @@ public class CrashDialogWidget extends UIDialog {
     }
 
     @Override
-    public void show() {
-        super.show();
+    public void show(@ShowFlags int aShowFlags) {
+        super.show(aShowFlags);
 
         mWidgetManager.pushWorldBrightness(this, WidgetManagerDelegate.DEFAULT_DIM_BRIGHTNESS);
     }

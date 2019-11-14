@@ -2,9 +2,7 @@ package org.mozilla.vrbrowser.ui.widgets.prompts;
 
 import android.content.Context;
 import android.graphics.Typeface;
-import android.os.Handler;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.util.SparseBooleanArray;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -17,8 +15,11 @@ import android.widget.ListView;
 import android.widget.RadioButton;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
+
 import org.mozilla.geckoview.GeckoSession;
-import org.mozilla.geckoview.GeckoSession.PromptDelegate.Choice;
+import org.mozilla.geckoview.GeckoSession.PromptDelegate.ChoicePrompt.Choice;
+import org.mozilla.geckoview.GeckoSession.PromptDelegate.ChoicePrompt.Type;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.audio.AudioEngine;
 import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
@@ -26,9 +27,11 @@ import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import androidx.annotation.NonNull;
-
 public class ChoicePromptWidget extends PromptWidget {
+
+    public interface ChoicePromptDelegate extends PromptDelegate {
+        void confirm(String[] choices);
+    }
 
     private static final int DIALOG_CLOSE_DELAY = 250;
     private static final int LISTVIEW_ITEM_HEIGHT = 20;
@@ -38,9 +41,7 @@ public class ChoicePromptWidget extends PromptWidget {
     private Button mCloseButton;
     private Button mOkButton;
     private ChoiceWrapper[] mListItems;
-    private GeckoSession.PromptDelegate.ChoiceCallback mCallback;
     private ChoiceAdapter mAdapter;
-    private final Handler handler = new Handler();
 
     public ChoicePromptWidget(Context aContext) {
         super(aContext);
@@ -77,8 +78,8 @@ public class ChoicePromptWidget extends PromptWidget {
             postDelayed(() -> {
                 ChoiceWrapper selectedItem = mListItems[position];
                 if (mList.getChoiceMode() == ListView.CHOICE_MODE_SINGLE) {
-                    if (mCallback != null) {
-                        mCallback.confirm(new String[]{selectedItem.getChoice().id});
+                    if (mPromptDelegate != null && mPromptDelegate instanceof ChoicePromptDelegate) {
+                        ((ChoicePromptDelegate)mPromptDelegate).confirm(new String[]{selectedItem.getChoice().id});
                         hide(REMOVE_WIDGET);
                     }
                 }
@@ -97,7 +98,7 @@ public class ChoicePromptWidget extends PromptWidget {
             switch (mList.getChoiceMode()) {
                 case ListView.CHOICE_MODE_SINGLE:
                 case ListView.CHOICE_MODE_MULTIPLE: {
-                    if (mCallback != null) {
+                    if (mPromptDelegate != null) {
                        onDismiss();
                     }
                 }
@@ -114,7 +115,7 @@ public class ChoicePromptWidget extends PromptWidget {
             switch (mList.getChoiceMode()) {
                 case ListView.CHOICE_MODE_SINGLE:
                 case ListView.CHOICE_MODE_MULTIPLE: {
-                    if (mCallback != null) {
+                    if (mPromptDelegate != null && mPromptDelegate instanceof ChoicePromptDelegate) {
                         int len = mList.getCount();
                         SparseBooleanArray selected = mList.getCheckedItemPositions();
                         ArrayList<String> selectedChoices = new ArrayList<>();
@@ -123,7 +124,7 @@ public class ChoicePromptWidget extends PromptWidget {
                                 selectedChoices.add(mListItems[i].getChoice().id);
                             }
                         }
-                        mCallback.confirm(selectedChoices.toArray(new String[selectedChoices.size()]));
+                        ((ChoicePromptDelegate)mPromptDelegate).confirm(selectedChoices.toArray(new String[selectedChoices.size()]));
                     }
                 }
                 break;
@@ -136,25 +137,17 @@ public class ChoicePromptWidget extends PromptWidget {
     }
 
     @Override
-    protected void onDismiss() {
-        hide(REMOVE_WIDGET);
-
-        if (mCallback != null) {
-            mCallback.dismiss();
-        }
-    }
-
-    @Override
-    public void show() {
-        show(true);
+    public void show(@ShowFlags int aShowFlags) {
+        super.show(aShowFlags);
         for (int i = 0; i < mListItems.length; i++) {
             mList.setItemChecked(i, mListItems[i].mChoice.selected);
         }
         mAdapter.notifyDataSetChanged();
     }
 
-    public void setDelegate(GeckoSession.PromptDelegate.ChoiceCallback delegate) {
-        mCallback = delegate;
+    @Override
+    public int getMinHeight() {
+        return  WidgetPlacement.dpDimension(getContext(), R.dimen.prompt_min_height);
     }
 
     public void setChoices(Choice[] choices) {
@@ -169,14 +162,14 @@ public class ChoicePromptWidget extends PromptWidget {
 
     public void setMenuType(int type) {
         switch (type) {
-            case Choice.CHOICE_TYPE_SINGLE:
-            case Choice.CHOICE_TYPE_MENU: {
+            case Type.SINGLE:
+            case Type.MENU: {
                 mList.setChoiceMode(ListView.CHOICE_MODE_SINGLE);
                 mCloseButton.setVisibility(View.VISIBLE);
                 mOkButton.setVisibility(View.GONE);
             }
             break;
-            case Choice.CHOICE_TYPE_MULTIPLE: {
+            case Type.MULTIPLE: {
                 mList.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
                 mCloseButton.setVisibility(View.VISIBLE);
                 mOkButton.setVisibility(View.VISIBLE);
@@ -306,8 +299,9 @@ public class ChoicePromptWidget extends PromptWidget {
 
         private OnHoverListener mHoverListener = (view, motionEvent) -> {
             int position = (int)view.getTag(R.string.position_tag);
-            if (!isEnabled(position))
+            if (!isEnabled(position)) {
                 return false;
+            }
 
             TextView label = view.findViewById(R.id.optionLabel);
             RadioButton check = view.findViewById(R.id.radioOption);

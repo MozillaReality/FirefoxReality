@@ -10,21 +10,34 @@
 #include "VRBrowser.h"
 #include "WidgetPlacement.h"
 #include "WidgetResizer.h"
+#include "WidgetBorder.h"
 #include "vrb/ConcreteClass.h"
 
 #include "vrb/Color.h"
 #include "vrb/RenderContext.h"
+#include "vrb/CreationContext.h"
+#include "vrb/TextureGL.h"
 #include "vrb/Matrix.h"
+#include "vrb/GLError.h"
 #include "vrb/Geometry.h"
 #include "vrb/RenderState.h"
 #include "vrb/SurfaceTextureFactory.h"
 #include "vrb/TextureSurface.h"
+#include "vrb/TextureCache.h"
 #include "vrb/Toggle.h"
 #include "vrb/Transform.h"
 #include "vrb/Vector.h"
 #include "vrb/VertexArray.h"
 
 namespace crow {
+
+static const float kFrameSize = 0.02f;
+#if defined(OCULUSVR)
+static const float kBorder = 0.0f;
+#else
+static const float kBorder = kFrameSize * 0.15f;
+#endif
+
 
 struct Widget::State {
   vrb::RenderContextWeak context;
@@ -37,11 +50,15 @@ struct Widget::State {
   float cylinderDensity;
   vrb::TogglePtr root;
   vrb::TransformPtr transform;
+  vrb::TransformPtr transformContainer; // Used for cylinder rotations
   vrb::TextureSurfacePtr surface;
   WidgetPlacementPtr placement;
   WidgetResizerPtr resizer;
   bool resizing;
   bool toggleState;
+  vrb::TogglePtr bordersContainer;
+  std::vector<WidgetBorderPtr> borders;
+  vrb::TogglePtr layerProxy;
 
   State()
       : handle(0)
@@ -50,7 +67,7 @@ struct Widget::State {
       , cylinderDensity(4680.0f)
   {}
 
-  void Initialize(const int aHandle, const int32_t aTextureWidth, const int32_t aTextureHeight,
+  void Initialize(const int aHandle, const WidgetPlacementPtr& aPlacement, const int32_t aTextureWidth, const int32_t aTextureHeight,
                   const QuadPtr& aQuad, const CylinderPtr& aCylinder) {
     handle = (uint32_t)aHandle;
     name = "crow::Widget-" + std::to_string(handle);
@@ -58,7 +75,7 @@ struct Widget::State {
     if (!render) {
       return;
     }
-
+    placement = aPlacement;
     quad = aQuad;
     cylinder = aCylinder;
 
@@ -66,20 +83,18 @@ struct Widget::State {
 
     vrb::CreationContextPtr create = render->GetRenderThreadCreationContext();
     transform = vrb::Transform::Create(create);
+    transformContainer = vrb::Transform::Create(create);
     root = vrb::Toggle::Create(create);
-    root->AddNode(transform);
+    root->AddNode(transformContainer);
+    transformContainer->AddNode(transform);
     if (quad) {
       transform->AddNode(quad->GetRoot());
     } else {
       transform->AddNode(cylinder->GetRoot());
     }
 
-    if (GetLayer()) {
-      toggleState = true;
-      root->ToggleAll(true);
-    } else {
-      root->ToggleAll(false);
-    }
+    toggleState = IsReadyForComposition();
+    root->ToggleAll(toggleState);
   }
 
   void UpdateSurface(const int32_t aTextureWidth, const int32_t aTextureHeight) {
@@ -94,21 +109,32 @@ struct Widget::State {
         vrb::RenderContextPtr render = context.lock();
         surface = vrb::TextureSurface::Create(render, name);
       }
+
+      vrb::Color tintColor = placement->GetTintColor();
+      std::string customFragment;
+      if (!placement->composited && placement->GetClearColor().Alpha() > 0.0f) {
+        customFragment =
+#include "shaders/clear_color.fs"
+        ;
+        tintColor = placement->GetClearColor();
+      }
+
       if (quad) {
         quad->SetTexture(surface, aTextureWidth, aTextureHeight);
         quad->SetMaterial(vrb::Color(0.4f, 0.4f, 0.4f), vrb::Color(1.0f, 1.0f, 1.0f), vrb::Color(0.0f, 0.0f, 0.0f), 0.0f);
+        quad->GetRenderState()->SetCustomFragmentShader(customFragment);
+        quad->GetRenderState()->SetTintColor(tintColor);
       } else if (cylinder) {
         cylinder->SetTexture(surface, aTextureWidth, aTextureHeight);
         cylinder->SetMaterial(vrb::Color(0.4f, 0.4f, 0.4f), vrb::Color(1.0f, 1.0f, 1.0f), vrb::Color(0.0f, 0.0f, 0.0f), 0.0f);
+        cylinder->GetRenderState()->SetCustomFragmentShader(customFragment);
+        cylinder->GetRenderState()->SetTintColor(tintColor);
       }
     }
   }
 
-  bool FirstDraw() {
-    if (!placement) {
-      return false;
-    }
-    return placement->firstDraw;
+  bool IsReadyForComposition() {
+    return GetLayer() || placement->composited || placement->GetClearColor().Alpha() > 0;
   }
 
   const VRLayerSurfacePtr GetLayer() {
@@ -126,34 +152,41 @@ struct Widget::State {
   void UpdateCylinderMatrix() {
     float w = WorldWidth();
     float h = WorldHeight();
-    int32_t textureWidth, textureHeight;
-    cylinder->GetTextureSize(textureWidth, textureHeight);
 
     const float radius = cylinder->GetCylinderRadius();
-    const float surfaceWidth = (float)textureWidth / placement->density * placement->textureScale;
-    const float surfaceHeight = (float)textureHeight / placement->density * placement->textureScale;
+    // Compute the arc length and height of the curved surface.
+    const float surfaceWidth = w * Cylinder::kWorldDensityRatio;
+    const float surfaceHeight = h * Cylinder::kWorldDensityRatio;
     // Cylinder density measures the pixels for a 360 cylinder
     // Oculus recommends 4680px density, which is 13 pixels per degree.
     const float theta = (float)M_PI * surfaceWidth / (cylinderDensity * 0.5f);
     cylinder->SetCylinderTheta(theta);
+    // Compute the height scale of the cylinder such that the world width and height of a 1px element remain square.
     const float heightScale = surfaceHeight * (float)M_PI / cylinderDensity;
+    // Scale the cylinder so that widget height matches cylinder height.
     const float scale = h / (cylinder->GetCylinderHeight() * heightScale);
     vrb::Matrix scaleMatrix = vrb::Matrix::Identity();
     scaleMatrix.ScaleInPlace(vrb::Vector(radius * scale, radius * scale * heightScale, radius * scale));
+    // Translate the z of the cylinder to make the back of the curved surface the z position anchor point.
     vrb::Matrix translation = vrb::Matrix::Translation(vrb::Vector(0.0f, 0.0f, radius * scale));
+    cylinder->SetTransform(translation.PostMultiply(scaleMatrix));
+    AdjustCylinderRotation(radius * scale);
+    UpdateResizerTransform();
+  }
 
-    const float x = transform->GetWorldTransform().GetTranslation().x();
-    if (x != 0.0f) {
+  void AdjustCylinderRotation(const float radius) {
+    const float x = transform->GetTransform().GetTranslation().x();
+    if (x != 0.0f && placement->cylinderMapRadius > 0) {
       // Automatically adjust correct yaw angle & position for the cylinders not centered on the X axis
-      const float r = radius * scale;
-      const float perimeter = 2.0f * r * (float)M_PI;
-      const float angle = 0.5f * (float)M_PI - x / perimeter * 2.0f * (float)M_PI;
-      vrb::Matrix rotation = vrb::Matrix::Rotation(vrb::Vector(-cosf(angle), 0.0f, sinf(angle)));
-      vrb::Matrix transform = translation.PostMultiply(scaleMatrix).PostMultiply(rotation);
-      transform.PreMultiplyInPlace(vrb::Matrix::Translation(vrb::Vector(-x, 0.0f, 0.0f)));
-      cylinder->SetTransform(transform);
+      const float perimeter = 2.0f * radius * (float)M_PI;
+      float angle = 0.5f * (float)M_PI - x / perimeter * 2.0f * (float)M_PI;
+      float delta = placement->cylinderMapRadius - radius;
+      vrb::Matrix transform = vrb::Matrix::Rotation(vrb::Vector(-cosf(angle), 0.0f, sinf(angle)));
+      transform.PreMultiplyInPlace(vrb::Matrix::Translation(vrb::Vector(0.0f, 0.0f, -delta)));
+      transform.PostMultiplyInPlace(vrb::Matrix::Translation(vrb::Vector(-x, 0.0f, delta)));
+      transformContainer->SetTransform(transform);
     } else {
-      cylinder->SetTransform(translation.PostMultiply(scaleMatrix));
+      transformContainer->SetTransform(vrb::Matrix::Identity());
     }
   }
 
@@ -163,24 +196,38 @@ struct Widget::State {
       resizer = nullptr;
     }
   }
+
+  void RemoveBorder() {
+    if (bordersContainer) {
+      bordersContainer->RemoveFromParents();
+      bordersContainer = nullptr;
+    }
+    borders.clear();
+  }
+
+  void UpdateResizerTransform() {
+    if (resizer) {
+      resizer->SetTransform(transformContainer->GetTransform().PostMultiply(transform->GetTransform()));
+    }
+  }
 };
 
 WidgetPtr
-Widget::Create(vrb::RenderContextPtr& aContext, const int aHandle,
+Widget::Create(vrb::RenderContextPtr& aContext, const int aHandle, const WidgetPlacementPtr& aPlacement,
                const int32_t aTextureWidth, const int32_t aTextureHeight,const QuadPtr& aQuad) {
   WidgetPtr result = std::make_shared<vrb::ConcreteClass<Widget, Widget::State> >(aContext);
   aQuad->GetWorldMinAndMax(result->m.min, result->m.max);
-  result->m.Initialize(aHandle, aTextureWidth, aTextureHeight, aQuad, nullptr);
+  result->m.Initialize(aHandle, aPlacement, aTextureWidth, aTextureHeight, aQuad, nullptr);
   return result;
 }
 
 WidgetPtr
-Widget::Create(vrb::RenderContextPtr& aContext, const int aHandle, const float aWorldWidth, const float aWorldHeight,
+Widget::Create(vrb::RenderContextPtr& aContext, const int aHandle, const WidgetPlacementPtr& aPlacement, const float aWorldWidth, const float aWorldHeight,
                const int32_t aTextureWidth, const int32_t aTextureHeight, const CylinderPtr& aCylinder) {
   WidgetPtr result = std::make_shared<vrb::ConcreteClass<Widget, Widget::State> >(aContext);
   result->m.min = vrb::Vector(-aWorldWidth * 0.5f, -aWorldHeight * 0.5f, 0.0f);
   result->m.max = vrb::Vector(aWorldWidth *0.5f, aWorldHeight * 0.5f, 0.0f);
-  result->m.Initialize(aHandle, aTextureWidth, aTextureHeight, nullptr, aCylinder);
+  result->m.Initialize(aHandle, aPlacement, aTextureWidth, aTextureHeight, nullptr, aCylinder);
   return result;
 }
 
@@ -192,7 +239,7 @@ Widget::GetHandle() const {
 void
 Widget::ResetFirstDraw() {
   if (m.placement) {
-    m.placement->firstDraw = false;
+    m.placement->composited = false;
   }
   if (m.root) {
     m.root->ToggleAll(false);
@@ -241,6 +288,8 @@ Widget::SetWorldWidth(float aWorldWidth) const {
   const float aspect = (float)width / (float) height;
   const float worldHeight = aWorldWidth / aspect;
 
+  const float oldWidth = m.max.x() - m.min.x();
+  const float oldHeight = m.max.y() - m.min.y();
   m.min = vrb::Vector(-aWorldWidth * 0.5f, -worldHeight * 0.5f, 0.0f);
   m.max = vrb::Vector(aWorldWidth *0.5f, worldHeight * 0.5f, 0.0f);
 
@@ -254,6 +303,10 @@ Widget::SetWorldWidth(float aWorldWidth) const {
   if (m.resizing && m.resizer) {
     m.resizer->SetSize(m.min, m.max);
   }
+
+  if ((oldWidth != aWorldWidth) || (oldHeight != worldHeight)) {
+    m.RemoveBorder();
+  }
 }
 
 void
@@ -263,18 +316,18 @@ Widget::GetWorldSize(float& aWidth, float& aHeight) const {
 }
 
 bool
-Widget::TestControllerIntersection(const vrb::Vector& aStartPoint, const vrb::Vector& aDirection, vrb::Vector& aResult, vrb::Vector& aNormal, bool& aIsInWidget, float& aDistance) const {
+Widget::TestControllerIntersection(const vrb::Vector& aStartPoint, const vrb::Vector& aDirection, vrb::Vector& aResult, vrb::Vector& aNormal,
+                                   const bool aClamp, bool& aIsInWidget, float& aDistance) const {
   aDistance = -1.0f;
-  if (!m.root->IsEnabled(*m.transform)) {
+  if (!m.root->IsEnabled(*m.transformContainer)) {
     return false;
   }
 
-  bool clamp = !m.resizing;
   bool result;
   if (m.quad) {
-    result = m.quad->TestIntersection(aStartPoint, aDirection, aResult, aNormal, clamp, aIsInWidget, aDistance);
+    result = m.quad->TestIntersection(aStartPoint, aDirection, aResult, aNormal, aClamp, aIsInWidget, aDistance);
   } else {
-    result = m.cylinder->TestIntersection(aStartPoint, aDirection, aResult, aNormal, clamp, aIsInWidget, aDistance);
+    result = m.cylinder->TestIntersection(aStartPoint, aDirection, aResult, aNormal, aClamp, aIsInWidget, aDistance);
   }
   if (result && m.resizing && !aIsInWidget) {
     // Handle extra intersections while resizing
@@ -294,9 +347,9 @@ Widget::ConvertToWidgetCoordinates(const vrb::Vector& point, float& aX, float& a
   }
 }
 
-void
-Widget::ConvertToWorldCoordinates(const vrb::Vector& aPoint, vrb::Vector& aResult) const {
-  aResult = m.transform->GetTransform().MultiplyPosition(aPoint);
+vrb::Vector
+Widget::ConvertToWorldCoordinates(const vrb::Vector& aLocalPoint) const {
+  return m.transform->GetTransform().MultiplyPosition(aLocalPoint);
 }
 
 const vrb::Matrix
@@ -310,12 +363,13 @@ Widget::SetTransform(const vrb::Matrix& aTransform) {
   if (m.cylinder) {
     m.UpdateCylinderMatrix();
   }
+  m.UpdateResizerTransform();
 }
 
 void
 Widget::ToggleWidget(const bool aEnabled) {
   m.toggleState = aEnabled;
-  m.root->ToggleAll(aEnabled && m.FirstDraw());
+  m.root->ToggleAll(aEnabled && m.IsReadyForComposition());
 }
 
 bool
@@ -340,7 +394,7 @@ Widget::GetCylinder() const {
 }
 
 void
-Widget::SetQuad(const QuadPtr& aQuad) const {
+Widget::SetQuad(const QuadPtr& aQuad) {
   int32_t textureWidth, textureHeight;
   GetSurfaceTextureSize(textureWidth, textureHeight);
   if (m.cylinder) {
@@ -353,13 +407,15 @@ Widget::SetQuad(const QuadPtr& aQuad) const {
 
   m.quad = aQuad;
   m.transform->AddNode(aQuad->GetRoot());
+  m.transformContainer->SetTransform(vrb::Matrix::Identity());
 
   m.RemoveResizer();
+  m.RemoveBorder();
   m.UpdateSurface(textureWidth, textureHeight);
 }
 
 void
-Widget::SetCylinder(const CylinderPtr& aCylinder) const {
+Widget::SetCylinder(const CylinderPtr& aCylinder) {
   int32_t textureWidth, textureHeight;
   GetSurfaceTextureSize(textureWidth, textureHeight);
   if (m.quad) {
@@ -374,6 +430,7 @@ Widget::SetCylinder(const CylinderPtr& aCylinder) const {
   m.transform->AddNode(aCylinder->GetRoot());
 
   m.RemoveResizer();
+  m.RemoveBorder();
   m.UpdateSurface(textureWidth, textureHeight);
 }
 
@@ -394,17 +451,33 @@ Widget::GetPlacement() const {
 
 void
 Widget::SetPlacement(const WidgetPlacementPtr& aPlacement) {
-  if (!m.FirstDraw() && aPlacement && aPlacement->firstDraw && m.root) {
-      m.root->ToggleAll(m.toggleState);
-  }
+  bool wasComposited = m.placement->composited;
   m.placement = aPlacement;
+  if (wasComposited != aPlacement->composited && m.root) {
+    m.root->ToggleAll(m.toggleState);
+    int32_t textureWidth, textureHeight;
+    GetSurfaceTextureSize(textureWidth, textureHeight);
+    m.UpdateSurface(textureWidth, textureHeight);
+  }
   if (m.cylinder) {
     m.UpdateCylinderMatrix();
   }
+
+  VRLayerSurfacePtr layer = GetLayer();
+  if (layer) {
+    layer->SetName(aPlacement->name);
+    layer->SetClearColor(aPlacement->clearColor);
+    layer->SetTintColor(aPlacement->tintColor);
+    layer->SetComposited(aPlacement->composited);
+  } else if (m.quad && aPlacement->composited) {
+    m.quad->SetTintColor(aPlacement->GetTintColor());
+  } else if (m.cylinder && aPlacement->composited) {
+    m.cylinder->SetTintColor(aPlacement->GetTintColor());
+  }
 }
 
-void
-Widget::StartResize() {
+WidgetResizerPtr
+Widget::StartResize(const vrb::Vector& aMaxSize, const vrb::Vector& aMinSize) {
   vrb::Vector worldMin, worldMax;
   GetWidgetMinAndMax(worldMin, worldMax);
   if (m.resizer) {
@@ -412,18 +485,20 @@ Widget::StartResize() {
   } else {
     vrb::RenderContextPtr render = m.context.lock();
     if (!render) {
-      return;
+      return nullptr;
     }
     vrb::CreationContextPtr create = render->GetRenderThreadCreationContext();
     m.resizer = WidgetResizer::Create(create, this);
-    m.transform->InsertNode(m.resizer->GetRoot(), 0);
   }
+  m.resizer->SetResizeLimits(aMaxSize, aMinSize);
   m.resizing = true;
   m.resizer->ToggleVisible(true);
   if (m.quad) {
     m.quad->SetScaleMode(Quad::ScaleMode::AspectFit);
     m.quad->SetBackgroundColor(vrb::Color(1.0f, 1.0f, 1.0f, 1.0f));
   }
+  m.UpdateResizerTransform();
+  return m.resizer;
 }
 
 void
@@ -444,18 +519,23 @@ Widget::IsResizing() const {
   return m.resizing;
 }
 
+bool
+Widget::IsResizingActive() const {
+  return m.resizing && m.resizer->IsActive();
+}
+
 void
 Widget::HandleResize(const vrb::Vector& aPoint, bool aPressed, bool& aResized, bool &aResizeEnded) {
   m.resizer->HandleResizeGestures(aPoint, aPressed, aResized, aResizeEnded);
   if (aResized || aResizeEnded) {
-
-    m.min = m.resizer->GetCurrentMin();
-    m.max = m.resizer->GetCurrentMax();
+    m.min = m.resizer->GetResizeMin();
+    m.max = m.resizer->GetResizeMax();
     if (m.quad) {
       m.quad->SetWorldSize(m.min, m.max);
     } else if (m.cylinder) {
       m.UpdateCylinderMatrix();
     }
+    m.RemoveBorder();
   }
 }
 
@@ -472,6 +552,98 @@ Widget::SetCylinderDensity(const float aDensity) {
   if (m.cylinder) {
     m.UpdateCylinderMatrix();
   }
+}
+
+float
+Widget::GetCylinderDensity() const {
+  return m.cylinderDensity;
+}
+
+void
+Widget::SetBorderColor(const vrb::Color &aColor) {
+  const bool visible = aColor.Alpha() > 0.0f;
+  if (!visible && m.bordersContainer) {
+    m.bordersContainer->ToggleAll(false);
+    return;
+  }
+  if (visible && !m.bordersContainer) {
+    vrb::RenderContextPtr render = m.context.lock();
+    vrb::CreationContextPtr create = render->GetRenderThreadCreationContext();
+    m.bordersContainer = vrb::Toggle::Create(create);
+    m.borders = WidgetBorder::CreateFrame(create, *this, kFrameSize, kBorder);
+    for (const WidgetBorderPtr& border: m.borders) {
+      m.bordersContainer->AddNode(border->GetTransformNode());
+    }
+    m.transform->InsertNode(m.bordersContainer, 0);
+  }
+
+  if (visible) {
+    m.bordersContainer->ToggleAll(true);
+    for (const WidgetBorderPtr& border: m.borders) {
+      border->SetColor(aColor);
+    }
+  }
+}
+
+void
+Widget::SetProxifyLayer(const bool aValue) {
+  if (!aValue) {
+    if (m.layerProxy) {
+      m.layerProxy->ToggleAll(false);
+    }
+    return;
+  }
+
+  if (!m.layerProxy) {
+    vrb::RenderContextPtr render = m.context.lock();
+    vrb::CreationContextPtr create = render->GetRenderThreadCreationContext();
+    m.layerProxy = vrb::Toggle::Create(create);
+    // Proxy objects must clear the existing surface, so set a proper blend function.
+    m.layerProxy->SetPreRenderLambda(create, []() {
+      VRB_GL_CHECK(glBlendFunc(GL_ZERO, GL_ONE_MINUS_SRC_ALPHA));
+    });
+    m.layerProxy->SetPostRenderLambda(create, []() {
+      VRB_GL_CHECK(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+    });
+    m.transform->AddNode(m.layerProxy);
+    int32_t textureWidth, textureHeight;
+    GetSurfaceTextureSize(textureWidth, textureHeight);
+    // Reduce quality, proxy objects do not need full quality.
+    textureWidth /= 2;
+    textureHeight /= 2;
+    vrb::TextureSurfacePtr proxySurface = vrb::TextureSurface::Create(render, m.name);
+    if (m.cylinder) {
+      CylinderPtr proxy = Cylinder::Create(create, *m.cylinder);
+      proxy->SetCylinderTheta(m.cylinder->GetCylinderTheta());
+      proxy->SetTexture(proxySurface, textureWidth, textureHeight);
+      proxy->SetTransform(m.cylinder->GetTransformNode()->GetTransform());
+      m.layerProxy->AddNode(proxy->GetRoot());
+    } else {
+      QuadPtr proxy = Quad::Create(create, *m.quad);
+      proxy->SetTexture(proxySurface, textureWidth, textureHeight);
+      m.layerProxy->AddNode(proxy->GetRoot());
+    }
+  }
+
+  m.layerProxy->ToggleAll(true);
+}
+
+void Widget::LayoutQuadWithCylinderParent(const WidgetPtr& aParent) {
+  CylinderPtr cylinder = aParent->GetCylinder();
+  if (cylinder) {
+    // The widget is flat and the parent is a cylinder.
+    // Adjust the widget rotation based on the parent cylinder
+    // e.g. rotate the tray based on the parent cylindrical window.
+    const float radius = cylinder->GetTransformNode()->GetTransform().GetScale().x();
+    m.AdjustCylinderRotation(radius);
+  } else {
+    // The widget is flat and the parent is flat. Copy the parent transformContainer matrix (used for cylinder rotations)
+    // because the parent widget can still be recursively rotated based on a parent cylinder.
+    // e.g. Place the tray tooltips on the correct tray position which may be rotated based on the
+    // parent cylindrical window.
+    m.transformContainer->SetTransform(aParent->m.transformContainer->GetTransform());
+  }
+  m.UpdateResizerTransform();
 }
 
 Widget::Widget(State& aState, vrb::RenderContextPtr& aContext) : m(aState) {

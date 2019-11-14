@@ -5,6 +5,9 @@
 
 package org.mozilla.vrbrowser.ui.views;
 
+import android.annotation.SuppressLint;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.res.Resources;
 import android.text.Editable;
@@ -12,81 +15,89 @@ import android.text.SpannableString;
 import android.text.TextWatcher;
 import android.text.style.ForegroundColorSpan;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.GestureDetector;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
-import android.view.View;
-import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.view.inputmethod.EditorInfo;
 import android.widget.FrameLayout;
-import android.widget.ImageButton;
-import android.widget.ImageView;
-import android.widget.RelativeLayout;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.StringRes;
+import androidx.databinding.DataBindingUtil;
+
+import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.R;
+import org.mozilla.vrbrowser.VRBrowserApplication;
 import org.mozilla.vrbrowser.audio.AudioEngine;
 import org.mozilla.vrbrowser.browser.BookmarksStore;
-import org.mozilla.vrbrowser.browser.SessionStore;
+import org.mozilla.vrbrowser.browser.engine.Session;
+import org.mozilla.vrbrowser.browser.engine.SessionStore;
+import org.mozilla.vrbrowser.databinding.NavigationUrlBinding;
 import org.mozilla.vrbrowser.search.SearchEngineWrapper;
 import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
+import org.mozilla.vrbrowser.ui.widgets.UIWidget;
+import org.mozilla.vrbrowser.ui.widgets.dialogs.SelectionActionWidget;
 import org.mozilla.vrbrowser.utils.StringUtils;
-import org.mozilla.vrbrowser.utils.UIThreadExecutor;
+import org.mozilla.vrbrowser.utils.SystemUtils;
 import org.mozilla.vrbrowser.utils.UrlUtils;
+import org.mozilla.vrbrowser.utils.ViewUtils;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.concurrent.Executor;
 
-import androidx.annotation.StringRes;
 import kotlin.Unit;
 import mozilla.components.browser.domains.autocomplete.DomainAutocompleteResult;
 import mozilla.components.browser.domains.autocomplete.ShippedDomainsProvider;
 import mozilla.components.ui.autocomplete.InlineAutocompleteEditText;
 
 public class NavigationURLBar extends FrameLayout {
-    private InlineAutocompleteEditText mURL;
-    private ImageButton mMicrophoneButton;
-    private ImageView mInsecureIcon;
-    private ImageView mLoadingView;
+
+    private static final String LOGTAG = SystemUtils.createLogtag(NavigationURLBar.class);
+
+    private NavigationUrlBinding mBinding;
     private Animation mLoadingAnimation;
-    private RelativeLayout mURLLeftContainer;
-    private boolean mIsLoading = false;
-    private boolean mIsInsecure = false;
-    private int mDefaultURLLeftPadding = 0;
     private int mURLProtocolColor;
     private int mURLWebsiteColor;
     private NavigationURLBarDelegate mDelegate;
     private ShippedDomainsProvider mAutocompleteProvider;
-    private ImageButton mBookmarkButton;
     private AudioEngine mAudio;
-    private boolean mIsBookmarkMode;
-    private boolean mBookmarkEnabled = true;
-    private UIThreadExecutor mUIThreadExecutor = new UIThreadExecutor();
+    private Executor mUIThreadExecutor;
+    private Session mSession;
+    private SelectionActionWidget mSelectionMenu;
+    private boolean mWasFocusedWhenTouchBegan = false;
+    private boolean mLongPressed = false;
+    private int lastTouchDownOffset = 0;
 
     private Unit domainAutocompleteFilter(String text) {
-        if (mURL != null) {
+        if (mBinding.urlEditText != null) {
             DomainAutocompleteResult result = mAutocompleteProvider.getAutocompleteSuggestion(text);
             if (result != null) {
-                mURL.applyAutocompleteResult(new InlineAutocompleteEditText.AutocompleteResult(
+                mBinding.urlEditText.applyAutocompleteResult(new InlineAutocompleteEditText.AutocompleteResult(
                         result.getText(),
                         result.getSource(),
                         result.getTotalItems(),
                         null));
             } else {
-                mURL.noAutocompleteResult();
+                mBinding.urlEditText.noAutocompleteResult();
             }
         }
         return Unit.INSTANCE;
     }
 
     public interface NavigationURLBarDelegate {
-        void OnVoiceSearchClicked();
-        void OnShowSearchPopup();
-        void onHideSearchPopup();
+        void onVoiceSearchClicked();
+        void onShowAwesomeBar();
+        void onHideAwesomeBar();
+        void onLongPress(float centerX, SelectionActionWidget actionMenu);
+        void onPopUpButtonClicked();
     }
 
     public NavigationURLBar(Context context, AttributeSet attrs) {
@@ -94,20 +105,26 @@ public class NavigationURLBar extends FrameLayout {
         initialize(context);
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     private void initialize(Context aContext) {
         mAudio = AudioEngine.fromContext(aContext);
 
-        // Inflate this data binding layout
+        mUIThreadExecutor = ((VRBrowserApplication)getContext().getApplicationContext()).getExecutors().mainThread();
+
+        mSession = SessionStore.get().getActiveSession();
+
         LayoutInflater inflater = LayoutInflater.from(aContext);
-        inflate(aContext, R.layout.navigation_url, this);
+
+        // Inflate this data binding layout
+        mBinding = DataBindingUtil.inflate(inflater, R.layout.navigation_url, this, true);
 
         // Use Domain autocomplete provider from components
         mAutocompleteProvider = new ShippedDomainsProvider();
         mAutocompleteProvider.initialize(aContext);
 
-        mURL = findViewById(R.id.urlEditText);
-        mURL.setShowSoftInputOnFocus(false);
-        mURL.setOnEditorActionListener((aTextView, actionId, event) -> {
+        mBinding.urlEditText.clearFocus();
+        mBinding.urlEditText.setShowSoftInputOnFocus(false);
+        mBinding.urlEditText.setOnEditorActionListener((aTextView, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_DONE || actionId == EditorInfo.IME_ACTION_SEARCH
                     || actionId == EditorInfo.IME_ACTION_GO || actionId == EditorInfo.IME_ACTION_SEND) {
                 handleURLEdit(aTextView.getText().toString());
@@ -116,36 +133,102 @@ public class NavigationURLBar extends FrameLayout {
             return false;
         });
 
-        mURL.setOnFocusChangeListener((view, focused) -> {
-            showVoiceSearch(!focused || (mURL.getText().length() == 0));
-
-            mURL.setSelection(mURL.getText().length(), 0);
+        mBinding.urlEditText.setOnFocusChangeListener((view, focused) -> {
+            boolean isUrlEmpty = mBinding.urlEditText.getText().length() == 0;
+            setMicrophoneEnabled(!focused || isUrlEmpty);
+            mBinding.setIsFocused(focused);
+            mBinding.setIsUrlEmpty(isUrlEmpty);
+            if (!focused) {
+                hideSelectionMenu();
+            } else {
+                mBinding.urlEditText.selectAll();
+            }
         });
 
         final GestureDetector gd = new GestureDetector(getContext(), new UrlGestureListener());
         gd.setOnDoubleTapListener(mUrlDoubleTapListener);
-        mURL.setOnTouchListener((view, motionEvent) -> {
+        mBinding.urlEditText.setOnTouchListener((view, motionEvent) -> {
+            if (motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
+                mWasFocusedWhenTouchBegan = view.isFocused();
+                lastTouchDownOffset = ViewUtils.getCursorOffset(mBinding.urlEditText, motionEvent.getX());
+
+            } else if (mLongPressed && motionEvent.getAction() == MotionEvent.ACTION_MOVE) {
+                // Selection gesture while long pressing
+                ViewUtils.placeSelection(mBinding.urlEditText, lastTouchDownOffset, ViewUtils.getCursorOffset(mBinding.urlEditText, motionEvent.getX()));
+
+            } else if (motionEvent.getAction() == MotionEvent.ACTION_UP || motionEvent.getAction() == MotionEvent.ACTION_CANCEL) {
+                mLongPressed = false;
+            }
+
             if (gd.onTouchEvent(motionEvent)) {
+                return true;
+            }
+
+            if (mLongPressed) {
+                // Do not scroll editable when selecting text after a long press.
                 return true;
             }
             return view.onTouchEvent(motionEvent);
         });
-        mURL.addTextChangedListener(mURLTextWatcher);
+
+        mBinding.urlEditText.setOnClickListener(v -> {
+            if (mWasFocusedWhenTouchBegan) {
+                hideSelectionMenu();
+            }
+        });
+
+        mBinding.urlEditText.setOnLongClickListener(v -> {
+            if (!v.isFocused()) {
+                mBinding.urlEditText.requestFocus();
+                mBinding.urlEditText.selectAll();
+
+            } else if (!mBinding.urlEditText.hasSelection()) {
+                // Place the cursor in the long pressed position.
+                if (lastTouchDownOffset >= 0) {
+                    mBinding.urlEditText.setSelection(lastTouchDownOffset);
+                }
+                mLongPressed = true;
+            }
+
+            // Add some delay so selection ranges are ready
+            postDelayed(this::showSelectionMenu, 10);
+            return true;
+        });
+
+        mBinding.urlEditText.addTextChangedListener(mURLTextWatcher);
+
+        mBinding.urlEditText.setOnSelectionChangedCallback((start, end) -> {
+            if (mSelectionMenu != null) {
+                boolean hasCopy = mSelectionMenu.hasAction(GeckoSession.SelectionActionDelegate.ACTION_COPY);
+                boolean showCopy = end > start;
+                if (hasCopy != showCopy) {
+                    showSelectionMenu();
+
+                } else {
+                    mDelegate.onLongPress(getSelectionCenterX(), mSelectionMenu);
+                    mSelectionMenu.updateWidget();
+                }
+            }
+        });
+
+        mBinding.urlEditText.setOnScrollChangeListener((v, scrollX, scrollY, oldScrollX, oldScrollY) -> {
+            if (mLongPressed) {
+                hideSelectionMenu();
+            }
+        });
 
         // Set a filter to provide domain autocomplete results
-        mURL.setOnFilterListener(this::domainAutocompleteFilter);
+        mBinding.urlEditText.setOnFilterListener(this::domainAutocompleteFilter);
 
-        mURL.setFocusable(true);
-        mURL.setFocusableInTouchMode(true);
+        mBinding.microphoneButton.setTag(R.string.view_id_tag, R.id.microphoneButton);
+        mBinding.microphoneButton.setOnClickListener(mMicrophoneListener);
 
-        mMicrophoneButton = findViewById(R.id.microphoneButton);
-        mMicrophoneButton.setTag(R.string.view_id_tag, R.id.microphoneButton);
-        mMicrophoneButton.setOnClickListener(mMicrophoneListener);
-        mURLLeftContainer = findViewById(R.id.urlLeftContainer);
-        mInsecureIcon = findViewById(R.id.insecureIcon);
-        mLoadingView = findViewById(R.id.loadingView);
+        mBinding.clearButton.setTag(R.string.view_id_tag, R.id.clearButton);
+        mBinding.clearButton.setOnClickListener(mClearListener);
+
+        mBinding.popup.setOnClickListener(mPopUpListener);
+
         mLoadingAnimation = AnimationUtils.loadAnimation(aContext, R.anim.loading);
-        mDefaultURLLeftPadding = mURL.getPaddingLeft();
 
         TypedValue typedValue = new TypedValue();
         Resources.Theme theme = aContext.getTheme();
@@ -155,61 +238,40 @@ public class NavigationURLBar extends FrameLayout {
         mURLWebsiteColor = typedValue.data;
 
         // Bookmarks
-        mBookmarkButton = findViewById(R.id.bookmarkButton);
-        mBookmarkButton.setOnClickListener(v -> handleBookmarkClick());
+        mBinding.bookmarkButton.setOnClickListener(v -> handleBookmarkClick());
 
-        setURL("");
-        mIsBookmarkMode = false;
+        // Initialize bindings
+        mBinding.setIsLibraryVisible(false);
+        mBinding.setIsLoading(false);
+        mBinding.setIsInsecure(false);
+        mBinding.setIsMicrophoneEnabled(true);
+        mBinding.setIsFocused(false);
+        mBinding.setIsSpecialUrl(false);
+        mBinding.setIsUrlEmpty(true);
+        mBinding.setIsPopUpAvailable(false);
+        mBinding.executePendingBindings();
 
-        // Prevent the URL TextEdit to get focus when user touches something outside of it
-        setFocusable(true);
-        setClickable(true);
-        syncViews();
+        clearFocus();
+    }
+
+    public void setSession(Session session) {
+        mSession = session;
     }
 
     public void onPause() {
-        if (mIsLoading) {
-            mLoadingView.clearAnimation();
+        if (mBinding.getIsLoading()) {
+            mBinding.loadingView.clearAnimation();
         }
     }
 
     public void onResume() {
-        if (mIsLoading) {
-            mLoadingView.startAnimation(mLoadingAnimation);
+        if (mBinding.getIsLoading()) {
+            mBinding.loadingView.startAnimation(mLoadingAnimation);
         }
-
     }
 
     public void setDelegate(NavigationURLBarDelegate delegate) {
         mDelegate = delegate;
-    }
-
-    public void setIsBookmarkMode(boolean isBookmarkMode) {
-        if (mIsBookmarkMode == isBookmarkMode) {
-            return;
-        }
-        mIsBookmarkMode = isBookmarkMode;
-        if (isBookmarkMode) {
-            mMicrophoneButton.setVisibility(GONE);
-            mBookmarkButton.setVisibility(GONE);
-        } else {
-            mMicrophoneButton.setVisibility(VISIBLE);
-            if (mBookmarkEnabled) {
-                mBookmarkButton.setVisibility(VISIBLE);
-            }
-        }
-        syncViews();
-    }
-
-    private void setBookmarkEnabled(boolean aEnabled) {
-        if (mBookmarkEnabled != aEnabled) {
-            mBookmarkEnabled = aEnabled;
-            mBookmarkButton.setVisibility(aEnabled ? View.VISIBLE : View.GONE);
-            ViewGroup.LayoutParams params = mMicrophoneButton.getLayoutParams();
-            params.width = (int) getResources().getDimension(aEnabled ? R.dimen.url_bar_item_width : R.dimen.url_bar_last_item_width);
-            mMicrophoneButton.setLayoutParams(params);
-            mMicrophoneButton.setBackgroundResource(aEnabled ? R.drawable.url_button : R.drawable.url_button_end);
-        }
     }
 
     private void handleBookmarkClick() {
@@ -217,46 +279,45 @@ public class NavigationURLBar extends FrameLayout {
             mAudio.playSound(AudioEngine.Sound.CLICK);
         }
 
-        String url = SessionStore.get().getCurrentUri();
+        String url = mSession.getCurrentUri();
         if (StringUtils.isEmpty(url)) {
             return;
         }
         BookmarksStore bookmarkStore = SessionStore.get().getBookmarkStore();
         bookmarkStore.isBookmarked(url).thenAcceptAsync(bookmarked -> {
             if (!bookmarked) {
-                bookmarkStore.addBookmark(url, SessionStore.get().getCurrentTitle());
-                setBookmarked(true);
+                bookmarkStore.addBookmark(url, mSession.getCurrentTitle());
+                setIsBookmarked(true);
             } else {
                 // Delete
                 bookmarkStore.deleteBookmarkByURL(url);
-                setBookmarked(false);
+                setIsBookmarked(false);
             }
-        }, mUIThreadExecutor);
+        }, mUIThreadExecutor).exceptionally(throwable -> {
+            Log.d(LOGTAG, "Error checking bookmark: " + throwable.getLocalizedMessage());
+            throwable.printStackTrace();
+            return null;
+        });
 
-    }
-
-    private void setBookmarked(boolean aValue) {
-        if (aValue) {
-            mBookmarkButton.setImageDrawable(getContext().getDrawable(R.drawable.ic_icon_bookmark_active));
-        } else {
-            mBookmarkButton.setImageDrawable(getContext().getDrawable(R.drawable.ic_icon_bookmark));
-        }
     }
 
     public void setHint(@StringRes int aHint) {
-        mURL.setHint(aHint);
+        mBinding.urlEditText.setHint(aHint);
     }
 
     public void setURL(String aURL) {
-        if (mIsBookmarkMode) {
+        if (mBinding.getIsLibraryVisible()) {
             return;
         }
-
-        mURL.removeTextChangedListener(mURLTextWatcher);
+        mBinding.urlEditText.removeTextChangedListener(mURLTextWatcher);
         if (StringUtils.isEmpty(aURL)) {
-            setBookmarked(false);
+            setIsBookmarked(false);
         } else {
-           SessionStore.get().getBookmarkStore().isBookmarked(aURL).thenAcceptAsync(this::setBookmarked, mUIThreadExecutor);
+            SessionStore.get().getBookmarkStore().isBookmarked(aURL).thenAcceptAsync(this::setIsBookmarked, mUIThreadExecutor).exceptionally(throwable -> {
+                Log.d(LOGTAG, "Error getting the bookmarked status: " + throwable.getLocalizedMessage());
+                throwable.printStackTrace();
+                return null;
+            });
         }
 
         int index = -1;
@@ -264,118 +325,102 @@ public class NavigationURLBar extends FrameLayout {
             try {
                 aURL = URLDecoder.decode(aURL, "UTF-8");
 
-            } catch (UnsupportedEncodingException e) {
+            } catch (UnsupportedEncodingException | IllegalArgumentException e) {
                 e.printStackTrace();
+                aURL = "";
             }
-            if (aURL.startsWith("jar:"))
+            if (aURL.startsWith("jar:")) {
                 return;
-            else if (aURL.startsWith("resource:") || SessionStore.get().isHomeUri(aURL))
+
+            } else if (aURL.startsWith("resource:") || mSession.isHomeUri(aURL)) {
                 aURL = "";
-            else if (aURL.startsWith("data:") && SessionStore.get().isCurrentSessionPrivate())
+
+            } else if (aURL.startsWith("data:") && mSession.isPrivateMode()) {
                 aURL = "";
-            else
+
+            } else if (aURL.startsWith(getContext().getString(R.string.about_blank))) {
+                aURL = "";
+
+            } else {
                 index = aURL.indexOf("://");
+            }
 
             // Update the URL bar only if the URL is different than the current one and
             // the URL bar is not focused to avoid override user input
-            if (!mURL.getText().toString().equalsIgnoreCase(aURL) && !mURL.isFocused()) {
-                mURL.setText(aURL);
+            if (!mBinding.urlEditText.getText().toString().equalsIgnoreCase(aURL) && !mBinding.urlEditText.isFocused()) {
+                mBinding.urlEditText.setText(aURL);
                 if (index > 0) {
                     SpannableString spannable = new SpannableString(aURL);
                     ForegroundColorSpan color1 = new ForegroundColorSpan(mURLProtocolColor);
                     ForegroundColorSpan color2 = new ForegroundColorSpan(mURLWebsiteColor);
                     spannable.setSpan(color1, 0, index + 3, 0);
                     spannable.setSpan(color2, index + 3, aURL.length(), 0);
-                    mURL.setText(spannable);
+                    mBinding.urlEditText.setText(spannable);
 
                 } else {
-                    mURL.setText(aURL);
+                    mBinding.urlEditText.setText(aURL);
                 }
             }
-            setBookmarkEnabled(aURL.length() > 0 && !aURL.startsWith("about://"));
+
+            mBinding.setIsSpecialUrl(aURL.isEmpty());
         }
 
-        mURL.addTextChangedListener(mURLTextWatcher);
+        mBinding.urlEditText.addTextChangedListener(mURLTextWatcher);
+    }
+
+    private boolean isEmptyUrl(@NonNull String aURL) {
+        return aURL.length() == 0 || aURL.startsWith("about://");
     }
 
     public String getText() {
-        return mURL.getText().toString();
+        return mBinding.urlEditText.getText().toString();
     }
 
     public String getOriginalText() {
         try {
-            return mURL.getOriginalText();
+            return mBinding.urlEditText.getOriginalText();
 
         } catch (IndexOutOfBoundsException e) {
-            return mURL.getNonAutocompleteText();
+            return mBinding.urlEditText.getNonAutocompleteText();
         }
+    }
+
+    public void setIsLibraryVisible(boolean isLibraryVisible) {
+        mBinding.setIsLibraryVisible(isLibraryVisible);
     }
 
     public void setIsInsecure(boolean aIsInsecure) {
-        if (mIsInsecure != aIsInsecure) {
-            mIsInsecure = aIsInsecure;
-            syncViews();
-        }
+        mBinding.setIsInsecure(aIsInsecure);
     }
 
     public void setIsLoading(boolean aIsLoading) {
-        if (mIsLoading != aIsLoading) {
-            mIsLoading = aIsLoading;
-            if (mIsLoading) {
-                mLoadingView.startAnimation(mLoadingAnimation);
-            } else {
-                mLoadingView.clearAnimation();
-            }
-            syncViews();
+        mBinding.setIsLoading(aIsLoading);
+        if (aIsLoading) {
+            mBinding.loadingView.startAnimation(mLoadingAnimation);
+        } else {
+            mBinding.loadingView.clearAnimation();
         }
     }
 
-    public void showVoiceSearch(boolean enabled) {
-        if (enabled) {
-            if (mBookmarkEnabled) {
-                mMicrophoneButton.setBackgroundResource(R.drawable.url_button);
-                mMicrophoneButton.getLayoutParams().width = (int)getContext().getResources().getDimension(R.dimen.url_bar_item_width);
-            }
-            mMicrophoneButton.setImageResource(R.drawable.ic_icon_microphone);
-            mMicrophoneButton.setOnClickListener(mMicrophoneListener);
-
-            if (mIsBookmarkMode) {
-                mMicrophoneButton.setVisibility(GONE);
-            } else if (mBookmarkEnabled) {
-                mBookmarkButton.setVisibility(VISIBLE);
-            }
-
-        } else if (mURL.hasFocus()){
-            mMicrophoneButton.setImageResource(R.drawable.ic_icon_clear);
-            mMicrophoneButton.setBackgroundResource(R.drawable.url_button_end);
-            mMicrophoneButton.getLayoutParams().width = (int)getContext().getResources().getDimension(R.dimen.url_bar_last_item_width);
-            mMicrophoneButton.setOnClickListener(mClearListener);
-
-            if (mIsBookmarkMode) {
-                mMicrophoneButton.setVisibility(VISIBLE);
-            }
-
-            mBookmarkButton.setVisibility(GONE);
-        }
+    public void setMicrophoneEnabled(boolean enabled) {
+        mBinding.setIsMicrophoneEnabled(enabled);
     }
 
-    private void syncViews() {
-        boolean showContainer = (mIsInsecure || mIsLoading) && !mIsBookmarkMode;
-        int leftPadding = mDefaultURLLeftPadding;
-        if (showContainer) {
-            mURLLeftContainer.setVisibility(View.VISIBLE);
-            mURLLeftContainer.measure(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
-            mLoadingView.setVisibility(mIsLoading ? View.VISIBLE : View.GONE);
-            mInsecureIcon.setVisibility(!mIsLoading && mIsInsecure ? View.VISIBLE : View.GONE);
-            leftPadding = mURLLeftContainer.getMeasuredWidth();
-        }
-        else {
-            mURLLeftContainer.setVisibility(View.GONE);
-            mLoadingView.setVisibility(View.GONE);
-            mInsecureIcon.setVisibility(View.GONE);
-        }
+    private void setIsBookmarked(boolean aValue) {
+        mBinding.setIsBookmarked(aValue);
+        mBinding.bookmarkButton.clearFocus();
+    }
 
-        mURL.setPadding(leftPadding, mURL.getPaddingTop(), mURL.getPaddingRight(), mURL.getPaddingBottom());
+    public void setPrivateMode(boolean isEnabled) {
+        mBinding.setIsPrivateMode(isEnabled);
+    }
+
+    public void setIsPopUpAvailable(boolean isAvailable) {
+        mBinding.setIsPopUpAvailable(isAvailable);
+    }
+
+    public UIButton getPopUpButton() {
+        return mBinding.popup;
     }
 
     public  void handleURLEdit(String text) {
@@ -411,28 +456,22 @@ public class NavigationURLBar extends FrameLayout {
             TelemetryWrapper.urlBarEvent(false);
         }
 
-        if (SessionStore.get().getCurrentUri() != url) {
-            SessionStore.get().loadUri(url);
+        if (mSession.getCurrentUri() != url) {
+            mSession.loadUri(url);
 
             if (mDelegate != null) {
-                mDelegate.onHideSearchPopup();
+                mDelegate.onHideAwesomeBar();
             }
         }
 
-        showVoiceSearch(text.isEmpty());
-    }
-
-    public void setPrivateMode(boolean isEnabled) {
-        if (isEnabled)
-            mURL.setBackground(getContext().getDrawable(R.drawable.url_background_private));
-        else
-            mURL.setBackground(getContext().getDrawable(R.drawable.url_background));
+        setMicrophoneEnabled(!text.isEmpty());
+        clearFocus();
     }
 
     @Override
     public void setClickable(boolean clickable) {
         super.setClickable(clickable);
-        mURL.setEnabled(clickable);
+        mBinding.urlEditText.setEnabled(clickable);
     }
 
     private OnClickListener mMicrophoneListener = view -> {
@@ -440,9 +479,9 @@ public class NavigationURLBar extends FrameLayout {
             mAudio.playSound(AudioEngine.Sound.CLICK);
         }
 
-        view.requestFocusFromTouch();
-        if (mDelegate != null)
-            mDelegate.OnVoiceSearchClicked();
+        if (mDelegate != null) {
+            mDelegate.onVoiceSearchClicked();
+        }
 
         TelemetryWrapper.voiceInputEvent();
     };
@@ -452,7 +491,17 @@ public class NavigationURLBar extends FrameLayout {
             mAudio.playSound(AudioEngine.Sound.CLICK);
         }
 
-        mURL.getText().clear();
+        mBinding.urlEditText.getText().clear();
+    };
+
+    private OnClickListener mPopUpListener = view -> {
+        if (mAudio != null) {
+            mAudio.playSound(AudioEngine.Sound.CLICK);
+        }
+
+        if (mDelegate != null) {
+            mDelegate.onPopUpButtonClicked();
+        }
     };
 
     private TextWatcher mURLTextWatcher = new TextWatcher() {
@@ -463,19 +512,18 @@ public class NavigationURLBar extends FrameLayout {
 
         @Override
         public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
-            if (mURL.getText().length() > 0) {
-                showVoiceSearch(false);
-
-            } else {
-                showVoiceSearch(true);
-            }
+            String aURL = mBinding.urlEditText.getText().toString();
+            boolean empty = isEmptyUrl(aURL);
+            mBinding.setIsUrlEmpty(empty);
+            setMicrophoneEnabled(empty);
         }
 
         @Override
         public void afterTextChanged(Editable editable) {
-            if (mDelegate != null) {
-                mDelegate.OnShowSearchPopup();
+            if (mDelegate != null && mBinding.urlEditText.isFocused()) {
+                mDelegate.onShowAwesomeBar();
             }
+            hideSelectionMenu();
         }
     };
 
@@ -490,7 +538,7 @@ public class NavigationURLBar extends FrameLayout {
     GestureDetector.OnDoubleTapListener mUrlDoubleTapListener = new GestureDetector.OnDoubleTapListener() {
         @Override
         public boolean onSingleTapConfirmed(MotionEvent motionEvent) {
-            return false;
+            return true;
         }
 
         @Override
@@ -500,9 +548,111 @@ public class NavigationURLBar extends FrameLayout {
 
         @Override
         public boolean onDoubleTapEvent(MotionEvent motionEvent) {
-            mURL.setSelection(mURL.getText().length(), 0);
+            mBinding.urlEditText.selectAll();
+            showSelectionMenu();
             return true;
         }
     };
+
+    private void showSelectionMenu() {
+        ArrayList<String> actions = new ArrayList<>();
+        if (mBinding.urlEditText.getSelectionEnd() > mBinding.urlEditText.getSelectionStart()) {
+            actions.add(GeckoSession.SelectionActionDelegate.ACTION_CUT);
+            actions.add(GeckoSession.SelectionActionDelegate.ACTION_COPY);
+        }
+        ClipboardManager clipboard = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+        if (clipboard.hasPrimaryClip()) {
+            actions.add(GeckoSession.SelectionActionDelegate.ACTION_PASTE);
+        }
+        if (!StringUtils.isEmpty(mBinding.urlEditText.getText().toString()) &&
+                (mBinding.urlEditText.getSelectionStart() != 0 || mBinding.urlEditText.getSelectionEnd() != mBinding.urlEditText.getText().toString().length())) {
+            actions.add(GeckoSession.SelectionActionDelegate.ACTION_SELECT_ALL);
+        }
+
+        if (actions.size() == 0) {
+            hideSelectionMenu();
+            return;
+        }
+
+        String[] actionsArray = actions.toArray(new String[0]);
+        if (mSelectionMenu != null && !mSelectionMenu.hasSameActions(actionsArray)) {
+            // Release current selection menu to recreate it with different actions.
+            hideSelectionMenu();
+        }
+
+        if (mSelectionMenu == null) {
+            mSelectionMenu = new SelectionActionWidget(getContext());
+            mSelectionMenu.setActions(actionsArray);
+            mSelectionMenu.setDelegate(new SelectionActionWidget.Delegate() {
+                @Override
+                public void onAction(String action) {
+                    int startSelection = mBinding.urlEditText.getSelectionStart();
+                    int endSelection = mBinding.urlEditText.getSelectionEnd();
+                    boolean selectionValid = endSelection > startSelection;
+
+                    if (action.equals(GeckoSession.SelectionActionDelegate.ACTION_CUT) && selectionValid) {
+                        String selectedText = mBinding.urlEditText.getText().toString().substring(startSelection, endSelection);
+                        clipboard.setPrimaryClip(ClipData.newPlainText("text", selectedText));
+                        mBinding.urlEditText.setText(StringUtils.removeRange(mBinding.urlEditText.getText().toString(), startSelection, endSelection));
+                    } else if (action.equals(GeckoSession.SelectionActionDelegate.ACTION_COPY) && selectionValid) {
+                        String selectedText = mBinding.urlEditText.getText().toString().substring(startSelection, endSelection);
+                        clipboard.setPrimaryClip(ClipData.newPlainText("text", selectedText));
+                    } else if (action.equals(GeckoSession.SelectionActionDelegate.ACTION_PASTE) && clipboard.hasPrimaryClip()) {
+                        ClipData.Item item = clipboard.getPrimaryClip().getItemAt(0);
+                        if (selectionValid) {
+                            mBinding.urlEditText.setText(StringUtils.removeRange(mBinding.urlEditText.getText().toString(), startSelection, endSelection));
+                        }
+                        if (item != null && item.getText() != null) {
+                            mBinding.urlEditText.getText().insert(mBinding.urlEditText.getSelectionStart(), item.getText());
+                        } else if (item != null && item.getUri() != null) {
+                            mBinding.urlEditText.getText().insert(mBinding.urlEditText.getSelectionStart(), item.getUri().toString());
+                        }
+                    } else if (action.equals(GeckoSession.SelectionActionDelegate.ACTION_SELECT_ALL)) {
+                        mBinding.urlEditText.selectAll();
+                        showSelectionMenu();
+                        return;
+
+                    }
+                    hideSelectionMenu();
+                }
+
+                @Override
+                public void onDismiss() {
+                    hideSelectionMenu();
+                }
+            });
+        }
+
+        if (mDelegate != null) {
+            mDelegate.onLongPress(getSelectionCenterX(), mSelectionMenu);
+        }
+
+        mSelectionMenu.show(UIWidget.KEEP_FOCUS);
+    }
+
+
+    private float getSelectionCenterX() {
+        float start = 0;
+        if (mBinding.urlEditText.getSelectionStart() >= 0) {
+            start = ViewUtils.GetLetterPositionX(mBinding.urlEditText, mBinding.urlEditText.getSelectionStart(), true);
+        }
+        float end = start;
+        if (mBinding.urlEditText.getSelectionEnd() > mBinding.urlEditText.getSelectionStart()) {
+            end = ViewUtils.GetLetterPositionX(mBinding.urlEditText, mBinding.urlEditText.getSelectionEnd(), true);
+        }
+        if (end < start) {
+            end = start;
+        }
+        return start + (end - start) * 0.5f;
+    }
+
+    private void hideSelectionMenu() {
+        if (mSelectionMenu != null) {
+            mSelectionMenu.setDelegate((SelectionActionWidget.Delegate) null);
+            mSelectionMenu.hide(UIWidget.REMOVE_WIDGET);
+            mSelectionMenu.releaseWidget();
+            mSelectionMenu = null;
+        }
+    }
 
 }

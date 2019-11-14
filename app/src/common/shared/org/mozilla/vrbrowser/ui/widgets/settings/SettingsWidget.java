@@ -5,51 +5,71 @@
 
 package org.mozilla.vrbrowser.ui.widgets.settings;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.graphics.Point;
+import android.graphics.drawable.Drawable;
+import android.text.Html;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.GestureDetector;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
-import android.widget.ImageButton;
-import android.widget.LinearLayout;
-import android.widget.TextView;
 
-import org.mozilla.geckoview.GeckoSession;
+import androidx.annotation.NonNull;
+import androidx.databinding.DataBindingUtil;
+
+import org.jetbrains.annotations.NotNull;
+import org.mozilla.gecko.util.ThreadUtils;
+import org.mozilla.geckoview.GeckoSessionSettings;
 import org.mozilla.vrbrowser.BuildConfig;
 import org.mozilla.vrbrowser.R;
+import org.mozilla.vrbrowser.VRBrowserActivity;
+import org.mozilla.vrbrowser.VRBrowserApplication;
 import org.mozilla.vrbrowser.audio.AudioEngine;
-import org.mozilla.vrbrowser.browser.SessionStore;
-import org.mozilla.vrbrowser.browser.SettingsStore;
-import org.mozilla.vrbrowser.ui.views.HoneycombButton;
-import org.mozilla.vrbrowser.ui.views.HoneycombSwitch;
+import org.mozilla.vrbrowser.browser.Accounts;
+import org.mozilla.vrbrowser.browser.engine.Session;
+import org.mozilla.vrbrowser.browser.engine.SessionStore;
+import org.mozilla.vrbrowser.databinding.SettingsBinding;
 import org.mozilla.vrbrowser.ui.widgets.UIWidget;
 import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
 import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
 import org.mozilla.vrbrowser.ui.widgets.dialogs.RestartDialogWidget;
 import org.mozilla.vrbrowser.ui.widgets.dialogs.UIDialog;
 import org.mozilla.vrbrowser.ui.widgets.prompts.AlertPromptWidget;
+import org.mozilla.vrbrowser.utils.StringUtils;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.URL;
 import java.net.URLEncoder;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
+import java.util.concurrent.Executor;
+
+import mozilla.components.concept.sync.AccountObserver;
+import mozilla.components.concept.sync.AuthType;
+import mozilla.components.concept.sync.OAuthAccount;
+import mozilla.components.concept.sync.Profile;
 
 public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.WorldClickListener, SettingsView.Delegate {
-    private static final String LOGTAG = "VRB";
+
+    public enum SettingDialog {
+        MAIN, LANGUAGE, DISPLAY, PRIVACY, DEVELOPER, FXA, ENVIRONMENT, CONTROLLER
+    }
+
+    private SettingsBinding mBinding;
     private AudioEngine mAudio;
     private SettingsView mCurrentView;
-    private TextView mBuildText;
-    private LinearLayout mMainLayout;
     private int mViewMarginH;
     private int mViewMarginV;
     private int mRestartDialogHandle = -1;
     private int mAlertDialogHandle = -1;
+    private Accounts mAccounts;
+    private Executor mUIThreadExecutor;
 
     class VersionGestureListener extends GestureDetector.SimpleOnGestureListener {
 
@@ -57,7 +77,7 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
 
         @Override
         public boolean onDown (MotionEvent e) {
-            mBuildText.setText(mIsHash ? versionCodeToDate(BuildConfig.VERSION_CODE) : BuildConfig.GIT_HASH);
+            mBinding.buildText.setText(mIsHash ? StringUtils.versionCodeToDate(getContext(), BuildConfig.VERSION_CODE) : BuildConfig.GIT_HASH);
 
             mIsHash = !mIsHash;
 
@@ -67,28 +87,34 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
 
     public SettingsWidget(Context aContext) {
         super(aContext);
-        initialize(aContext);
+        initialize();
     }
 
     public SettingsWidget(Context aContext, AttributeSet aAttrs) {
         super(aContext, aAttrs);
-        initialize(aContext);
+        initialize();
     }
 
     public SettingsWidget(Context aContext, AttributeSet aAttrs, int aDefStyle) {
         super(aContext, aAttrs, aDefStyle);
-        initialize(aContext);
+        initialize();
     }
 
-    private void initialize(Context aContext) {
-        inflate(aContext, R.layout.settings, this);
+    @SuppressLint("ClickableViewAccessibility")
+    private void initialize() {
+        LayoutInflater inflater = LayoutInflater.from(getContext());
+
+        // Inflate this data binding layout
+        mBinding = DataBindingUtil.inflate(inflater, R.layout.settings, this, true);
 
         mWidgetManager.addWorldClickListener(this);
-        mMainLayout = findViewById(R.id.optionsLayout);
 
-        ImageButton cancelButton = findViewById(R.id.settingsCancelButton);
+        mAccounts = ((VRBrowserApplication)getContext().getApplicationContext()).getAccounts();
+        mAccounts.addAccountListener(mAccountObserver);
 
-        cancelButton.setOnClickListener(v -> {
+        mUIThreadExecutor = ((VRBrowserApplication)getContext().getApplicationContext()).getExecutors().mainThread();
+
+        mBinding.backButton.setOnClickListener(v -> {
             if (mAudio != null) {
                 mAudio.playSound(AudioEngine.Sound.CLICK);
             }
@@ -96,8 +122,12 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
             onDismiss();
         });
 
-        HoneycombButton languageButton = findViewById(R.id.languageButton);
-        languageButton.setOnClickListener(view -> {
+        mBinding.reportIssueButton.setOnClickListener(v -> {
+            onSettingsReportClick();
+            onDismiss();
+        });
+
+        mBinding.languageButton.setOnClickListener(view -> {
             if (mAudio != null) {
                 mAudio.playSound(AudioEngine.Sound.CLICK);
             }
@@ -105,8 +135,7 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
             onLanguageOptionsClick();
         });
 
-        HoneycombButton privacyButton = findViewById(R.id.privacyButton);
-        privacyButton.setOnClickListener(view -> {
+        mBinding.privacyButton.setOnClickListener(view -> {
             if (mAudio != null) {
                 mAudio.playSound(AudioEngine.Sound.CLICK);
             }
@@ -114,28 +143,7 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
             onSettingsPrivacyClick();
         });
 
-        HoneycombSwitch crashSwitch = findViewById(R.id.crashReportingSwitch);
-        crashSwitch.setChecked(SettingsStore.getInstance(getContext()).isCrashReportingEnabled());
-        crashSwitch.setOnCheckedChangeListener((compoundButton, b) -> {
-            if (mAudio != null) {
-                mAudio.playSound(AudioEngine.Sound.CLICK);
-            }
-
-            onSettingsCrashReportingChange(b);
-        });
-
-        HoneycombSwitch telemetrySwitch = findViewById(R.id.telemetry_switch);
-        telemetrySwitch.setChecked(SettingsStore.getInstance(getContext()).isTelemetryEnabled());
-        telemetrySwitch.setOnCheckedChangeListener((compoundButton, b) -> {
-            if (mAudio != null) {
-                mAudio.playSound(AudioEngine.Sound.CLICK);
-            }
-
-            onSettingsTelemetryChange(b);
-        });
-
-        HoneycombButton displayButton = findViewById(R.id.displayButton);
-        displayButton.setOnClickListener(view -> {
+        mBinding.displayButton.setOnClickListener(view -> {
             if (mAudio != null) {
                 mAudio.playSound(AudioEngine.Sound.CLICK);
             }
@@ -143,8 +151,7 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
             onDisplayOptionsClick();
         });
 
-        HoneycombButton environmentButton = findViewById(R.id.environmentButton);
-        environmentButton.setOnClickListener(view -> {
+        mBinding.environmentButton.setOnClickListener(view -> {
             if (mAudio != null) {
                 mAudio.playSound(AudioEngine.Sound.CLICK);
             }
@@ -152,38 +159,47 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
             showEnvironmentOptionsDialog();
         });
 
-        TextView versionText = findViewById(R.id.versionText);
         try {
             PackageInfo pInfo = getContext().getPackageManager().getPackageInfo(getContext().getPackageName(), 0);
-            versionText.setText(String.format(getResources().getString(R.string.settings_version), pInfo.versionName));
+            String app_name = getResources().getString(R.string.app_name);
+            String[] app_name_parts = app_name.split(" ");
+            mBinding.versionText.setText(Html.fromHtml("<b>" + app_name_parts[0] + "</b>" +
+                    " " + app_name_parts[1] + " " +
+                    " <b>" + pInfo.versionName + "</b>",
+                    Html.FROM_HTML_MODE_LEGACY));
 
         } catch (PackageManager.NameNotFoundException e) {
             e.printStackTrace();
         }
 
-        mBuildText = findViewById(R.id.buildText);
-        mBuildText.setText(versionCodeToDate(BuildConfig.VERSION_CODE));
+        mBinding.buildText.setText(StringUtils.versionCodeToDate(getContext(), BuildConfig.VERSION_CODE));
 
-        ViewGroup settingsMasthead = findViewById(R.id.settingsMasthead);
         final GestureDetector gd = new GestureDetector(getContext(), new VersionGestureListener());
-        settingsMasthead.setOnTouchListener((view, motionEvent) -> {
+        mBinding.settingsMasthead.setOnTouchListener((view, motionEvent) -> {
             if (gd.onTouchEvent(motionEvent)) {
                 return true;
             }
             return view.performClick();
         });
 
-        HoneycombButton reportButton = findViewById(R.id.reportButton);
-        reportButton.setOnClickListener(view -> {
+        mBinding.surveyLink.setOnClickListener(v -> {
+            mWidgetManager.getFocusedWindow().getSession().loadUri(getResources().getString(R.string.survey_link));
+            exitWholeSettings();
+        });
+
+        mBinding.helpButton.setOnClickListener(view -> {
             if (mAudio != null) {
                 mAudio.playSound(AudioEngine.Sound.CLICK);
             }
-
-            onSettingsReportClick();
+            SessionStore.get().getActiveSession().loadUri(getContext().getString(R.string.help_url));
+            onDismiss();
         });
 
-        HoneycombButton developerOptionsButton = findViewById(R.id.developerOptionsButton);
-        developerOptionsButton.setOnClickListener(view -> {
+        mBinding.fxaButton.setOnClickListener(view ->
+                manageAccount()
+        );
+
+        mBinding.developerOptionsButton.setOnClickListener(view -> {
             if (mAudio != null) {
                 mAudio.playSound(AudioEngine.Sound.CLICK);
             }
@@ -191,8 +207,7 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
             onDeveloperOptionsClick();
         });
 
-        HoneycombButton controllerOptionsButton = findViewById(R.id.controllerOptionsButton);
-        controllerOptionsButton.setOnClickListener(view -> {
+        mBinding.controllerOptionsButton.setOnClickListener(view -> {
             if (mAudio != null) {
                 mAudio.playSound(AudioEngine.Sound.CLICK);
             }
@@ -200,17 +215,18 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
             showControllerOptionsDialog();
         });
 
-        mAudio = AudioEngine.fromContext(aContext);
+        mAudio = AudioEngine.fromContext(getContext());
 
-        mViewMarginH = mWidgetPlacement.width - WidgetPlacement.dpDimension(getContext(), R.dimen.developer_options_width);
+        mViewMarginH = mWidgetPlacement.width - WidgetPlacement.dpDimension(getContext(), R.dimen.options_width);
         mViewMarginH = WidgetPlacement.convertDpToPixel(getContext(), mViewMarginH);
-        mViewMarginV = mWidgetPlacement.height - WidgetPlacement.dpDimension(getContext(), R.dimen.developer_options_height);
+        mViewMarginV = mWidgetPlacement.height - WidgetPlacement.dpDimension(getContext(), R.dimen.options_height);
         mViewMarginV = WidgetPlacement.convertDpToPixel(getContext(), mViewMarginV);
     }
 
     @Override
     public void releaseWidget() {
         mWidgetManager.removeWorldClickListener(this);
+        mAccounts.removeAccountListener(mAccountObserver);
 
         super.releaseWidget();
     }
@@ -221,20 +237,13 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
         aPlacement.width =  WidgetPlacement.dpDimension(getContext(), R.dimen.settings_width);
         aPlacement.height = WidgetPlacement.dpDimension(getContext(), R.dimen.settings_height);
         aPlacement.parentAnchorX = 0.5f;
-        aPlacement.parentAnchorY = 0.5f;
+        aPlacement.parentAnchorY = 0.0f;
         aPlacement.anchorX = 0.5f;
         aPlacement.anchorY = 0.5f;
-        aPlacement.translationY = WidgetPlacement.unitFromMeters(getContext(), R.dimen.settings_world_y);
-        aPlacement.translationZ = WidgetPlacement.unitFromMeters(getContext(), R.dimen.settings_world_z);
-    }
-
-    private void onSettingsCrashReportingChange(boolean isEnabled) {
-        SettingsStore.getInstance(getContext()).setCrashReportingEnabled(isEnabled);
-    }
-
-    private void onSettingsTelemetryChange(boolean isEnabled) {
-        SettingsStore.getInstance(getContext()).setTelemetryEnabled(isEnabled);
-        // TODO: Waiting for Telemetry to be merged
+        aPlacement.translationY = WidgetPlacement.unitFromMeters(getContext(), R.dimen.settings_world_y) -
+                                  WidgetPlacement.unitFromMeters(getContext(), R.dimen.window_world_y);
+        aPlacement.translationZ = WidgetPlacement.unitFromMeters(getContext(), R.dimen.settings_world_z) -
+                                  WidgetPlacement.unitFromMeters(getContext(), R.dimen.window_world_z);
     }
 
     private void onSettingsPrivacyClick() {
@@ -242,23 +251,18 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
     }
 
     private void onSettingsReportClick() {
-        String url = SessionStore.get().getCurrentUri();
-
-        GeckoSession session = SessionStore.get().getCurrentSession();
-        if (session == null) {
-            int sessionId = SessionStore.get().createSession();
-            SessionStore.get().setCurrentSession(sessionId);
-        }
+        Session session = SessionStore.get().getActiveSession();
+        String url = session.getCurrentUri();
 
         try {
             if (url == null) {
                 // In case the user had no active sessions when reporting, just leave the URL field empty.
                 url = "";
-            } else if (url.startsWith("jar:") || url.startsWith("resource:") || url.startsWith("about:")) {
+            } else if (url.startsWith("jar:") || url.startsWith("resource:") || url.startsWith("about:") || url.startsWith("data:")) {
                 url = "";
-            } else if (SessionStore.get().isHomeUri(url)) {
+            } else if (session.isHomeUri(url)) {
                 // Use the original URL (without any hash).
-                url = SessionStore.get().getHomeUri();
+                url = session.getHomeUri();
             }
 
             url = URLEncoder.encode(url, "UTF-8");
@@ -266,9 +270,95 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
         } catch (UnsupportedEncodingException e) {
             Log.e(LOGTAG, "Cannot encode URL");
         }
-        SessionStore.get().loadUri(getContext().getString(R.string.private_report_url, url));
 
-        hide(REMOVE_WIDGET);
+        session.loadUri(getContext().getString(R.string.private_report_url, url));
+
+        onDismiss();
+    }
+
+    private void manageAccount() {
+        switch(mAccounts.getAccountStatus()) {
+            case SIGNED_OUT:
+            case NEEDS_RECONNECT:
+                mAccounts.getAuthenticationUrlAsync().thenAcceptAsync((url) -> {
+                    if (url != null) {
+                        mAccounts.setLoginOrigin(Accounts.LoginOrigin.SETTINGS);
+                        WidgetManagerDelegate widgetManager = ((VRBrowserActivity)getContext());
+                        widgetManager.openNewTabForeground(url);
+                        widgetManager.getFocusedWindow().getSession().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_MOBILE);
+                        hide(REMOVE_WIDGET);
+                    }
+                }, mUIThreadExecutor).exceptionally(throwable -> {
+                    Log.d(LOGTAG, "Error getting the authentication URL: " + throwable.getLocalizedMessage());
+                    throwable.printStackTrace();
+                    return null;
+                });
+                break;
+
+            case SIGNED_IN:
+                post(this::showFXAOptionsDialog);
+                break;
+        }
+    }
+
+    private void updateCurrentAccountState() {
+        switch(mAccounts.getAccountStatus()) {
+            case NEEDS_RECONNECT:
+                mBinding.fxaButton.setText(R.string.settings_fxa_account_reconnect);
+                break;
+
+            case SIGNED_IN:
+                mBinding.fxaButton.setText(R.string.settings_fxa_account_manage);
+                updateProfile(mAccounts.accountProfile());
+                break;
+
+            case SIGNED_OUT:
+                mBinding.fxaButton.setText(R.string.settings_fxa_account_sign_in);
+                updateProfile(mAccounts.accountProfile());
+                break;
+        }
+    }
+
+    private AccountObserver mAccountObserver = new AccountObserver() {
+
+        @Override
+        public void onAuthenticated(@NotNull OAuthAccount oAuthAccount, @NotNull AuthType authType) {
+
+        }
+
+        @Override
+        public void onProfileUpdated(@NotNull Profile profile) {
+            updateProfile(profile);
+        }
+
+        @Override
+        public void onLoggedOut() {
+            post(() -> mBinding.fxaButton.setText(R.string.settings_fxa_account_sign_in));
+        }
+
+        @Override
+        public void onAuthenticationProblems() {
+            post(() -> mBinding.fxaButton.setText(R.string.settings_fxa_account_reconnect));
+        }
+    };
+
+    private void updateProfile(Profile profile) {
+        if (profile != null) {
+            ThreadUtils.postToBackgroundThread(() -> {
+                try {
+                    URL url = new URL(profile.getAvatar().getUrl());
+                    Drawable picture = Drawable.createFromStream(url.openStream(), "src");
+                    post(() -> mBinding.fxaButton.setImageDrawable(picture));
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+
+                }
+            });
+
+        } else {
+            mBinding.fxaButton.setImageDrawable(getContext().getDrawable(R.drawable.ic_icon_settings_account));
+        }
     }
 
     private void onDeveloperOptionsClick() {
@@ -283,60 +373,35 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
         showDisplayOptionsDialog();
     }
 
-    /**
-     * The version code is composed like: yDDDHHmm
-     *  * y   = Double digit year, with 16 substracted: 2017 -> 17 -> 1
-     *  * DDD = Day of the year, pad with zeros if needed: September 6th -> 249
-     *  * HH  = Hour in day (00-23)
-     *  * mm  = Minute in hour
-     *
-     * For September 6th, 2017, 9:41 am this will generate the versionCode: 12490941 (1-249-09-41).
-     *
-     * For local debug builds we use a fixed versionCode to not mess with the caching mechanism of the build
-     * system. The fixed local build number is 1.
-     *
-     * @param aVersionCode Application version code minus the leading architecture digit.
-     * @return String The converted date in the format yyyy-MM-dd
-     */
-    private String versionCodeToDate(final int aVersionCode) {
-        String versionCode = Integer.toString(aVersionCode);
-
-        String formatted;
-        try {
-            int year = Integer.parseInt(versionCode.substring(0, 1)) + 2016;
-            int dayOfYear = Integer.parseInt(versionCode.substring(1, 4));
-
-            GregorianCalendar cal = (GregorianCalendar)GregorianCalendar.getInstance();
-            cal.set(Calendar.YEAR, year);
-            cal.set(Calendar.DAY_OF_YEAR, dayOfYear);
-
-            SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
-            formatted = format.format(cal.getTime());
-
-        } catch (StringIndexOutOfBoundsException e) {
-            formatted = getContext().getString(R.string.settings_version_developer);
-        }
-
-        return formatted;
-    }
-
-    private void showView(SettingsView aView) {
+    public void showView(SettingsView aView) {
         if (mCurrentView != null) {
             mCurrentView.onHidden();
             this.removeView(mCurrentView);
         }
         mCurrentView = aView;
         if (mCurrentView != null) {
+            Point viewDimensions = mCurrentView.getDimensions();
+            mViewMarginH = mWidgetPlacement.width - viewDimensions.x;
+            mViewMarginH = WidgetPlacement.convertDpToPixel(getContext(), mViewMarginH);
+            mViewMarginV = mWidgetPlacement.height - viewDimensions.y;
+            mViewMarginV = WidgetPlacement.convertDpToPixel(getContext(), mViewMarginV);
+
             FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
             params.leftMargin = params.rightMargin = mViewMarginH / 2;
-            params.topMargin = params.bottomMargin = mViewMarginH / 2;
+            params.topMargin = params.bottomMargin = mViewMarginV / 2;
+            mCurrentView.onShown();
             this.addView(mCurrentView, params);
             mCurrentView.setDelegate(this);
-            mCurrentView.onShown();
-            mMainLayout.setVisibility(View.GONE);
+            mBinding.optionsLayout.setVisibility(View.GONE);
+
         } else {
-            mMainLayout.setVisibility(View.VISIBLE);
+            mBinding.optionsLayout.setVisibility(View.VISIBLE);
+            updateCurrentAccountState();
         }
+    }
+
+    private void showPrivacyOptionsDialog() {
+        showView(new PrivacyOptionsView(getContext(), mWidgetManager));
     }
 
     private void showDeveloperOptionsDialog() {
@@ -348,7 +413,9 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
     }
 
     private void showLanguageOptionsDialog() {
-        showView(new VoiceSearchLanguageOptionsView(getContext(), mWidgetManager));
+        LanguageOptionsView view = new LanguageOptionsView(getContext(), mWidgetManager);
+        view.setDelegate(this);
+        showView(view);
     }
 
     private void showDisplayOptionsDialog() {
@@ -357,6 +424,10 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
 
     private void showEnvironmentOptionsDialog() {
         showView(new EnvironmentOptionsView(getContext(), mWidgetManager));
+    }
+
+    private void showFXAOptionsDialog() {
+        showView(new FxAAccountOptionsView(getContext(), mWidgetManager));
     }
 
     // WindowManagerDelegate.FocusChangeListener
@@ -369,11 +440,41 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
         }
     }
 
+    public void show(@ShowFlags int aShowFlags, @NonNull SettingDialog settingDialog) {
+        show(aShowFlags);
+
+        switch (settingDialog) {
+            case LANGUAGE:
+                showLanguageOptionsDialog();
+                break;
+            case DISPLAY:
+                showDisplayOptionsDialog();
+                break;
+            case PRIVACY:
+                showPrivacyOptionsDialog();
+                break;
+            case DEVELOPER:
+                showDeveloperOptionsDialog();
+                break;
+            case FXA:
+                showFXAOptionsDialog();
+                break;
+            case ENVIRONMENT:
+                showEnvironmentOptionsDialog();
+                break;
+            case CONTROLLER:
+                showControllerOptionsDialog();
+                break;
+        }
+    }
+
     @Override
-    public void show() {
-        super.show();
+    public void show(@ShowFlags int aShowFlags) {
+        super.show(aShowFlags);
 
         mWidgetManager.pushWorldBrightness(this, WidgetManagerDelegate.DEFAULT_DIM_BRIGHTNESS);
+
+        updateCurrentAccountState();
     }
 
     @Override
@@ -393,7 +494,17 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
     @Override
     public void onDismiss() {
         if (mCurrentView != null) {
-            showView(null);
+            if (!mCurrentView.isEditing()) {
+                if (isLanguagesSubView(mCurrentView)) {
+                    showLanguageOptionsDialog();
+
+                } else if (isPrivacySubView(mCurrentView)) {
+                    showPrivacyOptionsDialog();
+
+                } else {
+                    showView(null);
+                }
+            }
         } else {
             super.onDismiss();
         }
@@ -413,10 +524,10 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
         if (widget == null) {
             widget = createChild(RestartDialogWidget.class, false);
             mRestartDialogHandle = widget.getHandle();
-            widget.setDelegate(this::show);
+            widget.setDelegate(() -> show(REQUEST_FOCUS));
         }
 
-        widget.show();
+        widget.show(REQUEST_FOCUS);
     }
 
     @Override
@@ -427,13 +538,32 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
         if (widget == null) {
             widget = createChild(AlertPromptWidget.class, false);
             mAlertDialogHandle = widget.getHandle();
-            widget.setDelegate(this::show);
+            widget.setDelegate(() -> show(REQUEST_FOCUS));
         }
         widget.getPlacement().translationZ = 0;
         widget.getPlacement().parentHandle = mHandle;
         widget.setTitle(aTitle);
         widget.setMessage(aMessage);
 
-        widget.show();
+        widget.show(REQUEST_FOCUS);
     }
+
+    private boolean isLanguagesSubView(View view) {
+        if (view instanceof DisplayLanguageOptionsView ||
+                view instanceof ContentLanguageOptionsView ||
+                view instanceof  VoiceSearchLanguageOptionsView) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private boolean isPrivacySubView(View view) {
+        if (view instanceof AllowedPopUpsOptionsView) {
+            return true;
+        }
+
+        return false;
+    }
+
 }

@@ -6,32 +6,24 @@
 package org.mozilla.vrbrowser.ui.widgets.settings;
 
 import android.content.Context;
+import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.ScrollView;
 
+import androidx.databinding.DataBindingUtil;
+
+import org.mozilla.vrbrowser.BuildConfig;
 import org.mozilla.vrbrowser.R;
-import org.mozilla.vrbrowser.audio.AudioEngine;
-import org.mozilla.vrbrowser.browser.SessionStore;
 import org.mozilla.vrbrowser.browser.SettingsStore;
-import org.mozilla.vrbrowser.ui.views.UIButton;
-import org.mozilla.vrbrowser.ui.views.settings.ButtonSetting;
-import org.mozilla.vrbrowser.ui.views.settings.SingleEditSetting;
+import org.mozilla.vrbrowser.browser.engine.SessionStore;
+import org.mozilla.vrbrowser.databinding.OptionsDeveloperBinding;
 import org.mozilla.vrbrowser.ui.views.settings.SwitchSetting;
 import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
 
 import static org.mozilla.vrbrowser.utils.ServoUtils.isServoAvailable;
 
 class DeveloperOptionsView extends SettingsView {
-    private AudioEngine mAudio;
-    private UIButton mBackButton;
-    private SwitchSetting mRemoteDebuggingSwitch;
-    private SwitchSetting mConsoleLogsSwitch;
-    private SwitchSetting mMultiprocessSwitch;
-    private SwitchSetting mServoSwitch;
-    private SingleEditSetting mHomepageEdit;
-    private String mDefaultHomepageUrl;
-    private ButtonSetting mResetButton;
-    private ScrollView mScrollbar;
+
+    private OptionsDeveloperBinding mBinding;
 
     public DeveloperOptionsView(Context aContext, WidgetManagerDelegate aWidgetManager) {
         super(aContext, aWidgetManager);
@@ -39,84 +31,48 @@ class DeveloperOptionsView extends SettingsView {
     }
 
     private void initialize(Context aContext) {
-        inflate(aContext, R.layout.options_developer, this);
+        LayoutInflater inflater = LayoutInflater.from(aContext);
 
-        mAudio = AudioEngine.fromContext(aContext);
+        // Inflate this data binding layout
+        mBinding = DataBindingUtil.inflate(inflater, R.layout.options_developer, this, true);
 
-        mBackButton = findViewById(R.id.backButton);
-        mBackButton.setOnClickListener(view -> {
-            if (mAudio != null) {
-                mAudio.playSound(AudioEngine.Sound.CLICK);
-            }
+        mScrollbar = mBinding.scrollbar;
 
-            onDismiss();
-        });
+        // Header
+        mBinding.headerLayout.setBackClickListener(view -> onDismiss());
 
-        mDefaultHomepageUrl = getContext().getString(R.string.homepage_url);
+        // Footer
+        mBinding.footerLayout.setFooterButtonClickListener(mResetListener);
 
-        mHomepageEdit = findViewById(R.id.homepage_edit);
-        mHomepageEdit.setHint1(getContext().getString(R.string.homepage_hint, getContext().getString(R.string.app_name)));
-        mHomepageEdit.setDefaultFirstValue(mDefaultHomepageUrl);
-        mHomepageEdit.setFirstText(SettingsStore.getInstance(getContext()).getHomepage());
-        mHomepageEdit.setOnClickListener(mHomepageListener);
-        setHomepage(SettingsStore.getInstance(getContext()).getHomepage());
-
-        mRemoteDebuggingSwitch = findViewById(R.id.remote_debugging_switch);
-        mRemoteDebuggingSwitch.setOnCheckedChangeListener(mRemoteDebuggingListener);
+        // Switches
+        mBinding.remoteDebuggingSwitch.setOnCheckedChangeListener(mRemoteDebuggingListener);
         setRemoteDebugging(SettingsStore.getInstance(getContext()).isRemoteDebuggingEnabled(), false);
 
-        mConsoleLogsSwitch = findViewById(R.id.show_console_switch);
-        mConsoleLogsSwitch.setOnCheckedChangeListener(mConsoleLogsListener);
+        mBinding.showConsoleSwitch.setOnCheckedChangeListener(mConsoleLogsListener);
         setConsoleLogs(SettingsStore.getInstance(getContext()).isConsoleLogsEnabled(), false);
 
-        mMultiprocessSwitch = findViewById(R.id.multiprocess_switch);
-        mMultiprocessSwitch.setOnCheckedChangeListener(mMultiprocessListener);
+        mBinding.multiprocessSwitch.setOnCheckedChangeListener(mMultiprocessListener);
         setMultiprocess(SettingsStore.getInstance(getContext()).isMultiprocessEnabled(), false);
 
-        mServoSwitch = findViewById(R.id.servo_switch);
-        if (!isServoAvailable()) {
-            mServoSwitch.setVisibility(View.GONE);
+        mBinding.performanceMonitorSwitch.setOnCheckedChangeListener(mPerformanceListener);
+        setPerformance(SettingsStore.getInstance(getContext()).isPerformanceMonitorEnabled(), false);
+        // Hide Performance Monitor switch until it can handle multiple windows.
+        mBinding.performanceMonitorSwitch.setVisibility(View.GONE);
+
+        if (BuildConfig.DEBUG) {
+            mBinding.debugLoggingSwitch.setVisibility(View.GONE);
         } else {
-            mServoSwitch.setOnCheckedChangeListener(mServoListener);
+            setDebugLogging(SettingsStore.getInstance(getContext()).isDebugLogginEnabled(), false);
+        }
+
+        if (!isServoAvailable()) {
+            mBinding.servoSwitch.setVisibility(View.GONE);
+
+        } else {
+            mBinding.servoSwitch.setOnCheckedChangeListener(mServoListener);
             setServo(SettingsStore.getInstance(getContext()).isServoEnabled(), false);
         }
-
-        mResetButton = findViewById(R.id.resetButton);
-        mResetButton.setOnClickListener(mResetListener);
-
-        mScrollbar = findViewById(R.id.scrollbar);
     }
-
-    @Override
-    public void onShown() {
-        super.onShown();
-        mScrollbar.scrollTo(0, 0);
-    }
-
-    @Override
-    public void onHidden() {
-        super.onHidden();
-        mHomepageEdit.cancel();
-    }
-
-    @Override
-    protected void onDismiss() {
-        if (mHomepageEdit.isEditing()) {
-            mHomepageEdit.cancel();
-
-        } else {
-            super.onDismiss();
-        }
-    }
-
-    private OnClickListener mHomepageListener = (view) -> {
-        if (!mHomepageEdit.getFirstText().isEmpty()) {
-            setHomepage(mHomepageEdit.getFirstText());
-
-        } else {
-            setHomepage(mDefaultHomepageUrl);
-        }
-    };
 
     private SwitchSetting.OnCheckedChangeListener mRemoteDebuggingListener = (compoundButton, value, doApply) -> {
         setRemoteDebugging(value, doApply);
@@ -130,44 +86,52 @@ class DeveloperOptionsView extends SettingsView {
         setMultiprocess(value, doApply);
     };
 
+    private SwitchSetting.OnCheckedChangeListener mPerformanceListener = (compoundButton, value, doApply) -> {
+        setPerformance(value, doApply);
+    };
+
+    private SwitchSetting.OnCheckedChangeListener mDebugLogginListener = (compoundButton, value, doApply) -> {
+        setDebugLogging(value, doApply);
+    };
+
     private SwitchSetting.OnCheckedChangeListener mServoListener = (compoundButton, b, doApply) -> {
         setServo(b, true);
     };
 
     private OnClickListener mResetListener = (view) -> {
         boolean restart = false;
-        if (mRemoteDebuggingSwitch.isChecked() != SettingsStore.REMOTE_DEBUGGING_DEFAULT) {
+        if (mBinding.remoteDebuggingSwitch.isChecked() != SettingsStore.REMOTE_DEBUGGING_DEFAULT) {
             setRemoteDebugging(SettingsStore.REMOTE_DEBUGGING_DEFAULT, true);
+        }
+
+        if (mBinding.showConsoleSwitch.isChecked() != SettingsStore.CONSOLE_LOGS_DEFAULT) {
+            setConsoleLogs(SettingsStore.CONSOLE_LOGS_DEFAULT, true);
+        }
+        if (mBinding.multiprocessSwitch.isChecked() != SettingsStore.MULTIPROCESS_DEFAULT) {
+            setMultiprocess(SettingsStore.MULTIPROCESS_DEFAULT, true);
+        }
+        if (mBinding.servoSwitch.isChecked() != SettingsStore.SERVO_DEFAULT) {
+            setServo(SettingsStore.SERVO_DEFAULT, true);
+        }
+
+        if (mBinding.performanceMonitorSwitch.isChecked() != SettingsStore.PERFORMANCE_MONITOR_DEFAULT) {
+            setPerformance(SettingsStore.PERFORMANCE_MONITOR_DEFAULT, true);
+        }
+
+        if (mBinding.debugLoggingSwitch.isChecked() != SettingsStore.DEBUG_LOGGING_DEFAULT) {
+            setDebugLogging(SettingsStore.DEBUG_LOGGING_DEFAULT, true);
             restart = true;
         }
 
-        if (mConsoleLogsSwitch.isChecked() != SettingsStore.CONSOLE_LOGS_DEFAULT) {
-            setConsoleLogs(SettingsStore.CONSOLE_LOGS_DEFAULT, true);
-        }
-        if (mMultiprocessSwitch.isChecked() != SettingsStore.MULTIPROCESS_DEFAULT) {
-            setMultiprocess(SettingsStore.MULTIPROCESS_DEFAULT, true);
-        }
-        if (mServoSwitch.isChecked() != SettingsStore.SERVO_DEFAULT) {
-            setServo(SettingsStore.SERVO_DEFAULT, true);
-        }
-        setHomepage(mDefaultHomepageUrl);
-
-        if (restart && mDelegate != null) {
+        if (restart) {
             showRestartDialog();
         }
     };
 
-    private void setHomepage(String newHomepage) {
-        mHomepageEdit.setOnClickListener(null);
-        mHomepageEdit.setFirstText(newHomepage);
-        SettingsStore.getInstance(getContext()).setHomepage(newHomepage);
-        mHomepageEdit.setOnClickListener(mHomepageListener);
-    }
-
     private void setRemoteDebugging(boolean value, boolean doApply) {
-        mRemoteDebuggingSwitch.setOnCheckedChangeListener(null);
-        mRemoteDebuggingSwitch.setValue(value, doApply);
-        mRemoteDebuggingSwitch.setOnCheckedChangeListener(mRemoteDebuggingListener);
+        mBinding.remoteDebuggingSwitch.setOnCheckedChangeListener(null);
+        mBinding.remoteDebuggingSwitch.setValue(value, doApply);
+        mBinding.remoteDebuggingSwitch.setOnCheckedChangeListener(mRemoteDebuggingListener);
 
         SettingsStore.getInstance(getContext()).setRemoteDebuggingEnabled(value);
 
@@ -177,9 +141,9 @@ class DeveloperOptionsView extends SettingsView {
     }
 
     private void setConsoleLogs(boolean value, boolean doApply) {
-        mConsoleLogsSwitch.setOnCheckedChangeListener(null);
-        mConsoleLogsSwitch.setValue(value, doApply);
-        mConsoleLogsSwitch.setOnCheckedChangeListener(mConsoleLogsListener);
+        mBinding.showConsoleSwitch.setOnCheckedChangeListener(null);
+        mBinding.showConsoleSwitch.setValue(value, doApply);
+        mBinding.showConsoleSwitch.setOnCheckedChangeListener(mConsoleLogsListener);
 
         SettingsStore.getInstance(getContext()).setConsoleLogsEnabled(value);
 
@@ -189,9 +153,9 @@ class DeveloperOptionsView extends SettingsView {
     }
 
     private void setMultiprocess(boolean value, boolean doApply) {
-        mMultiprocessSwitch.setOnCheckedChangeListener(null);
-        mMultiprocessSwitch.setValue(value, false);
-        mMultiprocessSwitch.setOnCheckedChangeListener(mMultiprocessListener);
+        mBinding.multiprocessSwitch.setOnCheckedChangeListener(null);
+        mBinding.multiprocessSwitch.setValue(value, false);
+        mBinding.multiprocessSwitch.setOnCheckedChangeListener(mMultiprocessListener);
 
         SettingsStore.getInstance(getContext()).setMultiprocessEnabled(value);
 
@@ -200,24 +164,36 @@ class DeveloperOptionsView extends SettingsView {
         }
     }
 
+    private void setPerformance(boolean value, boolean doApply) {
+        mBinding.performanceMonitorSwitch.setOnCheckedChangeListener(null);
+        mBinding.performanceMonitorSwitch.setValue(value, false);
+        mBinding.performanceMonitorSwitch.setOnCheckedChangeListener(mPerformanceListener);
+
+        if (doApply) {
+            SettingsStore.getInstance(getContext()).setPerformanceMonitorEnabled(value);
+        }
+    }
+
+    private void setDebugLogging(boolean value, boolean doApply) {
+        mBinding.debugLoggingSwitch.setOnCheckedChangeListener(null);
+        mBinding.debugLoggingSwitch.setValue(value, false);
+        mBinding.debugLoggingSwitch.setOnCheckedChangeListener(mDebugLogginListener);
+
+        if (doApply) {
+            SettingsStore.getInstance(getContext()).setDebugLoggingEnabled(value);
+            showRestartDialog();
+        }
+    }
+
     private void setServo(boolean value, boolean doApply) {
-        mServoSwitch.setOnCheckedChangeListener(null);
-        mServoSwitch.setValue(value, false);
-        mServoSwitch.setOnCheckedChangeListener(mServoListener);
+        mBinding.servoSwitch.setOnCheckedChangeListener(null);
+        mBinding.servoSwitch.setValue(value, false);
+        mBinding.servoSwitch.setOnCheckedChangeListener(mServoListener);
 
         SettingsStore.getInstance(getContext()).setServoEnabled(value);
 
         if (doApply) {
             SessionStore.get().setServo(value);
-        }
-    }
-
-    @Override
-    public void onGlobalFocusChanged(View oldFocus, View newFocus) {
-        if (oldFocus != null) {
-            if (mHomepageEdit.contains(oldFocus) && mHomepageEdit.isEditing()) {
-                mHomepageEdit.cancel();
-            }
         }
     }
 

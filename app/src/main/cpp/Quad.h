@@ -33,6 +33,7 @@ public:
   };
   static QuadPtr Create(vrb::CreationContextPtr aContext, const vrb::Vector& aMin, const vrb::Vector& aMax, const VRLayerQuadPtr& aLayer = nullptr);
   static QuadPtr Create(vrb::CreationContextPtr aContext, const float aWorldWidth, const float aWorldHeight, const VRLayerQuadPtr& aLayer = nullptr);
+  static QuadPtr Create(vrb::CreationContextPtr aContext, const Quad& aQuad);
   static vrb::GeometryPtr CreateGeometry(vrb::CreationContextPtr aContext, const vrb::Vector& aMin, const vrb::Vector& aMax);
   static vrb::GeometryPtr CreateGeometry(vrb::CreationContextPtr aContext, const float aWorldWidth, const float aWorldHeight);
   static vrb::GeometryPtr CreateGeometry(vrb::CreationContextPtr aContext, const vrb::Vector& aMin, const vrb::Vector& aMax, const device::EyeRect& aRect);
@@ -47,6 +48,7 @@ public:
   const vrb::Vector& GetWorldMax() const;
   float GetWorldWidth() const;
   float GetWorldHeight() const;
+  vrb::RenderStatePtr GetRenderState() const;
   void GetWorldSize(float& aWidth, float& aHeight) const;
   void SetWorldSize(const float aWidth, const float aHeight) const;
   void SetWorldSize(const vrb::Vector& aMin, const vrb::Vector& aMax) const;

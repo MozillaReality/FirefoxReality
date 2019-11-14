@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<selector xmlns:android="http://schemas.android.com/apk/res/android">
+<selector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:enterFadeDuration="@integer/ui_fadeAnimTime"
+    android:exitFadeDuration="@integer/ui_fadeAnimTime">
     <item android:state_enabled="false">
         <layer-list>
             <item>
@@ -22,7 +24,7 @@
 
         </layer-list>
     </item>
-    <item android:state_checked="true">
+    <item android:state_checked="true" android:state_hovered="false">
         <layer-list>
             <item>
                 <shape
@@ -44,7 +46,29 @@
 
         </layer-list>
     </item>
-    <item android:state_checked="false">
+    <item android:state_checked="true" android:state_hovered="true">
+        <layer-list>
+            <item>
+                <shape
+                    android:dither="true"
+                    android:shape="rectangle"
+                    android:useLevel="false"
+                    android:visible="true">
+                    <gradient
+                        android:angle="270"
+                        android:endColor="@color/jade"
+                        android:startColor="@color/jade"/>
+                    <corners
+                        android:radius="16dp"/>
+                    <size
+                        android:width="20dp"
+                        android:height="20dp" />
+                </shape>
+            </item>
+
+        </layer-list>
+    </item>
+    <item android:state_checked="false" android:state_hovered="false">
         <layer-list>
             <item>
                 <shape
@@ -56,6 +80,28 @@
                         android:angle="270"
                         android:endColor="@color/dessert"
                         android:startColor="@color/dessert"/>
+                    <corners
+                        android:radius="16dp"/>
+                    <size
+                        android:width="20dp"
+                        android:height="20dp" />
+                </shape>
+            </item>
+
+        </layer-list>
+    </item>
+    <item android:state_checked="false" android:state_hovered="true">
+        <layer-list>
+            <item>
+                <shape
+                    android:dither="true"
+                    android:shape="rectangle"
+                    android:useLevel="false"
+                    android:visible="true">
+                    <gradient
+                        android:angle="270"
+                        android:endColor="@color/garnet"
+                        android:startColor="@color/garnet"/>
                     <corners
                         android:radius="16dp"/>
                     <size

@@ -4,32 +4,25 @@ The goal of the Firefox Reality project is to create a full-featured browser exc
 
 You can find us on Twitter [@MozillaReality](https://twitter.com/mozillareality) and at [mixedreality@mozilla.com](mailto:mixedreality@mozilla.com).
 
-[![Task Status](https://github.taskcluster.net/v1/repository/MozillaReality/FirefoxReality/master/badge.svg)](https://github.taskcluster.net/v1/repository/MozillaReality/FirefoxReality/master/latest) [Build results](https://github.taskcluster.net/v1/repository/MozillaReality/FirefoxReality/master/latest)
+[![Task Status](https://community-tc.services.mozilla.com/api/github/v1/repository/MozillaReality/FirefoxReality/master/badge.svg)](https://community-tc.services.mozilla.com/api/github/v1/repository/MozillaReality/FirefoxReality/master/latest) [Build results](https://community-tc.services.mozilla.com/api/github/v1/repository/MozillaReality/FirefoxReality/master/latest)
 
-## Download developer APKs (debug builds)
+## Download developer APKs
 
-**[Download](https://fxr.glitch.me/)** [bleeding-edge](https://github.com/MozillaReality/FirefoxReality/commits/master) developer (_debug_) APKs for Firefox Reality:
-
-- [Oculus Go (`oculusvr`)](https://fxr.glitch.me/oculusvr)
-- [HTC VIVE Focus & Pico G2 (`wavevr`)](https://fxr.glitch.me/wavevr)
-- [Lenovo Mirage with Google Daydream (`googlevr`)](https://fxr.glitch.me/googlevr)
-- [Snapdragon VR (`svr`)](https://fxr.glitch.me/svr)
-- [No API / Android Emulator for PC (`noapi`)](https://fxr.glitch.me/noapi)
+**[Download](https://community-tc.services.mozilla.com/api/github/v1/repository/MozillaReality/FirefoxReality/master/latest)** [bleeding-edge](https://github.com/MozillaReality/FirefoxReality/commits/master) developer APKs for Firefox Reality.
 
 ### Advanced
 
-1. Load [this TaskCluster URL](https://github.taskcluster.net/v1/repository/MozillaReality/FirefoxReality/master/latest).
+1. Load [this TaskCluster URL](https://community-tc.services.mozilla.com/api/github/v1/repository/MozillaReality/FirefoxReality/master/latest).
 2. Click the `Firefox Reality for Android - Build - Master update →` link.
 3. Click the `Run Artifacts` tab, and click to download the APK for your platform of choice.
 
-## L10n
+## Locale support
 
-Whenever a new string is added to a localizable strings file (strings.xml, localpages.xml, …) a string description must be provided as a comment above the new string. Also the project STRs wiki page must be updated with a key description, steps to reproduce and the expected results.
-The L10n wiki page can be found [here](https://github.com/MozillaReality/FirefoxReality/wiki/L10n).
+Firefox Reality supports Chinese (China), Chinese (Taiwan), English, French, German, Italian, Japanese, Russian, and Spanish for user interface, voice search, and text entry. Localization is provided by Mozilla's amazing community of volunteer localizers.
+
+For more info on localization, how it works in the Firefox Reality project, and how to correctly edit localizable text in the application, please see the [localization wiki page](https://github.com/MozillaReality/FirefoxReality/wiki/Localization).
 
 ## Setup instructions
-
-*Make sure you are using Android NDK r17b.*
 
 *Clone FirefoxReality.*
 
@@ -71,10 +64,10 @@ You can build for different devices:
 - **`oculusvr`**: Samsung Gear VR & Oculus Go
 - **`svr`**: Qualcomm & ODG glasses
 - **`wavevr`**: VIVE Focus
-
-These devices are for only testing:
-
 - **`googlevr`**: Google Daydream
+
+For testing on a non-VR device:
+
 - **`noapi`**: Runs on standard Android phones without a headset
 
 Building for Oculus Mobile, SVR, and WaveVR requires access to their respective SDKs which are not included in this repo.
@@ -107,14 +100,19 @@ cp ./extra/wavesdk/build.gradle ./third_party/wavesdk
 
 Make certain to set the build flavor to `wavevrDebug` in Android Studio before building the project.
 
-## Using a custom GeckoView
+## Local Development
 
-Create a file called `user.properties` in the top-level project directory. Add a variable called `geckoViewLocalArm` and `geckoViewLocalX86` and set it to the location of your locally built AAR:
+### Dependency substitutions
 
-```ini
-geckoViewLocalArm=/path/to/your/build/geckoview-nightly-armeabi-v7a-64.0.20180924100359.aar
-geckoViewLocalX86=/path/to/your/build/geckoview-nightly-x86-64.0.20180924100359.aar
-```
+You might be interested in building this project against local versions of some of the dependencies.
+This could be done either by using a [local maven repository](https://mozilla-mobile.github.io/android-components/contributing/testing-components-inside-app) (quite cumbersome), or via Gradle's [dependency substitutions](https://docs.gradle.org/current/userguide/customizing_dependency_resolution_behavior.html) (not at all cumbersome!).
+
+Currently, the substitution flow is streamlined for some of the core dependencies via configuration flags in `local.properties`. You can build against a local checkout of the following dependencies by specifying their local paths:
+- [GeckoView](https://hg.mozilla.org/mozilla-central), specifying its path via `dependencySubstitutions.geckoviewTopsrcdir=/path/to/mozilla-central` (and, optionally, `dependencySubstitutions.geckoviewTopobjdir=/path/to/topobjdir`). See [Bug 1533465](https://bugzilla.mozilla.org/show_bug.cgi?id=1533465).
+  - This assumes that you have built, packaged, and published your local GeckoView -- but don't worry, the dependency substitution script has the latest instructions for doing that.
+
+Do not forget to run a Gradle sync in Android Studio after changing `local.properties`. If you specified any substitutions, they will be reflected in the modules list, and you'll be able to modify them from a single Android Studio window.
+
 
 ## Install dev and production builds on device simultaneously
 
@@ -148,16 +146,6 @@ npm run compress
 ### `Device supports , but APK only supports armeabi-v7a[...]`
 
 Enable [USB Remote Debugging](https://github.com/MozillaReality/FirefoxReality/wiki/Developer-Info#remote-debugging) on the device.
-
-### `Could not get unknown property 'geckoViewLocal' for build 'FirefoxReality'[...]`
-
-```bash
-./mach build
-./mach package
-./mach android archive-geckoview
-find $objdir -name *.aar
-echo "geckoViewLocalArm=$objdir/gradle/build/mobile/android/geckoview/outputs/aar/geckoview-official-withGeckoBinaries-noMinApi-release.aar" > $FirefoxReality/user.properties
-```
 
 ### **`Firefox > Web Developer > WebIDE > Performance`** gets stuck with greyed out "stop and show profile"
 

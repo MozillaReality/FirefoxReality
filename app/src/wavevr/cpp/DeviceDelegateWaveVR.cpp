@@ -135,7 +135,8 @@ struct DeviceDelegateWaveVR::State {
     vrb::RenderContextPtr render = context.lock();
     for (int ix = 0; ix < WVR_GetTextureQueueLength(aTextureQueue); ix++) {
       vrb::FBOPtr fbo = vrb::FBO::Create(render);
-      fbo->SetTextureHandle((GLuint)WVR_GetTexture(aTextureQueue, ix).id, renderWidth, renderHeight, attributes);
+      uintptr_t handle = (uintptr_t)WVR_GetTexture(aTextureQueue, ix).id;
+      fbo->SetTextureHandle((GLuint)handle, renderWidth, renderHeight, attributes);
       if (fbo->IsValid()) {
         aFBOQueue.push_back(fbo);
       } else {
@@ -254,8 +255,7 @@ struct DeviceDelegateWaveVR::State {
     }
     vrb::Matrix transform(vrb::Matrix::Identity());
     if (aController.is6DoF) {
-      transform = vrb::Matrix::Rotation(vrb::Vector(1.0f, 0.0f, 0.0f), -vrb::PI_FLOAT / 5.0f);
-      transform.TranslateInPlace(vrb::Vector(0.0f, -0.03f, -0.05f));
+      transform.TranslateInPlace(vrb::Vector(0.0f, 0.01f, -0.05f));
     }
     delegate->CreateController(aController.index, aController.is6DoF ? 1 : 0, aController.is6DoF ? "HTC Vive Focus Plus Controller" : "HTC Vive Focus Controller", transform);
     delegate->SetLeftHanded(aController.index, aController.hand == ElbowModel::HandEnum::Left);
@@ -303,8 +303,8 @@ struct DeviceDelegateWaveVR::State {
 
       delegate->SetVisible(controller.index, !WVR_IsInputFocusCapturedBySystem());
 
-      const bool bumperPressed = WVR_GetInputButtonState(controller.type, WVR_InputId_Alias1_Digital_Trigger)
-                                || WVR_GetInputButtonState(controller.type, WVR_InputId_Alias1_Trigger);
+      const bool bumperPressed =  (controller.is6DoF) ? WVR_GetInputButtonState(controller.type, WVR_InputId_Alias1_Trigger)
+                                  : WVR_GetInputButtonState(controller.type, WVR_InputId_Alias1_Digital_Trigger);
       const bool touchpadPressed = WVR_GetInputButtonState(controller.type, WVR_InputId_Alias1_Touchpad);
       const bool touchpadTouched = WVR_GetInputTouchState(controller.type, WVR_InputId_Alias1_Touchpad);
       const bool menuPressed = WVR_GetInputButtonState(controller.type, WVR_InputId_Alias1_Menu);

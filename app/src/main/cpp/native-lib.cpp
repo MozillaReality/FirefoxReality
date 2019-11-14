@@ -198,11 +198,10 @@ android_main(android_app *aAppState) {
 
   // Attach JNI thread
   JNIEnv *jniEnv;
-  (*aAppState->activity->vm).AttachCurrentThread(&jniEnv, NULL);
+  (*aAppState->activity->vm).AttachCurrentThread(&jniEnv, nullptr);
+  sAppContext->mQueue->InitializeJava(jniEnv);
 
   // Create Browser context
-  sAppContext = std::make_shared<AppContext>();
-  sAppContext->mQueue = vrb::RunnableQueue::Create(aAppState->activity->vm);
   crow::VRBrowser::InitializeJava(jniEnv, aAppState->activity->clazz);
 
   // Create device delegate
@@ -230,7 +229,7 @@ android_main(android_app *aAppState) {
     // Loop until all events are read
     // If the activity is paused use a blocking call to read events.
     while (ALooper_pollAll(BrowserWorld::Instance().IsPaused() ? -1 : 0,
-                           NULL,
+                           nullptr,
                            &events,
                            (void **) &pSource) >= 0) {
       // Process event.
@@ -238,14 +237,18 @@ android_main(android_app *aAppState) {
         pSource->process(aAppState, pSource);
       }
 
+
+
       // Check if we are exiting.
       if (aAppState->destroyRequested != 0) {
         sAppContext->mEgl->MakeCurrent();
+        sAppContext->mQueue->ProcessRunnables();
         BrowserWorld::Instance().ShutdownGL();
         BrowserWorld::Instance().ShutdownJava();
         BrowserWorld::Destroy();
         sAppContext->mEgl->Destroy();
-        sAppContext.reset();
+        sAppContext->mEgl.reset();
+        sAppContext->mDevice.reset();
         aAppState->activity->vm->DetachCurrentThread();
         return;
       }
@@ -265,6 +268,8 @@ JNI_METHOD(void, queueRunnable)
 (JNIEnv *aEnv, jobject, jobject aRunnable) {
   if (sAppContext) {
     sAppContext->mQueue->AddRunnable(aEnv, aRunnable);
+  } else {
+    VRB_ERROR("Failed to queue Runnable from UI thread. Render thread AppContext has not been initialized.")
   }
 }
 
@@ -275,5 +280,16 @@ JNI_METHOD(jboolean, platformExit)
   }
   return (jboolean) false;
 }
+
+jint JNI_OnLoad(JavaVM* aVm, void*) {
+  sAppContext = std::make_shared<AppContext>();
+  sAppContext->mQueue = vrb::RunnableQueue::Create(aVm);
+  return JNI_VERSION_1_6;
+}
+
+void JNI_OnUnload(JavaVM* vm, void* reserved) {
+  sAppContext = nullptr;
+}
+
 
 } // extern "C"

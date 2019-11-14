@@ -6,6 +6,7 @@
 #ifndef VRBROWSER_WIDGET_PLACEMENT_DOT_H
 #define VRBROWSER_WIDGET_PLACEMENT_DOT_H
 
+#include "vrb/Color.h"
 #include "vrb/Vector.h"
 #include "vrb/MacroUtils.h"
 #include <jni.h>
@@ -29,18 +30,29 @@ struct WidgetPlacement {
   bool visible;
   bool opaque;
   bool showPointer;
-  bool firstDraw;
+  bool composited;
   bool layer;
-  bool cylinder;
+  bool proxifyLayer;
   float textureScale;
+  bool cylinder;
+  float cylinderMapRadius;
+  int tintColor;
+  int borderColor;
+  std::string name;
+  int clearColor;
 
   int32_t GetTextureWidth() const;
   int32_t GetTextureHeight() const;
+  vrb::Color GetTintColor() const;
+  vrb::Color GetClearColor() const;
 
+  static const float kWorldDPIRatio;
   static WidgetPlacementPtr FromJava(JNIEnv* aEnv, jobject& aObject);
+  static WidgetPlacementPtr Create(const WidgetPlacement& aPlacement);
 private:
   WidgetPlacement() = default;
-  VRB_NO_DEFAULTS(WidgetPlacement)
+  WidgetPlacement(const WidgetPlacement&) = default;
+  WidgetPlacement& operator=(const WidgetPlacement&) = default;
 };
 
 }

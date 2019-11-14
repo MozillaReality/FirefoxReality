@@ -4,7 +4,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "WidgetResizer.h"
+#include "WidgetPlacement.h"
 #include "Widget.h"
+#include "WidgetBorder.h"
 #include "Cylinder.h"
 #include "Quad.h"
 #include "vrb/ConcreteClass.h"
@@ -12,6 +14,7 @@
 #include "vrb/Color.h"
 #include "vrb/CreationContext.h"
 #include "vrb/Matrix.h"
+#include "vrb/GLError.h"
 #include "vrb/Geometry.h"
 #include "vrb/RenderState.h"
 #include "vrb/SurfaceTextureFactory.h"
@@ -24,23 +27,6 @@
 
 namespace crow {
 
-static const char* sCylinderFragmentShader = R"SHADER(
-precision highp float;
-
-uniform sampler2D u_texture0;
-varying vec4 v_color;
-varying vec2 v_uv;
-
-void main() {
-  vec4 color = vec4(1.0f, 1.0f, 1.0f, 1.0f);
-  if ((v_uv.x < 0.0f) || (v_uv.x > 1.0f)) {
-    color.a = 0.0f;
-  }
-  gl_FragColor = color * v_color;
-}
-
-)SHADER";
-
 struct ResizeBar;
 
 typedef std::shared_ptr<ResizeBar> ResizeBarPtr;
@@ -52,8 +38,8 @@ static const float kBarSize = 0.04f;
   static const float kBorder = kBarSize * 0.15f;
 #endif
 static const float kHandleRadius = 0.08f;
-static const vrb::Vector kMinResize(1.5f, 1.5f, 0.0f);
-static const vrb::Vector kMaxResize(8.0f, 4.5f, 0.0f);
+static const vrb::Vector kDefaultMinResize(1.5f, 1.5f, 0.0f);
+static const vrb::Vector kDefaultMaxResize(8.0f, 4.5f, 0.0f);
 static vrb::Color kDefaultColor(0x2BD5D5FF);
 static vrb::Color kHoverColor(0xf7ce4dff);
 static vrb::Color kActiveColor(0xf7ce4dff);
@@ -79,119 +65,15 @@ static void UpdateResizeMaterial(const T& aTarget, ResizeState aState) {
 }
 
 struct ResizeBar {
-  enum class Mode {
-    Quad,
-    Cylinder
-  };
-  static ResizeBarPtr Create(vrb::CreationContextPtr& aContext, const vrb::Vector& aCenter, const vrb::Vector& aScale, const device::EyeRect& aBorder, const ResizeBar::Mode aMode) {
+  static ResizeBarPtr Create(vrb::CreationContextPtr& aContext, const vrb::Vector& aCenter, const vrb::Vector& aScale, const device::EyeRect& aBorderRect, const WidgetBorder::Mode aMode) {
     auto result = std::make_shared<ResizeBar>();
     result->center = aCenter;
     result->scale = aScale;
-    vrb::Vector max(kBarSize * 0.5f, kBarSize * 0.5f, 0.0f);
-    result->transform = vrb::Transform::Create(aContext);
-    if (aMode == ResizeBar::Mode::Cylinder) {
-      result->cylinder = Cylinder::Create(aContext, 1.0f, kBarSize, vrb::Color(1.0f, 1.0f, 1.0f, 1.0f), kBorder, vrb::Color(1.0f, 1.0f, 1.0f, 0.0f));
-      result->cylinder->SetLightsEnabled(false);
-      if (aScale.x() == 1.0f) {
-        // Fix sticking out border at the bottom of the resize bar (No handles to hide it...)
-        vrb::TextureGLPtr defaultTexture = aContext->GetDefaultTexture();
-        result->cylinder->SetTexture(defaultTexture, defaultTexture->GetWidth(), defaultTexture->GetHeight());
-        result->cylinder->GetRenderState()->SetCustomFragmentShader(sCylinderFragmentShader);
-      }
-      result->transform->AddNode(result->cylinder->GetRoot());
-    } else {
-      result->geometry = CreateGeometry(aContext, -max, max, aBorder);
-      result->geometry->GetRenderState()->SetLightsEnabled(false);
-      result->transform->AddNode(result->geometry);
-    }
-
+    vrb::Vector size(kBarSize, kBarSize, 0.0f);
+    result->border = WidgetBorder::Create(aContext, size, kBorder, aBorderRect, aMode);
     result->resizeState = ResizeState::Default;
     result->UpdateMaterial();
     return result;
-  }
-
-  static void AppendBorder(const vrb::GeometryPtr& geometry, GLint index1, GLint index2, const vrb::Vector& offset, const vrb::Color& aColor, GLint& currentIndex) {
-    vrb::VertexArrayPtr array = geometry->GetVertexArray();
-    vrb::Vector offset1 = array->GetVertex(index1 - 1) + offset;
-    vrb::Vector offset2 = array->GetVertex(index2 - 1) + offset;
-    array->AppendVertex(offset1);
-    array->AppendVertex(offset2);
-    array->AppendColor(aColor);
-    array->AppendColor(aColor);
-
-    GLint index3 = currentIndex++;
-    GLint index4 = currentIndex++;
-    std::vector<int> index;
-    if (offset.y() > 0.0f) {
-      index = { index1, index2, index4, index3};
-    } else if (offset.y() < 0.0f) {
-      index = { index3, index4, index2, index1};
-    } else if (offset.x() > 0.0f) {
-      index = { index1, index3, index4, index2};
-    } else {
-      index = { index3, index1, index2, index4};
-    }
-
-    std::vector<int> normalIndex;
-    normalIndex.push_back(1);
-    normalIndex.push_back(1);
-    normalIndex.push_back(1);
-    normalIndex.push_back(1);
-    geometry->AddFace(index, index, normalIndex);
-  }
-
-  static vrb::GeometryPtr CreateGeometry(vrb::CreationContextPtr aContext, const vrb::Vector &aMin, const vrb::Vector &aMax, const device::EyeRect& aBorder) {
-    vrb::VertexArrayPtr array = vrb::VertexArray::Create(aContext);
-    vrb::Color solid(1.0f, 1.0f, 1.0f, 1.0f);
-    vrb::Color border(1.0f, 1.0f, 1.0f, 0.0f);
-
-    const vrb::Vector bottomRight(aMax.x(), aMin.y(), aMin.z());
-    array->AppendVertex(aMin); // Bottom left
-    array->AppendVertex(bottomRight); // Bottom right
-    array->AppendVertex(aMax); // Top right
-    array->AppendVertex(vrb::Vector(aMin.x(), aMax.y(), aMax.z())); // Top left
-    for (int i = 0; i < 4; ++i) {
-      array->AppendColor(solid);
-    }
-
-    vrb::Vector normal = (bottomRight - aMin).Cross(aMax - aMin).Normalize();
-    array->AppendNormal(normal);
-
-    vrb::RenderStatePtr state = vrb::RenderState::Create(aContext);
-    state->SetVertexColorEnabled(true);
-    vrb::GeometryPtr geometry = vrb::Geometry::Create(aContext);
-    geometry->SetVertexArray(array);
-    geometry->SetRenderState(state);
-
-    std::vector<int> index;
-    index.push_back(1);
-    index.push_back(2);
-    index.push_back(3);
-    index.push_back(4);
-    std::vector<int> normalIndex;
-    normalIndex.push_back(1);
-    normalIndex.push_back(1);
-    normalIndex.push_back(1);
-    normalIndex.push_back(1);
-
-    geometry->AddFace(index, index, normalIndex);
-
-    GLint currentIndex = 5;
-
-    if (aBorder.mX > 0.0f) {
-      AppendBorder(geometry, 1, 4, vrb::Vector(-aBorder.mX, 0.0f, 0.0f), border, currentIndex);
-    }
-    if (aBorder.mWidth > 0.0f) {
-      AppendBorder(geometry, 2, 3, vrb::Vector(aBorder.mWidth, 0.0f, 0.0f), border, currentIndex);
-    }
-    if (aBorder.mY > 0.0f) {
-      AppendBorder(geometry, 1, 2, vrb::Vector(0.0f, -aBorder.mY, 0.0f), border, currentIndex);
-    }
-    if (aBorder.mHeight > 0.0f) {
-      AppendBorder(geometry, 4, 3, vrb::Vector(0.0f, aBorder.mHeight, 0.0f), border, currentIndex);
-    }
-
-    return geometry;
   }
 
   void SetResizeState(ResizeState aState) {
@@ -202,18 +84,22 @@ struct ResizeBar {
   }
 
   void UpdateMaterial() {
-    if (cylinder) {
-      UpdateResizeMaterial(cylinder, resizeState);
-    } else {
-      UpdateResizeMaterial(geometry->GetRenderState(), resizeState);
+    vrb::Color color = kDefaultColor;
+    if (resizeState == ResizeState::Hovered) {
+      color = kHoverColor;
+    } else if (resizeState == ResizeState::Active) {
+      color = kActiveColor;
     }
+    border->SetColor(color);
+  }
+
+  void SetTransform(const vrb::Matrix& aTransform) {
+    border->GetTransformNode()->SetTransform(aTransform);
   }
 
   vrb::Vector center;
   vrb::Vector scale;
-  CylinderPtr cylinder;
-  vrb::GeometryPtr geometry;
-  vrb::TransformPtr transform;
+  WidgetBorderPtr border;
   ResizeState resizeState;
 };
 
@@ -237,6 +123,8 @@ struct ResizeHandle {
     result->geometry = ResizeHandle::CreateGeometry(aContext);
     result->transform = vrb::Transform::Create(aContext);
     result->transform->AddNode(result->geometry);
+    result->root = vrb::Toggle::Create(aContext);
+    result->root->AddNode(result->transform);
     result->resizeState = ResizeState ::Default;
     UpdateResizeMaterial(result->geometry->GetRenderState(), result->resizeState);
     return result;
@@ -336,13 +224,22 @@ struct ResizeHandle {
     return geometry;
   }
 
+  void SetVisible(const bool aVisible) {
+    if (visible != aVisible) {
+      root->ToggleAll(aVisible);
+      visible = aVisible;
+    }
+  }
+
   vrb::Vector center;
   ResizeMode resizeMode;
   std::vector<ResizeBarPtr> attachedBars;
   vrb::GeometryPtr geometry;
+  vrb::TogglePtr root;
   vrb::TransformPtr transform;
   ResizeState resizeState;
   float touchRatio;
+  bool visible = true;
 };
 
 struct WidgetResizer::State {
@@ -355,8 +252,11 @@ struct WidgetResizer::State {
   vrb::Vector currentMin;
   vrb::Vector currentMax;
   vrb::Vector pointerOffset;
+  vrb::Vector maxSize;
+  vrb::Vector minSize;
   bool resizing;
   vrb::TogglePtr root;
+  vrb::TransformPtr transform;
   std::vector<ResizeHandlePtr> resizeHandles;
   std::vector<ResizeBarPtr> resizeBars;
   ResizeHandlePtr activeHandle;
@@ -374,18 +274,22 @@ struct WidgetResizer::State {
       return;
     }
     root = vrb::Toggle::Create(create);
+    transform = vrb::Transform::Create(create);
+    root->AddNode(transform);
     currentMin = min;
     currentMax = max;
+    maxSize = kDefaultMaxResize;
+    minSize = kDefaultMinResize;
 
     vrb::Vector horizontalSize(0.0f, 0.5f, 0.0f);
     vrb::Vector verticalSize(0.5f, 0.0f, 0.0f);
     device::EyeRect horizontalBorder(0.0f, kBorder, 0.0f, kBorder);
     device::EyeRect verticalBorder(kBorder, 0.0f, kBorder, 0.0f);
-    ResizeBar::Mode mode = widget->GetCylinder() ? ResizeBar::Mode::Cylinder : ResizeBar::Mode::Quad;
-    ResizeBarPtr leftTop = CreateResizeBar(vrb::Vector(0.0f, 0.75f, 0.0f), horizontalSize, verticalBorder, ResizeBar::Mode::Quad);
-    ResizeBarPtr leftBottom = CreateResizeBar(vrb::Vector(0.0f, 0.25f, 0.0f), horizontalSize, verticalBorder, ResizeBar::Mode::Quad);
-    ResizeBarPtr rightTop = CreateResizeBar(vrb::Vector(1.0f, 0.75f, 0.0f), horizontalSize, verticalBorder, ResizeBar::Mode::Quad);
-    ResizeBarPtr rightBottom = CreateResizeBar(vrb::Vector(1.0f, 0.25f, 0.0f), horizontalSize, verticalBorder, ResizeBar::Mode::Quad);
+    WidgetBorder::Mode mode = widget->GetCylinder() ? WidgetBorder::Mode::Cylinder : WidgetBorder::Mode::Quad;
+    ResizeBarPtr leftTop = CreateResizeBar(vrb::Vector(0.0f, 0.75f, 0.0f), horizontalSize, verticalBorder, WidgetBorder::Mode::Quad);
+    ResizeBarPtr leftBottom = CreateResizeBar(vrb::Vector(0.0f, 0.25f, 0.0f), horizontalSize, verticalBorder, WidgetBorder::Mode::Quad);
+    ResizeBarPtr rightTop = CreateResizeBar(vrb::Vector(1.0f, 0.75f, 0.0f), horizontalSize, verticalBorder, WidgetBorder::Mode::Quad);
+    ResizeBarPtr rightBottom = CreateResizeBar(vrb::Vector(1.0f, 0.25f, 0.0f), horizontalSize, verticalBorder, WidgetBorder::Mode::Quad);
     ResizeBarPtr topLeft = CreateResizeBar(vrb::Vector(0.25f, 1.0f, 0.0f), verticalSize, horizontalBorder, mode);
     ResizeBarPtr topRight = CreateResizeBar(vrb::Vector(0.75f, 1.0f, 0.0f), verticalSize, horizontalBorder, mode);
     //ResizeBarPtr bottomLeft = CreateResizeBar(vrb::Vector(0.25f, 0.0f, 0.0f), verticalSize, mode);
@@ -406,14 +310,14 @@ struct WidgetResizer::State {
     Layout();
   }
 
-  ResizeBarPtr CreateResizeBar(const vrb::Vector& aCenter, vrb::Vector aScale, const device::EyeRect& aBorder, const ResizeBar::Mode aMode) {
+  ResizeBarPtr CreateResizeBar(const vrb::Vector& aCenter, vrb::Vector aScale, const device::EyeRect& aBorder, const WidgetBorder::Mode aMode) {
     vrb::CreationContextPtr create = context.lock();
     if (!create) {
       return nullptr;
     }
     ResizeBarPtr result = ResizeBar::Create(create, aCenter, aScale, aBorder, aMode);
     resizeBars.push_back(result);
-    root->AddNode(result->transform);
+    transform->AddNode(result->border->GetTransformNode());
     return result;
   }
 
@@ -425,7 +329,7 @@ struct WidgetResizer::State {
     ResizeHandlePtr result = ResizeHandle::Create(create, aCenter, aResizeMode, aBars);
     result->touchRatio = aTouchRatio;
     resizeHandles.push_back(result);
-    root->InsertNode(result->transform, 0);
+    transform->InsertNode(result->root, 0);
     return result;
   }
 
@@ -438,20 +342,11 @@ struct WidgetResizer::State {
   }
 
   vrb::Vector ProjectPoint(const vrb::Vector& aWorldPoint) const {
-    vrb::Matrix modelView = widget->GetTransformNode()->GetWorldTransform().AfineInverse();
     if (widget->GetCylinder()) {
-      // Map the position in the cylinder to the position it would have on a quad
-      const float radius = widget->GetCylinder()->GetTransformNode()->GetTransform().GetScale().x();
-      float cosAngle = fminf(1.0f, fabsf(aWorldPoint.x()) / radius);
-      const float sign = aWorldPoint.x() > 0 ? 1.0f : -1.0f;
-      const float angle = acosf(cosAngle);
-      const float surfaceArc = (float)M_PI - angle * 2.0f;
-      const float projectedWidth = WorldWidth() * surfaceArc / widget->GetCylinder()->GetCylinderTheta();
-      vrb::Vector point(projectedWidth * 0.5f * sign, aWorldPoint.y(), aWorldPoint.z());
-      vrb::Vector result = modelView.MultiplyPosition(point);
-      result.z() = 0.0f;
-      return result;
+      return widget->GetCylinder()->ProjectPointToQuad(aWorldPoint, GetAnchorX(), widget->GetCylinderDensity(), min, max);
     } else {
+      // For quads just convert to world point to local point.
+      vrb::Matrix modelView = widget->GetTransformNode()->GetWorldTransform().AfineInverse();
       return modelView.MultiplyPosition(aWorldPoint);
     }
   }
@@ -465,7 +360,7 @@ struct WidgetResizer::State {
       float targetHeight = bar->scale.y() > 0.0f ? (bar->scale.y() * fabs(height)) + kBarSize : kBarSize;
       vrb::Matrix matrix = vrb::Matrix::Position(vrb::Vector(min.x() + width * bar->center.x(), min.y() + height * bar->center.y(), 0.005f));
       matrix.ScaleInPlace(vrb::Vector(targetWidth / kBarSize, targetHeight / kBarSize, 1.0f));
-      bar->transform->SetTransform(matrix);
+      bar->SetTransform(matrix);
     }
 
     for (ResizeHandlePtr& handle: resizeHandles) {
@@ -484,29 +379,40 @@ struct WidgetResizer::State {
     widget->GetCylinder()->GetTextureSize(textureWidth, textureHeight);
     vrb::Matrix modelView = widget->GetTransformNode()->GetWorldTransform().AfineInverse();
 
+    // Delta for x anchor point != 0.5f.
+    float centerX = 0.0f;
+    const float anchorX = GetAnchorX();
+    if (anchorX == 1.0f) {
+      centerX = min.x() + width * 0.5f;
+    } else if (anchorX == 0.0f) {
+      centerX = max.x() - width * 0.5f;
+    }
+    const float perimeter = 2.0f * radius * (float)M_PI;
+    float angleDelta = centerX / perimeter * 2.0f * (float)M_PI;
+
     for (ResizeBarPtr& bar: resizeBars) {
       float targetWidth = bar->scale.x() > 0.0f ? (bar->scale.x() * fabsf(width)) + kBarSize : kBarSize;
       float targetHeight = bar->scale.y() > 0.0f ? (bar->scale.y() * fabs(height)) + kBarSize : kBarSize;
-      const float pointerAngle = (float)M_PI * 0.5f + theta * 0.5f - theta * bar->center.x();
+      float pointerAngle = (float)M_PI * 0.5f + theta * 0.5f - theta * bar->center.x() + angleDelta;
       vrb::Matrix rotation = vrb::Matrix::Rotation(vrb::Vector(-cosf(pointerAngle), 0.0f, sinf(pointerAngle)));
-      if (bar->cylinder) {
-        bar->cylinder->SetCylinderTheta(theta * bar->scale.x());
+      if (bar->border->GetCylinder()) {
+        bar->border->GetCylinder()->SetCylinderTheta(theta * bar->scale.x());
         vrb::Matrix translation = vrb::Matrix::Position(vrb::Vector(0.0f, min.y() + height * bar->center.y(), radius));
         vrb::Matrix scale = vrb::Matrix::Identity();
         scale.ScaleInPlace(vrb::Vector(radius, 1.0f, radius));
-        bar->transform->SetTransform(translation.PostMultiply(scale).PostMultiply(rotation));
+        bar->SetTransform(translation.PostMultiply(scale).PostMultiply(rotation));
       } else {
         vrb::Matrix translation = vrb::Matrix::Position(vrb::Vector(radius * cosf(pointerAngle),
                                                         min.y() + height * bar->center.y(),
                                                         radius - radius * sinf(pointerAngle)));
         vrb::Matrix scale = vrb::Matrix::Identity();
         scale.ScaleInPlace(vrb::Vector(targetWidth / kBarSize, targetHeight / kBarSize, 1.0f));
-        bar->transform->SetTransform(translation.PostMultiply(scale).PostMultiply(rotation));
+        bar->SetTransform(translation.PostMultiply(scale).PostMultiply(rotation));
       }
     }
 
     for (ResizeHandlePtr& handle: resizeHandles) {
-      const float pointerAngle = (float)M_PI * 0.5f + theta * 0.5f - theta * handle->center.x();
+      const float pointerAngle = (float)M_PI * 0.5f + theta * 0.5f - theta * handle->center.x() + angleDelta;
       vrb::Matrix translation = vrb::Matrix::Position(vrb::Vector(radius * cosf(pointerAngle),
                                                       min.y() + height * handle->center.y(),
                                                       radius - radius * sinf(pointerAngle)));
@@ -515,7 +421,24 @@ struct WidgetResizer::State {
     }
   }
 
+  void UpdateVisibleHandles() {
+    float anchorX = GetAnchorX();
+
+    for (ResizeHandlePtr & handle: resizeHandles) {
+      handle->SetVisible(handle->center.x() == 0.5f || (handle->center.x() != anchorX));
+    }
+  }
+
+  float GetAnchorX() const {
+    if (widget && widget->GetPlacement()) {
+      return  widget->GetPlacement()->anchor.x();
+    }
+
+    return 0.5f;
+  }
+
   void Layout() {
+    UpdateVisibleHandles();
     if (widget->GetCylinder()) {
       LayoutCylinder();
     } else {
@@ -525,6 +448,9 @@ struct WidgetResizer::State {
 
   ResizeHandlePtr GetIntersectingHandler(const vrb::Vector& point) {
     for (const ResizeHandlePtr& handle: resizeHandles) {
+      if (!handle->visible) {
+        continue;
+      }
       vrb::Vector worldCenter(min.x() + WorldWidth() * handle->center.x(), min.y() + WorldHeight() * handle->center.y(), 0.0f);
       float distance = (point - worldCenter).Magnitude();
       if (distance < kHandleRadius * handle->touchRatio) {
@@ -545,6 +471,11 @@ struct WidgetResizer::State {
     float originalAspect = originalWidth / originalHeight;
 
     float width = fabsf(point.x()) * 2.0f;
+    if (widget->GetPlacement()->anchor.x() == 1.0f) {
+      width = fabsf(max.x() - point.x());
+    } else if (widget->GetPlacement()->anchor.x() == 0.0f) {
+      width = fabsf(point.x() - min.x());
+    }
     float height = fabsf(point.y() - min.y());
 
     // Calculate resize based on resize mode
@@ -560,8 +491,8 @@ struct WidgetResizer::State {
     }
 
     // Clamp to max and min resize sizes
-    width = fmaxf(fminf(width, kMaxResize.x()), kMinResize.x());
-    height = fmaxf(fminf(height, kMaxResize.y()), kMinResize.y());
+    width = fmaxf(fminf(width, maxSize.x()), minSize.x());
+    height = fmaxf(fminf(height, maxSize.y()), minSize.y());
     if (keepAspect) {
       height = width / originalAspect;
     }
@@ -570,7 +501,7 @@ struct WidgetResizer::State {
     currentMax = vrb::Vector(width * 0.5f, height * 0.5f, 0.0f);
 
     // Reset world min and max points with the new resize values
-    if (!widget->GetCylinder() || keepAspect) {
+    if (!widget->GetCylinder()) {
       min = currentMin;
       max = currentMax;
     }
@@ -604,6 +535,12 @@ WidgetResizer::SetSize(const vrb::Vector& aMin, const vrb::Vector& aMax) {
 }
 
 void
+WidgetResizer::SetResizeLimits(const vrb::Vector& aMaxSize, const vrb::Vector& aMinSize) {
+  m.maxSize = aMaxSize;
+  m.minSize = aMinSize;
+}
+
+void
 WidgetResizer::ToggleVisible(bool aVisible) {
   m.root->ToggleAll(aVisible);
 }
@@ -614,9 +551,6 @@ WidgetResizer::TestIntersection(const vrb::Vector& aWorldPoint) const {
     return true;
   }
   const vrb::Vector point = m.ProjectPoint(aWorldPoint);
-  if (m.widget->GetCylinder()) {
-    //point =
-  }
   vrb::Vector extraMin = vrb::Vector(m.min.x() - kBarSize * 0.5f, m.min.y() - kBarSize * 0.5f, 0.0f);
   vrb::Vector extraMax = vrb::Vector(m.max.x() + kBarSize * 0.5f, m.max.y() + kBarSize * 0.5f, 0.0f);
 
@@ -685,15 +619,29 @@ WidgetResizer::HoverExitResize() {
 }
 
 const vrb::Vector&
-WidgetResizer::GetCurrentMin() const {
+WidgetResizer::GetResizeMin() const {
   return m.min;
 }
 
 const vrb::Vector&
-WidgetResizer::GetCurrentMax() const {
+WidgetResizer::GetResizeMax() const {
   return m.max;
 }
 
+bool
+WidgetResizer::IsActive() const {
+  return m.activeHandle && m.activeHandle->resizeState == ResizeState::Active;
+}
+
+void
+WidgetResizer::SetTransform(const vrb::Matrix &aTransform){
+  m.transform->SetTransform(aTransform);
+}
+
+Widget*
+WidgetResizer::GetWidget() const {
+  return m.widget;
+}
 
 WidgetResizer::WidgetResizer(State& aState, vrb::CreationContextPtr& aContext) : m(aState) {
   m.context = aContext;

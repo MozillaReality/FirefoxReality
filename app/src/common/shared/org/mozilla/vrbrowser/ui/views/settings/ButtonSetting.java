@@ -3,10 +3,13 @@ package org.mozilla.vrbrowser.ui.views.settings;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.drawable.Drawable;
+import android.text.Spanned;
 import android.util.AttributeSet;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+
+import androidx.annotation.StringRes;
 
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.audio.AudioEngine;
@@ -17,6 +20,7 @@ public class ButtonSetting extends LinearLayout {
     private String mDescription;
     private String mButtonText;
     private TextView mButton;
+    private TextView mDescriptionView;
     private OnClickListener mListener;
     private Drawable mButtonBackground;
     private Drawable mButtonForeground;
@@ -41,8 +45,8 @@ public class ButtonSetting extends LinearLayout {
 
         mAudio = AudioEngine.fromContext(aContext);
 
-        TextView description = findViewById(R.id.setting_description);
-        description.setText(mDescription);
+        mDescriptionView = findViewById(R.id.setting_description);
+        mDescriptionView.setText(mDescription);
 
         mButton = findViewById(R.id.button);
         mButton.setText(mButtonText);
@@ -84,8 +88,37 @@ public class ButtonSetting extends LinearLayout {
         mButton.setText(aText);
     }
 
+    public void setButtonText(@StringRes int aStringRes) {
+        mButton.setText(aStringRes);
+    }
+
+    public void setDescription(String description) {
+        mDescriptionView.setText(description);
+    }
+
+    public void setDescription(Spanned description) {
+        mDescriptionView.setText(description);
+    }
+
     public String getDescription() {
         return mDescription;
     }
 
+    public void setFooterButtonVisibility(int visibility) {
+        mButton.setVisibility(visibility);
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+        super.setEnabled(enabled);
+
+        mButton.setEnabled(enabled);
+    }
+
+    @Override
+    public void setHovered(boolean hovered) {
+        super.setHovered(hovered);
+
+        mButton.setHovered(hovered);
+    }
 }

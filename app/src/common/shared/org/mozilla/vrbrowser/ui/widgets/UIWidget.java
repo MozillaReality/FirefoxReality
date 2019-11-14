@@ -19,6 +19,7 @@ import android.widget.FrameLayout;
 
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.browser.SettingsStore;
+import org.mozilla.vrbrowser.utils.SystemUtils;
 
 import java.lang.reflect.Constructor;
 import java.util.HashMap;
@@ -28,13 +29,14 @@ import androidx.annotation.NonNull;
 
 public abstract class UIWidget extends FrameLayout implements Widget {
 
-    private static final String LOGTAG = "VRB";
+    protected final String LOGTAG = SystemUtils.createLogtag(this.getClass());
 
     public interface Delegate {
         void onDismiss();
     }
 
     protected UISurfaceTextureRenderer mRenderer;
+    protected UISurfaceTextureRenderer mProxyRenderer;
     protected SurfaceTexture mTexture;
     protected float mWorldWidth;
     protected int mHandle;
@@ -47,6 +49,8 @@ public abstract class UIWidget extends FrameLayout implements Widget {
     protected Delegate mDelegate;
     protected int mBorderWidth;
     private Runnable mFirstDrawCallback;
+    protected boolean mResizing = false;
+    protected boolean mReleased = false;
 
     public UIWidget(Context aContext) {
         super(aContext);
@@ -67,6 +71,7 @@ public abstract class UIWidget extends FrameLayout implements Widget {
         mBorderWidth = SettingsStore.getInstance(getContext()).getTransparentBorderWidth();
         mWidgetManager = (WidgetManagerDelegate) getContext();
         mWidgetPlacement = new WidgetPlacement(getContext());
+        mWidgetPlacement.name = getClass().getSimpleName();
         mHandle = mWidgetManager.newWidgetHandle();
         mWorldWidth = WidgetPlacement.pixelDimension(getContext(), R.dimen.world_width);
         initializeWidgetPlacement(mWidgetPlacement);
@@ -97,10 +102,22 @@ public abstract class UIWidget extends FrameLayout implements Widget {
     protected abstract void initializeWidgetPlacement(WidgetPlacement aPlacement);
 
     @Override
-    public void setSurfaceTexture(SurfaceTexture aTexture, final int aWidth, final int aHeight) {
+    public void setSurfaceTexture(SurfaceTexture aTexture, final int aWidth, final int aHeight, Runnable aFirstDrawCallback) {
         if (mTexture!= null && (mTexture.equals(aTexture))) {
             Log.d(LOGTAG, "Texture already set");
             return;
+        }
+
+        if (mRenderer != null && mRenderer.isLayer()) {
+            // Widget is using a layer write-only surface but we also want a proxy.
+            if (mProxyRenderer != null) {
+                mProxyRenderer.release();
+            }
+            mProxyRenderer = new UISurfaceTextureRenderer(aTexture, aWidth, aHeight);
+            postInvalidate();
+            return;
+        } else {
+            mFirstDrawCallback = aFirstDrawCallback;
         }
         mTexture = aTexture;
         if (mRenderer != null) {
@@ -173,13 +190,30 @@ public abstract class UIWidget extends FrameLayout implements Widget {
     }
 
     @Override
-    public void releaseWidget() {
+    public void handleMoveEvent(float aDeltaX, float aDeltaY, float aDeltaZ, float aRotation) {
+        mWidgetPlacement.translationX += aDeltaX;
+        mWidgetPlacement.translationY += aDeltaY;
+        mWidgetPlacement.translationZ += aDeltaZ;
+        mWidgetPlacement.rotation = aRotation;
+    }
+
+    private void releaseRenderer() {
         if (mRenderer != null) {
             mRenderer.release();
             mRenderer = null;
         }
         mTexture = null;
+    }
+
+    @Override
+    public void releaseWidget() {
+        releaseRenderer();
         mWidgetManager = null;
+        mReleased = true;
+    }
+
+    public boolean isReleased() {
+        return mReleased;
     }
 
     @Override
@@ -188,13 +222,13 @@ public abstract class UIWidget extends FrameLayout implements Widget {
     }
 
     @Override
-    public void setFirstDraw(final boolean aIsFirstDraw) {
-        mWidgetPlacement.firstDraw = aIsFirstDraw;
+    public void setFirstPaintReady(final boolean aFirstPaintReady) {
+        mWidgetPlacement.composited = aFirstPaintReady;
     }
 
     @Override
-    public boolean getFirstDraw() {
-        return mWidgetPlacement.firstDraw;
+    public boolean isFirstPaintReady() {
+        return mWidgetPlacement.composited;
     }
 
     @Override
@@ -203,7 +237,22 @@ public abstract class UIWidget extends FrameLayout implements Widget {
             super.draw(aCanvas);
             return;
         }
-        Canvas textureCanvas = mRenderer.drawBegin();
+        draw(aCanvas, mRenderer);
+        if (mProxyRenderer != null && mWidgetPlacement.proxifyLayer) {
+            draw(aCanvas, mProxyRenderer);
+        }
+
+        if (mFirstDrawCallback != null) {
+            mFirstDrawCallback.run();
+            mFirstDrawCallback = null;
+        }
+    }
+
+    private void draw(Canvas aCanvas, UISurfaceTextureRenderer aRenderer) {
+        if (mResizing) {
+            return;
+        }
+        Canvas textureCanvas = aRenderer.drawBegin();
         if(textureCanvas != null) {
             // set the proper scale
             float xScale = textureCanvas.getWidth() / (float)aCanvas.getWidth();
@@ -211,11 +260,7 @@ public abstract class UIWidget extends FrameLayout implements Widget {
             // draw the view to SurfaceTexture
             super.draw(textureCanvas);
         }
-        mRenderer.drawEnd();
-        if (mFirstDrawCallback != null) {
-            mFirstDrawCallback.run();
-            mFirstDrawCallback = null;
-        }
+        aRenderer.drawEnd();
     }
 
     @Override
@@ -248,24 +293,36 @@ public abstract class UIWidget extends FrameLayout implements Widget {
             hide(REMOVE_WIDGET);
 
         } else {
-            show();
+            show(REQUEST_FOCUS);
         }
     }
 
-    public void show() {
-        show(true);
+    public void setResizing(boolean aResizing) {
+        mResizing = aResizing;
     }
 
-    public void show(boolean focus) {
+    public boolean isLayer() {
+        return mRenderer != null && mRenderer.isLayer();
+    }
+
+    @IntDef(value = { REQUEST_FOCUS, CLEAR_FOCUS, KEEP_FOCUS })
+    public @interface ShowFlags {}
+    public static final int REQUEST_FOCUS = 0;
+    public static final int CLEAR_FOCUS = 1;
+    public static final int KEEP_FOCUS = 2;
+
+    public void show(@ShowFlags int aShowFlags) {
         if (!mWidgetPlacement.visible) {
             mWidgetPlacement.visible = true;
             mWidgetManager.addWidget(this);
             mWidgetManager.pushBackHandler(mBackHandler);
         }
 
-        if (focus) {
-            setFocusableInTouchMode(true);
+        setFocusableInTouchMode(false);
+        if (aShowFlags == REQUEST_FOCUS) {
             requestFocusFromTouch();
+        } else if (aShowFlags == CLEAR_FOCUS) {
+            clearFocus();
         }
     }
 
@@ -285,7 +342,7 @@ public abstract class UIWidget extends FrameLayout implements Widget {
             mWidgetPlacement.visible = false;
             if (aHideFlags == REMOVE_WIDGET) {
                 mWidgetManager.removeWidget(this);
-
+                releaseRenderer();
             } else {
                 mWidgetManager.updateWidget(this);
             }
@@ -298,8 +355,9 @@ public abstract class UIWidget extends FrameLayout implements Widget {
     @Override
     public boolean isVisible() {
         for (UIWidget child : mChildren.values()) {
-            if (child.isVisible())
+            if (child.isVisible()) {
                 return true;
+            }
         }
 
         return mWidgetPlacement.visible;
@@ -315,6 +373,17 @@ public abstract class UIWidget extends FrameLayout implements Widget {
         if (!aVisible) {
             clearFocus();
         }
+    }
+
+    public void updateWidget() {
+        if (mWidgetManager != null) {
+            mWidgetManager.updateWidget(this);
+        }
+    }
+
+    @Override
+    public int getBorderWidth() {
+        return 0;
     }
 
     protected <T extends UIWidget> T createChild(@NonNull Class<T> aChildClassName) {
@@ -359,4 +428,5 @@ public abstract class UIWidget extends FrameLayout implements Widget {
     protected float getWorldWidth() {
         return mWorldWidth;
     }
+
 }

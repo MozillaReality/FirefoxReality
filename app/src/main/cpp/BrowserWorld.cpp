@@ -17,6 +17,8 @@
 #include "SplashAnimation.h"
 #include "Pointer.h"
 #include "Widget.h"
+#include "WidgetMover.h"
+#include "WidgetResizer.h"
 #include "WidgetPlacement.h"
 #include "Cylinder.h"
 #include "Quad.h"
@@ -39,6 +41,7 @@
 #include "vrb/ModelLoaderAndroid.h"
 #include "vrb/NodeFactoryObj.h"
 #include "vrb/ParserObj.h"
+#include "vrb/PerformanceMonitor.h"
 #include "vrb/RenderContext.h"
 #include "vrb/RenderState.h"
 #include "vrb/SurfaceTextureFactory.h"
@@ -54,6 +57,7 @@
 #include <array>
 #include <functional>
 #include <fstream>
+#include <unordered_map>
 
 #define ASSERT_ON_RENDER_THREAD(X)                                          \
   if (m.context && !m.context->IsOnRenderThread()) {                        \
@@ -72,7 +76,6 @@ const int GestureSwipeLeft = 0;
 const int GestureSwipeRight = 1;
 
 const float kScrollFactor = 20.0f; // Just picked what fell right.
-const float kWorldDPIRatio = 2.0f/720.0f;
 const double kHoverRate = 1.0 / 10.0;
 
 class SurfaceObserver;
@@ -118,6 +121,25 @@ SurfaceObserver::SurfaceTextureCreationError(const std::string& aName, const std
   
 }
 
+class PerformanceObserver;
+typedef std::shared_ptr<PerformanceObserver> PerformanceObserverPtr;
+
+class PerformanceObserver : public PerformanceMonitorObserver {
+public:
+  void PoorPerformanceDetected(const double& aTargetFrameRate, const double& aAverageFrameRate) override;
+  void PerformanceRestored(const double& aTargetFrameRate, const double& aAverageFrameRate) override;
+};
+
+void
+PerformanceObserver::PoorPerformanceDetected(const double& aTargetFrameRate, const double& aAverageFrameRate)  {
+  crow::VRBrowser::HandlePoorPerformance();
+}
+
+void
+PerformanceObserver::PerformanceRestored(const double& aTargetFrameRate, const double& aAverageFrameRate)  {
+
+}
+
 } // namespace
 
 namespace crow {
@@ -160,6 +182,10 @@ struct BrowserWorld::State {
   LoadingAnimationPtr loadingAnimation;
   SplashAnimationPtr splashAnimation;
   VRVideoPtr vrVideo;
+  PerformanceMonitorPtr monitor;
+  WidgetMoverPtr movingWidget;
+  WidgetResizerPtr widgetResizer;
+  std::unordered_map<vrb::Node*, std::pair<Widget*, float>> depthSorting;
 
   State() : paused(true), glInitialized(false), modelsLoaded(false), env(nullptr), cylinderDensity(0.0f), nearClip(0.1f),
             farClip(300.0f), activity(nullptr), windowsInitialized(false), exitImmersiveRequested(false), loaderDelay(0) {
@@ -183,6 +209,11 @@ struct BrowserWorld::State {
     fadeAnimation = FadeAnimation::Create(create);
     loadingAnimation = LoadingAnimation::Create(create);
     splashAnimation = SplashAnimation::Create(create);
+    monitor = PerformanceMonitor::Create(create);
+    monitor->AddPerformanceMonitorObserver(std::make_shared<PerformanceObserver>());
+#if defined(WAVEVR)
+    monitor->SetPerformanceDelta(15.0);
+#endif
   }
 
   void CheckBackButton();
@@ -192,6 +223,10 @@ struct BrowserWorld::State {
   void UpdateControllers(bool& aRelayoutWidgets);
   WidgetPtr GetWidget(int32_t aHandle) const;
   WidgetPtr FindWidget(const std::function<bool(const WidgetPtr&)>& aCondition) const;
+  bool IsParent(const Widget& aChild, const Widget& aParent) const;
+  int ParentCount(const WidgetPtr& aWidget) const;
+  float ComputeNormalizedZ(const Widget& aWidget) const;
+  void SortWidgets();
 };
 
 void
@@ -333,18 +368,29 @@ BrowserWorld::State::UpdateControllers(bool& aRelayoutWidgets) {
       continue;
     }
 
-    vrb::Vector start = controller.transformMatrix.MultiplyPosition(controller.beamTransformMatrix.MultiplyPosition(vrb::Vector()));
-    vrb::Vector direction = controller.transformMatrix.MultiplyDirection(controller.beamTransformMatrix.MultiplyDirection(vrb::Vector(0.0f, 0.0f, -1.0f)));
+    const vrb::Vector start = controller.StartPoint();
+    const vrb::Vector direction = controller.Direction();
+
     WidgetPtr hitWidget;
     float hitDistance = farClip;
     vrb::Vector hitPoint;
     vrb::Vector hitNormal;
+
     for (const WidgetPtr& widget: widgets) {
+      if (resizingWidget && resizingWidget->IsResizingActive() && resizingWidget != widget) {
+        // Don't interact with other widgets when resizing gesture is active.
+        continue;
+      }
+      if (movingWidget && movingWidget->GetWidget() != widget) {
+        // Don't interact with other widgets when moving gesture is active.
+        continue;
+      }
       vrb::Vector result;
       vrb::Vector normal;
       float distance = 0.0f;
       bool isInWidget = false;
-      if (widget->TestControllerIntersection(start, direction, result, normal, isInWidget, distance)) {
+      const bool clamp = !widget->IsResizing() && !movingWidget;
+      if (widget->TestControllerIntersection(start, direction, result, normal, clamp, isInWidget, distance)) {
         if (isInWidget && (distance < hitDistance)) {
           hitWidget = widget;
           hitDistance = distance;
@@ -367,6 +413,7 @@ BrowserWorld::State::UpdateControllers(bool& aRelayoutWidgets) {
         vrb::Matrix localRotation = vrb::Matrix::Rotation(hitNormal);
         vrb::Matrix reorient = device->GetReorientTransform();
         controller.pointer->SetTransform(reorient.AfineInverse().PostMultiply(translation).PostMultiply(localRotation));
+        controller.pointer->SetScale(hitPoint, device->GetHeadTransform());
       }
     }
 
@@ -374,7 +421,18 @@ BrowserWorld::State::UpdateControllers(bool& aRelayoutWidgets) {
                          controller.buttonState & ControllerDelegate::BUTTON_TOUCHPAD;
     const bool wasPressed = controller.lastButtonState & ControllerDelegate::BUTTON_TRIGGER ||
                               controller.lastButtonState & ControllerDelegate::BUTTON_TOUCHPAD;
-    if (hitWidget && hitWidget->IsResizing()) {
+
+    if (movingWidget && movingWidget->IsMoving(controller.index)) {
+      if (!pressed && wasPressed) {
+        movingWidget->EndMoving();
+      } else {
+        WidgetPlacementPtr updatedPlacement = movingWidget->HandleMove(start, direction);
+        if (updatedPlacement) {
+          movingWidget->GetWidget()->SetPlacement(updatedPlacement);
+          aRelayoutWidgets = true;
+        }
+      }
+    } else if (hitWidget && hitWidget->IsResizing()) {
       bool aResized = false, aResizeEnded = false;
       hitWidget->HandleResize(hitPoint, pressed, aResized, aResizeEnded);
 
@@ -393,14 +451,14 @@ BrowserWorld::State::UpdateControllers(bool& aRelayoutWidgets) {
         hitWidget->GetWorldSize(width, height);
         VRBrowser::HandleResize(hitWidget->GetHandle(), width, height);
       }
-    }
-    else if (hitWidget) {
+    } else if (hitWidget) {
       float theX = 0.0f, theY = 0.0f;
       hitWidget->ConvertToWidgetCoordinates(hitPoint, theX, theY);
       const uint32_t handle = hitWidget->GetHandle();
       if (!pressed && wasPressed) {
         controller.inDeadZone = true;
       }
+      controller.pointerWorldPoint = hitPoint;
       const bool moved = pressed ? OutOfDeadZone(controller, theX, theY)
           : (controller.pointerX != theX) || (controller.pointerY != theY);
       const bool throttled = ThrottleHoverEvent(controller, context->GetTimestamp(), pressed, wasPressed);
@@ -493,6 +551,123 @@ BrowserWorld::State::FindWidget(const std::function<bool(const WidgetPtr&)>& aCo
   return {};
 }
 
+bool
+BrowserWorld::State::IsParent(const Widget& aChild, const Widget& aParent) const {
+  if (aChild.GetPlacement()->parentHandle == aParent.GetHandle()) {
+    return true;
+  }
+
+  if (aChild.GetPlacement()->parentHandle > 0) {
+    WidgetPtr next = GetWidget(aChild.GetPlacement()->parentHandle);
+    if (next) {
+      return IsParent(*next, aParent);
+    }
+  }
+
+  return false;
+}
+
+int
+BrowserWorld::State::ParentCount(const WidgetPtr& aWidget) const {
+  int result = 0;
+  WidgetPtr current = aWidget;
+  while (current && current->GetPlacement()->parentHandle > 0) {
+    current = GetWidget(current->GetPlacement()->parentHandle);
+    if (current) {
+      result++;
+    }
+  }
+  return result;
+}
+
+float
+BrowserWorld::State::ComputeNormalizedZ(const Widget& aWidget) const {
+  const vrb::Vector headPosition = device->GetHeadTransform().GetTranslation();
+  const vrb::Vector headDirection = device->GetHeadTransform().MultiplyDirection(vrb::Vector(0.0f, 0.0f, -1.0f));
+
+  vrb::Vector hitPoint;
+  vrb::Vector normal;
+  bool inside = false;
+  float distance;
+  if (aWidget.GetQuad()) {
+    aWidget.GetQuad()->TestIntersection(headPosition, headDirection, hitPoint, normal, true, inside, distance);
+  } else if (aWidget.GetCylinder()) {
+    aWidget.GetCylinder()->TestIntersection(headPosition, headDirection, hitPoint, normal, true, inside, distance);
+  }
+
+  const vrb::Matrix& projection = device->GetCamera(device::Eye::Left)->GetPerspective();
+  const vrb::Matrix& view = device->GetCamera(device::Eye::Left)->GetView();
+  vrb::Matrix viewProjection = projection.PostMultiply(view);
+
+  vrb::Vector ndc = viewProjection.MultiplyPosition(hitPoint);
+
+  return ndc.z();
+}
+
+void
+BrowserWorld::State::SortWidgets() {
+  depthSorting.clear();
+
+  // Compute normalized z for each widget
+  for (int i = 0; i < rootTransparent->GetNodeCount(); ++i) {
+    vrb::NodePtr node = rootTransparent->GetNode(i);
+    Widget * target = nullptr;
+    float zDelta = 0.0f;
+    for (const auto & widget: widgets) {
+      if (widget->GetRoot() == node) {
+        target = widget.get();
+        break;
+      }
+    }
+    if (!target) {
+      for (Controller& controller: controllers->GetControllers()) {
+        if (controller.pointer && controller.pointer->GetRoot() == node) {
+          target = controller.pointer->GetHitWidget().get();
+          zDelta = 0.02f;
+          break;
+        }
+      }
+    }
+
+    if (!target && widgetResizer && widgetResizer->GetRoot() == node) {
+      target = widgetResizer->GetWidget();
+      zDelta = 0.01f;
+    }
+
+    if (!target || !target->IsVisible()) {
+      depthSorting.emplace(node.get(), std::make_pair(target, 1.0f));
+      continue;
+    }
+
+    const float z = ComputeNormalizedZ(*target) - zDelta;
+
+    depthSorting.emplace(node.get(), std::make_pair(target, z));
+  }
+
+  // Sort nodes based on cached depth values
+  rootTransparent->SortNodes([=](const NodePtr& a, const NodePtr& b) {
+    auto da = depthSorting.find(a.get());
+    auto db = depthSorting.find(b.get());
+    Widget* wa = da->second.first;
+    Widget* wb = db->second.first;
+
+    // Parenting sort
+    if (wa && wb && wa->IsVisible() && wb->IsVisible()) {
+      if (IsParent(*wa, *wb)) {
+        return true;
+      } else if (IsParent(*wb, *wa)) {
+        return false;
+      }
+    }
+
+    // Depth sort
+    return da->second.second < db->second.second;
+  });
+
+
+
+}
+
 static BrowserWorldPtr sWorldInstance;
 
 BrowserWorld&
@@ -539,12 +714,14 @@ void
 BrowserWorld::Pause() {
   ASSERT_ON_RENDER_THREAD();
   m.paused = true;
+  m.monitor->Pause();
 }
 
 void
 BrowserWorld::Resume() {
   ASSERT_ON_RENDER_THREAD();
   m.paused = false;
+  m.monitor->Resume();
 }
 
 bool
@@ -591,23 +768,8 @@ BrowserWorld::InitializeJava(JNIEnv* aEnv, jobject& aActivity, jobject& aAssetMa
     m.controllers->SetPointerColor(vrb::Color(VRBrowser::GetPointerColor()));
     m.loadingAnimation->LoadModels(m.loader);
     m.rootController->AddNode(m.controllers->GetRoot());
-    std::string skyboxPath = VRBrowser::GetActiveEnvironment();
-    std::string extension;
-    if (VRBrowser::isOverrideEnvPathEnabled()) {
-      std::string storagePath = VRBrowser::GetStorageAbsolutePath(INJECT_SKYBOX_PATH);
-      if (std::ifstream(storagePath)) {
-        skyboxPath = storagePath;
-        extension = Skybox::ValidateCustomSkyboxAndFindFileExtension(storagePath);
-        if (!extension.empty()) {
-          skyboxPath = storagePath;
-          VRB_DEBUG("Found custom skybox file extension: %s", extension.c_str());
-        } else {
-          VRB_ERROR("Failed to find custom skybox files.");
-        }
-      }
-    }
 #if !defined(SNAPDRAGONVR)
-    CreateSkyBox(skyboxPath, extension);
+    UpdateEnvironment();
     // Don't load the env model, we are going for skyboxes in v1.0
 //    CreateFloor();
 #endif
@@ -713,8 +875,7 @@ BrowserWorld::Draw() {
   m.CheckExitImmersive();
   if (m.splashAnimation) {
     DrawSplashAnimation();
-  }
-  else if (m.externalVR->IsPresenting()) {
+  } else if (m.externalVR->IsPresenting()) {
     m.CheckBackButton();
     DrawImmersive();
   } else {
@@ -744,9 +905,26 @@ BrowserWorld::SetTemporaryFilePath(const std::string& aPath) {
 void
 BrowserWorld::UpdateEnvironment() {
   ASSERT_ON_RENDER_THREAD();
-  std::string env = VRBrowser::GetActiveEnvironment();
-  VRB_LOG("Setting environment: %s", env.c_str());
-  CreateSkyBox(env, "");
+  std::string skyboxPath = VRBrowser::GetActiveEnvironment();
+  std::string extension;
+  if (VRBrowser::isOverrideEnvPathEnabled()) {
+    std::string storagePath = VRBrowser::GetStorageAbsolutePath(INJECT_SKYBOX_PATH);
+    if (std::ifstream(storagePath)) {
+      skyboxPath = storagePath;
+      extension = Skybox::ValidateCustomSkyboxAndFindFileExtension(storagePath);
+      if (!extension.empty()) {
+        skyboxPath = storagePath;
+        VRB_DEBUG("Found custom skybox file extension: %s", extension.c_str());
+      } else {
+        VRB_ERROR("Failed to find custom skybox files.");
+      }
+    } else {
+      VRB_ERROR("Failed to find override skybox storage path %s", storagePath.c_str());
+    }
+  }
+
+  VRB_LOG("Setting environment: %s", skyboxPath.c_str());
+  CreateSkyBox(skyboxPath, extension);
 }
 
 void
@@ -761,8 +939,9 @@ BrowserWorld::UpdatePointerColor() {
   int32_t color = VRBrowser::GetPointerColor();
   VRB_LOG("Setting pointer color to: %d:", color);
 
-  if (m.controllers)
+  if (m.controllers) {
     m.controllers->SetPointerColor(vrb::Color(color));
+  }
 }
 
 void
@@ -789,7 +968,7 @@ BrowserWorld::AddWidget(int32_t aHandle, const WidgetPlacementPtr& aPlacement) {
   }
   float worldWidth = aPlacement->worldWidth;
   if (worldWidth <= 0.0f) {
-    worldWidth = aPlacement->width * kWorldDPIRatio;
+    worldWidth = aPlacement->width * WidgetPlacement::kWorldDPIRatio;
   }
 
   const int32_t textureWidth = aPlacement->GetTextureWidth();
@@ -802,7 +981,7 @@ BrowserWorld::AddWidget(int32_t aHandle, const WidgetPlacementPtr& aPlacement) {
   if (aPlacement->cylinder && m.cylinderDensity > 0) {
     VRLayerCylinderPtr layer = m.device->CreateLayerCylinder(textureWidth, textureHeight, VRLayerQuad::SurfaceType::AndroidSurface);
     CylinderPtr cylinder = Cylinder::Create(m.create, layer);
-    widget = Widget::Create(m.context, aHandle, textureWidth, textureHeight, (int32_t)worldWidth, (int32_t)worldHeight, cylinder);
+    widget = Widget::Create(m.context, aHandle, aPlacement, textureWidth, textureHeight, (int32_t)worldWidth, (int32_t)worldHeight, cylinder);
   }
 
   if (!widget) {
@@ -812,7 +991,7 @@ BrowserWorld::AddWidget(int32_t aHandle, const WidgetPlacementPtr& aPlacement) {
     }
 
     QuadPtr quad = Quad::Create(m.create, worldWidth, worldHeight, layer);
-    widget = Widget::Create(m.context, aHandle, textureWidth, textureHeight, quad);
+    widget = Widget::Create(m.context, aHandle, aPlacement, textureWidth, textureHeight, quad);
   }
 
   if (aPlacement->opaque) {
@@ -851,13 +1030,15 @@ BrowserWorld::UpdateWidget(int32_t aHandle, const WidgetPlacementPtr& aPlacement
 
   float newWorldWidth = aPlacement->worldWidth;
   if (newWorldWidth <= 0.0f) {
-    newWorldWidth = aPlacement->width * kWorldDPIRatio;
+    newWorldWidth = aPlacement->width * WidgetPlacement::kWorldDPIRatio;
   }
 
   if (newWorldWidth != worldWidth || oldWidth != aPlacement->width || oldHeight != aPlacement->height) {
     widget->SetWorldWidth(newWorldWidth);
   }
 
+  widget->SetBorderColor(vrb::Color(aPlacement->borderColor));
+  widget->SetProxifyLayer(aPlacement->proxifyLayer);
   LayoutWidget(aHandle);
 }
 
@@ -879,11 +1060,12 @@ BrowserWorld::RemoveWidget(int32_t aHandle) {
 }
 
 void
-BrowserWorld::StartWidgetResize(int32_t aHandle) {
+BrowserWorld::StartWidgetResize(int32_t aHandle, const vrb::Vector& aMaxSize, const vrb::Vector& aMinSize) {
   ASSERT_ON_RENDER_THREAD();
   WidgetPtr widget = m.GetWidget(aHandle);
   if (widget) {
-    widget->StartResize();
+    m.widgetResizer = widget->StartResize(aMaxSize, aMinSize);
+    m.rootTransparent->AddNode(m.widgetResizer->GetRoot());
   }
 }
 
@@ -895,12 +1077,79 @@ BrowserWorld::FinishWidgetResize(int32_t aHandle) {
     return;
   }
   widget->FinishResize();
+  if (m.widgetResizer) {
+    m.widgetResizer->GetRoot()->RemoveFromParents();
+    m.widgetResizer = nullptr;
+  }
+}
+
+void
+BrowserWorld::StartWidgetMove(int32_t aHandle, int32_t aMoveBehavour) {
+  ASSERT_ON_RENDER_THREAD();
+  WidgetPtr widget = m.GetWidget(aHandle);
+  if (!widget) {
+    return;
+  }
+
+  vrb::Vector anchorPoint;
+  vrb::Vector start;
+  vrb::Vector direction;
+  int controllerIndex = -1;
+
+  for (Controller& controller: m.controllers->GetControllers()) {
+    if (!controller.enabled || (controller.index < 0)) {
+      continue;
+    }
+
+    if (controller.pointer && controller.pointer->GetHitWidget() == widget) {
+      controllerIndex = controller.index;
+      start = controller.StartPoint();
+      direction = controller.Direction();
+      int32_t w, h;
+      widget->GetSurfaceTextureSize(w, h);
+      anchorPoint.x() = controller.pointerX / (float)w;
+      anchorPoint.y() = controller.pointerY / (float)h;
+      break;
+    }
+  }
+
+  if (controllerIndex < 0) {
+    return;
+  }
+  
+  m.movingWidget = WidgetMover::Create();
+  WidgetPtr parent;
+  if (widget->GetPlacement()->parentHandle) {
+    parent = m.GetWidget(widget->GetPlacement()->parentHandle);
+  }
+  m.movingWidget->StartMoving(widget, parent, aMoveBehavour, controllerIndex, start, direction, anchorPoint);
+}
+
+void
+BrowserWorld::FinishWidgetMove() {
+  ASSERT_ON_RENDER_THREAD();
+  if (m.movingWidget) {
+    m.movingWidget->EndMoving();
+  }
+  m.movingWidget = nullptr;
 }
 
 void
 BrowserWorld::UpdateVisibleWidgets() {
   ASSERT_ON_RENDER_THREAD();
-  for (const WidgetPtr& widget: m.widgets) {
+
+  std::vector<WidgetPtr> widgets = m.widgets;
+  // Sort by parent before updating.
+  std::sort(widgets.begin(), widgets.end(), [=](const WidgetPtr& a, const WidgetPtr& b) {
+    int parentsA = m.ParentCount(a);
+    int parentsB = m.ParentCount(b);
+    if (parentsA != parentsB) {
+      return parentsA < parentsB;
+    }
+    return m.IsParent(*b, *a);
+  });
+
+  for (const WidgetPtr& widget: widgets) {
     if (widget->IsVisible() && !widget->IsResizing()) {
       UpdateWidget(widget->GetHandle(), widget->GetPlacement());
     }
@@ -927,9 +1176,9 @@ BrowserWorld::LayoutWidget(int32_t aHandle) {
 
   vrb::Matrix transform = vrb::Matrix::Identity();
 
-  vrb::Vector translation = vrb::Vector(aPlacement->translation.x() * kWorldDPIRatio,
-                                        aPlacement->translation.y() * kWorldDPIRatio,
-                                        aPlacement->translation.z() * kWorldDPIRatio);
+  vrb::Vector translation = vrb::Vector(aPlacement->translation.x() * WidgetPlacement::kWorldDPIRatio,
+                                        aPlacement->translation.y() * WidgetPlacement::kWorldDPIRatio,
+                                        aPlacement->translation.z() * WidgetPlacement::kWorldDPIRatio);
 
   const float anchorX = (aPlacement->anchor.x() - 0.5f) * worldWidth;
   const float anchorY = (aPlacement->anchor.y() - 0.5f) * worldHeight;
@@ -957,6 +1206,10 @@ BrowserWorld::LayoutWidget(int32_t aHandle) {
     translation = transform.GetTranslation();
   }
   widget->SetTransform(parent ? parent->GetTransform().PostMultiply(transform) : transform);
+
+  if (!widget->GetCylinder() && parent) {
+    widget->LayoutQuadWithCylinderParent(parent);
+  }
 }
 
 void
@@ -1077,22 +1330,12 @@ BrowserWorld::DrawWorld() {
   if (m.fadeAnimation) {
     m.fadeAnimation->UpdateAnimation();
   }
-  vrb::Vector headPosition = m.device->GetHeadTransform().GetTranslation();
-  vrb::Vector headDirection = m.device->GetHeadTransform().MultiplyDirection(vrb::Vector(0.0f, 0.0f, -1.0f));
+  const vrb::Vector headPosition = m.device->GetHeadTransform().GetTranslation();
   if (m.skybox) {
     m.skybox->SetTransform(vrb::Matrix::Translation(headPosition));
   }
-  m.rootTransparent->SortNodes([=](const NodePtr& a, const NodePtr& b) {
-    float da = DistanceToPlane(a, headPosition, headDirection);
-    float db = DistanceToPlane(b, headPosition, headDirection);
-    if (da < 0.0f) {
-      da = std::numeric_limits<float>::max();
-    }
-    if (db < 0.0f) {
-      db = std::numeric_limits<float>::max();
-    }
-    return da < db;
-  });
+
+  m.SortWidgets();
   m.device->StartFrame();
   m.rootOpaque->SetTransform(m.device->GetReorientTransform());
   m.rootTransparent->SetTransform(m.device->GetReorientTransform());
@@ -1224,16 +1467,17 @@ BrowserWorld::DrawSplashAnimation() {
 void
 BrowserWorld::CreateSkyBox(const std::string& aBasePath, const std::string& aExtension) {
   ASSERT_ON_RENDER_THREAD();
+  vrb::PausePerformanceMonitor pauseMonitor(*m.monitor);
   const bool empty = aBasePath == "cubemap/void";
   const std::string extension = aExtension.empty() ? ".ktx" : aExtension;
-  const GLenum glFormat = extension == ".ktx" ? GL_COMPRESSED_RGB8_ETC2 : GL_RGB8;
+  const GLenum glFormat = extension == ".ktx" ? GL_COMPRESSED_RGB8_ETC2 : GL_RGBA8;
   const int32_t size = 1024;
   if (m.skybox && empty) {
     m.skybox->SetVisible(false);
     return;
   } else if (m.skybox) {
     m.skybox->SetVisible(true);
-    if (m.skybox->GetLayer() && m.skybox->GetLayer()->GetWidth() != size) {
+    if (m.skybox->GetLayer() && (m.skybox->GetLayer()->GetWidth() != size || m.skybox->GetLayer()->GetFormat() != glFormat)) {
       VRLayerCubePtr oldLayer = m.skybox->GetLayer();
       VRLayerCubePtr newLayer = m.device->CreateLayerCube(size, size, glFormat);
       m.skybox->SetLayer(newLayer);
@@ -1247,44 +1491,6 @@ BrowserWorld::CreateSkyBox(const std::string& aBasePath, const std::string& aExt
     m.rootOpaqueParent->AddNode(m.skybox->GetRoot());
     m.skybox->Load(m.loader, aBasePath, extension);
   }
-}
-
-float
-BrowserWorld::DistanceToPlane(const vrb::NodePtr& aNode, const vrb::Vector& aPosition, const vrb::Vector& aDirection) const {
-  WidgetPtr target;
-  bool pointer = false;
-  for (const auto & widget: m.widgets) {
-    if (widget->GetRoot() == aNode) {
-      target = widget;
-      break;
-    }
-  }
-  if (!target) {
-    for (Controller& controller: m.controllers->GetControllers()) {
-      if (controller.pointer && controller.pointer->GetRoot() == aNode) {
-        target = controller.pointer->GetHitWidget();
-        pointer = true;
-        break;
-      }
-    }
-  }
-
-  if (!target) {
-    return -1.0f;
-  }
-  vrb::Vector result;
-  vrb::Vector normal;
-  bool inside = false;
-  float distance = -1.0f;
-  if (target->GetQuad()) {
-    target->GetQuad()->TestIntersection(aPosition, aDirection, result, normal, false, inside, distance);
-  } else if (target->GetCylinder()) {
-    distance = target->GetCylinder()->DistanceToBackPlane(aPosition, aDirection);
-  }
-  if (pointer) {
-    distance-= 0.001f;
-  }
-  return distance;
 }
 
 } // namespace crow
@@ -1312,19 +1518,36 @@ JNI_METHOD(void, updateWidgetNative)
   }
 }
 
+JNI_METHOD(void, updateVisibleWidgetsNative)
+(JNIEnv* aEnv, jobject) {
+  crow::BrowserWorld::Instance().UpdateVisibleWidgets();
+}
+
+
 JNI_METHOD(void, removeWidgetNative)
 (JNIEnv*, jobject, jint aHandle) {
   crow::BrowserWorld::Instance().RemoveWidget(aHandle);
 }
 
 JNI_METHOD(void, startWidgetResizeNative)
-(JNIEnv*, jobject, jint aHandle) {
-  crow::BrowserWorld::Instance().StartWidgetResize(aHandle);
+(JNIEnv*, jobject, jint aHandle, jfloat aMaxWidth, jfloat aMaxHeight, jfloat aMinWidth, jfloat aMinHeight) {
+  crow::BrowserWorld::Instance().StartWidgetResize(aHandle,
+      vrb::Vector(aMaxWidth, aMaxHeight, 0.0f), vrb::Vector(aMinWidth, aMinHeight, 0.0f));
 }
 
 JNI_METHOD(void, finishWidgetResizeNative)
 (JNIEnv*, jobject, jint aHandle) {
   crow::BrowserWorld::Instance().FinishWidgetResize(aHandle);
+}
+
+JNI_METHOD(void, startWidgetMoveNative)
+(JNIEnv*, jobject, jint aHandle, jint aMoveBehaviour) {
+  crow::BrowserWorld::Instance().StartWidgetMove(aHandle, aMoveBehaviour);
+}
+
+JNI_METHOD(void, finishWidgetMoveNative)
+(JNIEnv*, jobject) {
+  crow::BrowserWorld::Instance().FinishWidgetMove();
 }
 
 JNI_METHOD(void, setWorldBrightnessNative)
@@ -1410,7 +1633,7 @@ JNI_METHOD(void, runCallbackNative)
 }
 
 JNI_METHOD(void, setCPULevelNative)
-(JNIEnv*, jobject, int aCPULevel) {
+(JNIEnv*, jobject, jint aCPULevel) {
   crow::BrowserWorld::Instance().SetCPULevel(static_cast<crow::device::CPULevel>(aCPULevel));
 }
 

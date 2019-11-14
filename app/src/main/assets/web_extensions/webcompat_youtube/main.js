@@ -60,7 +60,15 @@ try {
       viewportEl.parentNode.removeChild(viewportEl);
     }
 
-    onNavigate(0);
+    // Wait until video has loaded the first frame to force quality change.
+    // This prevents the infinite spinner problem.
+    // See https://github.com/MozillaReality/FirefoxReality/issues/1433
+    var video = document.getElementsByTagName("video")[0];
+    if (video.readyState >= 2) {
+      onNavigate(0);
+    } else {
+       video.addEventListener("loadeddata", () => onNavigate(0));
+    }
   });
 
   window.addEventListener('pushstate', onNavigate);
@@ -99,16 +107,24 @@ try {
     qs.delete('mozVideoProjection');
     switch (currentProjection) {
       case '360':
-        qs.set('mozVideoProjection', '360');
-        break;
       case '360_auto':
+      case '360s':
+      case '360s_auto':
+      case '180':
+      case '180_auto':
+      case '180lr':
+      case '180lr_auto':
+      case '180tb':
+      case '180tb_auto':
+        qs.set('mozVideoProjection', currentProjection);
+        break;
       default:
         qs.set('mozVideoProjection', auto ? '360_auto' : '360');
         break;
     }
 
     const newUrl = getNewUrl(qs);
-    if (newUrl && window.location.pathname + window.location.search !== newUrl) {
+    if (newUrl && (window.location.pathname + window.location.search) !== newUrl) {
       window.history.replaceState({}, document.title, newUrl);
       return newUrl;
     }
@@ -267,7 +283,7 @@ try {
     log(`Changed quality from "${currentQuality}" to "${newBestQuality}"`);
   };
 
-  window.onYouTubePlayerReady = evt => {
+  window.wrappedJSObject.onYouTubePlayerReady = evt => {
     log('`onYouTubePlayerReady` called');
     window.ytImprover(1);
     evt.addEventListener('onStateChange', 'ytImprover');
@@ -276,11 +292,21 @@ try {
 
   window.addEventListener('spfready', () => {
     log('`spfready` event fired');
-    if (typeof window.ytplayer === 'object' && window.ytplayer.config) {
+    if (window.wrappedJSObject.ytplayer && window.wrappedJSObject.ytplayer.config) {
       log('`window.ytplayer.config.args.jsapicallback` set');
-      window.ytplayer.config.args.jsapicallback = 'onYouTubePlayerReady';
+      window.wrappedJSObject.ytplayer.config.args.jsapicallback = 'onYouTubePlayerReady';
     }
   });
+
+  window.addEventListener("beforeunload", function (e) {
+    // Make sure that the disable_polymer parameter is kept. Youtube processes the parameter but removes it from the URL.
+    // See https://github.com/MozillaReality/FirefoxReality/issues/1426
+    let qs = new URLSearchParams(window.location.search);
+    qs.set('disable_polymer', '1');
+    let url = getNewUrl(qs);
+    window.history.replaceState({}, document.title, url);
+  });
+
 } catch (err) {
   console.error(LOGTAG, 'Encountered error:', err);
 }

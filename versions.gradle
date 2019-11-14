@@ -29,9 +29,10 @@ versions.android_components = "19.0.1"
 versions.mozilla_speech = "1.0.9"
 versions.openwnn = "1.3.7"
 versions.google_vr = "1.190.0"
-versions.room = "2.1.0-alpha02"
+versions.room = "2.2.0"
 versions.lifecycle = "2.0.0"
 versions.support = "1.0.0"
+versions.recyclerview = "1.1.0"
 versions.constraint_layout = "2.0.0-alpha2"
 versions.junit = "4.12"
 versions.atsl_runner = "1.1.0-alpha4"
@@ -41,26 +42,33 @@ versions.android_gradle_plugin = "3.4.1"
 versions.kotlin = "1.3.31"
 versions.kotlin_coroutines = "1.2.1"
 versions.snakeyaml = "1.24"
+versions.gson = "2.8.5"
 def deps = [:]
 
 def gecko_view = [:]
 gecko_view.nightly_armv7a = "org.mozilla.geckoview:geckoview-nightly-armeabi-v7a:$versions.gecko_view"
 gecko_view.nightly_arm64 = "org.mozilla.geckoview:geckoview-nightly-arm64-v8a:$versions.gecko_view"
-gecko_view.nightly_x86 = "org.mozilla.geckoview:geckoview-nightly-x86:$versions.gecko_view"
+gecko_view.nightly_x86_64 = "org.mozilla.geckoview:geckoview-nightly-x86_64:$versions.gecko_view"
 deps.gecko_view = gecko_view
 
 def android_components = [:]
 android_components.telemetry = "org.mozilla.components:service-telemetry:$versions.android_components"
+android_components.glean = "org.mozilla.components:service-glean:$versions.android_components"
 android_components.browser_errorpages = "org.mozilla.components:browser-errorpages:$versions.android_components"
 android_components.browser_search = "org.mozilla.components:browser-search:$versions.android_components"
 android_components.browser_storage = "org.mozilla.components:browser-storage-sync:$versions.android_components"
 android_components.browser_domains = "org.mozilla.components:browser-domains:$versions.android_components"
+android_components.service_accounts = "org.mozilla.components:service-firefox-accounts:$versions.android_components"
 android_components.ui_autocomplete = "org.mozilla.components:ui-autocomplete:$versions.android_components"
 android_components.concept_fetch = "org.mozilla.components:concept-fetch:$versions.android_components"
 android_components.lib_fetch = "org.mozilla.components:lib-fetch-httpurlconnection:$versions.android_components"
+android_components.support_rustlog = "org.mozilla.components:support-rustlog:$versions.android_components"
+android_components.support_rusthttp = "org.mozilla.components:support-rusthttp:$versions.android_components"
 deps.android_components = android_components
 
 deps.mozilla_speech = "com.github.mozilla:mozillaspeechlibrary:$versions.mozilla_speech"
+
+deps.openwnn = "jp.co.omronsoft.openwnn:openwnn:$versions.openwnn"
 
 def google_vr = [:]
 google_vr.sdk_base = "com.google.vr:sdk-base:$versions.google_vr"
@@ -70,13 +78,18 @@ deps.google_vr = google_vr
 def support = [:]
 support.annotations = "androidx.annotation:annotation:$versions.support"
 support.app_compat = "androidx.appcompat:appcompat:$versions.support"
-support.recyclerview = "androidx.recyclerview:recyclerview:$versions.support"
+support.recyclerview = "androidx.recyclerview:recyclerview:$versions.recyclerview"
 support.cardview = "androidx.cardview:cardview:$versions.support"
 support.design = "com.google.android.material:material:$versions.support"
 support.v4 = "androidx.legacy:legacy-support-v4:$versions.support"
 support.core_utils = "androidx.legacy:legacy-support-core-utils:$versions.support"
 support.vector_drawable = "androidx.vectordrawable:vectordrawable:$versions.support"
 deps.support = support
+
+// TODO this should not be necessary at all, see Services.kt
+def work = [:]
+work.runtime = "androidx.work:work-runtime-ktx:$versions.work"
+deps.work = work
 
 def room = [:]
 room.runtime = "androidx.room:room-runtime:$versions.room"
@@ -103,8 +116,12 @@ atsl.rules = "androidx.test:rules:$versions.atsl_runner"
 deps.atsl = atsl
 
 def sqlite = [:]
-sqlite.sqlite = 'com.readystatesoftware.sqliteasset:sqliteassethelper:+'
+sqlite.sqlite = 'com.readystatesoftware.sqliteasset:sqliteassethelper:2.0.1'
 deps.sqlite = sqlite
+
+def disklrucache = [:]
+disklrucache.disklrucache = 'com.jakewharton:disklrucache:2.0.2'
+deps.disklrucache = disklrucache
 
 def kotlin = [:]
 kotlin.stdlib = "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$versions.kotlin"
@@ -121,12 +138,17 @@ deps.junit = "junit:junit:$versions.junit"
 
 deps.android_gradle_plugin = "com.android.tools.build:gradle:$versions.android_gradle_plugin"
 
+deps.android_components_version = versions.android_components
+
 deps.snakeyaml = "org.yaml:snakeyaml:$versions.snakeyaml:android"
+
+deps.gson = "com.google.code.gson:gson:$versions.gson"
 
 ext.deps = deps
 
 def build_versions = [:]
 build_versions.min_sdk = 24
+build_versions.min_sdk_wave = 25
 build_versions.target_sdk = 28
 build_versions.build_tools = "28.0.3"
 ext.build_versions = build_versions

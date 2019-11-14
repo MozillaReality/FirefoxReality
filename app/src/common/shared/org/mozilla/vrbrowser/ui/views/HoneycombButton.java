@@ -8,18 +8,23 @@ import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
+import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import org.mozilla.vrbrowser.input.DeviceType;
-import org.mozilla.vrbrowser.R;
-
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.StringRes;
+
+import org.mozilla.vrbrowser.R;
+import org.mozilla.vrbrowser.utils.DeviceType;
+import org.mozilla.vrbrowser.utils.SystemUtils;
+import org.mozilla.vrbrowser.utils.ViewUtils;
 
 public class HoneycombButton extends LinearLayout {
 
-    private static final String LOGTAG = "VRB";
+    private static final String LOGTAG = SystemUtils.createLogtag(HoneycombButton.class);
 
     private ImageView mIcon;
     private TextView mText;
@@ -80,10 +85,13 @@ public class HoneycombButton extends LinearLayout {
         inflate(aContext, R.layout.honeycomb_button, this);
 
         setClickable(true);
+        setLongClickable(false);
 
         mIcon = findViewById(R.id.settings_button_icon);
-        if (mIcon != null)
+        if (mIcon != null) {
             mIcon.setImageDrawable(mButtonIcon);
+            mIcon.setClickable(false);
+        }
 
         mText = findViewById(R.id.settings_button_text);
         if (mText != null) {
@@ -91,13 +99,22 @@ public class HoneycombButton extends LinearLayout {
             if (mButtonTextSize > 0) {
                 mText.getLayoutParams().width = (int) mButtonTextSize;
             }
+            mText.setClickable(false);
         }
 
         mSecondaryText = findViewById(R.id.settings_secondary_text);
-        if (mSecondaryText != null)
+        if (mSecondaryText != null) {
             mSecondaryText.setText(mSecondaryButtonText);
+            mSecondaryText.setClickable(false);
+        }
 
         setOnHoverListener((view, motionEvent) -> false);
+    }
+
+
+    @Override
+    public void setOnClickListener(@Nullable OnClickListener aListener) {
+        ViewUtils.setStickyClickListener(this, aListener);
     }
 
     @Override
@@ -127,5 +144,13 @@ public class HoneycombButton extends LinearLayout {
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
         return true;
+    }
+
+    public void setText(@StringRes int text) {
+        mText.setText(text);
+    }
+
+    public void setImageDrawable(@NonNull Drawable drawable) {
+        mIcon.setImageDrawable(drawable);
     }
 }

@@ -7,20 +7,13 @@ package org.mozilla.vrbrowser.ui.widgets;
 
 import android.content.Context;
 import android.util.AttributeSet;
-import android.view.View;
 import android.widget.Button;
 
-import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.R;
-import org.mozilla.vrbrowser.audio.AudioEngine;
-import org.mozilla.vrbrowser.browser.SessionStore;
-import org.mozilla.vrbrowser.ui.views.UIButton;
 
 public class NoInternetWidget extends UIWidget {
 
     private Button mAcceptButton;
-    private AudioEngine mAudio;
-    private UIWidget mBrowserWidget;
 
     public NoInternetWidget(Context aContext) {
         super(aContext);
@@ -52,7 +45,7 @@ public class NoInternetWidget extends UIWidget {
         Context context = getContext();
         aPlacement.width = WidgetPlacement.dpDimension(context, R.dimen.no_internet_width);
         aPlacement.height = WidgetPlacement.dpDimension(context, R.dimen.no_internet_height);
-        aPlacement.translationZ = WidgetPlacement.unitFromMeters(getContext(), R.dimen.no_internet_z_distance);
+        aPlacement.translationZ = WidgetPlacement.unitFromMeters(getContext(), R.dimen.base_app_dialog_z_distance);
         aPlacement.anchorX = 0.5f;
         aPlacement.anchorY = 0.5f;
         aPlacement.parentAnchorX = 0.5f;
@@ -61,10 +54,4 @@ public class NoInternetWidget extends UIWidget {
         aPlacement.visible = false;
     }
 
-    public void setBrowserWidget(UIWidget aWidget) {
-        if (aWidget != null) {
-            mWidgetPlacement.parentHandle = aWidget.getHandle();
-        }
-        mBrowserWidget = aWidget;
-    }
 }

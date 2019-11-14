@@ -12,9 +12,10 @@ import android.view.InputDevice;
 import android.util.SparseArray;
 
 import org.mozilla.vrbrowser.ui.widgets.Widget;
+import org.mozilla.vrbrowser.utils.SystemUtils;
 
 public class MotionEventGenerator {
-    static final String LOGTAG = "VRB";
+    static final String LOGTAG = SystemUtils.createLogtag(MotionEventGenerator.class);
     static class Device {
         int mDevice;
         Widget mPreviousWidget = null;
@@ -130,5 +131,9 @@ public class MotionEventGenerator {
         generateEvent(aWidget, device, MotionEvent.ACTION_SCROLL, true);
         device.mCoords[0].setAxisValue(MotionEvent.AXIS_VSCROLL, 0.0f);
         device.mCoords[0].setAxisValue(MotionEvent.AXIS_HSCROLL, 0.0f);
+    }
+
+    public static void clearDevices() {
+        devices.clear();
     }
 }

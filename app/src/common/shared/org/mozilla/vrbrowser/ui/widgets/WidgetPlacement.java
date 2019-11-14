@@ -9,6 +9,12 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.util.DisplayMetrics;
 import android.util.TypedValue;
+import android.view.View;
+
+import androidx.annotation.NonNull;
+
+import org.mozilla.vrbrowser.R;
+import org.mozilla.vrbrowser.browser.SettingsStore;
 
 public class WidgetPlacement {
     static final float WORLD_DPI_RATIO = 2.0f/720.0f;
@@ -16,6 +22,8 @@ public class WidgetPlacement {
     private WidgetPlacement() {}
     public WidgetPlacement(Context aContext) {
         density = aContext.getResources().getDisplayMetrics().density;
+        // Default value
+        cylinderMapRadius = Math.abs(WidgetPlacement.floatDimension(aContext, R.dimen.window_world_z));
     }
 
     public float density;
@@ -37,10 +45,24 @@ public class WidgetPlacement {
     public boolean visible = true;
     public boolean opaque = false;
     public boolean showPointer = true;
-    public boolean firstDraw = false;
+    public boolean composited = false;
     public boolean layer = true;
-    public boolean cylinder = true;
+    public boolean proxifyLayer = false;
     public float textureScale = 0.7f;
+    // Widget will be curved if enabled.
+    public boolean cylinder = true;
+    public int tintColor = 0xFFFFFFFF;
+    public int borderColor = 0;
+    public String name;
+    // Color used to render the widget before the it's composited
+    public int clearColor = 0;
+    /*
+     * Flat surface placements are automatically mapped to curved coordinates.
+     * If a radius is set it's used for the automatic mapping of the yaw & angle when the
+     * cylinder is not centered on the X axis.
+     * See Widget::UpdateCylinderMatrix for more info.
+     */
+    public float cylinderMapRadius;
 
     public WidgetPlacement clone() {
         WidgetPlacement w = new WidgetPlacement();
@@ -68,10 +90,16 @@ public class WidgetPlacement {
         this.visible = w.visible;
         this.opaque = w.opaque;
         this.showPointer = w.showPointer;
-        this.firstDraw = w.firstDraw;
+        this.composited = w.composited;
         this.layer = w.layer;
-        this.cylinder = w.cylinder;
+        this.proxifyLayer = w.proxifyLayer;
         this.textureScale = w.textureScale;
+        this.cylinder = w.cylinder;
+        this.tintColor = w.tintColor;
+        this.borderColor = w.borderColor;
+        this.name = w.name;
+        this.clearColor = w.clearColor;
+        this.cylinderMapRadius = w.cylinderMapRadius;
     }
 
     public int textureWidth() {
@@ -88,6 +116,16 @@ public class WidgetPlacement {
 
     public int viewHeight() {
         return (int) Math.ceil(height * density);
+    }
+
+    public void setSizeFromMeasure(Context aContext, View aView) {
+        aView.measure(View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                      View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        int border =  SettingsStore.getInstance(aContext).getTransparentBorderWidth();
+        int paddingH = aView.getPaddingStart() + aView.getPaddingEnd();
+        int paddingV = aView.getPaddingTop() + aView.getPaddingBottom();
+        width = (int)Math.ceil((aView.getMeasuredWidth() + paddingH)/density) + border * 2;
+        height = (int)Math.ceil((aView.getMeasuredHeight() + paddingV)/density) + border * 2;
     }
 
     public static int pixelDimension(Context aContext, int aDimensionID) {
@@ -124,6 +162,19 @@ public class WidgetPlacement {
 
     public static float convertPixelsToDp(Context aContext, float px){
         return px / ((float) aContext.getResources().getDisplayMetrics().densityDpi / DisplayMetrics.DENSITY_DEFAULT);
+    }
+
+    public static float worldToWidgetRatio(@NonNull UIWidget widget) {
+        float widgetWorldWidth = widget.mWidgetPlacement.worldWidth;
+        return ((widgetWorldWidth/widget.mWidgetPlacement.width)/WORLD_DPI_RATIO);
+    }
+
+    public static float worldToWindowRatio(Context aContext){
+        return (WidgetPlacement.floatDimension(aContext, R.dimen.window_world_width) / SettingsStore.WINDOW_WIDTH_DEFAULT)/ WORLD_DPI_RATIO;
+    }
+
+    public static float viewToWidgetRatio(@NonNull Context context, @NonNull UIWidget widget) {
+        return WidgetPlacement.worldToWidgetRatio(widget) / context.getResources().getDisplayMetrics().density;
     }
 
 }

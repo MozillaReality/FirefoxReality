@@ -2,73 +2,76 @@ package org.mozilla.vrbrowser.db;
 
 import android.content.Context;
 
-import org.mozilla.vrbrowser.AppExecutors;
-import org.mozilla.vrbrowser.db.converter.DateConverter;
-import org.mozilla.vrbrowser.db.dao.BookmarkDao;
-import org.mozilla.vrbrowser.db.entity.BookmarkEntity;
-
 import androidx.annotation.NonNull;
-import androidx.annotation.VisibleForTesting;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
-import androidx.room.TypeConverters;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 
-@Database(entities = {BookmarkEntity.class}, version = 1)
-@TypeConverters(DateConverter.class)
+import org.mozilla.vrbrowser.AppExecutors;
+
+@Database(entities = {PopUpSite.class}, version = 1)
 public abstract class AppDatabase extends RoomDatabase {
 
-    private static AppDatabase sInstance;
+    private static final String DATABASE_NAME = "app";
 
-    @VisibleForTesting
-    public static final String DATABASE_NAME = "fxr-db";
-
-    public abstract BookmarkDao bookmarkDao();
+    private static AppDatabase mInstance = null;
 
     private final MutableLiveData<Boolean> mIsDatabaseCreated = new MutableLiveData<>();
 
-    public static AppDatabase getInstance(final Context context, final AppExecutors executors) {
-        if (sInstance == null) {
+    public abstract PopUpSiteDao popUpSiteDao();
+
+    public static AppDatabase getAppDatabase(Context context, final AppExecutors executors) {
+        if (mInstance == null) {
             synchronized (AppDatabase.class) {
-                if (sInstance == null) {
-                    sInstance = buildDatabase(context.getApplicationContext(), executors);
-                    sInstance.updateDatabaseCreated(context.getApplicationContext());
-                }
+                mInstance = buildDatabase(context.getApplicationContext(), executors);
+                mInstance.updateDatabaseCreated(context);
             }
         }
-        return sInstance;
+
+        return mInstance;
     }
 
-    private static AppDatabase buildDatabase(final Context appContext, final AppExecutors executors) {
+    @NonNull
+    private static AppDatabase buildDatabase(final @NonNull Context appContext, final @NonNull AppExecutors executors) {
         return Room.databaseBuilder(appContext, AppDatabase.class, DATABASE_NAME)
                 .addCallback(new Callback() {
                     @Override
                     public void onCreate(@NonNull SupportSQLiteDatabase db) {
                         super.onCreate(db);
+
                         executors.diskIO().execute(() -> {
-                            AppDatabase database = AppDatabase.getInstance(appContext, executors);
+                            AppDatabase database = AppDatabase.getAppDatabase(appContext, executors);
                             database.setDatabaseCreated();
                         });
                     }
+
+                    @Override
+                    public void onOpen(@NonNull SupportSQLiteDatabase db) {
+                        super.onOpen(db);
+                    }
+
+                    @Override
+                    public void onDestructiveMigration(@NonNull SupportSQLiteDatabase db) {
+                        super.onDestructiveMigration(db);
+                    }
                 })
-            .build();
+                .build();
     }
 
-    private void updateDatabaseCreated(final Context context) {
+    private void updateDatabaseCreated(final @NonNull Context context) {
         if (context.getDatabasePath(DATABASE_NAME).exists()) {
             setDatabaseCreated();
         }
     }
 
-    private void setDatabaseCreated(){
+    private void setDatabaseCreated() {
         mIsDatabaseCreated.postValue(true);
     }
 
     public LiveData<Boolean> getDatabaseCreated() {
         return mIsDatabaseCreated;
     }
-
 }

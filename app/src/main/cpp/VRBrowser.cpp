@@ -24,6 +24,8 @@ const char* kHandleGestureName = "handleGesture";
 const char* kHandleGestureSignature = "(I)V";
 const char* kHandleResizeName = "handleResize";
 const char* kHandleResizeSignature = "(IFF)V";
+const char* kHandleMoveEndName = "handleMoveEnd";
+const char* kHandleMoveEndSignature = "(IFFFF)V";
 const char* kHandleBackEventName = "handleBack";
 const char* kHandleBackEventSignature = "()V";
 const char* kRegisterExternalContextName = "registerExternalContext";
@@ -46,28 +48,35 @@ const char* kAreLayersEnabled = "areLayersEnabled";
 const char* kAreLayersEnabledSignature = "()Z";
 const char* kSetDeviceType = "setDeviceType";
 const char* kSetDeviceTypeSignature = "(I)V";
+const char* kHaltActivity = "haltActivity";
+const char* kHaltActivitySignature = "(I)V";
+const char* kHandlePoorPerformance = "handlePoorPerformance";
+const char* kHandlePoorPerformanceSignature = "()V";
 
-JNIEnv* sEnv;
-jclass sBrowserClass;
-jobject sActivity;
-jmethodID sDispatchCreateWidget;
-jmethodID sDispatchCreateWidgetLayer;
-jmethodID sHandleMotionEvent;
-jmethodID sHandleScrollEvent;
-jmethodID sHandleAudioPose;
-jmethodID sHandleGesture;
-jmethodID sHandleResize;
-jmethodID sHandleBack;
-jmethodID sRegisterExternalContext;
-jmethodID sPauseCompositor;
-jmethodID sResumeCompositor;
-jmethodID sRenderPointerLayer;
-jmethodID sGetStorageAbsolutePath;
-jmethodID sIsOverrideEnvPathEnabled;
-jmethodID sGetActiveEnvironment;
-jmethodID sGetPointerColor;
-jmethodID sAreLayersEnabled;
-jmethodID sSetDeviceType;
+JNIEnv* sEnv = nullptr;
+jclass sBrowserClass = nullptr;
+jobject sActivity = nullptr;
+jmethodID sDispatchCreateWidget = nullptr;
+jmethodID sDispatchCreateWidgetLayer = nullptr;
+jmethodID sHandleMotionEvent = nullptr;
+jmethodID sHandleScrollEvent = nullptr;
+jmethodID sHandleAudioPose = nullptr;
+jmethodID sHandleGesture = nullptr;
+jmethodID sHandleResize = nullptr;
+jmethodID sHandleMoveEnd = nullptr;
+jmethodID sHandleBack = nullptr;
+jmethodID sRegisterExternalContext = nullptr;
+jmethodID sPauseCompositor = nullptr;
+jmethodID sResumeCompositor = nullptr;
+jmethodID sRenderPointerLayer = nullptr;
+jmethodID sGetStorageAbsolutePath = nullptr;
+jmethodID sIsOverrideEnvPathEnabled = nullptr;
+jmethodID sGetActiveEnvironment = nullptr;
+jmethodID sGetPointerColor = nullptr;
+jmethodID sAreLayersEnabled = nullptr;
+jmethodID sSetDeviceType = nullptr;
+jmethodID sHaltActivity = nullptr;
+jmethodID sHandlePoorPerformance = nullptr;
 }
 
 namespace crow {
@@ -94,6 +103,7 @@ VRBrowser::InitializeJava(JNIEnv* aEnv, jobject aActivity) {
   sHandleAudioPose = FindJNIMethodID(sEnv, sBrowserClass, kHandleAudioPoseName, kHandleAudioPoseSignature);
   sHandleGesture = FindJNIMethodID(sEnv, sBrowserClass, kHandleGestureName, kHandleGestureSignature);
   sHandleResize = FindJNIMethodID(sEnv, sBrowserClass, kHandleResizeName, kHandleResizeSignature);
+  sHandleMoveEnd = FindJNIMethodID(sEnv, sBrowserClass, kHandleMoveEndName, kHandleMoveEndSignature);
   sHandleBack = FindJNIMethodID(sEnv, sBrowserClass, kHandleBackEventName, kHandleBackEventSignature);
   sRegisterExternalContext = FindJNIMethodID(sEnv, sBrowserClass, kRegisterExternalContextName, kRegisterExternalContextSignature);
   sPauseCompositor = FindJNIMethodID(sEnv, sBrowserClass, kPauseCompositorName, kPauseCompositorSignature);
@@ -105,6 +115,8 @@ VRBrowser::InitializeJava(JNIEnv* aEnv, jobject aActivity) {
   sGetPointerColor = FindJNIMethodID(sEnv, sBrowserClass, kGetPointerColor, kGetPointerColorSignature);
   sAreLayersEnabled = FindJNIMethodID(sEnv, sBrowserClass, kAreLayersEnabled, kAreLayersEnabledSignature);
   sSetDeviceType = FindJNIMethodID(sEnv, sBrowserClass, kSetDeviceType, kSetDeviceTypeSignature);
+  sHaltActivity = FindJNIMethodID(sEnv, sBrowserClass, kHaltActivity, kHaltActivitySignature);
+  sHandlePoorPerformance = FindJNIMethodID(sEnv, sBrowserClass, kHandlePoorPerformance, kHandlePoorPerformanceSignature);
 }
 
 void
@@ -126,6 +138,7 @@ VRBrowser::ShutdownJava() {
   sHandleAudioPose = nullptr;
   sHandleGesture = nullptr;
   sHandleResize = nullptr;
+  sHandleMoveEnd = nullptr;
   sHandleBack = nullptr;
   sRegisterExternalContext = nullptr;
   sPauseCompositor = nullptr;
@@ -137,6 +150,7 @@ VRBrowser::ShutdownJava() {
   sGetPointerColor = nullptr;
   sAreLayersEnabled = nullptr;
   sSetDeviceType = nullptr;
+  sHaltActivity = nullptr;
   sEnv = nullptr;
 }
 
@@ -192,6 +206,13 @@ void
 VRBrowser::HandleResize(jint aWidgetHandle, jfloat aWorldWidth, jfloat aWorldHeight) {
   if (!ValidateMethodID(sEnv, sActivity, sHandleResize, __FUNCTION__)) { return; }
   sEnv->CallVoidMethod(sActivity, sHandleResize, aWidgetHandle, aWorldWidth, aWorldHeight);
+  CheckJNIException(sEnv, __FUNCTION__);
+}
+
+void
+VRBrowser::HandleMoveEnd(jint aWidgetHandle, jfloat aX, jfloat aY, jfloat aZ, jfloat aRotation) {
+  if (!ValidateMethodID(sEnv, sActivity, sHandleMoveEnd, __FUNCTION__)) { return; }
+  sEnv->CallVoidMethod(sActivity, sHandleMoveEnd, aWidgetHandle, aX, aY, aZ, aRotation);
   CheckJNIException(sEnv, __FUNCTION__);
 }
 
@@ -301,6 +322,20 @@ void
 VRBrowser::SetDeviceType(const jint aType) {
   if (!ValidateMethodID(sEnv, sActivity, sSetDeviceType, __FUNCTION__)) { return; }
   sEnv->CallVoidMethod(sActivity, sSetDeviceType, aType);
+  CheckJNIException(sEnv, __FUNCTION__);
+}
+
+void
+VRBrowser::HaltActivity(const jint aReason) {
+  if (!ValidateMethodID(sEnv, sActivity, sHaltActivity, __FUNCTION__)) { return; }
+  sEnv->CallVoidMethod(sActivity, sHaltActivity, aReason);
+  CheckJNIException(sEnv, __FUNCTION__);
+}
+
+void
+VRBrowser::HandlePoorPerformance() {
+  if (!ValidateMethodID(sEnv, sActivity, sHandlePoorPerformance, __FUNCTION__)) { return; }
+  sEnv->CallVoidMethod(sActivity, sHandlePoorPerformance);
   CheckJNIException(sEnv, __FUNCTION__);
 }
 

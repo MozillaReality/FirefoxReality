@@ -1,23 +1,29 @@
 package org.mozilla.vrbrowser.ui.widgets.settings;
 
 import android.content.Context;
+import android.graphics.Point;
 import android.view.View;
 import android.widget.FrameLayout;
+import android.widget.ScrollView;
 
 import androidx.annotation.NonNull;
 
-import org.mozilla.vrbrowser.ui.widgets.UIWidget;
+import org.mozilla.vrbrowser.R;
+import org.mozilla.vrbrowser.ui.views.CustomScrollView;
 import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
+import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
 
 abstract class SettingsView extends FrameLayout {
     protected Delegate mDelegate;
     protected WidgetManagerDelegate mWidgetManager;
+    protected CustomScrollView mScrollbar;
 
     public interface Delegate {
         void onDismiss();
         void exitWholeSettings();
         void showRestartDialog();
         void showAlert(String aTitle, String aMessage);
+        void showView(SettingsView view);
     }
 
     public SettingsView(@NonNull Context context, WidgetManagerDelegate aWidgetManager) {
@@ -58,6 +64,11 @@ abstract class SettingsView extends FrameLayout {
     }
 
     public void onShown() {
+        if (mScrollbar != null) {
+            mScrollbar.fullScroll(ScrollView.FOCUS_UP);
+            mScrollbar.setSmoothScrollingEnabled(true);
+        }
+
         setFocusableInTouchMode(true);
         requestFocusFromTouch();
     }
@@ -66,5 +77,18 @@ abstract class SettingsView extends FrameLayout {
         clearFocus();
     }
 
-    public void onGlobalFocusChanged(View oldFocus, View newFocus) {}
+    public boolean isEditing() {
+        return false;
+    }
+
+    protected void onGlobalFocusChanged(View oldFocus, View newFocus) {}
+
+    public Point getDimensions() {
+        return new Point( WidgetPlacement.dpDimension(getContext(), R.dimen.options_width),
+                WidgetPlacement.dpDimension(getContext(), R.dimen.options_height));
+    }
+
+    protected boolean reset() {
+        return false;
+    }
 }
