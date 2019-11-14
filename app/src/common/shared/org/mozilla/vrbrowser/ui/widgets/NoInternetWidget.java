@@ -10,10 +10,9 @@ import android.util.AttributeSet;
 import android.widget.Button;
 
 import org.mozilla.vrbrowser.R;
+import org.mozilla.vrbrowser.ui.widgets.dialogs.UIDialog;
 
-public class NoInternetWidget extends UIWidget implements WidgetManagerDelegate.WorldClickListener {
-
-    private Button mAcceptButton;
+public class NoInternetWidget extends UIDialog {
 
     public NoInternetWidget(Context aContext) {
         super(aContext);
@@ -33,7 +32,7 @@ public class NoInternetWidget extends UIWidget implements WidgetManagerDelegate.
     private void initialize(Context aContext) {
         inflate(aContext, R.layout.no_internet, this);
 
-        mAcceptButton = findViewById(R.id.acceptButton);
+        Button mAcceptButton = findViewById(R.id.acceptButton);
         mAcceptButton.setOnClickListener(view -> {
             view.requestFocusFromTouch();
             hide(REMOVE_WIDGET);
@@ -58,7 +57,6 @@ public class NoInternetWidget extends UIWidget implements WidgetManagerDelegate.
     public void show(int aShowFlags) {
         super.show(aShowFlags);
 
-        mWidgetManager.addWorldClickListener(this);
         mWidgetManager.pushWorldBrightness(this, WidgetManagerDelegate.DEFAULT_DIM_BRIGHTNESS);
     }
 
@@ -67,14 +65,6 @@ public class NoInternetWidget extends UIWidget implements WidgetManagerDelegate.
         super.hide(aHideFlags);
 
         mWidgetManager.popWorldBrightness(this);
-        mWidgetManager.removeWorldClickListener(this);
-    }
-
-    // WidgetManagerDelegate.WorldClickListener
-
-    @Override
-    public void onWorldClick() {
-        onDismiss();
     }
 
 }
