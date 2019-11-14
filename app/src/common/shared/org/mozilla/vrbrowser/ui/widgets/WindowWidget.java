@@ -1411,6 +1411,11 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         public void onFxASynSettings(@NonNull View view) {
             mWidgetManager.getTray().toggleSettingsDialog(SettingsWidget.SettingDialog.FXA);
         }
+
+        @Override
+        public void onHideContextMenu(@NonNull View view) {
+            hideContextMenus();
+        }
     };
 
     private HistoryCallback mHistoryListener = new HistoryCallback() {
@@ -1434,6 +1439,11 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         @Override
         public void onFxASynSettings(@NonNull View view) {
             mWidgetManager.getTray().toggleSettingsDialog(SettingsWidget.SettingDialog.FXA);
+        }
+
+        @Override
+        public void onHideContextMenu(@NonNull View view) {
+            hideContextMenus();
         }
     };
 
