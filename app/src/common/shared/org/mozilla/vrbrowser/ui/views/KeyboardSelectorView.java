@@ -28,7 +28,7 @@ public class KeyboardSelectorView extends FrameLayout {
     }
 
     public interface Delegate {
-        void onDomainClick(Item aItem);
+        void onItemClick(Item aItem);
     }
 
     private GridLayout mLangRowContainer;
@@ -121,7 +121,7 @@ public class KeyboardSelectorView extends FrameLayout {
     private OnClickListener clickHandler = v -> {
         UITextButton button = (UITextButton) v;
         if (mDelegate != null) {
-            mDelegate.onDomainClick((Item)button.getTag());
+            mDelegate.onItemClick((Item)button.getTag());
         }
     };
 
