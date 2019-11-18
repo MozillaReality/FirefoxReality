@@ -1246,10 +1246,6 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
     public void onTabsReceived(@NotNull List<TabData> aTabs) {
         WindowWidget targetWindow = mFocusedWindow;
 
-        if (!aTabs.isEmpty()) {
-            targetWindow.getSession().setActive(false);
-        }
-
         boolean fullscreen = targetWindow.getSession().isInFullScreen();
         for (int i = aTabs.size() - 1; i >= 0; --i) {
             Session session = SessionStore.get().createSession(targetWindow.getSession().isPrivateMode());
@@ -1262,6 +1258,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             if (i == 0 && !fullscreen) {
                 // Set the first received tab of the list the current one.
                 SessionStore.get().setActiveSession(session);
+                targetWindow.getSession().setActive(false);
                 targetWindow.setSession(session);
             }
         }
