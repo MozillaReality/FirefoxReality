@@ -65,6 +65,8 @@ protected:
   virtual ~DeviceDelegateOculusVR();
 private:
   State& m;
+  int lastFrameIndex = 0;
+  double lastPredictedDisplayTime = 0.0f;
   VRB_NO_DEFAULTS(DeviceDelegateOculusVR)
 };
 

@@ -1462,7 +1462,7 @@ DeviceDelegateOculusVR::EndFrame(const bool aDiscard) {
     m.currentFBO.reset();
   }
 
-  if (aDiscard) {
+  if (aDiscard && m.renderMode != device::RenderMode::Immersive) {
     return;
   }
 
@@ -1506,7 +1506,8 @@ DeviceDelegateOculusVR::EndFrame(const bool aDiscard) {
   projection.Header.DstBlend = VRAPI_FRAME_LAYER_BLEND_ONE_MINUS_SRC_ALPHA;
   for (int i = 0; i < VRAPI_FRAME_LAYER_EYE_MAX; ++i) {
     const auto &eyeSwapChain = m.eyeSwapChains[i];
-    const int swapChainIndex = m.frameIndex % eyeSwapChain->swapChainLength;
+    const int frameIndex = aDiscard ? lastFrameIndex : m.frameIndex;
+    const int swapChainIndex = frameIndex % eyeSwapChain->swapChainLength;
     // Set up OVR layer textures
     projection.Textures[i].ColorSwapChain = eyeSwapChain->ovrSwapChain;
     projection.Textures[i].SwapChainIndex = swapChainIndex;
@@ -1523,19 +1524,27 @@ DeviceDelegateOculusVR::EndFrame(const bool aDiscard) {
     }
   }
 
-
   // Submit all layers to TimeWarp
+
+  // Even though the frame is discarded, we still need to
+  // submit the previous frame to TimeWarp in order to get controller
+  // states from the next frame.
   ovrSubmitFrameDescription2 frameDesc = {};
   frameDesc.Flags = 0;
   if (m.renderMode == device::RenderMode::Immersive) {
     frameDesc.Flags |= VRAPI_FRAME_FLAG_INHIBIT_VOLUME_LAYER;
   }
   frameDesc.SwapInterval = 1;
-  frameDesc.FrameIndex = m.frameIndex;
-  frameDesc.DisplayTime = m.predictedDisplayTime;
+  frameDesc.FrameIndex = aDiscard ? lastFrameIndex : m.frameIndex;
+  frameDesc.DisplayTime = aDiscard ? lastPredictedDisplayTime : m.predictedDisplayTime;
 
   frameDesc.LayerCount = layerCount;
   frameDesc.Layers = layers;
+
+  if (!aDiscard) {
+    lastFrameIndex = m.frameIndex;
+    lastPredictedDisplayTime = m.predictedDisplayTime;
+  }
 
   vrapi_SubmitFrame2(m.ovr, &frameDesc);
 }
