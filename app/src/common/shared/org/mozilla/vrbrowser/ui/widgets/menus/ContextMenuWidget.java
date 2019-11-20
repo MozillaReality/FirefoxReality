@@ -13,7 +13,7 @@ import android.view.View;
 
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.R;
-import org.mozilla.vrbrowser.telemetry.GleanMetricsService;
+import org.mozilla.vrbrowser.telemetry.metrics.Tabs;
 import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
 import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
 import org.mozilla.vrbrowser.utils.StringUtils;
@@ -88,7 +88,7 @@ public class ContextMenuWidget extends MenuWidget implements WidgetManagerDelega
         mItems.add(new MenuWidget.MenuItem(getContext().getString(R.string.context_menu_open_new_tab_1), 0, () -> {
             if (!StringUtils.isEmpty(aContextElement.linkUri)) {
                 mWidgetManager.openNewTab(aContextElement.linkUri);
-                GleanMetricsService.tabOpenedEvent(GleanMetricsService.TabOpenedSource.CONTEXT_MENU);
+                Tabs.openedEvent(Tabs.TabSource.CONTEXT_MENU);
             }
             onDismiss();
         }));

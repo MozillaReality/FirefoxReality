@@ -33,7 +33,7 @@ tabs:
       - baseline
     extra_keys:
       source:
-        description: "Location from where the tab is opened. Possible values are: `context_menu`, `tabs_dialog`, `bookmarks`, `history`, `fxa_login`, `received`, `pre_existing` or `browser`"
+        description: "Location from where the tab is opened. Possible values are: `CONTEXT_MENU`, `TABS_DIALOG`, `BOOKMARKS`, `HISTORY`, `FXA_LOGIN`, `RECEIVED`, `PRE_EXISTING` or `BROWSER`"
     bugs:
       - https://github.com/MozillaReality/FirefoxReality/issues/1609
     data_reviews:
@@ -64,8 +64,118 @@ tabs:
       A counter of tabs opened by the user in the current session, including received tabs.
     send_in_pings:
       - baseline
+#      - session_end
     bugs:
       - https://github.com/MozillaReality/FirefoxReality/issues/1609
+    data_reviews:
+      - https://github.com/MozillaReality/FirefoxReality/pull/1854#issuecomment-546214568
+    notification_emails:
+      - fxr-telemetry@mozilla.com
+      - manmartin@mozilla.com
+    expires: "2020-05-01"
+
+fxa:
+  sign_in:
+    type: counter
+    description: >
+      Number of users who sign in
+    send_in_pings:
+      - baseline
+    bugs:
+      - https://github.com/MozillaReality/FirefoxReality/issues/1610
+    data_reviews:
+      - https://github.com/MozillaReality/FirefoxReality/pull/1854#issuecomment-546214568
+    notification_emails:
+      - fxr-telemetry@mozilla.com
+      - manmartin@mozilla.com
+    expires: "2020-05-01"
+
+  sign_in_result:
+    type: boolean
+    description: >
+      Number of users who complete the sign in flow successfully
+    send_in_pings:
+      - baseline
+    bugs:
+      - https://github.com/MozillaReality/FirefoxReality/issues/1610
+    data_reviews:
+      - https://github.com/MozillaReality/FirefoxReality/pull/1854#issuecomment-546214568
+    notification_emails:
+      - fxr-telemetry@mozilla.com
+      - manmartin@mozilla.com
+    expires: "2020-05-01"
+
+  sign_out:
+    type: counter
+    description: >
+      Number of users who sign out by clicking on the sign out button
+    send_in_pings:
+      - baseline
+    bugs:
+      - https://github.com/MozillaReality/FirefoxReality/issues/1610
+    data_reviews:
+      - https://github.com/MozillaReality/FirefoxReality/pull/1854#issuecomment-546214568
+    notification_emails:
+      - fxr-telemetry@mozilla.com
+      - manmartin@mozilla.com
+    expires: "2020-05-01"
+
+  bookmarks_sync_status:
+    type: boolean
+    description: >
+      Status of the bookmarks sync engine
+    send_in_pings:
+      - baseline
+    bugs:
+      - https://github.com/MozillaReality/FirefoxReality/issues/1610
+    data_reviews:
+      - https://github.com/MozillaReality/FirefoxReality/pull/1854#issuecomment-546214568
+    notification_emails:
+      - fxr-telemetry@mozilla.com
+      - manmartin@mozilla.com
+    expires: "2020-05-01"
+
+  history_sync_status:
+    type: boolean
+    description: >
+      Status of the history sync engine
+    send_in_pings:
+      - baseline
+    bugs:
+      - https://github.com/MozillaReality/FirefoxReality/issues/1610
+    data_reviews:
+      - https://github.com/MozillaReality/FirefoxReality/pull/1854#issuecomment-546214568
+    notification_emails:
+      - fxr-telemetry@mozilla.com
+      - manmartin@mozilla.com
+    expires: "2020-05-01"
+
+  sent_tab:
+    type: boolean
+    description: >
+      Sent tab result
+    send_in_pings:
+      - baseline
+    bugs:
+      - https://github.com/MozillaReality/FirefoxReality/issues/1610
+    data_reviews:
+      - https://github.com/MozillaReality/FirefoxReality/pull/1854#issuecomment-546214568
+    notification_emails:
+      - fxr-telemetry@mozilla.com
+      - manmartin@mozilla.com
+    expires: "2020-05-01"
+
+  received_tab:
+    type: event
+    description: >
+      Event for when a tab is received
+    send_in_pings:
+      - baseline
+    extra_keys:
+      source:
+        description: "Origin of the received tab. Possible values are: `DESKTOP`, `MOBILE`, `TABLET`, `TV`, `VR` or `UNKNOWN`"
+    bugs:
+      - https://github.com/MozillaReality/FirefoxReality/issues/1610
     data_reviews:
       - https://github.com/MozillaReality/FirefoxReality/pull/1854#issuecomment-546214568
     notification_emails:

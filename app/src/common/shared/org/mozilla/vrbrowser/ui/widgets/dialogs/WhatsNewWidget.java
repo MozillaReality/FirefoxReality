@@ -20,7 +20,7 @@ import org.mozilla.vrbrowser.VRBrowserApplication;
 import org.mozilla.vrbrowser.browser.Accounts;
 import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.databinding.WhatsNewBinding;
-import org.mozilla.vrbrowser.telemetry.GleanMetricsService;
+import org.mozilla.vrbrowser.telemetry.metrics.Tabs;
 import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
 import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
 
@@ -106,7 +106,7 @@ public class WhatsNewWidget extends UIDialog implements WidgetManagerDelegate.Wo
                 mWidgetManager.openNewTabForeground(url);
                 mWidgetManager.getFocusedWindow().getSession().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_VR);
                 mWidgetManager.getFocusedWindow().getSession().loadUri(url);
-                GleanMetricsService.tabOpenedEvent(GleanMetricsService.TabOpenedSource.FXA_LOGIN);
+                Tabs.openedEvent(Tabs.TabSource.FXA_LOGIN);
             }
 
             if (mSignInCallback != null) {

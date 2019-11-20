@@ -21,7 +21,7 @@ import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.browser.engine.Session;
 import org.mozilla.vrbrowser.browser.engine.SessionState;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
-import org.mozilla.vrbrowser.telemetry.GleanMetricsService;
+import org.mozilla.vrbrowser.telemetry.metrics.Tabs;
 import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
 import org.mozilla.vrbrowser.ui.widgets.settings.SettingsWidget;
 import org.mozilla.vrbrowser.utils.BitmapCache;
@@ -616,7 +616,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             if (windowsState.tabs != null) {
                 windowsState.tabs.forEach(state -> {
                     restoredSessions.add(SessionStore.get().createSuspendedSession(state));
-                    GleanMetricsService.tabOpenedEvent(GleanMetricsService.TabOpenedSource.PRE_EXISTING);
+                    Tabs.openedEvent(Tabs.TabSource.PRE_EXISTING);
                 });
             }
             mPrivateMode = false;
@@ -1142,7 +1142,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
     @Override
     public void onTabSelect(Session aTab) {
         if (mFocusedWindow.getSession() != aTab) {
-            GleanMetricsService.tabActivatedEvent();
+            Tabs.activatedEvent();
         }
 
         WindowWidget targetWindow = mFocusedWindow;
@@ -1194,7 +1194,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
     @Override
     public void onTabAdd() {
         addTab(mFocusedWindow, null);
-        GleanMetricsService.tabOpenedEvent(GleanMetricsService.TabOpenedSource.TABS_DIALOG);
+        Tabs.openedEvent(Tabs.TabSource.TABS_DIALOG);
     }
 
     @Override
@@ -1271,7 +1271,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             session.loadUri(aTabs.get(i).getUrl());
             session.updateLastUse();
 
-            GleanMetricsService.tabOpenedEvent(GleanMetricsService.TabOpenedSource.RECEIVED);
+            Tabs.openedEvent(Tabs.TabSource.RECEIVED);
 
             if (i == 0 && !fullscreen) {
                 // Set the first received tab of the list the current one.

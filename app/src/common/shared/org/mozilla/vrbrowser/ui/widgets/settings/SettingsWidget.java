@@ -36,7 +36,7 @@ import org.mozilla.vrbrowser.browser.Accounts;
 import org.mozilla.vrbrowser.browser.engine.Session;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.databinding.SettingsBinding;
-import org.mozilla.vrbrowser.telemetry.GleanMetricsService;
+import org.mozilla.vrbrowser.telemetry.metrics.Tabs;
 import org.mozilla.vrbrowser.ui.widgets.UIWidget;
 import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
 import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
@@ -288,7 +288,7 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
                         WidgetManagerDelegate widgetManager = ((VRBrowserActivity)getContext());
                         widgetManager.openNewTabForeground(url);
                         widgetManager.getFocusedWindow().getSession().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_MOBILE);
-                        GleanMetricsService.tabOpenedEvent(GleanMetricsService.TabOpenedSource.FXA_LOGIN);
+                        Tabs.openedEvent(Tabs.TabSource.FXA_LOGIN);
                     }
                 }, mUIThreadExecutor).exceptionally(throwable -> {
                     Log.d(LOGTAG, "Error getting the authentication URL: " + throwable.getLocalizedMessage());

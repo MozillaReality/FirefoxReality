@@ -28,6 +28,8 @@ import org.mozilla.geckoview.AllowOrDeny
 import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.vrbrowser.R
+import org.mozilla.vrbrowser.telemetry.GleanMetricsService
+import org.mozilla.vrbrowser.telemetry.metrics.FxA
 
 class Services(context: Context, places: Places): GeckoSession.NavigationDelegate {
     companion object {
@@ -76,7 +78,10 @@ class Services(context: Context, places: Places): GeckoSession.NavigationDelegat
                 Logger(logTag).info("Received ${events.size} device event(s)")
                 val filteredEvents = events.filterIsInstance(DeviceEvent.TabReceived::class.java)
                 if (filteredEvents.isNotEmpty()) {
-                    val tabs = filteredEvents.map { event -> event.entries }.flatten()
+                    filteredEvents.map { event -> event.from?.deviceType?.let { FxA.receivedTab(it) } }
+                    val tabs = filteredEvents.map {
+                        event -> event.entries
+                    }.flatten()
                     tabReceivedDelegate?.onTabsReceived(tabs)
                 }
             }

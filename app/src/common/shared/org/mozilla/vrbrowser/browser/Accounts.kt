@@ -23,6 +23,7 @@ import mozilla.components.service.fxa.sync.SyncStatusObserver
 import mozilla.components.service.fxa.sync.getLastSynced
 import mozilla.components.support.base.log.logger.Logger
 import org.mozilla.vrbrowser.VRBrowserApplication
+import org.mozilla.vrbrowser.telemetry.metrics.FxA
 import org.mozilla.vrbrowser.utils.SystemUtils
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
@@ -108,6 +109,8 @@ class Accounts constructor(val context: Context) {
         override fun onAuthenticated(account: OAuthAccount, authType: AuthType) {
             Log.d(LOGTAG, "The user has been successfully logged in")
 
+            FxA.signSuccess(true)
+
             accountStatus = AccountStatus.SIGNED_IN
 
             // Enable syncing after signing in
@@ -132,6 +135,8 @@ class Accounts constructor(val context: Context) {
 
         override fun onAuthenticationProblems() {
             Log.d(LOGTAG, "There was a problem authenticating the user")
+
+            FxA.signSuccess(false)
 
             accountStatus = AccountStatus.NEEDS_RECONNECT
             accountListeners.toMutableList().forEach {
@@ -256,10 +261,15 @@ class Accounts constructor(val context: Context) {
     }
 
     fun setSyncStatus(engine: SyncEngine, value: Boolean) {
-
         when(engine) {
-            SyncEngine.Bookmarks -> SettingsStore.getInstance(context).isBookmarksSyncEnabled = value
-            SyncEngine.History -> SettingsStore.getInstance(context).isHistorySyncEnabled = value
+            SyncEngine.Bookmarks -> {
+                FxA.bookmarksSyncStatus(value)
+                SettingsStore.getInstance(context).isBookmarksSyncEnabled = value
+            }
+            SyncEngine.History -> {
+                FxA.historySyncStatus(value)
+                SettingsStore.getInstance(context).isHistorySyncEnabled = value
+            }
         }
 
         syncStorage.setStatus(engine, value)
@@ -270,6 +280,8 @@ class Accounts constructor(val context: Context) {
     }
 
     fun logoutAsync(): CompletableFuture<Unit?>? {
+        FxA.signOut()
+
         otherDevices = emptyList()
         return CoroutineScope(Dispatchers.Main).future {
             services.accountManager.logoutAsync().await()
@@ -277,6 +289,8 @@ class Accounts constructor(val context: Context) {
     }
 
     fun getAuthenticationUrlAsync(): CompletableFuture<String> {
+        FxA.signIn()
+
         val future: CompletableFuture<String> = CompletableFuture()
 
         // If we're already logged-in, and not in a "need to reconnect" state, logout.
@@ -348,10 +362,10 @@ class Accounts constructor(val context: Context) {
                     targetDevices.contains(it)
                 }
 
-                targets?.forEach {
+                targets?.forEach { it ->
                     constellation.sendEventToDeviceAsync(
                             it.id, DeviceEventOutgoing.SendTab(title, url)
-                    ).await()
+                    ).await().also { FxA.sentTab(it) }
                 }
             }
         }
