@@ -30,6 +30,7 @@ import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.browser.engine.Session;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.databinding.HistoryBinding;
+import org.mozilla.vrbrowser.telemetry.GleanMetricsService;
 import org.mozilla.vrbrowser.ui.adapters.HistoryAdapter;
 import org.mozilla.vrbrowser.ui.callbacks.HistoryCallback;
 import org.mozilla.vrbrowser.ui.callbacks.HistoryItemCallback;
@@ -215,6 +216,7 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
                     WidgetManagerDelegate widgetManager = ((VRBrowserActivity)getContext());
                     widgetManager.openNewTabForeground(url);
                     widgetManager.getFocusedWindow().getSession().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_MOBILE);
+                    GleanMetricsService.tabOpenedEvent(GleanMetricsService.TabOpenedSource.FXA_LOGIN);
                 }
             }, mUIThreadExecutor).exceptionally(throwable -> {
                 Log.d(LOGTAG, "Error getting the authentication URL: " + throwable.getLocalizedMessage());

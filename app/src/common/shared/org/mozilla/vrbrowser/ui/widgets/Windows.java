@@ -21,6 +21,7 @@ import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.browser.engine.Session;
 import org.mozilla.vrbrowser.browser.engine.SessionState;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
+import org.mozilla.vrbrowser.telemetry.GleanMetricsService;
 import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
 import org.mozilla.vrbrowser.ui.widgets.settings.SettingsWidget;
 import org.mozilla.vrbrowser.utils.BitmapCache;
@@ -613,7 +614,10 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         if (windowsState != null) {
             ArrayList<Session> restoredSessions = new ArrayList<>();
             if (windowsState.tabs != null) {
-                windowsState.tabs.forEach(state -> restoredSessions.add(SessionStore.get().createSuspendedSession(state)));
+                windowsState.tabs.forEach(state -> {
+                    restoredSessions.add(SessionStore.get().createSuspendedSession(state));
+                    GleanMetricsService.tabOpenedEvent(GleanMetricsService.TabOpenedSource.PRE_EXISTING);
+                });
             }
             mPrivateMode = false;
             for (WindowState windowState : windowsState.regularWindowsState) {
@@ -1137,6 +1141,10 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
 
     @Override
     public void onTabSelect(Session aTab) {
+        if (mFocusedWindow.getSession() != aTab) {
+            GleanMetricsService.tabActivatedEvent();
+        }
+
         WindowWidget targetWindow = mFocusedWindow;
         WindowWidget windowToMove = getWindowWithSession(aTab);
         if (windowToMove != null && windowToMove != targetWindow) {
@@ -1186,6 +1194,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
     @Override
     public void onTabAdd() {
         addTab(mFocusedWindow, null);
+        GleanMetricsService.tabOpenedEvent(GleanMetricsService.TabOpenedSource.TABS_DIALOG);
     }
 
     @Override
@@ -1261,6 +1270,9 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             session.getSessionState().mUri = aTabs.get(i).getUrl();
             session.loadUri(aTabs.get(i).getUrl());
             session.updateLastUse();
+
+            GleanMetricsService.tabOpenedEvent(GleanMetricsService.TabOpenedSource.RECEIVED);
+
             if (i == 0 && !fullscreen) {
                 // Set the first received tab of the list the current one.
                 SessionStore.get().setActiveSession(session);

@@ -1,15 +1,18 @@
 package org.mozilla.vrbrowser.telemetry;
 
 import android.content.Context;
-import android.util.Log;
 
-import androidx.annotation.UiThread;
+import androidx.annotation.NonNull;
 
+import org.mozilla.vrbrowser.BuildConfig;
+import org.mozilla.vrbrowser.GleanMetrics.Distribution;
+import org.mozilla.vrbrowser.GleanMetrics.Tabs;
 import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.utils.DeviceType;
 import org.mozilla.vrbrowser.utils.SystemUtils;
-import org.mozilla.vrbrowser.BuildConfig;
-import org.mozilla.vrbrowser.GleanMetrics.Distribution;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import mozilla.components.service.glean.Glean;
 import mozilla.components.service.glean.config.Configuration;
@@ -56,4 +59,29 @@ public class GleanMetricsService {
     private static void setStartupMetrics() {
         Distribution.INSTANCE.getChannelName().set(DeviceType.isOculusBuild() ? "oculusvr" : BuildConfig.FLAVOR_platform);
     }
+
+    // Metrics
+
+    public enum TabOpenedSource {
+        CONTEXT_MENU,       // Tab opened from the browsers long click context menu
+        TABS_DIALOG,        // Tab opened from the tabs dialog
+        BOOKMARKS,          // Tab opened from the bookmarks panel
+        HISTORY,            // Tab opened from the history panel
+        FXA_LOGIN,          // Tab opened by the FxA login flow
+        RECEIVED,           // Tab opened by FxA when a tab is received
+        PRE_EXISTING,       // Tab opened as a result of restoring the last session
+        BROWSER             // Tab opened by the browser as a result of a new window open
+    }
+
+    public static void tabOpenedEvent(@NonNull TabOpenedSource source) {
+        Map<Tabs.openedKeys, String> map = new HashMap<>();
+        map.put(Tabs.openedKeys.source, source.name());
+        Tabs.INSTANCE.getOpened().record(map);
+        Tabs.INSTANCE.getCounter().add();
+    }
+
+    public static void tabActivatedEvent() {
+        Tabs.INSTANCE.getActivated().record();
+    }
+
 }

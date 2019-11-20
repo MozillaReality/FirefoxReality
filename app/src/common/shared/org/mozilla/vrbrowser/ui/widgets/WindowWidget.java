@@ -38,6 +38,7 @@ import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.browser.VideoAvailabilityListener;
 import org.mozilla.vrbrowser.browser.engine.Session;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
+import org.mozilla.vrbrowser.telemetry.GleanMetricsService;
 import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
 import org.mozilla.vrbrowser.ui.adapters.Bookmark;
 import org.mozilla.vrbrowser.ui.callbacks.BookmarksCallback;
@@ -65,7 +66,6 @@ import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executor;
-import java.util.function.Consumer;
 
 import mozilla.components.concept.storage.PageObservation;
 import mozilla.components.concept.storage.PageVisit;
@@ -1092,6 +1092,8 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         SessionStore.get().setActiveSession(aSession);
         current.captureBackgroundBitmap(getWindowWidth(), getWindowHeight()).thenAccept(aVoid -> current.setActive(false));
         mWidgetManager.getTray().showTabAddedNotification();
+
+        GleanMetricsService.tabOpenedEvent(GleanMetricsService.TabOpenedSource.BROWSER);
     }
 
     @Override
@@ -1349,6 +1351,11 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
                 @Override
                 public void onOpenInNewTabClick(LibraryMenuWidget.LibraryContextMenuItem item) {
                     mWidgetManager.openNewTabForeground(item.getUrl());
+                    if (item.getType() == LibraryMenuWidget.LibraryItemType.HISTORY) {
+                        GleanMetricsService.tabOpenedEvent(GleanMetricsService.TabOpenedSource.HISTORY);
+                    } else if (item.getType() == LibraryMenuWidget.LibraryItemType.BOOKMARKS) {
+                        GleanMetricsService.tabOpenedEvent(GleanMetricsService.TabOpenedSource.BOOKMARKS);
+                    }
                     hideContextMenus();
                 }
 
