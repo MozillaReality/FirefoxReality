@@ -24,7 +24,7 @@ import org.mozilla.vrbrowser.utils.ViewUtils;
 
 import java.util.ArrayList;
 
-public class TabsWidget extends UIDialog implements WidgetManagerDelegate.WorldClickListener {
+public class TabsWidget extends UIDialog {
     protected BitmapCache mBitmapCache;
     protected RecyclerView mTabsList;
     protected GridLayoutManager mLayoutManager;
@@ -136,8 +136,6 @@ public class TabsWidget extends UIDialog implements WidgetManagerDelegate.WorldC
             mAdapter.notifyDataSetChanged();
             updateSelectionMode();
         });
-
-        mWidgetManager.addWorldClickListener(this);
     }
 
     public void attachToWindow(WindowWidget aWindow) {
@@ -147,9 +145,6 @@ public class TabsWidget extends UIDialog implements WidgetManagerDelegate.WorldC
 
     @Override
     public void releaseWidget() {
-        if (mWidgetManager != null) {
-            mWidgetManager.removeWorldClickListener(this);
-        }
         super.releaseWidget();
     }
 
@@ -158,7 +153,6 @@ public class TabsWidget extends UIDialog implements WidgetManagerDelegate.WorldC
         super.show(aShowFlags);
         refreshTabs();
         invalidate();
-        mWidgetManager.pushWorldBrightness(this, WidgetManagerDelegate.DEFAULT_DIM_BRIGHTNESS);
         mTabsList.requestFocusFromTouch();
     }
 
@@ -166,7 +160,6 @@ public class TabsWidget extends UIDialog implements WidgetManagerDelegate.WorldC
     public void hide(@HideFlags int aHideFlags) {
         super.hide(aHideFlags);
         mRenderer.clearSurface();
-        mWidgetManager.popWorldBrightness(this);
     }
 
     public void setTabDelegate(TabDelegate aDelegate) {
@@ -382,13 +375,6 @@ public class TabsWidget extends UIDialog implements WidgetManagerDelegate.WorldC
     public void onGlobalFocusChanged(View oldFocus, View newFocus) {
         if (ViewUtils.isEqualOrChildrenOf(this, oldFocus) && this.isVisible() &&
                 !ViewUtils.isEqualOrChildrenOf(this, newFocus)) {
-            onDismiss();
-        }
-    }
-
-    @Override
-    public void onWorldClick() {
-        if (this.isVisible()) {
             onDismiss();
         }
     }

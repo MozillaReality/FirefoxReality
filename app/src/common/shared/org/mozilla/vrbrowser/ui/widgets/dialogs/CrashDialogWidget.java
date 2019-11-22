@@ -126,20 +126,6 @@ public class CrashDialogWidget extends UIDialog {
         aPlacement.translationZ = WidgetPlacement.unitFromMeters(getContext(), R.dimen.crash_dialog_world_z);
     }
 
-    @Override
-    public void show(@ShowFlags int aShowFlags) {
-        super.show(aShowFlags);
-
-        mWidgetManager.pushWorldBrightness(this, WidgetManagerDelegate.DEFAULT_DIM_BRIGHTNESS);
-    }
-
-    @Override
-    public void hide(@HideFlags int aHideFlags) {
-        super.hide(aHideFlags);
-
-        mWidgetManager.popWorldBrightness(this);
-    }
-
     public void setCrashDialogDelegate(CrashDialogDelegate aDelegate) {
         mCrashDialogDelegate = aDelegate;
     }

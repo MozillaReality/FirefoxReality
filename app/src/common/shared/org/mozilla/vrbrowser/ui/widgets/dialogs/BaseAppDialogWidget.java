@@ -80,8 +80,6 @@ public class BaseAppDialogWidget extends UIDialog {
                 MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
         super.show(aShowFlags);
 
-        mWidgetManager.pushWorldBrightness(this, WidgetManagerDelegate.DEFAULT_DIM_BRIGHTNESS);
-
         ViewTreeObserver viewTreeObserver = getViewTreeObserver();
         if (viewTreeObserver.isAlive()) {
             viewTreeObserver.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
@@ -93,11 +91,6 @@ public class BaseAppDialogWidget extends UIDialog {
                 }
             });
         }
-    }
-
-    public void hide(@HideFlags int aHideFlags) {
-        super.hide(aHideFlags);
-        mWidgetManager.popWorldBrightness(this);
     }
 
     // WidgetManagerDelegate.FocusChangeListener

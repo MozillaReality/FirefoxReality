@@ -83,8 +83,6 @@ public class PromptWidget extends UIDialog {
                 getMinHeight();
         super.show(aShowFlags);
 
-        mWidgetManager.pushWorldBrightness(this, WidgetManagerDelegate.DEFAULT_DIM_BRIGHTNESS);
-
         ViewTreeObserver viewTreeObserver = mLayout.getViewTreeObserver();
         if (viewTreeObserver.isAlive()) {
             viewTreeObserver.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
@@ -96,11 +94,6 @@ public class PromptWidget extends UIDialog {
                 }
             });
         }
-    }
-
-    public void hide(@HideFlags int aHideFlags) {
-        super.hide(aHideFlags);
-        mWidgetManager.popWorldBrightness(this);
     }
 
     @Override

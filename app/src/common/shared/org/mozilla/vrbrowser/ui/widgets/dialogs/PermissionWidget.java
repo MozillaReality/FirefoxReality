@@ -80,20 +80,6 @@ public class PermissionWidget extends UIDialog implements WidgetManagerDelegate.
         aPlacement.anchorY = 0.5f;
     }
 
-    @Override
-    public void show(@ShowFlags int aShowFlags) {
-        super.show(aShowFlags);
-
-        mWidgetManager.pushWorldBrightness(this, WidgetManagerDelegate.DEFAULT_DIM_BRIGHTNESS);
-    }
-
-    @Override
-    public void hide(@HideFlags int aHideFlag) {
-        super.hide(aHideFlag);
-
-        mWidgetManager.popWorldBrightness(this);
-    }
-
     public void showPrompt(String aUri, PermissionType aType, GeckoSession.PermissionDelegate.Callback aCallback) {
         int messageId;
         int iconId;

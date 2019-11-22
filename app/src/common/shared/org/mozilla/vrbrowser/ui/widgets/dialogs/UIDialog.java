@@ -8,7 +8,7 @@ import org.mozilla.vrbrowser.ui.widgets.UIWidget;
 import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
 import org.mozilla.vrbrowser.utils.ViewUtils;
 
-public abstract class UIDialog extends UIWidget implements WidgetManagerDelegate.FocusChangeListener {
+public abstract class UIDialog extends UIWidget implements WidgetManagerDelegate.FocusChangeListener, WidgetManagerDelegate.WorldClickListener {
     public UIDialog(Context aContext) {
         super(aContext);
         initialize();
@@ -26,10 +26,12 @@ public abstract class UIDialog extends UIWidget implements WidgetManagerDelegate
 
     private void initialize() {
         mWidgetManager.addFocusChangeListener(this);
+        mWidgetManager.addWorldClickListener(this);
     }
 
     @Override
     public void releaseWidget() {
+        mWidgetManager.removeWorldClickListener(this);
         mWidgetManager.removeFocusChangeListener(this);
         super.releaseWidget();
     }
@@ -37,6 +39,20 @@ public abstract class UIDialog extends UIWidget implements WidgetManagerDelegate
     @Override
     public boolean isDialog() {
         return true;
+    }
+
+    @Override
+    public void show(int aShowFlags) {
+        super.show(aShowFlags);
+
+        mWidgetManager.pushWorldBrightness(this, WidgetManagerDelegate.DEFAULT_DIM_BRIGHTNESS);
+    }
+
+    @Override
+    public void hide(int aHideFlags) {
+        super.hide(aHideFlags);
+
+        mWidgetManager.popWorldBrightness(this);
     }
 
     // WidgetManagerDelegate.FocusChangeListener
@@ -48,4 +64,10 @@ public abstract class UIDialog extends UIWidget implements WidgetManagerDelegate
         }
     }
 
+    @Override
+    public void onWorldClick() {
+        if (this.isVisible()) {
+            onDismiss();
+        }
+    }
 }
