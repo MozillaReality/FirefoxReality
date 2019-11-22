@@ -57,10 +57,10 @@ public class SessionStore implements GeckoSession.PermissionDelegate {
     public void setContext(Context context, Bundle aExtras) {
         mContext = context;
 
-        mRuntime = EngineProvider.INSTANCE.getOrCreateRuntime(context);
-
         // FIXME: Once GeckoView has a prefs API
         SessionUtils.vrPrefsWorkAround(context, aExtras);
+
+        mRuntime = EngineProvider.INSTANCE.getOrCreateRuntime(context);
     }
 
     public void initializeServices() {
