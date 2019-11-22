@@ -43,7 +43,7 @@ public abstract class UIDialog extends UIWidget implements WidgetManagerDelegate
 
     @Override
     public void onGlobalFocusChanged(View oldFocus, View newFocus) {
-        if (!ViewUtils.isEqualOrChildrenOf(this, newFocus) && isVisible()) {
+        if (oldFocus == this && isVisible()) {
             onDismiss();
         }
     }
