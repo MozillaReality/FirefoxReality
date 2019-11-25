@@ -466,6 +466,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         }
         aState.mSession.close();
         aState.setActive(false);
+        mFirstContentfulPaint = false;
     }
 
     public void captureBitmap() {
@@ -1052,6 +1053,14 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         if (mState.mSession == aSession) {
             for (GeckoSession.ContentDelegate listener : mContentListeners) {
                 listener.onFirstComposite(aSession);
+            }
+            if (mFirstContentfulPaint) {
+                // onFirstContentfulPaint is only called once after a session is opened.
+                // Notify onFirstContentfulPaint after a session is reattached before
+                // being closed ((e.g. tab selected)
+                for (GeckoSession.ContentDelegate listener : mContentListeners) {
+                    listener.onFirstContentfulPaint(aSession);
+                }
             }
         }
     }
