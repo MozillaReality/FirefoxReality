@@ -20,7 +20,6 @@ import org.mozilla.vrbrowser.ui.views.UITextButton;
 import org.mozilla.vrbrowser.ui.widgets.dialogs.SendTabDialogWidget;
 import org.mozilla.vrbrowser.ui.widgets.dialogs.UIDialog;
 import org.mozilla.vrbrowser.utils.BitmapCache;
-import org.mozilla.vrbrowser.utils.ViewUtils;
 
 import java.util.ArrayList;
 
@@ -368,14 +367,6 @@ public class TabsWidget extends UIDialog {
             outRect.left = mSpacingH / 2;
             outRect.right = mSpacingH / 2;
             outRect.top = row > 0 ? mSpacingV : 0;
-        }
-    }
-
-    @Override
-    public void onGlobalFocusChanged(View oldFocus, View newFocus) {
-        if (ViewUtils.isEqualOrChildrenOf(this, oldFocus) && this.isVisible() &&
-                !ViewUtils.isEqualOrChildrenOf(this, newFocus)) {
-            onDismiss();
         }
     }
 

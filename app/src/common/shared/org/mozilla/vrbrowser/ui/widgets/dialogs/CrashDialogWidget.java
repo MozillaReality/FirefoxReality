@@ -13,9 +13,8 @@ import android.widget.TextView;
 
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.audio.AudioEngine;
-import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.browser.SettingsStore;
-import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
+import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
 
 public class CrashDialogWidget extends UIDialog {
@@ -50,8 +49,6 @@ public class CrashDialogWidget extends UIDialog {
 
     private void initialize(Context aContext) {
         inflate(aContext, R.layout.crash_dialog, this);
-
-        mWidgetManager.addFocusChangeListener(this);
 
         mLearnMoreButton = findViewById(R.id.learnMoreButton);
         mDoNotSendButton = findViewById(R.id.dontSendButton);
@@ -104,13 +101,6 @@ public class CrashDialogWidget extends UIDialog {
         mCrashMessage.setText(getContext().getString(R.string.crash_dialog_message, getContext().getString(R.string.app_name)));
 
         mAudio = AudioEngine.fromContext(aContext);
-    }
-
-    @Override
-    public void releaseWidget() {
-        mWidgetManager.removeFocusChangeListener(this);
-
-        super.releaseWidget();
     }
 
     @Override

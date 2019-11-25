@@ -427,16 +427,6 @@ public class SettingsWidget extends UIDialog implements SettingsView.Delegate {
         showView(new FxAAccountOptionsView(getContext(), mWidgetManager));
     }
 
-    // WindowManagerDelegate.FocusChangeListener
-    @Override
-    public void onGlobalFocusChanged(View oldFocus, View newFocus) {
-        if (mCurrentView != null) {
-            mCurrentView.onGlobalFocusChanged(oldFocus, newFocus);
-        } else if (oldFocus == this && isVisible()) {
-            onDismiss();
-        }
-    }
-
     public void show(@ShowFlags int aShowFlags, @NonNull SettingDialog settingDialog) {
         show(aShowFlags);
 

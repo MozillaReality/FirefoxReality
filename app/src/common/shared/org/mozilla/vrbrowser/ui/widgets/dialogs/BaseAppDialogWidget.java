@@ -93,15 +93,6 @@ public class BaseAppDialogWidget extends UIDialog {
         }
     }
 
-    // WidgetManagerDelegate.FocusChangeListener
-
-    @Override
-    public void onGlobalFocusChanged(View oldFocus, View newFocus) {
-        if (oldFocus == this && isVisible() && findViewById(newFocus.getId()) == null) {
-            onDismiss();
-        }
-    }
-
     public void setButtonsDelegate(Delegate delegate) {
         mAppDialogDelegate = delegate;
     }

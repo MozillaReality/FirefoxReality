@@ -10,7 +10,6 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 
 import org.mozilla.vrbrowser.R;
-import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
 import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
 import org.mozilla.vrbrowser.ui.widgets.dialogs.UIDialog;
 
@@ -106,14 +105,6 @@ public class PromptWidget extends UIDialog {
 
         if (mDelegate != null) {
             mDelegate.onDismiss();
-        }
-    }
-
-    // WidgetManagerDelegate.FocusChangeListener
-    @Override
-    public void onGlobalFocusChanged(View oldFocus, View newFocus) {
-        if (oldFocus == this && isVisible() && findViewById(newFocus.getId()) == null) {
-            onDismiss();
         }
     }
 
