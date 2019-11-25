@@ -104,6 +104,8 @@ public class WhatsNewWidget extends UIDialog implements WidgetManagerDelegate.Wo
             mAccounts.logoutAsync();
 
         } else {
+            hide(REMOVE_WIDGET);
+
             CompletableFuture<String> result = mAccounts.authUrlAsync();
             if (result != null) {
                 result.thenAcceptAsync((url) -> {

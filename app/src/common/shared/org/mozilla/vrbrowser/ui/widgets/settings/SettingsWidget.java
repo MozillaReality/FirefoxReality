@@ -281,11 +281,12 @@ public class SettingsWidget extends UIDialog implements WidgetManagerDelegate.Wo
         switch(mAccounts.getAccountStatus()) {
             case SIGNED_OUT:
             case NEEDS_RECONNECT:
-                hide(REMOVE_WIDGET);
                 if (mAccounts.getAccountStatus() == Accounts.AccountStatus.SIGNED_IN) {
                     mAccounts.logoutAsync();
 
                 } else {
+                    hide(REMOVE_WIDGET);
+
                     CompletableFuture<String> result = mAccounts.authUrlAsync();
                     if (result != null) {
                         result.thenAcceptAsync((url) -> {

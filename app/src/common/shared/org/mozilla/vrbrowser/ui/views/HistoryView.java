@@ -227,6 +227,8 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
                             WidgetManagerDelegate widgetManager = ((VRBrowserActivity) getContext());
                             widgetManager.openNewTabForeground(url);
                             widgetManager.getFocusedWindow().getSession().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_MOBILE);
+
+                            mHistoryViewListeners.forEach((listener) -> listener.onFxALogin(view));
                         }
 
                     }, mUIThreadExecutor).exceptionally(throwable -> {

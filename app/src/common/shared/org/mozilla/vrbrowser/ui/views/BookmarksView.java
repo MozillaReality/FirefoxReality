@@ -230,6 +230,8 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
                             WidgetManagerDelegate widgetManager = ((VRBrowserActivity) getContext());
                             widgetManager.openNewTabForeground(url);
                             widgetManager.getFocusedWindow().getSession().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_MOBILE);
+
+                            mBookmarksViewListeners.forEach((listener) -> listener.onFxALogin(view));
                         }
 
                     }, mUIThreadExecutor).exceptionally(throwable -> {
