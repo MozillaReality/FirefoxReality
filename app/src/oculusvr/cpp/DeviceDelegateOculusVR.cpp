@@ -1066,7 +1066,8 @@ struct DeviceDelegateOculusVR::State {
           VRB_WARN("Undefined hand type in DeviceDelegateOculusVR.");
         }
 
-        const bool thumbRest = (controllerState.inputState.Touches & ovrTouch_ThumbUp) != 0;
+        // This is always false in Oculus Browser.
+        const bool thumbRest = false;
         controller->SetButtonState(controllerState.index, ControllerDelegate::BUTTON_OTHERS, 5, thumbRest, thumbRest);
       } else {
         triggerPressed = (controllerState.inputState.Buttons & ovrButton_A) != 0;
