@@ -483,6 +483,10 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
                     }
                 }
                 return null;
+            }).exceptionally(throwable -> {
+                Log.e(LOGTAG, "Error capturing session bitmap");
+                throwable.printStackTrace();
+                return null;
             });
         } catch (Exception ex) {
             Log.e(LOGTAG, "Error capturing session bitmap");
@@ -518,6 +522,12 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
                         listener.onBitmapChanged(Session.this, bitmap);
                     }
                 }
+                cleanResources.run();
+                result.complete(null);
+                return null;
+            }).exceptionally(throwable -> {
+                Log.e(LOGTAG, "Error capturing session background bitmap");
+                throwable.printStackTrace();
                 cleanResources.run();
                 result.complete(null);
                 return null;
