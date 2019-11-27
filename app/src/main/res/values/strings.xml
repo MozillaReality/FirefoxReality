@@ -85,6 +85,11 @@
          sdcard. '%1$s' will be replaced at runtime with the website's domain name. -->
     <string name="permission_persistent_storage">Will you allow %1$s to store data in persistent storage?</string>
 
+    <!-- This string will be displayed in a dialog box presented to the user
+        when the application needs to request permission to access the device's geographic location.
+        '%1$s' will be replaced at runtime with the website's domain name. -->
+    <string name="permission_xr">Will you allow %1$s to activate WebXR?</string>
+
     <!-- This string is displayed in the Settings dialog box and is used to label an
          On/Off switch which toggles whether an application crash is reported without first
          prompting the user. -->

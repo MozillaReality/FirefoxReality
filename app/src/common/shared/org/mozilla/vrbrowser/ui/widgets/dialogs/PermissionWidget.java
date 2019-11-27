@@ -32,7 +32,8 @@ public class PermissionWidget extends UIDialog {
         CameraAndMicrophone,
         Location,
         Notification,
-        ReadExternalStorage
+        ReadExternalStorage,
+        XR
     }
 
     public PermissionWidget(Context aContext) {
@@ -103,6 +104,10 @@ public class PermissionWidget extends UIDialog {
             case ReadExternalStorage:
                 messageId = R.string.permission_read_external_storage;
                 iconId = R.drawable.ic_icon_storage;
+                break;
+            case XR:
+                messageId = R.string.permission_xr;
+                iconId = R.drawable.ic_icon_dialog_xr;
                 break;
             default:
                 Log.e(LOGTAG, "Unimplemented permission type: " + aType);

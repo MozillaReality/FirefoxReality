@@ -120,6 +120,8 @@ public class PermissionDelegate implements GeckoSession.PermissionDelegate, Widg
             type = PermissionWidget.PermissionType.Notification;
         } else if (aType == PERMISSION_GEOLOCATION) {
             type = PermissionWidget.PermissionType.Location;
+        } else if (aType == PERMISSION_XR) {
+            type = PermissionWidget.PermissionType.XR;
         } else {
             Log.e(LOGTAG, "onContentPermissionRequest unknown permission: " + aType);
             callback.reject();
