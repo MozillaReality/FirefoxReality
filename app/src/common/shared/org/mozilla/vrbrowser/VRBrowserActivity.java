@@ -401,9 +401,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
             exitImmersiveSync();
         }
         mAudioEngine.pauseEngine();
-
-        mWindows.onPause();
-
+        
         for (Widget widget: mWidgets.values()) {
             widget.onPause();
         }
@@ -424,8 +422,6 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         if (mOffscreenDisplay != null) {
             mOffscreenDisplay.onResume();
         }
-
-        mWindows.onResume();
 
         mAudioEngine.resumeEngine();
         for (Widget widget: mWidgets.values()) {
