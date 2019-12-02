@@ -137,6 +137,10 @@ public class SessionStore implements GeckoSession.PermissionDelegate {
         return mSessions.stream().filter(session -> session.getId().equals(aId)).findFirst().orElse(null);
     }
 
+    public @Nullable Session getSession(GeckoSession aGeckoSession) {
+        return mSessions.stream().filter(session -> session.getGeckoSession() == aGeckoSession).findFirst().orElse(null);
+    }
+
     public void setActiveSession(Session aSession) {
         if (aSession != null) {
             aSession.setActive(true);

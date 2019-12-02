@@ -1097,6 +1097,12 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         return false;
     }
 
+    public void showWebXRPermission() {
+        if (mPromptDelegate != null) {
+            mPromptDelegate.showWebXRPermission(getSession());
+        }
+    }
+
     // Session.GeckoSessionChange
     @Override
     public void onCurrentSessionChange(GeckoSession aOldSession, GeckoSession aSession) {

@@ -301,6 +301,9 @@
     <dimen name="scrollbarWidth">10dp</dimen>
     <dimen name="scrollbarMinHeight">20dp</dimen>
 
+    <!-- WebXR Dialog -->
+    <dimen name="webxr_permission_dialog_height">275dp</dimen>
+
     <!-- Hamburger Menu -->
     <dimen name="hamburger_menu_width">300dp</dimen>
     <dimen name="hamburger_menu_item_height">60dp</dimen>

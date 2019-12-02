@@ -17,7 +17,6 @@ import androidx.databinding.DataBindingUtil;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.databinding.BaseAppDialogBinding;
-import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
 import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
 
 public class BaseAppDialogWidget extends UIDialog {
@@ -141,6 +140,11 @@ public class BaseAppDialogWidget extends UIDialog {
         if (buttons.length > 1) {
             mBinding.rightButton.setText(buttons[POSITIVE]);
         }
+    }
+
+    public void setSeparatorsVisible(boolean aVisible) {
+        mBinding.separatorTop.setVisibility(View.GONE);
+        mBinding.separatorBottom.setVisibility(View.GONE);
     }
 
 }

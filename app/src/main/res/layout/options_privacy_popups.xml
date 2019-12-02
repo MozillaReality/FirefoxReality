@@ -33,6 +33,7 @@
             app:layout_constraintTop_toBottomOf="@id/header_layout">
 
             <TextView
+                android:id="@+id/content_text"
                 style="@style/settingsText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -46,7 +47,6 @@
                 style="@style/customRecyclerViewStyle"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:contentDescription="privacy_options_popups_list_header"
                 android:paddingEnd="15dp"
                 app:layoutManager="org.mozilla.vrbrowser.ui.adapters.CustomLinearLayoutManager" />
         </LinearLayout>

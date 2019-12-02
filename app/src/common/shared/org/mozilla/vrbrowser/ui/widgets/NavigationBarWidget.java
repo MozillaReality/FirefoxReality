@@ -33,6 +33,7 @@ import org.mozilla.vrbrowser.browser.PromptDelegate;
 import org.mozilla.vrbrowser.browser.SessionChangeListener;
 import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.browser.engine.Session;
+import org.mozilla.vrbrowser.browser.engine.SessionState;
 import org.mozilla.vrbrowser.search.suggestions.SuggestionsProvider;
 import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
 import org.mozilla.vrbrowser.ui.views.CustomUIButton;
@@ -56,7 +57,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class NavigationBarWidget extends UIWidget implements GeckoSession.NavigationDelegate,
         GeckoSession.ProgressDelegate, GeckoSession.ContentDelegate, WidgetManagerDelegate.WorldClickListener,
-        WidgetManagerDelegate.UpdateListener, SessionChangeListener,
+        WidgetManagerDelegate.UpdateListener, SessionChangeListener, Session.WebXRStateChangedListener,
         NavigationURLBar.NavigationURLBarDelegate, VoiceSearchWidget.VoiceSearchDelegate,
         SharedPreferences.OnSharedPreferenceChangeListener, SuggestionsWidget.URLBarPopupDelegate,
         WindowWidget.BookmarksViewDelegate, WindowWidget.HistoryViewDelegate, TrayListener, WindowWidget.WindowListener {
@@ -470,6 +471,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         aSession.addNavigationListener(this);
         aSession.addProgressListener(this);
         aSession.addContentListener(this);
+        aSession.addWebXRStateChangedListener(this);
         mURLBar.setSession(getSession());
         updateServoButton();
         handleSessionState();
@@ -480,6 +482,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         aSession.removeNavigationListener(this);
         aSession.removeProgressListener(this);
         aSession.removeContentListener(this);
+        aSession.removeWebXRStateChangedListener(this);
     }
 
     @Override
@@ -610,7 +613,6 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
 
         // Update preset styles
     }
-
 
     enum ResizeAction {
         KEEP_SIZE,
@@ -998,6 +1000,11 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         mAttachedWindow.showPopUps();
     }
 
+    @Override
+    public void onWebXRButtonClicked() {
+        mAttachedWindow.showWebXRPermission();
+    }
+
     // VoiceSearch Delegate
 
     @Override
@@ -1276,5 +1283,12 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
             mMediaControlsWidget.setVisible(connected && mMediaControlsWidget.isVisible());
         }
     };
+
+    // WebXR state change listener
+    @Override
+    public void onWebXRStateChanged(Session aSession, @SessionState.WebXRState int aWebXRState) {
+        mURLBar.setWebXRUsed(aWebXRState != SessionState.WEBXR_UNUSED);
+        mURLBar.setWebXRAllowed(aWebXRState == SessionState.WEBXR_ALLOWED);
+    }
 
 }

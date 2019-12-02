@@ -16,23 +16,25 @@ import androidx.lifecycle.Observer;
 
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.databinding.OptionsPrivacyPopupsBinding;
-import org.mozilla.vrbrowser.db.PopUpSite;
-import org.mozilla.vrbrowser.ui.adapters.PopUpAdapter;
-import org.mozilla.vrbrowser.ui.callbacks.PopUpSiteItemCallback;
-import org.mozilla.vrbrowser.ui.viewmodel.PopUpsViewModel;
+import org.mozilla.vrbrowser.db.SitePermission;
+import org.mozilla.vrbrowser.ui.adapters.SitePermissionAdapter;
+import org.mozilla.vrbrowser.ui.callbacks.PermissionSiteItemCallback;
+import org.mozilla.vrbrowser.ui.viewmodel.SitePermissionViewModel;
 import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
 import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
 
 import java.util.List;
 
-class AllowedPopUpsOptionsView extends SettingsView {
+class SitePermissionsOptionsView extends SettingsView {
 
     private OptionsPrivacyPopupsBinding mBinding;
-    private PopUpAdapter mAdapter;
-    private PopUpsViewModel mViewModel;
+    private SitePermissionAdapter mAdapter;
+    private SitePermissionViewModel mViewModel;
+    private @SitePermission.Category int mCategory;
 
-    public AllowedPopUpsOptionsView(Context aContext, WidgetManagerDelegate aWidgetManager) {
+    public SitePermissionsOptionsView(Context aContext, WidgetManagerDelegate aWidgetManager, @SitePermission.Category int category) {
         super(aContext, aWidgetManager);
+        mCategory = category;
         initialize(aContext);
     }
 
@@ -40,10 +42,10 @@ class AllowedPopUpsOptionsView extends SettingsView {
         LayoutInflater inflater = LayoutInflater.from(aContext);
 
         // Preferred languages adapter
-        mAdapter = new PopUpAdapter(getContext(), mCallback);
+        mAdapter = new SitePermissionAdapter(getContext(), mCallback);
 
         // View Model
-        mViewModel = new PopUpsViewModel(((Application)getContext().getApplicationContext()));
+        mViewModel = new SitePermissionViewModel(((Application)getContext().getApplicationContext()));
 
         // Inflate this data binding layout
         mBinding = DataBindingUtil.inflate(inflater, R.layout.options_privacy_popups, this, true);
@@ -58,6 +60,21 @@ class AllowedPopUpsOptionsView extends SettingsView {
 
         // Footer
         mBinding.footerLayout.setFooterButtonClickListener(mClearAllListener);
+
+        switch (mCategory) {
+            case SitePermission.SITE_PERMISSION_POPUP:
+                mBinding.headerLayout.setTitle(R.string.settings_privacy_policy_popups_title);
+                mBinding.headerLayout.setDescription(R.string.privacy_options_popups_list_header);
+                mBinding.contentText.setText(R.string.privacy_options_popups_list_header);
+                mBinding.footerLayout.setDescription(R.string.privacy_options_popups_reset);
+                break;
+            case SitePermission.SITE_PERMISSION_WEBXR:
+                mBinding.headerLayout.setTitle(R.string.settings_privacy_policy_webxr_title);
+                mBinding.headerLayout.setDescription(R.string.settings_privacy_policy_webxr_description);
+                mBinding.contentText.setText(R.string.settings_privacy_policy_webxr_description);
+                mBinding.footerLayout.setDescription(R.string.settings_privacy_policy_webxr_reset);
+                break;
+        }
 
         mBinding.executePendingBindings();
     }
@@ -74,7 +91,7 @@ class AllowedPopUpsOptionsView extends SettingsView {
 
     @Override
     protected boolean reset() {
-        mViewModel.deleteAll();
+        mViewModel.deleteAll(mCategory);
         return true;
     }
 
@@ -82,7 +99,7 @@ class AllowedPopUpsOptionsView extends SettingsView {
     public void onShown() {
         super.onShown();
 
-        mViewModel.getAll().observeForever(mObserver);
+        mViewModel.getAll(mCategory).observeForever(mObserver);
 
         mBinding.siteList.post(() -> mBinding.siteList.scrollToPosition(0));
     }
@@ -91,21 +108,21 @@ class AllowedPopUpsOptionsView extends SettingsView {
     public void onHidden() {
         super.onHidden();
 
-        mViewModel.getAll().removeObserver(mObserver);
+        mViewModel.getAll(mCategory).removeObserver(mObserver);
     }
 
-    private Observer<List<PopUpSite>> mObserver = new Observer<List<PopUpSite>>() {
+    private Observer<List<SitePermission>> mObserver = new Observer<List<SitePermission>>() {
         @Override
-        public void onChanged(List<PopUpSite> popUpSites) {
-            if (popUpSites != null) {
-                mAdapter.setSites(popUpSites);
+        public void onChanged(List<SitePermission> sites) {
+            if (sites != null) {
+                mAdapter.setSites(sites);
             }
         }
     };
 
-    private PopUpSiteItemCallback mCallback = new PopUpSiteItemCallback() {
+    private PermissionSiteItemCallback mCallback = new PermissionSiteItemCallback() {
         @Override
-        public void onDelete(@NonNull PopUpSite item) {
+        public void onDelete(@NonNull SitePermission item) {
             mViewModel.deleteSite(item);
         }
 

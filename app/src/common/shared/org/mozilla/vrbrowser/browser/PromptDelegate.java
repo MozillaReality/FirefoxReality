@@ -17,12 +17,13 @@ import org.mozilla.vrbrowser.AppExecutors;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.VRBrowserApplication;
 import org.mozilla.vrbrowser.browser.engine.Session;
-import org.mozilla.vrbrowser.db.PopUpSite;
-import org.mozilla.vrbrowser.ui.viewmodel.PopUpsViewModel;
+import org.mozilla.vrbrowser.db.SitePermission;
+import org.mozilla.vrbrowser.ui.viewmodel.SitePermissionViewModel;
 import org.mozilla.vrbrowser.ui.widgets.UIWidget;
 import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
 import org.mozilla.vrbrowser.ui.widgets.WindowWidget;
 import org.mozilla.vrbrowser.ui.widgets.dialogs.PopUpBlockDialogWidget;
+import org.mozilla.vrbrowser.ui.widgets.dialogs.WebXRBlockDialogWidget;
 import org.mozilla.vrbrowser.ui.widgets.prompts.AlertPromptWidget;
 import org.mozilla.vrbrowser.ui.widgets.prompts.AuthPromptWidget;
 import org.mozilla.vrbrowser.ui.widgets.prompts.ChoicePromptWidget;
@@ -34,6 +35,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 public class PromptDelegate implements
         GeckoSession.PromptDelegate,
@@ -51,16 +53,19 @@ public class PromptDelegate implements
     private ConfirmPromptWidget mSlowScriptPrompt;
     private Context mContext;
     private WindowWidget mAttachedWindow;
-    private List<PopUpSite> mAllowedPopUpSites;
-    private PopUpsViewModel mViewModel;
+    private WebXRBlockDialogWidget mWebXRBlockDialog;
+    private List<SitePermission> mAllowedPopUpSites;
+    private List<SitePermission> mWebXRSites;
+    private SitePermissionViewModel mViewModel;
     private AppExecutors mExecutors;
     private PopUpDelegate mPopupDelegate;
 
     public PromptDelegate(@NonNull Context context) {
         mContext = context;
         mExecutors = ((VRBrowserApplication)context.getApplicationContext()).getExecutors();
-        mViewModel = new PopUpsViewModel(((Application)context.getApplicationContext()));
+        mViewModel = new SitePermissionViewModel(((Application)context.getApplicationContext()));
         mAllowedPopUpSites = new ArrayList<>();
+        mWebXRSites = new ArrayList<>();
     }
 
     public void attachToWindow(@NonNull WindowWidget window) {
@@ -71,7 +76,8 @@ public class PromptDelegate implements
 
         mAttachedWindow = window;
         mAttachedWindow.addWindowListener(this);
-        mViewModel.getAll().observeForever(mObserver);
+        mViewModel.getAll(SitePermission.SITE_PERMISSION_POPUP).observeForever(mPopUpSiteObserver);
+        mViewModel.getAll(SitePermission.SITE_PERMISSION_WEBXR).observeForever(mWebXRSiteObserver);
 
         if (getSession() != null) {
             setUpSession(getSession());
@@ -87,7 +93,8 @@ public class PromptDelegate implements
             mAttachedWindow.removeWindowListener(this);
             mAttachedWindow = null;
         }
-        mViewModel.getAll().removeObserver(mObserver);
+        mViewModel.getAll(SitePermission.SITE_PERMISSION_POPUP).removeObserver(mPopUpSiteObserver);
+        mViewModel.getAll(SitePermission.SITE_PERMISSION_WEBXR).removeObserver(mWebXRSiteObserver);
 
         clearPopUps();
     }
@@ -262,8 +269,12 @@ public class PromptDelegate implements
         return result;
     }
 
-    private Observer<List<PopUpSite>> mObserver = popUpSites -> {
-        mAllowedPopUpSites = popUpSites;
+    private Observer<List<SitePermission>> mPopUpSiteObserver = sites -> {
+        mAllowedPopUpSites = sites;
+    };
+
+    private Observer<List<SitePermission>> mWebXRSiteObserver = sites -> {
+        mWebXRSites = sites;
     };
 
     @Nullable
@@ -278,7 +289,7 @@ public class PromptDelegate implements
             final int sessionId = geckoSession.hashCode();
             final String uri = mAttachedWindow.getSession().getCurrentUri();
 
-            Optional<PopUpSite> site = mAllowedPopUpSites.stream().filter((item) -> item.url.equals(uri)).findFirst();
+            Optional<SitePermission> site = mAllowedPopUpSites.stream().filter((item) -> item.url.equals(uri)).findFirst();
             if (site.isPresent()) {
                 mAttachedWindow.postDelayed(() -> {
                     if (site.get().allowed) {
@@ -349,7 +360,7 @@ public class PromptDelegate implements
 
     private void showPopUp(int sessionId, @NonNull Pair<String, LinkedList<PopUpRequest>> requests) {
         String uri = requests.first;
-        Optional<PopUpSite> site = mAllowedPopUpSites.stream().filter((item) -> item.url.equals(uri)).findFirst();
+        Optional<SitePermission> site = mAllowedPopUpSites.stream().filter((item) -> item.url.equals(uri)).findFirst();
         if (!site.isPresent()) {
             mPopUpPrompt = new PopUpBlockDialogWidget(mContext);
             mPopUpPrompt.getPlacement().parentHandle = mAttachedWindow.getHandle();
@@ -360,8 +371,9 @@ public class PromptDelegate implements
                 boolean allowed = index != PopUpBlockDialogWidget.NEGATIVE;
                 boolean askAgain = mPopUpPrompt.askAgain();
                 if (allowed && !askAgain) {
-                    mAllowedPopUpSites.add(new PopUpSite(uri, allowed));
-                    mViewModel.insertSite(uri, allowed);
+                    SitePermission permission = new SitePermission(uri, allowed, SitePermission.SITE_PERMISSION_POPUP);
+                    mAllowedPopUpSites.add(permission);
+                    mViewModel.insertSite(permission);
                 }
 
                 if (allowed) {
@@ -397,6 +409,39 @@ public class PromptDelegate implements
                 }
             });
         }
+    }
+
+
+    public void showWebXRPermission(Session aSession) {
+        String uri = aSession.getCurrentUri();
+        if (mWebXRBlockDialog == null) {
+            mWebXRBlockDialog = new WebXRBlockDialogWidget(mContext);
+        }
+        mWebXRBlockDialog.getPlacement().parentHandle = mAttachedWindow.getHandle();
+        mWebXRBlockDialog.getPlacement().parentAnchorY = 0.0f;
+        mWebXRBlockDialog.getPlacement().translationY = WidgetPlacement.unitFromMeters(mContext, R.dimen.base_app_dialog_y_distance);
+        mWebXRBlockDialog.setDescription(mContext.getString(R.string.webxr_block_dialog_description, uri));
+        mWebXRBlockDialog.setButtonsDelegate(index -> {
+            boolean allowed = index != PopUpBlockDialogWidget.NEGATIVE;
+            @Nullable SitePermission site = mWebXRSites.stream().filter((item) -> item.url.equals(uri)).findFirst().orElse(null);
+            boolean wasAllowed = site == null || site.allowed;
+            if (allowed == wasAllowed) {
+                return;
+            }
+            if (allowed) {
+                mWebXRSites.removeIf(sitePermission -> sitePermission.url.equals(uri));
+                mViewModel.deleteSite(site);
+            } else {
+                if (site == null) {
+                    site = new SitePermission(uri, false, SitePermission.SITE_PERMISSION_WEBXR);
+                    mWebXRSites.add(site);
+                }
+                site.allowed = false;
+                mViewModel.insertSite(site);
+            }
+            aSession.reload();
+        });
+        mWebXRBlockDialog.show(UIWidget.REQUEST_FOCUS);
     }
 
     @Nullable

@@ -101,6 +101,7 @@ public class NavigationURLBar extends FrameLayout {
         void onHideAwesomeBar();
         void onURLSelectionAction(EditText aURLEdit, float centerX, SelectionActionWidget actionMenu);
         void onPopUpButtonClicked();
+        void onWebXRButtonClicked();
     }
 
     public NavigationURLBar(Context context, AttributeSet attrs) {
@@ -230,6 +231,7 @@ public class NavigationURLBar extends FrameLayout {
         mBinding.clearButton.setOnClickListener(mClearListener);
 
         mBinding.popup.setOnClickListener(mPopUpListener);
+        mBinding.webxr.setOnClickListener(mWebXRButtonClick);
 
         mLoadingAnimation = AnimationUtils.loadAnimation(aContext, R.anim.loading);
 
@@ -429,6 +431,18 @@ public class NavigationURLBar extends FrameLayout {
         return mBinding.popup;
     }
 
+    public void setWebXRUsed(boolean isUsed) {
+        mBinding.setIsWebXRUsed(isUsed);
+    }
+
+    public void setWebXRAllowed(boolean isAlllowed) {
+        mBinding.setIsWebXRAllowed(isAlllowed);
+    }
+
+    public UIButton getWebxRButton() {
+        return mBinding.webxr;
+    }
+
     public  void handleURLEdit(String text) {
         text = text.trim();
         URI uri = null;
@@ -512,6 +526,17 @@ public class NavigationURLBar extends FrameLayout {
         view.requestFocusFromTouch();
         if (mDelegate != null) {
             mDelegate.onPopUpButtonClicked();
+        }
+    };
+
+    private OnClickListener mWebXRButtonClick = view -> {
+        if (mAudio != null) {
+            mAudio.playSound(AudioEngine.Sound.CLICK);
+        }
+
+        view.requestFocusFromTouch();
+        if (mDelegate != null) {
+            mDelegate.onWebXRButtonClicked();
         }
     };
 

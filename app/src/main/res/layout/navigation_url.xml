@@ -51,6 +51,14 @@
         <variable
             name="isPopUpAvailable"
             type="boolean" />
+
+        <variable
+            name="isWebXRUsed"
+            type="boolean" />
+
+        <variable
+            name="isWebXRAllowed"
+            type="boolean" />
     </data>
 
     <FrameLayout
@@ -138,10 +146,20 @@
                         android:tooltipText="@string/popup_tooltip"
                         app:visibleGone="@{isPopUpAvailable}" />
 
+                    <org.mozilla.vrbrowser.ui.views.UIButton
+                        android:id="@+id/webxr"
+                        style="@style/urlBarIconThemeStart"
+                        android:paddingStart="5dp"
+                        android:paddingEnd="5dp"
+                        android:src="@{isWebXRAllowed ? @drawable/ic_icon_webxr_allowed : @drawable/ic_icon_webxr_blocked}"
+                        android:tint="@color/fog"
+                        android:tooltipText="@{isWebXRAllowed ? @string/webxr_allowed_tooltip : @string/webxr_blocked_tooltip}"
+                        app:visibleGone="@{isWebXRUsed}" />
+
                     <View
                         android:layout_width="15dp"
                         android:layout_height="match_parent"
-                        app:visibleGone="@{!isPopUpAvailable}"/>
+                        app:visibleGone="@{!isPopUpAvailable &amp;&amp; !isWebXRUsed}"/>
                 </LinearLayout>
 
                 <LinearLayout

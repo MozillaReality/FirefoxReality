@@ -535,7 +535,7 @@ public class SettingsWidget extends UIDialog implements SettingsView.Delegate {
     }
 
     private boolean isPrivacySubView(View view) {
-        if (view instanceof AllowedPopUpsOptionsView) {
+        if (view instanceof SitePermissionsOptionsView) {
             return true;
         }
 

@@ -2,22 +2,33 @@ package org.mozilla.vrbrowser.browser;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.Application;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.lifecycle.Observer;
 
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.PlatformActivity;
 import org.mozilla.vrbrowser.R;
+import org.mozilla.vrbrowser.VRBrowserApplication;
+import org.mozilla.vrbrowser.browser.engine.Session;
+import org.mozilla.vrbrowser.browser.engine.SessionState;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
+import org.mozilla.vrbrowser.db.DataRepository;
+import org.mozilla.vrbrowser.db.SitePermission;
+import org.mozilla.vrbrowser.ui.viewmodel.SitePermissionViewModel;
 import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
 import org.mozilla.vrbrowser.ui.widgets.dialogs.PermissionWidget;
 import org.mozilla.vrbrowser.utils.SystemUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.function.Predicate;
 
 public class PermissionDelegate implements GeckoSession.PermissionDelegate, WidgetManagerDelegate.PermissionListener {
 
@@ -29,12 +40,16 @@ public class PermissionDelegate implements GeckoSession.PermissionDelegate, Widg
     private WidgetManagerDelegate mWidgetManager;
     private GeckoSession.PermissionDelegate.Callback mCallback;
     private PermissionWidget mPermissionWidget;
+    private SitePermissionViewModel mSitePermissionModel;
+    private List<SitePermission> mWebXRSites;
 
     public PermissionDelegate(Context aContext, WidgetManagerDelegate aWidgetManager) {
         mContext = aContext;
         mWidgetManager = aWidgetManager;
         mWidgetManager.addPermissionListener(this);
         SessionStore.get().setPermissionDelegate(this);
+        mSitePermissionModel = new SitePermissionViewModel((Application)aContext.getApplicationContext());
+        mSitePermissionModel.getAll(SitePermission.SITE_PERMISSION_WEBXR).observeForever(mWebXRSiteObserver);
     }
 
     public void setParentWidgetHandle(int aHandle) {
@@ -72,7 +87,34 @@ public class PermissionDelegate implements GeckoSession.PermissionDelegate, Widg
         mPermissionWidget.showPrompt(aUri, aType, aCallback);
     }
 
+    private Observer<List<SitePermission>> mWebXRSiteObserver = sites -> {
+        mWebXRSites = sites;
+    };
+
+    void handleWebXRPermission(GeckoSession aGeckoSession, final String aUri, final Callback aCallback) {
+        Session session = SessionStore.get().getSession(aGeckoSession);
+        if (session == null || !SettingsStore.getInstance(mContext).isWebXREnabled()) {
+            aCallback.reject();
+            return;
+        }
+        @Nullable SitePermission site = null;
+        if (mWebXRSites != null) {
+            site = mWebXRSites.stream()
+                    .filter(sitePermission -> sitePermission.url.startsWith(aUri))
+                    .findFirst().orElse(null);
+        }
+
+        if (site == null || site.allowed) {
+            aCallback.grant();
+            session.setWebXRState(SessionState.WEBXR_ALLOWED);
+        } else {
+            aCallback.reject();
+            session.setWebXRState(SessionState.WEBXR_NOT_ALLOWED);
+        }
+    }
+
     public void release() {
+        mSitePermissionModel.getAll(SitePermission.SITE_PERMISSION_WEBXR).removeObserver(mWebXRSiteObserver);
         mWidgetManager.removePermissionListener(this);
         SessionStore.get().setPermissionDelegate(null);
         mCallback = null;
@@ -116,16 +158,16 @@ public class PermissionDelegate implements GeckoSession.PermissionDelegate, Widg
     public void onContentPermissionRequest(GeckoSession aSession, String aUri, int aType, Callback callback) {
         Log.d(LOGTAG, "onContentPermissionRequest: " + aUri + " " + aType);
         if (aType == PERMISSION_XR) {
-            callback.grant();
+            handleWebXRPermission(aSession, aUri, callback);
             return;
         }
-
         PermissionWidget.PermissionType type;
         if (aType == PERMISSION_DESKTOP_NOTIFICATION) {
             type = PermissionWidget.PermissionType.Notification;
         } else if (aType == PERMISSION_GEOLOCATION) {
             type = PermissionWidget.PermissionType.Location;
-        } else {
+        }
+        else {
             Log.e(LOGTAG, "onContentPermissionRequest unknown permission: " + aType);
             callback.reject();
             return;
