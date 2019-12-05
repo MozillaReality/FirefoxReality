@@ -686,7 +686,7 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
         if (mLanguageSelectorView.getItems() == null || mLanguageSelectorView.getItems().size() == 0) {
             ArrayList<KeyboardSelectorView.Item> items = new ArrayList<>();
             for (KeyboardInterface keyboard: mKeyboards) {
-                items.add(new KeyboardSelectorView.Item(keyboard.getKeyboardTitle(), keyboard));
+                items.add(new KeyboardSelectorView.Item(StringUtils.capitalize(keyboard.getKeyboardTitle()), keyboard));
             }
             mLanguageSelectorView.setItems(items);
         }
