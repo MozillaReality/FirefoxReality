@@ -1352,12 +1352,11 @@ public class CustomKeyboardView extends View implements View.OnClickListener {
                             continueLongPress = true;
                         } else if (mRepeatKeyIndex == NOT_A_KEY) {
                             resetMultiTap();
-                            mLastKey = mCurrentKey;
+                            mLastKey = mDownKey;
                             mLastCodeX = mLastX;
                             mLastCodeY = mLastY;
-                            mLastKeyTime =
-                                    mCurrentKeyTime + eventTime - mLastMoveTime;
-                            mCurrentKey = keyIndex;
+                            mLastKeyTime = mCurrentKeyTime + eventTime - mLastMoveTime;
+                            mCurrentKey = mDownKey;
                             mCurrentKeyTime = 0;
                         }
                     }
