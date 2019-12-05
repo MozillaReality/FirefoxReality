@@ -185,17 +185,17 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
 
         mKeyboards = new ArrayList<>();
         mKeyboards.add(new EnglishKeyboard(aContext));
-        mKeyboards.add(new ItalianKeyboard(aContext));
+        mKeyboards.add(new ChinesePinyinKeyboard(aContext));
+        mKeyboards.add(new ChineseZhuyinKeyboard(aContext));
+        mKeyboards.add(new JapaneseKeyboard(aContext));
         mKeyboards.add(new FrenchKeyboard(aContext));
         mKeyboards.add(new GermanKeyboard(aContext));
         mKeyboards.add(new SpanishKeyboard(aContext));
         mKeyboards.add(new RussianKeyboard(aContext));
-        mKeyboards.add(new ChinesePinyinKeyboard(aContext));
-        mKeyboards.add(new ChineseZhuyinKeyboard(aContext));
         mKeyboards.add(new KoreanKeyboard(aContext));
-        mKeyboards.add(new JapaneseKeyboard(aContext));
-        mKeyboards.add(new PolishKeyboard(aContext));
+        mKeyboards.add(new ItalianKeyboard(aContext));
         mKeyboards.add(new DanishKeyboard(aContext));
+        mKeyboards.add(new PolishKeyboard(aContext));
         mKeyboards.add(new NorwegianKeyboard(aContext));
         mKeyboards.add(new SwedishKeyboard(aContext));
         mKeyboards.add(new FinnishKeyboard(aContext));
