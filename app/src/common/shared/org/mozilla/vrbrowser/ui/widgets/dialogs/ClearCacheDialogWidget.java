@@ -8,17 +8,19 @@ package org.mozilla.vrbrowser.ui.widgets.dialogs;
 import android.content.Context;
 import android.view.LayoutInflater;
 
-import androidx.annotation.IntDef;
 import androidx.databinding.DataBindingUtil;
 
 import org.mozilla.vrbrowser.R;
+import org.mozilla.vrbrowser.browser.HistoryStore;
+import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.databinding.ClearCacheDialogBinding;
-import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
+import org.mozilla.vrbrowser.utils.SystemUtils;
 
-public class ClearCacheDialogWidget extends BaseAppDialogWidget {
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 
-    @IntDef(value = { TODAY, YESTERDAY, LAST_WEEK, EVERYTHING})
-    public @interface ClearCacheRange {}
+public class ClearCacheDialogWidget extends SettingDialogWidget {
+
     public static final int TODAY = 0;
     public static final int YESTERDAY = 1;
     public static final int LAST_WEEK = 2;
@@ -37,12 +39,40 @@ public class ClearCacheDialogWidget extends BaseAppDialogWidget {
         LayoutInflater inflater = LayoutInflater.from(aContext);
 
         // Inflate this data binding layout
-        mClearCacheBinding = DataBindingUtil.inflate(inflater, R.layout.clear_cache_dialog, mBinding.dialogContent, true);
+        mClearCacheBinding = DataBindingUtil.inflate(inflater, R.layout.clear_cache_dialog, mBinding.content, true);
         mClearCacheBinding.clearCacheRadio.setChecked(0, false);
-    }
 
-    public @ClearCacheRange int getSelectedRange() {
-        return mClearCacheBinding.clearCacheRadio.getCheckedRadioButtonId();
+        mBinding.headerLayout.setTitle(R.string.history_clear);
+        mBinding.footerLayout.setFooterButtonText(R.string.history_clear_now);
+        mBinding.footerLayout.setFooterButtonClickListener((view -> {
+            Calendar date = new GregorianCalendar();
+            date.set(Calendar.HOUR_OF_DAY, 0);
+            date.set(Calendar.MINUTE, 0);
+            date.set(Calendar.SECOND, 0);
+            date.set(Calendar.MILLISECOND, 0);
+
+            long currentTime = System.currentTimeMillis();
+            long todayLimit = date.getTimeInMillis();
+            long yesterdayLimit = todayLimit - SystemUtils.ONE_DAY_MILLIS;
+            long oneWeekLimit = todayLimit - SystemUtils.ONE_WEEK_MILLIS;
+
+            HistoryStore store = SessionStore.get().getHistoryStore();
+            switch (mClearCacheBinding.clearCacheRadio.getCheckedRadioButtonId()) {
+                case ClearCacheDialogWidget.TODAY:
+                    store.deleteVisitsBetween(todayLimit, currentTime);
+                    break;
+                case ClearCacheDialogWidget.YESTERDAY:
+                    store.deleteVisitsBetween(yesterdayLimit, currentTime);
+                    break;
+                case ClearCacheDialogWidget.LAST_WEEK:
+                    store.deleteVisitsBetween(oneWeekLimit, currentTime);
+                    break;
+                case ClearCacheDialogWidget.EVERYTHING:
+                    store.deleteEverything();
+                    break;
+            }
+            SessionStore.get().purgeSessionHistory();
+        }));
     }
 
 }
