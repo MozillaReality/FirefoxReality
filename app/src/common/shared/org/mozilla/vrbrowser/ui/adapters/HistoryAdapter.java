@@ -193,10 +193,10 @@ public class HistoryAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             });
             binding.trash.setOnHoverListener(mIconHoverListener);
             binding.trash.setOnTouchListener((view, motionEvent) -> {
+                binding.setIsHovered(true);
                 int ev = motionEvent.getActionMasked();
                 switch (ev) {
                     case MotionEvent.ACTION_UP:
-                        binding.setIsHovered(true);
                         if (mHistoryItemCallback != null) {
                             mHistoryItemCallback.onDelete(view, binding.getItem());
                         }
