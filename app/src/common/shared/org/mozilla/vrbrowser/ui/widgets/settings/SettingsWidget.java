@@ -432,7 +432,9 @@ public class SettingsWidget extends UIDialog implements SettingsView.Delegate {
     }
 
     public void show(@ShowFlags int aShowFlags, @NonNull SettingDialog settingDialog) {
-        show(aShowFlags);
+        if (!isVisible()) {
+            show(aShowFlags);
+        }
 
         switch (settingDialog) {
             case LANGUAGE:

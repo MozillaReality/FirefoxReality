@@ -1427,7 +1427,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
 
         @Override
         public void onFxASynSettings(@NonNull View view) {
-            mWidgetManager.getTray().toggleSettingsDialog(SettingsWidget.SettingDialog.FXA);
+            mWidgetManager.getTray().showSettingsDialog(SettingsWidget.SettingDialog.FXA);
         }
 
         @Override
@@ -1466,7 +1466,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
 
         @Override
         public void onFxASynSettings(@NonNull View view) {
-            mWidgetManager.getTray().toggleSettingsDialog(SettingsWidget.SettingDialog.FXA);
+            mWidgetManager.getTray().showSettingsDialog(SettingsWidget.SettingDialog.FXA);
         }
 
         @Override

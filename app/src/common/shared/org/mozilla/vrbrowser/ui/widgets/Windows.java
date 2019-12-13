@@ -895,15 +895,15 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
 
                 switch (mAccounts.getLoginOrigin()) {
                     case BOOKMARKS:
-                        getFocusedWindow().switchBookmarks();
+                        getFocusedWindow().showBookmarks();
                         break;
 
                     case HISTORY:
-                        getFocusedWindow().switchHistory();
+                        getFocusedWindow().showHistory();
                         break;
 
                     case SETTINGS:
-                        mWidgetManager.getTray().toggleSettingsDialog(SettingsWidget.SettingDialog.FXA);
+                        mWidgetManager.getTray().showSettingsDialog(SettingsWidget.SettingDialog.FXA);
                         break;
                 }
             }

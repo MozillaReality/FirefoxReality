@@ -17,6 +17,7 @@ import android.view.animation.AccelerateDecelerateInterpolator;
 
 import androidx.annotation.NonNull;
 
+import org.jetbrains.annotations.NotNull;
 import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.R;
@@ -25,7 +26,6 @@ import org.mozilla.vrbrowser.browser.BookmarksStore;
 import org.mozilla.vrbrowser.browser.SessionChangeListener;
 import org.mozilla.vrbrowser.browser.engine.Session;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
-import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
 import org.mozilla.vrbrowser.ui.views.UIButton;
 import org.mozilla.vrbrowser.ui.widgets.settings.SettingsWidget;
 
@@ -388,7 +388,7 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
         toggleSettingsDialog(SettingsWidget.SettingDialog.MAIN);
     }
 
-    public void toggleSettingsDialog(SettingsWidget.SettingDialog settingDialog) {
+    public void toggleSettingsDialog(@NotNull SettingsWidget.SettingDialog settingDialog) {
         UIWidget widget = getChild(mSettingsDialogHandle);
         if (widget == null) {
             widget = createChild(SettingsWidget.class, false);
@@ -403,6 +403,20 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
         } else {
             ((SettingsWidget)widget).show(REQUEST_FOCUS, settingDialog);
         }
+    }
+
+    public void showSettingsDialog(@NotNull SettingsWidget.SettingDialog settingDialog) {
+        UIWidget widget = getChild(mSettingsDialogHandle);
+        if (widget == null) {
+            widget = createChild(SettingsWidget.class, false);
+            mSettingsDialogHandle = widget.getHandle();
+        }
+
+        if (mAttachedWindow != null) {
+            widget.getPlacement().parentHandle = mAttachedWindow.getHandle();
+        }
+
+        ((SettingsWidget)widget).show(REQUEST_FOCUS, settingDialog);
     }
 
     public void setTrayVisible(boolean aVisible) {
