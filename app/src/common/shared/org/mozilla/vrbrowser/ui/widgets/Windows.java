@@ -280,12 +280,12 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
 
         if (leftWindow == aWindow) {
             removeWindow(leftWindow);
-            if (mFocusedWindow == leftWindow) {
+            if (mFocusedWindow == leftWindow && frontWindow != null) {
                 focusWindow(frontWindow);
             }
         } else if (rightWindow == aWindow) {
             removeWindow(rightWindow);
-            if (mFocusedWindow == rightWindow) {
+            if (mFocusedWindow == rightWindow && frontWindow != null) {
                 focusWindow(frontWindow);
             }
         } else if (frontWindow == aWindow) {
@@ -296,8 +296,9 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
                 placeWindow(leftWindow, WindowPlacement.FRONT);
             }
 
-            if (mFocusedWindow == frontWindow && !getCurrentWindows().isEmpty()) {
-                focusWindow(getFrontWindow());
+            frontWindow = getFrontWindow();
+            if (mFocusedWindow == frontWindow && !getCurrentWindows().isEmpty() && frontWindow != null) {
+                focusWindow(frontWindow);
             }
 
         }
@@ -327,7 +328,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         WindowWidget leftWindow = getLeftWindow();
         WindowWidget rightWindow = getRightWindow();
 
-        if (aWindow == leftWindow) {
+        if (aWindow == leftWindow && frontWindow != null) {
             placeWindow(leftWindow, WindowPlacement.FRONT);
             placeWindow(frontWindow, WindowPlacement.LEFT);
             switchTopBars(leftWindow, frontWindow);
@@ -352,7 +353,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         WindowWidget leftWindow = getLeftWindow();
         WindowWidget rightWindow = getRightWindow();
 
-        if (aWindow == rightWindow) {
+        if (aWindow == rightWindow && frontWindow != null) {
             placeWindow(rightWindow, WindowPlacement.FRONT);
             placeWindow(frontWindow, WindowPlacement.RIGHT);
             switchTopBars(rightWindow, frontWindow);
@@ -511,7 +512,10 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             }
 
         } else {
-            focusWindow(getWindowWithPlacement(mPrivateWindowPlacement));
+            WindowWidget window = getWindowWithPlacement(mRegularWindowPlacement);
+            if (window != null) {
+                focusWindow(window);
+            }
         }
         updateViews();
         mWidgetManager.pushWorldBrightness(this, WidgetManagerDelegate.DEFAULT_DIM_BRIGHTNESS);
@@ -535,7 +539,10 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         for (WindowWidget window: mRegularWindows) {
             setWindowVisible(window, true);
         }
-        focusWindow(getWindowWithPlacement(mRegularWindowPlacement));
+        WindowWidget window = getWindowWithPlacement(mRegularWindowPlacement);
+        if (window != null) {
+            focusWindow(window);
+        }
         updateViews();
         mWidgetManager.popWorldBrightness(this);
     }
@@ -572,6 +579,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         return mPrivateMode ? mPrivateWindows : mRegularWindows;
     }
 
+    @Nullable
     private WindowWidget getWindowWithPlacement(WindowPlacement aPlacement) {
         for (WindowWidget window: getCurrentWindows()) {
             if (window.getWindowPlacement() == aPlacement) {
@@ -581,6 +589,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         return null;
     }
 
+    @Nullable
     private WindowWidget getFrontWindow() {
         if (mFullscreenWindow != null) {
             return mFullscreenWindow;
@@ -588,10 +597,12 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         return getWindowWithPlacement(WindowPlacement.FRONT);
     }
 
+    @Nullable
     private WindowWidget getLeftWindow() {
         return getWindowWithPlacement(WindowPlacement.LEFT);
     }
 
+    @Nullable
     private WindowWidget getRightWindow() {
         return getWindowWithPlacement(WindowPlacement.RIGHT);
     }
