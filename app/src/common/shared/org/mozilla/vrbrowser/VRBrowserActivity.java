@@ -219,7 +219,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         // Create broadcast receiver for getting crash messages from crash process
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(CrashReporterService.CRASH_ACTION);
-        registerReceiver(mCrashReceiver, intentFilter, getString(R.string.app_permission_name), null);
+        registerReceiver(mCrashReceiver, intentFilter, BuildConfig.APPLICATION_ID + "." + getString(R.string.app_permission_name), null);
 
         mLastGesture = NoGesture;
         super.onCreate(savedInstanceState);
