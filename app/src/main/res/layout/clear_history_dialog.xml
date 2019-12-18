@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <org.mozilla.vrbrowser.ui.views.settings.RadioGroupVSetting
-        android:id="@+id/clearCacheRadio"
+        android:id="@+id/clearHistoryRadio"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"

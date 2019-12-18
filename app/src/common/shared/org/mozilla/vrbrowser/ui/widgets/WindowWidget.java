@@ -47,7 +47,7 @@ import org.mozilla.vrbrowser.ui.callbacks.HistoryCallback;
 import org.mozilla.vrbrowser.ui.callbacks.LibraryItemContextMenuClickCallback;
 import org.mozilla.vrbrowser.ui.views.BookmarksView;
 import org.mozilla.vrbrowser.ui.views.HistoryView;
-import org.mozilla.vrbrowser.ui.widgets.dialogs.ClearCacheDialogWidget;
+import org.mozilla.vrbrowser.ui.widgets.dialogs.ClearHistoryDialogWidget;
 import org.mozilla.vrbrowser.ui.widgets.dialogs.PromptDialogWidget;
 import org.mozilla.vrbrowser.ui.widgets.dialogs.SelectionActionWidget;
 import org.mozilla.vrbrowser.ui.widgets.menus.ContextMenuWidget;
@@ -104,7 +104,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     private PromptDialogWidget mConfirmDialog;
     private PromptDialogWidget mNoInternetDialog;
     private PromptDialogWidget mAppDialog;
-    private ClearCacheDialogWidget mClearCacheDialog;
+    private ClearHistoryDialogWidget mClearHistoryDialog;
     private ContextMenuWidget mContextMenu;
     private SelectionActionWidget mSelectionMenu;
     private LibraryMenuWidget mLibraryItemContextMenu;
@@ -1289,10 +1289,10 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     }
 
     public void showClearCacheDialog() {
-        if (mClearCacheDialog == null) {
-            mClearCacheDialog = new ClearCacheDialogWidget(getContext());
+        if (mClearHistoryDialog == null) {
+            mClearHistoryDialog = new ClearHistoryDialogWidget(getContext());
         }
-        mClearCacheDialog.show(REQUEST_FOCUS);
+        mClearHistoryDialog.show(REQUEST_FOCUS);
     }
 
     public void setMaxWindowScale(float aScale) {

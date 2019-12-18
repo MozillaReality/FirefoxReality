@@ -13,22 +13,22 @@ import androidx.databinding.DataBindingUtil;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.browser.HistoryStore;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
-import org.mozilla.vrbrowser.databinding.ClearCacheDialogBinding;
+import org.mozilla.vrbrowser.databinding.ClearHistoryDialogBinding;
 import org.mozilla.vrbrowser.utils.SystemUtils;
 
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 
-public class ClearCacheDialogWidget extends SettingDialogWidget {
+public class ClearHistoryDialogWidget extends SettingDialogWidget {
 
     public static final int TODAY = 0;
     public static final int YESTERDAY = 1;
     public static final int LAST_WEEK = 2;
     public static final int EVERYTHING = 3;
 
-    private ClearCacheDialogBinding mClearCacheBinding;
+    private ClearHistoryDialogBinding mClearHistoryBinding;
 
-    public ClearCacheDialogWidget(Context aContext) {
+    public ClearHistoryDialogWidget(Context aContext) {
         super(aContext);
     }
 
@@ -39,8 +39,8 @@ public class ClearCacheDialogWidget extends SettingDialogWidget {
         LayoutInflater inflater = LayoutInflater.from(aContext);
 
         // Inflate this data binding layout
-        mClearCacheBinding = DataBindingUtil.inflate(inflater, R.layout.clear_cache_dialog, mBinding.content, true);
-        mClearCacheBinding.clearCacheRadio.setChecked(0, false);
+        mClearHistoryBinding = DataBindingUtil.inflate(inflater, R.layout.clear_history_dialog, mBinding.content, true);
+        mClearHistoryBinding.clearHistoryRadio.setChecked(0, false);
 
         mBinding.headerLayout.setTitle(R.string.history_clear);
         mBinding.footerLayout.setFooterButtonText(R.string.history_clear_now);
@@ -57,17 +57,17 @@ public class ClearCacheDialogWidget extends SettingDialogWidget {
             long oneWeekLimit = todayLimit - SystemUtils.ONE_WEEK_MILLIS;
 
             HistoryStore store = SessionStore.get().getHistoryStore();
-            switch (mClearCacheBinding.clearCacheRadio.getCheckedRadioButtonId()) {
-                case ClearCacheDialogWidget.TODAY:
+            switch (mClearHistoryBinding.clearHistoryRadio.getCheckedRadioButtonId()) {
+                case ClearHistoryDialogWidget.TODAY:
                     store.deleteVisitsBetween(todayLimit, currentTime);
                     break;
-                case ClearCacheDialogWidget.YESTERDAY:
+                case ClearHistoryDialogWidget.YESTERDAY:
                     store.deleteVisitsBetween(yesterdayLimit, currentTime);
                     break;
-                case ClearCacheDialogWidget.LAST_WEEK:
+                case ClearHistoryDialogWidget.LAST_WEEK:
                     store.deleteVisitsBetween(oneWeekLimit, currentTime);
                     break;
-                case ClearCacheDialogWidget.EVERYTHING:
+                case ClearHistoryDialogWidget.EVERYTHING:
                     store.deleteEverything();
                     break;
             }
