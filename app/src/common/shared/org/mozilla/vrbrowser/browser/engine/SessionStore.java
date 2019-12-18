@@ -16,6 +16,7 @@ import org.mozilla.vrbrowser.browser.BookmarksStore;
 import org.mozilla.vrbrowser.browser.HistoryStore;
 import org.mozilla.vrbrowser.browser.PermissionDelegate;
 import org.mozilla.vrbrowser.browser.Services;
+import org.mozilla.vrbrowser.browser.engine.gecko.FxRSessionManager;
 import org.mozilla.vrbrowser.utils.SystemUtils;
 
 import java.util.ArrayList;
@@ -44,6 +45,7 @@ public class SessionStore implements GeckoSession.PermissionDelegate {
     private HistoryStore mHistoryStore;
     private Services mServices;
     private boolean mSuspendPending;
+    private FxRSessionManager mSessionManager;
 
     private SessionStore() {
         mSessions = new ArrayList<>();
@@ -56,23 +58,24 @@ public class SessionStore implements GeckoSession.PermissionDelegate {
         SessionUtils.vrPrefsWorkAround(context, aExtras);
 
         mRuntime = EngineProvider.INSTANCE.getOrCreateRuntime(context);
-    }
+        setLocales(LocaleUtils.getPreferredLocales(mContext));
 
-    public void initializeServices() {
         mServices = ((VRBrowserApplication)mContext.getApplicationContext()).getServices();
-    }
 
-    public void initializeStores(Context context) {
         mBookmarksStore = new BookmarksStore(context);
         mHistoryStore = new HistoryStore(context);
+
+        mSessionManager = new FxRSessionManager(mContext, this);
     }
 
     @NonNull
     private Session addSession(@NonNull Session aSession) {
         aSession.setPermissionDelegate(this);
         aSession.addNavigationListener(mServices);
+        aSession.addSessionChangeListener(mSessionManager);
         mSessions.add(aSession);
         sessionActiveStateChanged();
+
         return aSession;
     }
 
@@ -111,6 +114,7 @@ public class SessionStore implements GeckoSession.PermissionDelegate {
         mSessions.remove(aSession);
         if (aSession != null) {
             shutdownSession(aSession);
+            aSession.removeSessionChangeListener(mSessionManager);
         }
     }
 
@@ -130,6 +134,10 @@ public class SessionStore implements GeckoSession.PermissionDelegate {
                 session.suspend();
             }
         }
+    }
+
+    public GeckoRuntime getRuntime() {
+        return mRuntime;
     }
 
     public @Nullable Session getSession(String aId) {
@@ -327,4 +335,5 @@ public class SessionStore implements GeckoSession.PermissionDelegate {
             mPermissionDelegate.onMediaPermissionRequest(session, uri, video, audio, callback);
         }
     }
+
 }

@@ -30,8 +30,8 @@ import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.vrbrowser.R
 import org.mozilla.vrbrowser.browser.engine.EngineProvider
-import org.mozilla.vrbrowser.utils.SystemUtils
 import org.mozilla.vrbrowser.telemetry.GleanMetricsService
+import org.mozilla.vrbrowser.utils.SystemUtils
 
 
 class Services(val context: Context, places: Places): GeckoSession.NavigationDelegate {
