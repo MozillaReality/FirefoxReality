@@ -67,12 +67,12 @@ public class CrashDialogWidget extends PromptDialogWidget {
             }
         });
 
-        setCheckboxVisible(false);
         setDescriptionVisible(false);
 
         setIcon(R.drawable.ff_logo);
         setTitle(R.string.crash_dialog_heading);
         setBody(getContext().getString(R.string.crash_dialog_message, getContext().getString(R.string.app_name)));
+        setCheckboxText(R.string.crash_dialog_send_data);
         setLinkDelegate(() -> {
             mWidgetManager.openNewTabForeground(getContext().getString(R.string.crash_dialog_learn_more_url));
             onDismiss();
