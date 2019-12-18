@@ -139,7 +139,7 @@ public class GeckoEngineSession extends EngineSession {
                     return null;
                 });
             }
-            return new GeckoResult<Void>();
+            return GeckoResult.fromValue(Void.TYPE);
         });
     }
 
@@ -169,7 +169,7 @@ public class GeckoEngineSession extends EngineSession {
                     return null;
                 });
             }
-            return new GeckoResult<Void>();
+            return GeckoResult.fromValue(Void.TYPE);
         });
     }
 

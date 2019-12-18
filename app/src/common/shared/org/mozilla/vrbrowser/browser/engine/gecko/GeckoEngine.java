@@ -8,6 +8,7 @@ import androidx.annotation.Nullable;
 
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
+import org.mozilla.geckoview.AllowOrDeny;
 import org.mozilla.geckoview.ContentBlocking;
 import org.mozilla.geckoview.ContentBlockingController;
 import org.mozilla.geckoview.GeckoResult;
@@ -18,6 +19,7 @@ import org.mozilla.vrbrowser.browser.engine.SessionStore;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.WeakHashMap;
 import java.util.stream.Collectors;
 
 import kotlin.Unit;
@@ -63,7 +65,7 @@ public class GeckoEngine implements Engine {
     @NotNull
     @Override
     public TrackingProtectionExceptionStorage getTrackingProtectionExceptionStore() {
-        return null;
+        throw new UnsupportedOperationException("getTrackingProtectionExceptionStore not supported yet");
     }
 
     @NotNull
@@ -117,26 +119,31 @@ public class GeckoEngine implements Engine {
     @Override
     public EngineView createView(@NotNull Context context, @Nullable AttributeSet attributeSet) {
         // We don't support Engine views creation
-        return null;
+        throw new UnsupportedOperationException("createView not supported yet");
     }
 
     @Override
     public void getTrackersLog(@NotNull EngineSession engineSession, @NotNull Function1<? super List<TrackerLog>, Unit> onSuccess, @NotNull Function1<? super Throwable, Unit> onError) {
         GeckoSession session = ((GeckoEngineSession)engineSession).getGeckoSession();
-        mSessionStore.getRuntime().getContentBlockingController().getLog(session).then(logEntries -> {
-            List<ContentBlockingController.LogEntry> list = new ArrayList<>();
-            if (logEntries!= null) {
-                list = logEntries;
-            }
-            List<TrackerLog> logs = list.stream().map(this::toTrackerLog).filter(it -> !(it.getCookiesHasBeenBlocked() && it.getBlockedCategories().isEmpty() && it.getLoadedCategories().isEmpty())).collect(Collectors.toCollection(ArrayList::new));
+        if (session != null) {
+            mSessionStore.getRuntime().getContentBlockingController().getLog(session).then(logEntries -> {
+                List<ContentBlockingController.LogEntry> list = new ArrayList<>();
+                if (logEntries!= null) {
+                    list = logEntries;
+                }
+                List<TrackerLog> logs = list.stream().map(this::toTrackerLog).filter(it -> !(it.getCookiesHasBeenBlocked() && it.getBlockedCategories().isEmpty() && it.getLoadedCategories().isEmpty())).collect(Collectors.toCollection(ArrayList::new));
 
-            onSuccess.invoke(logs);
-            return new GeckoResult<>();
+                onSuccess.invoke(logs);
+                return GeckoResult.fromValue(Void.TYPE);
 
-        }, throwable -> {
-            onError.invoke(throwable);
-            return new GeckoResult<>();
-        });
+            }, throwable -> {
+                onError.invoke(throwable);
+                return GeckoResult.fromException(throwable);
+            });
+
+        } else {
+            onError.invoke(new NullPointerException("The GeckoSession instance is null"));
+        }
     }
 
     @Override
@@ -148,13 +155,11 @@ public class GeckoEngine implements Engine {
             }
 
             onSuccess.invoke(extension);
-
-            return new GeckoResult<>();
+            return GeckoResult.fromValue(Void.TYPE);
 
         }, throwable -> {
             onError.invoke(id, throwable);
-
-            return new GeckoResult<>();
+            return GeckoResult.fromException(throwable);
         });
     }
 
@@ -169,16 +174,57 @@ public class GeckoEngine implements Engine {
         mWebExtensionDelegate = webExtensionDelegate;
 
         mSessionStore.getRuntime().getWebExtensionController().setTabDelegate(new WebExtensionController.TabDelegate() {
+            // We use this map to find the engine session of a given gecko
+            // session, as we currently have no other way of accessing the
+            // list of engine sessions. This will change once the engine
+            // gets access to the browser store:
+            // https://github.com/mozilla-mobile/android-components/issues/4965
+            private WeakHashMap<GeckoEngineSession, String> tabs = new WeakHashMap<>();
+
             @NotNull
             @Override
-            public GeckoResult<GeckoSession> onNewTab(@androidx.annotation.Nullable org.mozilla.geckoview.WebExtension webExtension, @androidx.annotation.Nullable String url) {
+            public GeckoResult<GeckoSession> onNewTab(@Nullable org.mozilla.geckoview.WebExtension webExtension, @Nullable String url) {
                 Session session = mSessionStore.createSession(mSessionStore.getActiveSession().isPrivateMode());
+                GeckoEngineSession geckoEngineSession = new GeckoEngineSession(mContext, session);
+                GeckoWebExtension extension = null;
                 if (webExtension != null) {
-                    GeckoWebExtension extension = new GeckoWebExtension(webExtension.id, webExtension.location, true);
-                    mWebExtensionDelegate.onNewTab(extension, url != null ? url : "", new GeckoEngineSession(mContext, session));
+                    extension = new GeckoWebExtension(webExtension.id, webExtension.location, true);
                 }
 
-                return GeckoResult.fromValue(session.getGeckoSession());
+                mWebExtensionDelegate.onNewTab(extension, url != null ? url : "", geckoEngineSession);
+                if (webExtension != null) {
+                    tabs.put(geckoEngineSession, webExtension.id);
+                }
+
+                return GeckoResult.fromValue(geckoEngineSession.getGeckoSession());
+            }
+
+            @NonNull
+            @Override
+            public GeckoResult<AllowOrDeny> onCloseTab(@Nullable org.mozilla.geckoview.WebExtension webExtension, @NonNull GeckoSession geckoSession) {
+                GeckoEngineSession geckoEngineSession = null;
+                for (GeckoEngineSession engineSession : tabs.keySet()) {
+                    if (engineSession.getGeckoSession() == geckoSession) {
+                        geckoEngineSession = engineSession;
+                    }
+                }
+
+                if (geckoEngineSession == null) {
+                    return GeckoResult.DENY;
+                }
+
+                if (webExtension != null && tabs.get(geckoEngineSession).equals(webExtension.id)) {
+                    GeckoWebExtension geckoWebExtension = new GeckoWebExtension(webExtension.id, webExtension.location, true);
+                    if (webExtensionDelegate.onCloseTab(geckoWebExtension, geckoEngineSession)) {
+                        return GeckoResult.ALLOW;
+
+                    } else {
+                        return GeckoResult.DENY;
+                    }
+
+                } else {
+                    return GeckoResult.DENY;
+                }
             }
         });
     }
@@ -186,18 +232,20 @@ public class GeckoEngine implements Engine {
     @Override
     public void registerWebNotificationDelegate(@NotNull WebNotificationDelegate webNotificationDelegate) {
         // Not yet implemented
+        throw new UnsupportedOperationException("registerWebNotificationDelegate not yet supported");
     }
 
     @NotNull
     @Override
     public WebPushHandler registerWebPushDelegate(@NotNull WebPushDelegate webPushDelegate) {
         // Not yet implemented
-        return null;
+        throw new UnsupportedOperationException("registerWebPushDelegate not yet supported");
     }
 
     @Override
     public void speculativeConnect(@NotNull String s) {
         // Not yet implemented
+        throw new UnsupportedOperationException("speculativeConnect not yet supported");
     }
 
     @Override
