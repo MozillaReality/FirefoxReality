@@ -140,7 +140,7 @@ public class FxRSettings extends Settings {
 
     @Override
     public boolean getSuspendMediaWhenInactive() {
-        return false;
+        return true;
     }
 
     @Override
