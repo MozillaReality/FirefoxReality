@@ -17,7 +17,6 @@ import android.view.animation.AccelerateDecelerateInterpolator;
 
 import androidx.annotation.NonNull;
 
-import org.jetbrains.annotations.NotNull;
 import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.R;
@@ -388,7 +387,7 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
         toggleSettingsDialog(SettingsWidget.SettingDialog.MAIN);
     }
 
-    public void toggleSettingsDialog(@NotNull SettingsWidget.SettingDialog settingDialog) {
+    public void toggleSettingsDialog(@NonNull SettingsWidget.SettingDialog settingDialog) {
         UIWidget widget = getChild(mSettingsDialogHandle);
         if (widget == null) {
             widget = createChild(SettingsWidget.class, false);
@@ -405,7 +404,7 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
         }
     }
 
-    public void showSettingsDialog(@NotNull SettingsWidget.SettingDialog settingDialog) {
+    public void showSettingsDialog(@NonNull SettingsWidget.SettingDialog settingDialog) {
         UIWidget widget = getChild(mSettingsDialogHandle);
         if (widget == null) {
             widget = createChild(SettingsWidget.class, false);

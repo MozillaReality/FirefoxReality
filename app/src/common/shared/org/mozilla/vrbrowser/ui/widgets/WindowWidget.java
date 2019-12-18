@@ -27,7 +27,6 @@ import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
 import androidx.annotation.UiThread;
 
-import org.jetbrains.annotations.NotNull;
 import org.mozilla.geckoview.GeckoResult;
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.geckoview.PanZoomController;
@@ -1343,7 +1342,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         return (int) Math.floor(SettingsStore.WINDOW_WIDTH_DEFAULT * aWorldWidth / WidgetPlacement.floatDimension(getContext(), R.dimen.window_world_width));
     }
 
-    private void showLibraryItemContextMenu(@NotNull View view, LibraryMenuWidget.LibraryContextMenuItem item, boolean isLastVisibleItem) {
+    private void showLibraryItemContextMenu(@NonNull View view, LibraryMenuWidget.LibraryContextMenuItem item, boolean isLastVisibleItem) {
         view.requestFocusFromTouch();
 
         hideContextMenus();
@@ -1415,7 +1414,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
 
     private BookmarksCallback mBookmarksListener = new BookmarksCallback() {
         @Override
-        public void onShowContextMenu(@NonNull View view, @NotNull Bookmark item, boolean isLastVisibleItem) {
+        public void onShowContextMenu(@NonNull View view, @NonNull Bookmark item, boolean isLastVisibleItem) {
             showLibraryItemContextMenu(
                     view,
                     new LibraryMenuWidget.LibraryContextMenuItem(
