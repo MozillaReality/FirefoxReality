@@ -69,7 +69,7 @@ public class CrashDialogWidget extends PromptDialogWidget {
 
         setDescriptionVisible(false);
 
-        setIcon(R.drawable.ff_logo);
+        setIcon(R.drawable.sad_fox);
         setTitle(R.string.crash_dialog_heading);
         setBody(getContext().getString(R.string.crash_dialog_message, getContext().getString(R.string.app_name)));
         setCheckboxText(R.string.crash_dialog_send_data);
