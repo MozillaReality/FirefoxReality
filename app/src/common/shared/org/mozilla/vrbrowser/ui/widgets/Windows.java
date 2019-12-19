@@ -602,8 +602,9 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
     }
 
     private void restoreWindows() {
+        boolean restoreEnabled = SettingsStore.getInstance(mContext).isRestoreTabsEnabled();
         WindowsState windowsState = restoreState();
-        if (windowsState != null) {
+        if (restoreEnabled && windowsState != null) {
             ArrayList<Session> restoredSessions = new ArrayList<>();
             if (windowsState.tabs != null) {
                 windowsState.tabs.forEach(state -> {
