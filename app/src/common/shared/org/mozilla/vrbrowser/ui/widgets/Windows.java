@@ -146,7 +146,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         restoreWindows();
     }
 
-    private void saveState() {
+    public void saveState() {
         File file = new File(mContext.getFilesDir(), WINDOWS_SAVE_FILENAME);
         try (Writer writer = new FileWriter(file)) {
             WindowsState state = new WindowsState();
