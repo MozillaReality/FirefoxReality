@@ -78,4 +78,11 @@ public class CrashDialogWidget extends PromptDialogWidget {
             onDismiss();
         });
     }
+
+    @Override
+    public void show(int aShowFlags) {
+        mBinding.checkbox.setChecked(false);
+
+        super.show(aShowFlags);
+    }
 }
