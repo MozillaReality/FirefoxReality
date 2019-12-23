@@ -186,6 +186,7 @@ public class HistoryAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                         return true;
 
                     case MotionEvent.ACTION_CANCEL:
+                        binding.setIsHovered(false);
                         binding.more.setImageState(new int[]{android.R.attr.state_active},true);
                         return false;
                 }
@@ -208,6 +209,7 @@ public class HistoryAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                         return true;
 
                     case MotionEvent.ACTION_CANCEL:
+                        binding.setIsHovered(false);
                         binding.trash.setImageState(new int[]{android.R.attr.state_active},true);
                         return false;
                 }
