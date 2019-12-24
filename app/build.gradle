@@ -8,6 +8,8 @@ apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 apply plugin: "org.mozilla.telemetry.glean-gradle-plugin"
 
+def devSuffix = ".dev"
+
 def getGitHash = { ->
     def stdout = new ByteArrayOutputStream()
     exec {
@@ -26,7 +28,7 @@ def getCrashRestartDisabled = { ->
 
 def getDevApplicationIdSuffix = { ->
     if (gradle.hasProperty("userProperties.simultaneousDevProduction")) {
-        return gradle."userProperties.simultaneousDevProduction" == "true" ? ".dev" : ""
+        return gradle."userProperties.simultaneousDevProduction" == "true" ? devSuffix : ""
     }
     return ""
 }
@@ -44,6 +46,7 @@ ext.gleanDocsDirectory = "$rootDir/docs"
 
 android {
     compileSdkVersion build_versions.target_sdk
+
     defaultConfig {
         applicationId "org.mozilla.vrbrowser"
         minSdkVersion build_versions.min_sdk
@@ -193,7 +196,7 @@ android {
                     arguments "-DVR_SDK_LIB=wavevr-lib", "-DWAVEVR=ON"
                 }
             }
-            applicationIdSuffix ".wavevr"
+            applicationIdSuffix devSuffix
         }
 
         wavevrStore {
