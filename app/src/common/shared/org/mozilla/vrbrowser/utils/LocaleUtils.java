@@ -64,9 +64,13 @@ public class LocaleUtils {
     }
 
     public static void resetLanguages() {
-        String currentLocale = getCurrentLocale();
-        mLanguagesCache.values().stream().forEach((language) -> {
-            language.setPreferred(language.getId().equals(currentLocale));
+        mLanguagesCache.values().forEach((language) -> {
+            if (language == getDeviceLanguage()) {
+                language.setPreferred(true);
+
+            } else {
+                language.setPreferred(false);
+            }
         });
     }
 
