@@ -202,6 +202,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         return mFocusedWindow;
     }
 
+    @NonNull
     public WindowWidget addWindow() {
         if (getCurrentWindows().size() >= MAX_WINDOWS) {
             return null;
@@ -848,6 +849,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         }
     }
 
+    @NonNull
     private WindowWidget createWindow(@Nullable Session aSession) {
         int newWindowId = sIndex++;
         WindowWidget window;
@@ -1025,7 +1027,9 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
     // Title Bar Delegate
     @Override
     public void onTitleClicked(@NonNull TitleBarWidget titleBar) {
-        focusWindow(titleBar.getAttachedWindow());
+        if (titleBar.getAttachedWindow() != null) {
+            focusWindow(titleBar.getAttachedWindow());
+        }
     }
 
     @Override
@@ -1088,12 +1092,12 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
 
     // WindowWidget.Delegate
     @Override
-    public void onFocusRequest(WindowWidget aWindow) {
+    public void onFocusRequest(@NonNull WindowWidget aWindow) {
         focusWindow(aWindow);
     }
 
     @Override
-    public void onBorderChanged(WindowWidget aWindow) {
+    public void onBorderChanged(@NonNull WindowWidget aWindow) {
         if (mDelegate != null) {
             mDelegate.onWindowBorderChanged(aWindow);
         }
