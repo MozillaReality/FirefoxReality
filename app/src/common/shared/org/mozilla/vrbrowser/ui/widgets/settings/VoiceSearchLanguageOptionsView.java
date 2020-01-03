@@ -58,16 +58,24 @@ class VoiceSearchLanguageOptionsView extends SettingsView {
     @Override
     protected boolean reset() {
         String systemLocale = LocaleUtils.getClosestSupportedLocale(getContext(), LocaleUtils.getDeviceLanguage().getId());
-        String value = LocaleUtils.getSupportedLocaleForIndex(mBinding.languageRadio.getCheckedRadioButtonId());
-        if (!value.equals(systemLocale)) {
-            setLanguage(LocaleUtils.getIndexForSupportedLocale(LocaleUtils.getSystemLocale()), true);
-        }
+        String currentLocale = LocaleUtils.getCurrentLocale();
+        if (currentLocale.equalsIgnoreCase(systemLocale)) {
+            setLanguage(LocaleUtils.getIndexForSupportedLocale(systemLocale), false);
+            return false;
 
-        return false;
+        } else {
+            setLanguage(LocaleUtils.getIndexForSupportedLocale(systemLocale), true);
+            return true;
+        }
     }
 
     private RadioGroupSetting.OnCheckedChangeListener mLanguageListener = (radioGroup, checkedId, doApply) -> {
-        setLanguage(checkedId, true);
+        String currentLocale = LocaleUtils.getCurrentLocale();
+        String locale = LocaleUtils.getSupportedLocaleForIndex(mBinding.languageRadio.getCheckedRadioButtonId());
+
+        if (!locale.equalsIgnoreCase(currentLocale)) {
+            setLanguage(checkedId, true);
+        }
     };
 
     private OnClickListener mResetListener = (view) -> {
@@ -79,7 +87,8 @@ class VoiceSearchLanguageOptionsView extends SettingsView {
         mBinding.languageRadio.setChecked(checkedId, doApply);
         mBinding.languageRadio.setOnCheckedChangeListener(mLanguageListener);
 
-        LocaleUtils.setVoiceSearchLocale(getContext(), LocaleUtils.getSupportedLocaleForIndex(checkedId));
+        String locale = LocaleUtils.getSupportedLocaleForIndex(checkedId);
+        LocaleUtils.setVoiceSearchLocale(getContext(), locale);
     }
 
     @Override

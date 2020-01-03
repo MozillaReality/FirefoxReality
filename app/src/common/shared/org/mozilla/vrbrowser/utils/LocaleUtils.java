@@ -60,6 +60,14 @@ public class LocaleUtils {
             mLanguagesCache.put(languageId, locale);
         }
 
+        Locale locale = Locale.forLanguageTag(Resources.getSystem().getConfiguration().getLocales().get(0).toLanguageTag());
+        String languageId = locale.toLanguageTag();
+        if (!mLanguagesCache.containsKey(languageId)) {
+            String displayName = locale.getDisplayName().substring(0, 1).toUpperCase() + locale.getDisplayName().substring(1);
+            Language language = new Language(languageId, displayName + " [" + languageId + "]");
+            mLanguagesCache.put(languageId, language);
+        }
+
         return mLanguagesCache;
     }
 
@@ -98,8 +106,18 @@ public class LocaleUtils {
         if (savedLanguages != null) {
             for (String language : savedLanguages) {
                 Language lang = languages.get(language);
-                lang.setPreferred(true);
-                preferredLanguages.add(lang);
+                if (lang != null) {
+                    lang.setPreferred(true);
+                    preferredLanguages.add(lang);
+                }
+            }
+
+            if (preferredLanguages.isEmpty()) {
+                Language lang = languages.get(Locale.getDefault().toLanguageTag());
+                if (lang != null) {
+                    lang.setPreferred(true);
+                    preferredLanguages.add(lang);
+                }
             }
 
         } else {
