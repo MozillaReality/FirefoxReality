@@ -260,7 +260,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
             closeFloatingMenus();
 
             if (!wasVisible) {
-                mProjectionMenu.setVisible(true);
+                mProjectionMenu.show(REQUEST_FOCUS);
             }
         });
 
@@ -676,6 +676,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
             mMediaControlsWidget.getPlacement().visible = false;
             mWidgetManager.addWidget(mMediaControlsWidget);
             mMediaControlsWidget.setBackHandler(mVRVideoBackHandler);
+            mMediaControlsWidget.setOnClickListener(v -> v.requestFocusFromTouch());
         }
         mMediaControlsWidget.setProjectionMenuWidget(mProjectionMenu);
         mMediaControlsWidget.setMedia(mFullScreenMedia);
@@ -746,10 +747,10 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
 
     private void closeFloatingMenus() {
         if (mProjectionMenu != null) {
-            mProjectionMenu.setVisible(false);
+            mProjectionMenu.hide(KEEP_WIDGET);
         }
         if (mBrightnessWidget != null) {
-            mBrightnessWidget.setVisible(false);
+            mBrightnessWidget.hide(KEEP_WIDGET);
         }
     }
 
