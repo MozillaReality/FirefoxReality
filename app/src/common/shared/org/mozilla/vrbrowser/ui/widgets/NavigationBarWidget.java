@@ -702,6 +702,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         boolean composited = mProjectionMenu.getPlacement().composited;
         mProjectionMenu.getPlacement().copyFrom(mProjectionMenuPlacement);
         mProjectionMenu.getPlacement().composited = composited;
+        mProjectionMenu.setSelectedProjection(VIDEO_PROJECTION_NONE);
         mWidgetManager.updateWidget(mProjectionMenu);
         closeFloatingMenus();
         mWidgetManager.setControllersVisible(true);
