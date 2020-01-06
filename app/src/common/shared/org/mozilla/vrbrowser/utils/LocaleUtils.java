@@ -172,7 +172,11 @@ public class LocaleUtils {
 
     @NonNull
     public static String getVoiceSearchLocale(@NonNull Context aContext) {
-        return SettingsStore.getInstance(aContext).getVoiceSearchLocale();
+        String locale = SettingsStore.getInstance(aContext).getVoiceSearchLocale();
+        if (locale == null) {
+            locale = LocaleUtils.getDefaultSupportedLocale(aContext);
+        }
+        return locale;
     }
 
     public static void setVoiceSearchLocale(@NonNull Context context, @NonNull String locale) {
@@ -187,6 +191,9 @@ public class LocaleUtils {
     @NonNull
     public static String getDisplayLocale(Context context) {
         String locale = SettingsStore.getInstance(context).getDisplayLocale();
+        if (locale == null) {
+            locale = LocaleUtils.getDefaultSupportedLocale(context);
+        }
         return mapOldLocaleToNew((locale));
     }
 
@@ -200,7 +207,11 @@ public class LocaleUtils {
     }
 
     public static Context setLocale(@NonNull Context context) {
-        return updateResources(context, SettingsStore.getInstance(context).getDisplayLocale());
+        String locale = SettingsStore.getInstance(context).getDisplayLocale();
+        if (locale == null) {
+            locale = LocaleUtils.getDefaultSupportedLocale(context);
+        }
+        return updateResources(context, locale);
     }
 
     private static Context updateResources(@NonNull Context context, @NonNull String language) {
@@ -340,7 +351,8 @@ public class LocaleUtils {
             return language.get().locale.toLanguageTag();
 
         } else {
-            return getDisplayLocale(context);
+            // If there is no closest supported locale we fallback to en-US
+            return "en-US";
         }
     }
 
