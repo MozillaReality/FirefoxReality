@@ -12,6 +12,7 @@ import android.view.LayoutInflater;
 import androidx.databinding.DataBindingUtil;
 
 import org.mozilla.vrbrowser.R;
+import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.databinding.OptionsLanguageVoiceBinding;
 import org.mozilla.vrbrowser.ui.views.settings.RadioGroupSetting;
@@ -65,6 +66,7 @@ class VoiceSearchLanguageOptionsView extends SettingsView {
 
         } else {
             setLanguage(LocaleUtils.getIndexForSupportedLocale(systemLocale), true);
+            SettingsStore.getInstance(getContext()).setVoiceSearchLocale(null);
             return true;
         }
     }
@@ -87,8 +89,10 @@ class VoiceSearchLanguageOptionsView extends SettingsView {
         mBinding.languageRadio.setChecked(checkedId, doApply);
         mBinding.languageRadio.setOnCheckedChangeListener(mLanguageListener);
 
-        String locale = LocaleUtils.getSupportedLocaleForIndex(checkedId);
-        LocaleUtils.setVoiceSearchLocale(getContext(), locale);
+        if (doApply) {
+            String locale = LocaleUtils.getSupportedLocaleForIndex(checkedId);
+            LocaleUtils.setVoiceSearchLocale(getContext(), locale);
+        }
     }
 
     @Override
