@@ -23,7 +23,7 @@ class LoadingAnimation {
 public:
   static LoadingAnimationPtr Create(vrb::CreationContextPtr aContext);
   void LoadModels(const vrb::ModelLoaderAndroidPtr& aLoader);
-  void Update();
+  void Update(vrb::RenderContextPtr aContext);
   vrb::NodePtr GetRoot() const;
 protected:
   struct State;

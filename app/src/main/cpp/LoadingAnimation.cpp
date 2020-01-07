@@ -12,20 +12,25 @@
 #include "vrb/TextureGL.h"
 #include "vrb/Toggle.h"
 #include "vrb/Transform.h"
+#include "vrb/RenderContext.h"
 
 #include "Quad.h"
 
 namespace crow {
 
+static const float scale = 0.05f;
+
 struct LoadingAnimation::State {
   vrb::CreationContextWeak context;
   vrb::TextureGLPtr texture;
   vrb::TogglePtr root;
-  vrb::TransformPtr spinner;
-  float rotation;
+  vrb::TransformPtr fox;
+  vrb::TransformPtr globe;
+  float globe_rotation;
+  double timeStamp;
 
   State()
-      : rotation(0.0f)
+      : timeStamp(0), globe_rotation(0.0f)
   {}
 
   void Initialize() {
@@ -39,33 +44,49 @@ struct LoadingAnimation::State {
 
 void
 LoadingAnimation::LoadModels(const vrb::ModelLoaderAndroidPtr& aLoader) {
-  if (m.spinner) {
+  if (m.fox && m.globe) {
     return;
   }
   vrb::CreationContextPtr ctx = m.context.lock();
-  m.spinner = vrb::Transform::Create(ctx);
-  m.root->AddNode(m.spinner);
-  aLoader->LoadModel("spinners_v3.obj", m.spinner);
+  m.fox = vrb::Transform::Create(ctx);
+  m.globe = vrb::Transform::Create(ctx);
+  m.root->AddNode(m.fox);
+  m.root->AddNode(m.globe);
+  aLoader->LoadModel("spinner/fxr_spinner_fox.obj", m.fox);
+  aLoader->LoadModel("spinner/fxr_spinner_globe.obj", m.globe);
+
+  vrb::Matrix foxTransform = vrb::Matrix::Identity();
+  foxTransform.ScaleInPlace(vrb::Vector(scale, scale, scale));
+  foxTransform.PreMultiplyInPlace(vrb::Matrix::Position(vrb::Vector(0.0f, 0.0f, -1.5f)));
+  m.fox->SetTransform(foxTransform);
 }
 
-
 void
-LoadingAnimation::Update() {
-  if (!m.spinner) {
+LoadingAnimation::Update(vrb::RenderContextPtr aContext) {
+  const double ctime = aContext->GetTimestamp();
+
+  if (m.timeStamp <= 0.0) {
+    m.timeStamp = ctime;
     return;
   }
-  m.rotation += 0.07f;
+
+  const double delta = ctime - m.timeStamp;
+  m.timeStamp = ctime;
+
+  if (!m.fox || !m.globe) {
+    return;
+  }
+  m.globe_rotation += 0.5f * delta;
   const float max = 2.0f * (float)M_PI;
-  if (m.rotation > max) {
-     m.rotation -= max;
+  if (m.globe_rotation > max) {
+     m.globe_rotation -= max;
   }
 
-  vrb::Matrix transform = vrb::Matrix::Identity();
-  const float scale = 0.05f;
-  transform.ScaleInPlace(vrb::Vector(scale, scale, scale));
-  transform.PreMultiplyInPlace(vrb::Matrix::Rotation(vrb::Vector(0.0f, 1.0f, 0.0f), m.rotation));
-  transform.PreMultiplyInPlace(vrb::Matrix::Position(vrb::Vector(0.0f, 0.0f, -1.5f)));
-  m.spinner->SetTransform(transform);
+  vrb::Matrix globeTransform = vrb::Matrix::Identity();
+  globeTransform.ScaleInPlace(vrb::Vector(scale, scale, scale));
+  globeTransform.PreMultiplyInPlace(vrb::Matrix::Rotation(vrb::Vector(0.0f, 1.0f, 0.0f), m.globe_rotation));
+  globeTransform.PreMultiplyInPlace(vrb::Matrix::Position(vrb::Vector(0.0f, 0.0f, -1.5f)));
+  m.globe->SetTransform(globeTransform);
 }
 
 vrb::NodePtr
