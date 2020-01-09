@@ -6,6 +6,7 @@ import android.graphics.Region;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.ViewTreeObserver;
 
 import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
@@ -17,28 +18,36 @@ import java.util.Deque;
 public class VectorClippedEventDelegate implements View.OnHoverListener, View.OnTouchListener {
 
     private View mView;
+    private @DrawableRes int mRes;
     private Region mRegion;
     private boolean mHovered;
     private boolean mTouched;
     private OnClickListener mClickListener;
 
-    public VectorClippedEventDelegate(@DrawableRes int res, @NonNull View view) {
+    VectorClippedEventDelegate(@DrawableRes int res, @NonNull View view) {
         mView = view;
+        mRes = res;
         mHovered = false;
         mTouched = false;
 
-        view.getViewTreeObserver().addOnGlobalLayoutListener(
-                () -> {
-                    Path path = createPathFromResource(res);
-                    RectF bounds = new RectF();
-                    path.computeBounds(bounds, true);
-
-                    bounds = new RectF();
-                    path.computeBounds(bounds, true);
-                    mRegion = new Region();
-                    mRegion.setPath(path, new Region((int) bounds.left, (int) bounds.top, (int) bounds.right, (int) bounds.bottom));
-                });
+        view.getViewTreeObserver().addOnGlobalLayoutListener(mLayoutListener);
     }
+
+    private ViewTreeObserver.OnGlobalLayoutListener mLayoutListener = new ViewTreeObserver.OnGlobalLayoutListener() {
+        @Override
+        public void onGlobalLayout() {
+            Path path = createPathFromResource(mRes);
+            RectF bounds = new RectF();
+            path.computeBounds(bounds, true);
+
+            bounds = new RectF();
+            path.computeBounds(bounds, true);
+            mRegion = new Region();
+            mRegion.setPath(path, new Region((int) bounds.left, (int) bounds.top, (int) bounds.right, (int) bounds.bottom));
+
+            mView.getViewTreeObserver().removeOnGlobalLayoutListener(mLayoutListener);
+        }
+    };
 
     public void setOnClickListener(OnClickListener listener) {
         mClickListener = listener;
@@ -57,14 +66,14 @@ public class VectorClippedEventDelegate implements View.OnHoverListener, View.On
 
     @Override
     public boolean onHover(View v, MotionEvent event) {
-        if(!mRegion.contains((int)event.getX(),(int) event.getY())) {
+        if(!isInside(event)) {
             if (mHovered) {
                 mHovered = false;
                 event.setAction(MotionEvent.ACTION_HOVER_EXIT);
                 return v.onHoverEvent(event);
             }
 
-            return true;
+            return false;
 
         } else {
             if (!mHovered) {
@@ -80,7 +89,7 @@ public class VectorClippedEventDelegate implements View.OnHoverListener, View.On
     public boolean onTouch(View v, MotionEvent event) {
         v.getParent().requestDisallowInterceptTouchEvent(true);
 
-        if(!mRegion.contains((int)event.getX(),(int) event.getY())) {
+        if(!isInside(event)) {
             switch (event.getAction()) {
                 case MotionEvent.ACTION_UP:
                     if (mTouched) {
@@ -126,6 +135,10 @@ public class VectorClippedEventDelegate implements View.OnHoverListener, View.On
 
             return false;
         }
+    }
+
+    public boolean isInside(MotionEvent event) {
+        return mRegion.contains((int)event.getX(),(int) event.getY());
     }
 
 }

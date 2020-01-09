@@ -142,7 +142,20 @@ public class HoneycombButton extends LinearLayout {
                 break;
         }
 
-        return super.onHoverEvent(event);
+        if (mEventDelegate.isInside(event)) {
+            return super.onHoverEvent(event);
+
+        } else {
+            setHovered(false);
+            if (mIcon != null && mText != null) {
+                if (mButtonIconHover) {
+                    mIcon.setColorFilter(new PorterDuffColorFilter(getResources().getColor(R.color.fog, getContext().getTheme()), PorterDuff.Mode.MULTIPLY));
+                }
+                mText.setTextColor(getContext().getColor(R.color.fog));
+                mSecondaryText.setTextColor(getContext().getColor(R.color.fog));
+            }
+            return false;
+        }
     }
 
     @Override
