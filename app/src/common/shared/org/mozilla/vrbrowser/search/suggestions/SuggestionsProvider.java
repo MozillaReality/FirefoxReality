@@ -20,6 +20,11 @@ import java.util.concurrent.Executor;
 
 public class SuggestionsProvider {
 
+    public static final int SUGGESTIONS = 0x1;
+    public static final int BOOKMARKS = 0x2;
+    public static final int HISTORY = 0x3;
+    public static final int ALL = SUGGESTIONS | BOOKMARKS | HISTORY;
+
     private static final String LOGTAG = SuggestionsProvider.class.getSimpleName();
 
     public class DefaultSuggestionsComparator implements Comparator {
@@ -180,11 +185,26 @@ public class SuggestionsProvider {
         return future;
     }
 
-    public CompletableFuture<List<SuggestionItem>> getSuggestions() {
-        return CompletableFuture.supplyAsync(() -> new ArrayList<SuggestionItem>())
-                .thenComposeAsync(this::getSearchEngineSuggestions)
-                .thenComposeAsync(this::getBookmarkSuggestions)
-                .thenComposeAsync(this::getHistorySuggestions);
+    public CompletableFuture<List<SuggestionItem>> getSuggestions(int flags) {
+        List<SuggestionItem> items = new ArrayList<>();
+
+        CompletableFuture<List<SuggestionItem>> result = new CompletableFuture<>();
+
+        List<CompletableFuture> futures = new ArrayList<>();
+        if ((flags & SUGGESTIONS) == SUGGESTIONS) {
+            futures.add(CompletableFuture.supplyAsync(() -> getSearchEngineSuggestions(items), mUIThreadExecutor));
+        }
+        if ((flags & BOOKMARKS) == BOOKMARKS) {
+            futures.add(CompletableFuture.supplyAsync(() -> getBookmarkSuggestions(items), mUIThreadExecutor));
+        }
+        if ((flags & HISTORY) == HISTORY) {
+            futures.add(CompletableFuture.supplyAsync(() -> getHistorySuggestions(items), mUIThreadExecutor));
+        }
+
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                .thenApplyAsync(dummy -> result.complete(items), mUIThreadExecutor);
+
+        return result;
     }
 
 }

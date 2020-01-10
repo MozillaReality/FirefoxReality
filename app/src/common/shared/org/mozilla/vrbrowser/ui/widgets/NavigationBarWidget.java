@@ -958,24 +958,24 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
             return;
         }
 
+        int flags = SettingsStore.getInstance(getContext()).isAutocompleteEnabled() ? SuggestionsProvider.ALL : SuggestionsProvider.SUGGESTIONS;
         mSuggestionsProvider.setText(text);
         mSuggestionsProvider.setFilterText(originalText);
-        mSuggestionsProvider.getSuggestions()
-                .whenCompleteAsync((items, ex) -> {
-                    if (mURLBar.hasFocus()) {
-                        mAwesomeBar.updateItems(items);
-                        mAwesomeBar.setHighlightedText(originalText);
+        mSuggestionsProvider.getSuggestions(flags).whenCompleteAsync((items, ex) -> {
+                if (mURLBar.hasFocus()) {
+                    mAwesomeBar.updateItems(items);
+                    mAwesomeBar.setHighlightedText(originalText);
 
-                        if (!mAwesomeBar.isVisible()) {
-                            mAwesomeBar.updatePlacement((int) WidgetPlacement.convertPixelsToDp(getContext(), mURLBar.getWidth()));
-                            mAwesomeBar.show(CLEAR_FOCUS);
-                        }
+                    if (!mAwesomeBar.isVisible()) {
+                        mAwesomeBar.updatePlacement((int) WidgetPlacement.convertPixelsToDp(getContext(), mURLBar.getWidth()));
+                        mAwesomeBar.show(CLEAR_FOCUS);
                     }
+                }
 
-                }, mUIThreadExecutor).exceptionally(throwable -> {
-                    Log.d(LOGTAG, "Error getting suggestions: " + throwable.getLocalizedMessage());
-                    throwable.printStackTrace();
-                    return null;
+            }, mUIThreadExecutor).exceptionally(throwable -> {
+                Log.d(LOGTAG, "Error getting suggestions: " + throwable.getLocalizedMessage());
+                throwable.printStackTrace();
+                return null;
         });
     }
 

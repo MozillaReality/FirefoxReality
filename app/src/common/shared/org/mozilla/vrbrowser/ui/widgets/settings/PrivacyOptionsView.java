@@ -125,6 +125,9 @@ class PrivacyOptionsView extends SettingsView {
 
         mBinding.restoreTabsSwitch.setOnCheckedChangeListener(mRestoreTabsListener);
         setRestoreTabs(SettingsStore.getInstance(getContext()).isRestoreTabsEnabled(), false);
+
+        mBinding.autocompleteSwitch.setOnCheckedChangeListener(mAutocompleteListener);
+        setAutocomplete(SettingsStore.getInstance(getContext()).isAutocompleteEnabled(), false);
     }
 
     private void togglePermission(SwitchSetting aButton, String aPermission) {
@@ -178,6 +181,10 @@ class PrivacyOptionsView extends SettingsView {
         setRestoreTabs(value, doApply);
     };
 
+    private SwitchSetting.OnCheckedChangeListener mAutocompleteListener = (compoundButton, value, doApply) -> {
+        setAutocomplete(value, doApply);
+    };
+
     private void resetOptions() {
         if (mBinding.drmContentPlaybackSwitch.isChecked() != SettingsStore.DRM_PLAYBACK_DEFAULT) {
             setDrmContent(SettingsStore.DRM_PLAYBACK_DEFAULT, true);
@@ -209,6 +216,10 @@ class PrivacyOptionsView extends SettingsView {
 
         if (mBinding.restoreTabsSwitch.isChecked() != SettingsStore.RESTORE_TABS_ENABLED) {
             setRestoreTabs(SettingsStore.RESTORE_TABS_ENABLED, true);
+        }
+
+        if (mBinding.autocompleteSwitch.isChecked() != SettingsStore.AUTOCOMPLETE_ENABLED) {
+            setAutocomplete(SettingsStore.AUTOCOMPLETE_ENABLED, true);
         }
     }
 
@@ -291,6 +302,16 @@ class PrivacyOptionsView extends SettingsView {
 
         if (doApply) {
             SettingsStore.getInstance(getContext()).setRestoreTabsEnabled(value);
+        }
+    }
+
+    private void setAutocomplete(boolean value, boolean doApply) {
+        mBinding.autocompleteSwitch.setOnCheckedChangeListener(null);
+        mBinding.autocompleteSwitch.setValue(value, false);
+        mBinding.autocompleteSwitch.setOnCheckedChangeListener(mAutocompleteListener);
+
+        if (doApply) {
+            SettingsStore.getInstance(getContext()).setAutocompleteEnabled(value);
         }
     }
 
