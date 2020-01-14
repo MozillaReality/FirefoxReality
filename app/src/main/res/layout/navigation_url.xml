@@ -65,26 +65,46 @@
                     app:visibleGone="@{viewmodel.isFocused &amp;&amp; !viewmodel.isUrlEmpty}" />
             </LinearLayout>
 
-            <RelativeLayout
+            <LinearLayout
                 android:id="@+id/iconsLayout"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:paddingStart="@{!isPopUpAvailable &amp;&amp; (isLoading || isInsecure) ? @dimen/url_bar_icons_padding_start : 0}"
+                android:layout_marginTop="2dp"
+                android:layout_marginBottom="2dp"
+                android:layout_marginStart="2dp"
                 android:addStatesFromChildren="true"
                 android:background="@null"
                 app:visibleGone="@{!viewmodel.isLibraryVisible}">
 
-                <LinearLayout
-                    android:id="@+id/startButtonsLayout"
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:layout_alignParentStart="true"
-                    android:layout_centerVertical="true"
-                    android:layout_marginTop="2dp"
-                    android:layout_marginBottom="2dp"
-                    android:layout_marginStart="2dp"
-                    android:addStatesFromChildren="true"
-                    android:orientation="horizontal">
+                <org.mozilla.vrbrowser.ui.views.UIButton
+                    android:id="@+id/popup"
+                    style="@style/urlBarIconThemeStart"
+                    android:layout_gravity="center_vertical"
+                    android:paddingStart="5dp"
+                    android:src="@drawable/ic_icon_popup_awesomebar"
+                    android:tint="@color/fog"
+                    android:tooltipText="@string/popup_tooltip"
+                    app:visibleGone="@{isPopUpAvailable}" />
+                <ImageView
+                    android:id="@+id/loadingView"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center_vertical"
+                    android:contentDescription="Loading animation"
+                    android:src="@drawable/loading_shape"
+                    app:visibleGone="@{isLoading}" />
+                <ImageView
+                    android:id="@+id/insecureIcon"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center_vertical"
+                    android:contentDescription="SSL icon"
+                    android:src="@drawable/ic_icon_security_state_insecure"
+                    app:visibleGone="@{isInsecure &amp;&amp; (urlEditText.length() != 0)}" />
+            </LinearLayout>
 
                     <org.mozilla.vrbrowser.ui.views.UIButton
                         android:id="@+id/popup"
@@ -138,6 +158,7 @@
                 android:id="@+id/urlEditText"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
+                android:paddingStart="@{isLibraryVisible ? @dimen/url_bar_url_padding_start : (isLoading || isInsecure || isPopUpAvailable ? @dimen/url_bar_url_icons_padding_start : @dimen/url_bar_url_padding_start)}"
                 android:paddingEnd="10dp"
                 android:layout_toStartOf="@id/endButtonsLayout"
                 android:layout_toEndOf="@id/padding"
@@ -161,5 +182,4 @@
                 app:autocompleteBackgroundColor="@color/azure" />
         </RelativeLayout>
     </FrameLayout>
-
 </layout>
