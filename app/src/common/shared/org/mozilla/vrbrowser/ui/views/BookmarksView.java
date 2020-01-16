@@ -94,11 +94,7 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
         mBinding.setCallback(mBookmarksCallback);
         mBookmarkAdapter = new BookmarkAdapter(mBookmarkItemCallback, aContext);
         mBinding.bookmarksList.setAdapter(mBookmarkAdapter);
-        mBinding.bookmarksList.setOnTouchListener((v, event) -> {
-            v.requestFocusFromTouch();
-            return false;
-        });
-        mBinding.bookmarksList.setOnScrollChangeListener((v, scrollX, scrollY, oldScrollX, oldScrollY) -> mBookmarksViewListeners.forEach((listener) -> listener.onHideContextMenu(v)));
+        mBinding.bookmarksList.addOnScrollListener(mScrollListener);
         mBinding.bookmarksList.setHasFixedSize(true);
         mBinding.bookmarksList.setItemViewCacheSize(20);
         mBinding.bookmarksList.setDrawingCacheEnabled(true);
@@ -143,11 +139,22 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
     public void onDestroy() {
         SessionStore.get().getBookmarkStore().removeListener(this);
 
+        mBinding.bookmarksList.removeOnScrollListener(mScrollListener);
+
         if (ACCOUNTS_UI_ENABLED) {
             mAccounts.removeAccountListener(mAccountListener);
             mAccounts.removeSyncListener(mSyncListener);
         }
     }
+
+    private RecyclerView.OnScrollListener mScrollListener = new RecyclerView.OnScrollListener() {
+        @Override
+        public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
+            super.onScrolled(recyclerView, dx, dy);
+
+            recyclerView.requestFocus();
+        }
+    };
 
     private final BookmarkItemCallback mBookmarkItemCallback = new BookmarkItemCallback() {
         @Override
@@ -183,8 +190,10 @@ public class BookmarksView extends FrameLayout implements BookmarksStore.Bookmar
             boolean isLastVisibleItem = false;
             if (mBinding.bookmarksList.getLayoutManager() instanceof LinearLayoutManager) {
                 LinearLayoutManager layoutManager = (LinearLayoutManager) mBinding.bookmarksList.getLayoutManager();
-                int lastVisibleItem = layoutManager.findLastCompletelyVisibleItemPosition();
-                if (rowPosition == layoutManager.findLastVisibleItemPosition() && rowPosition != lastVisibleItem) {
+                int lastItem = mBookmarkAdapter.getItemCount();
+                if ((rowPosition == layoutManager.findLastVisibleItemPosition() || rowPosition == layoutManager.findLastCompletelyVisibleItemPosition() ||
+                        rowPosition == layoutManager.findLastVisibleItemPosition()-1 || rowPosition == layoutManager.findLastCompletelyVisibleItemPosition()-1)
+                        && rowPosition != lastItem) {
                     isLastVisibleItem = true;
                 }
             }

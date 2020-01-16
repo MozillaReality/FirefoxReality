@@ -18,6 +18,7 @@ import androidx.annotation.Nullable;
 import androidx.databinding.DataBindingUtil;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.RecyclerView.OnScrollListener;
 
 import org.mozilla.geckoview.GeckoSessionSettings;
 import org.mozilla.vrbrowser.R;
@@ -99,11 +100,7 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
         mBinding.setCallback(mHistoryCallback);
         mHistoryAdapter = new HistoryAdapter(mHistoryItemCallback, aContext);
         mBinding.historyList.setAdapter(mHistoryAdapter);
-        mBinding.historyList.setOnTouchListener((v, event) -> {
-            v.requestFocusFromTouch();
-            return false;
-        });
-        mBinding.historyList.setOnScrollChangeListener((v, scrollX, scrollY, oldScrollX, oldScrollY) -> mHistoryViewListeners.forEach((listener) -> listener.onHideContextMenu(v)));
+        mBinding.historyList.addOnScrollListener(mScrollListener);
         mBinding.historyList.setHasFixedSize(true);
         mBinding.historyList.setItemViewCacheSize(20);
         mBinding.historyList.setDrawingCacheEnabled(true);
@@ -142,6 +139,8 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
     public void onDestroy() {
         SessionStore.get().getHistoryStore().removeListener(this);
 
+        mBinding.historyList.removeOnScrollListener(mScrollListener);
+
         if (ACCOUNTS_UI_ENABLED) {
             mAccounts.removeAccountListener(mAccountListener);
             mAccounts.removeSyncListener(mSyncListener);
@@ -151,6 +150,15 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
     public void onShow() {
         updateLayout();
     }
+
+    private OnScrollListener mScrollListener = new OnScrollListener() {
+        @Override
+        public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
+            super.onScrolled(recyclerView, dx, dy);
+
+            recyclerView.requestFocus();
+        }
+    };
 
     private final HistoryItemCallback mHistoryItemCallback = new HistoryItemCallback() {
         @Override
@@ -186,8 +194,10 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
             boolean isLastVisibleItem = false;
             if (mBinding.historyList.getLayoutManager() instanceof LinearLayoutManager) {
                 LinearLayoutManager layoutManager = (LinearLayoutManager) mBinding.historyList.getLayoutManager();
-                int lastVisibleItem = layoutManager.findLastCompletelyVisibleItemPosition();
-                if (rowPosition == layoutManager.findLastVisibleItemPosition() && rowPosition != lastVisibleItem) {
+                int lastItem = mHistoryAdapter.getItemCount();
+                if ((rowPosition == layoutManager.findLastVisibleItemPosition() || rowPosition == layoutManager.findLastCompletelyVisibleItemPosition() ||
+                        rowPosition == layoutManager.findLastVisibleItemPosition()-1 || rowPosition == layoutManager.findLastCompletelyVisibleItemPosition()-1)
+                        && rowPosition != lastItem) {
                     isLastVisibleItem = true;
                 }
             }
