@@ -22,7 +22,7 @@ public class SuggestionsProvider {
 
     public static final int SUGGESTIONS = 0x1;
     public static final int BOOKMARKS = 0x2;
-    public static final int HISTORY = 0x3;
+    public static final int HISTORY = 0x4;
     public static final int ALL = SUGGESTIONS | BOOKMARKS | HISTORY;
 
     private static final String LOGTAG = SuggestionsProvider.class.getSimpleName();
