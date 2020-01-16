@@ -7,7 +7,6 @@
 package org.mozilla.vrbrowser.ui.widgets.menus;
 
 import android.content.Context;
-import android.graphics.drawable.Drawable;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -181,6 +180,10 @@ public abstract class MenuWidget extends UIWidget {
         public boolean onHover(View view, MotionEvent event) {
             int position = (int)view.getTag(R.string.position_tag);
             if (!isEnabled(position)) {
+                return false;
+            }
+
+            if (mItems.size() <= position) {
                 return false;
             }
 
