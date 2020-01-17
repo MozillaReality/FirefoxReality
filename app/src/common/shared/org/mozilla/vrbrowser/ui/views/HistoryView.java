@@ -156,7 +156,9 @@ public class HistoryView extends FrameLayout implements HistoryStore.HistoryList
         public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
             super.onScrolled(recyclerView, dx, dy);
 
-            recyclerView.requestFocus();
+            if (recyclerView.getScrollState() != RecyclerView.SCROLL_STATE_SETTLING) {
+                recyclerView.requestFocus();
+            }
         }
     };
 
