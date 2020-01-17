@@ -1755,10 +1755,13 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
 
             @Override
             public void onDismiss() {
-                hideContextMenus();
                 if (aSelection.isActionAvailable(GeckoSession.SelectionActionDelegate.ACTION_UNSELECT)) {
                     aSelection.execute(GeckoSession.SelectionActionDelegate.ACTION_UNSELECT);
+                } else {
+                    aSelection.collapseToEnd();
                 }
+
+                aSelection.hide();
             }
         });
         mSelectionMenu.show(KEEP_FOCUS);

@@ -1013,8 +1013,12 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
         final InputConnection connection = mInputConnection;
         if (connection != null) {
             if (isAttachToWindowWidget()) {
-                connection.sendKeyEvent(event);
-                hide(UIWidget.KEEP_WIDGET);
+                if (event.getKeyCode() == KeyEvent.KEYCODE_BACK) {
+                    return false;
+                } else {
+                    connection.sendKeyEvent(event);
+                    hide(UIWidget.KEEP_WIDGET);
+                }
                 return true;
             }
             // Android Components do not support InputConnection.sendKeyEvent()
