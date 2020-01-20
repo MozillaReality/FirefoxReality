@@ -525,10 +525,6 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
                 break;
         }
 
-        if (!mIsCapsLock && primaryCode != CustomKeyboard.KEYCODE_SHIFT && mPopupKeyboardView.getVisibility() != View.VISIBLE) {
-            handleShift(false);
-        }
-
         mIsLongPress = false;
         mIsMultiTap = false;
     }
@@ -543,6 +539,7 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
         if (!mIsLongPress) {
             handleText(text.toString());
         }
+
         mIsLongPress = false;
         mIsMultiTap = false;
     }
@@ -862,6 +859,11 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
             final InputConnection connection = mInputConnection;
             postInputCommand(() -> connection.commitText(text, 1));
         }
+
+        if (!mIsCapsLock && mPopupKeyboardView.getVisibility() != View.VISIBLE) {
+            handleShift(false);
+        }
+
         updateCandidates();
     }
 
