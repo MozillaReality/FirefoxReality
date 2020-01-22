@@ -200,8 +200,8 @@ public class TitleBarWidget extends UIWidget implements WidgetManagerDelegate.Up
 
     public void updateMediaStatus() {
         if (mMedia != null) {
-            mBinding.setIsMediaAvailable(mMedia.isPlayed());
-            mBinding.setIsMediaPlaying(mMedia.isPlaying());
+            mBinding.setIsMediaAvailable(!mMedia.isUnloaded() && mMedia.isPlayed());
+            mBinding.setIsMediaPlaying(!mMedia.isUnloaded() && mMedia.isPlaying());
         }
     }
 
@@ -216,6 +216,11 @@ public class TitleBarWidget extends UIWidget implements WidgetManagerDelegate.Up
                     break;
                 case MediaElement.MEDIA_STATE_PAUSE:
                     mBinding.setIsMediaAvailable(true);
+                    mBinding.setIsMediaPlaying(false);
+                    break;
+                case MediaElement.MEDIA_STATE_ABORT:
+                case MediaElement.MEDIA_STATE_EMPTIED:
+                    mBinding.setIsMediaAvailable(false);
                     mBinding.setIsMediaPlaying(false);
             }
         }
