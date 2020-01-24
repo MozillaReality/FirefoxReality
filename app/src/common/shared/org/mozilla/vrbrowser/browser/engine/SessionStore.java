@@ -241,6 +241,8 @@ public class SessionStore implements GeckoSession.PermissionDelegate {
         if (mRuntime != null) {
             mRuntime.configurationChanged(newConfig);
         }
+
+        mSessions.forEach(Session::dumpAllState);
     }
 
     // Session Settings

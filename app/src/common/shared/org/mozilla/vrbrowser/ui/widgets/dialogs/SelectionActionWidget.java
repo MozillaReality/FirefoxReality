@@ -42,13 +42,19 @@ public class SelectionActionWidget extends UIWidget implements WidgetManagerDele
     }
 
     private void initialize() {
-        inflate(getContext(), R.layout.selection_action_menu, this);
-        mContainer = findViewById(R.id.selectionMenuContainer);
+        updateUI();
+
         mMinButtonWidth = WidgetPlacement.pixelDimension(getContext(), R.dimen.selection_action_item_min_width);
         mMaxButtonWidth = WidgetPlacement.pixelDimension(getContext(), R.dimen.selection_action_item_max_width);
-        mBackHandler = () -> {
-            onDismiss();
-        };
+        mBackHandler = this::onDismiss;
+    }
+
+    @Override
+    public void updateUI() {
+        removeAllViews();
+
+        inflate(getContext(), R.layout.selection_action_menu, this);
+        mContainer = findViewById(R.id.selectionMenuContainer);
     }
 
     @Override

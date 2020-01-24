@@ -268,6 +268,11 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
     }
 
     @Override
+    public void updateUI() {
+        // Nothing to do here
+    }
+
+    @Override
     public void releaseWidget() {
         detachFromWindow();
         mWidgetManager.removeFocusChangeListener(this);
@@ -1129,7 +1134,7 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
 
     private void exitVoiceInputMode() {
         if (mIsInVoiceInput && mVoiceSearchWidget != null) {
-            mVoiceSearchWidget.hide(REMOVE_WIDGET);
+            mVoiceSearchWidget.hide(KEEP_WIDGET);
             mWidgetPlacement.visible = true;
             mWidgetManager.updateWidget(this);
             mIsInVoiceInput = false;

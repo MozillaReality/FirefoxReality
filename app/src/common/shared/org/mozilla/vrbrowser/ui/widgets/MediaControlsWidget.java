@@ -226,6 +226,11 @@ public class MediaControlsWidget extends UIWidget implements MediaElement.Delega
     }
 
     @Override
+    public void updateUI() {
+        // Nothing to do
+    }
+
+    @Override
     protected void initializeWidgetPlacement(WidgetPlacement aPlacement) {
         Context context = getContext();
         aPlacement.width = WidgetPlacement.dpDimension(context, R.dimen.media_controls_container_width);

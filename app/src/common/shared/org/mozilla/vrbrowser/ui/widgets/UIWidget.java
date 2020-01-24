@@ -17,15 +17,15 @@ import android.view.View;
 import android.view.ViewParent;
 import android.widget.FrameLayout;
 
+import androidx.annotation.IntDef;
+import androidx.annotation.NonNull;
+
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.utils.SystemUtils;
 
 import java.lang.reflect.Constructor;
 import java.util.HashMap;
-
-import androidx.annotation.IntDef;
-import androidx.annotation.NonNull;
 
 public abstract class UIWidget extends FrameLayout implements Widget {
 
@@ -429,4 +429,6 @@ public abstract class UIWidget extends FrameLayout implements Widget {
         return mWorldWidth;
     }
 
+    @Override
+    public abstract void updateUI();
 }

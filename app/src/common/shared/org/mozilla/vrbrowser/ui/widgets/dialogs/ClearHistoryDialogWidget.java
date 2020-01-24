@@ -36,7 +36,21 @@ public class ClearHistoryDialogWidget extends SettingDialogWidget {
     protected void initialize(Context aContext) {
         super.initialize(aContext);
 
-        LayoutInflater inflater = LayoutInflater.from(aContext);
+
+    }
+
+    @Override
+    public void show(int aShowFlags) {
+        super.show(aShowFlags);
+
+        mClearHistoryBinding.clearHistoryRadio.setChecked(0, false);
+    }
+
+    @Override
+    public void updateUI() {
+        super.updateUI();
+
+        LayoutInflater inflater = LayoutInflater.from(getContext());
 
         // Inflate this data binding layout
         mClearHistoryBinding = DataBindingUtil.inflate(inflater, R.layout.clear_history_dialog, mBinding.content, true);
@@ -74,12 +88,5 @@ public class ClearHistoryDialogWidget extends SettingDialogWidget {
             SessionStore.get().purgeSessionHistory();
             onDismiss();
         }));
-    }
-
-    @Override
-    public void show(int aShowFlags) {
-        super.show(aShowFlags);
-
-        mClearHistoryBinding.clearHistoryRadio.setChecked(0, false);
     }
 }

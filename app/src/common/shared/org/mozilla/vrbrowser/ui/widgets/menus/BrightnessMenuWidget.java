@@ -1,10 +1,12 @@
 package org.mozilla.vrbrowser.ui.widgets.menus;
 
 import android.content.Context;
+import android.view.View;
 
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.ui.widgets.UIWidget;
 import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
+import org.mozilla.vrbrowser.utils.ViewUtils;
 
 import java.util.ArrayList;
 
@@ -13,7 +15,8 @@ public class BrightnessMenuWidget extends MenuWidget {
     ArrayList<MenuItem> mItems;
     public BrightnessMenuWidget(Context aContext) {
         super(aContext, R.layout.menu);
-        createMenuItems();
+
+        updateUI();
     }
 
     @Override
@@ -26,6 +29,13 @@ public class BrightnessMenuWidget extends MenuWidget {
         aPlacement.anchorY = 0.0f;
         aPlacement.translationY = WidgetPlacement.dpDimension(getContext(), R.dimen.video_projection_menu_translation_y);
         aPlacement.translationZ = 2.0f;
+    }
+
+    @Override
+    public void updateUI() {
+        super.updateUI();
+
+        createMenuItems();
     }
 
     public void setParentWidget(UIWidget aParent) {
@@ -62,5 +72,12 @@ public class BrightnessMenuWidget extends MenuWidget {
         mWidgetManager.setWorldBrightness(this, getSelectedBrightness());
         mWidgetPlacement.visible = false;
         mWidgetManager.updateWidget(this);
+    }
+
+    @Override
+    public void onGlobalFocusChanged(View oldFocus, View newFocus) {
+        if (!ViewUtils.isEqualOrChildrenOf(this, newFocus) && isVisible()) {
+            hide(KEEP_WIDGET);
+        }
     }
 }

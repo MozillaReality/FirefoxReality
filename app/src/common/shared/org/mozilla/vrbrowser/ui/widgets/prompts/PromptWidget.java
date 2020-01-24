@@ -76,6 +76,11 @@ public class PromptWidget extends UIDialog {
     }
 
     @Override
+    public void updateUI() {
+        // Nothing to do here
+    }
+
+    @Override
     public void show(@ShowFlags int aShowFlags) {
         mLayout.measure(View.MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED),
                         View.MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));

@@ -1219,6 +1219,8 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
             if (callback != null) {
                 callback.onButtonClicked(index);
             }
+            mAlertDialog.releaseWidget();
+            mAlertDialog = null;
         });
         mAlertDialog.show(REQUEST_FOCUS);
     }
@@ -1226,7 +1228,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     public void showConfirmPrompt(String title, @NonNull String msg, @NonNull String[] btnMsg, @Nullable PromptDialogWidget.Delegate callback) {
         if (mConfirmDialog == null) {
             mConfirmDialog = new PromptDialogWidget(getContext());
-            mAlertDialog.setButtons(new int[] {
+            mConfirmDialog.setButtons(new int[] {
                     R.string.cancel_button,
                     R.string.ok_button
             });
@@ -1236,11 +1238,13 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         mConfirmDialog.setTitle(title);
         mConfirmDialog.setBody(msg);
         mConfirmDialog.setButtons(btnMsg);
-        mAlertDialog.setButtonsDelegate(index -> {
-            mAlertDialog.hide(REMOVE_WIDGET);
+        mConfirmDialog.setButtonsDelegate(index -> {
+            mConfirmDialog.hide(REMOVE_WIDGET);
             if (callback != null) {
                 callback.onButtonClicked(index);
             }
+            mConfirmDialog.releaseWidget();
+            mConfirmDialog = null;
         });
         mConfirmDialog.show(REQUEST_FOCUS);
     }
@@ -1259,12 +1263,15 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
             if (buttonsCallback != null) {
                 buttonsCallback.onButtonClicked(index);
             }
+            mAppDialog.releaseWidget();
         });
         mAppDialog.setLinkDelegate(() -> {
             mAppDialog.hide(REMOVE_WIDGET);
             if (linkCallback != null) {
                 linkCallback.run();
             }
+            mAppDialog.releaseWidget();
+            mAppDialog = null;
         });
         mAppDialog.show(REQUEST_FOCUS);
     }
@@ -1769,4 +1776,17 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         hideContextMenus();
     }
 
+    @Override
+    public void updateUI() {
+        mHistoryView.updateUI();
+        mBookmarksView.updateUI();
+
+        if (mView != null) {
+            View temp = mView;
+            unsetView(mView, false);
+            setView(temp, false);
+        }
+
+        updateTitleBar();
+    }
 }

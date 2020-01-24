@@ -19,16 +19,7 @@ public abstract class SettingDialogWidget extends UIDialog {
     }
 
     protected void initialize(Context aContext) {
-        LayoutInflater inflater = LayoutInflater.from(aContext);
-
-        // Inflate this data binding layout
-        mBinding = DataBindingUtil.inflate(inflater, R.layout.setting_dialog, this, true);
-
-        // Header
-        mBinding.headerLayout.setBackClickListener(view -> onDismiss());
-
-        // Footer
-        mBinding.footerLayout.setFooterButtonClickListener(v -> onFooterButton());
+        updateUI();
     }
 
     @Override
@@ -57,4 +48,19 @@ public abstract class SettingDialogWidget extends UIDialog {
 
     }
 
+    @Override
+    public void updateUI() {
+        removeAllViews();
+
+        LayoutInflater inflater = LayoutInflater.from(getContext());
+
+        // Inflate this data binding layout
+        mBinding = DataBindingUtil.inflate(inflater, R.layout.setting_dialog, this, true);
+
+        // Header
+        mBinding.headerLayout.setBackClickListener(view -> onDismiss());
+
+        // Footer
+        mBinding.footerLayout.setFooterButtonClickListener(v -> onFooterButton());
+    }
 }

@@ -9,7 +9,6 @@ import androidx.annotation.Nullable;
 
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.ui.widgets.UIWidget;
-import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
 import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
 import org.mozilla.vrbrowser.utils.ViewUtils;
 
@@ -17,7 +16,7 @@ import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.IntStream;
 
-public class VideoProjectionMenuWidget extends MenuWidget implements WidgetManagerDelegate.FocusChangeListener {
+public class VideoProjectionMenuWidget extends MenuWidget {
 
     @IntDef(value = { VIDEO_PROJECTION_NONE, VIDEO_PROJECTION_3D_SIDE_BY_SIDE, VIDEO_PROJECTION_360,
                       VIDEO_PROJECTION_360_STEREO, VIDEO_PROJECTION_180,
@@ -50,7 +49,8 @@ public class VideoProjectionMenuWidget extends MenuWidget implements WidgetManag
 
     public VideoProjectionMenuWidget(Context aContext) {
         super(aContext, R.layout.menu);
-        createMenuItems();
+
+        updateUI();
     }
 
     @Override
@@ -66,17 +66,10 @@ public class VideoProjectionMenuWidget extends MenuWidget implements WidgetManag
     }
 
     @Override
-    public void show(@ShowFlags int aShowFlags) {
-        super.show(aShowFlags);
+    public void updateUI() {
+        super.updateUI();
 
-        mWidgetManager.addFocusChangeListener(VideoProjectionMenuWidget.this);
-    }
-
-    @Override
-    public void hide(@HideFlags int aHideFlags) {
-        super.hide(aHideFlags);
-
-        mWidgetManager.removeFocusChangeListener(this);
+        createMenuItems();
     }
 
     public void setParentWidget(UIWidget aParent) {
@@ -176,7 +169,7 @@ public class VideoProjectionMenuWidget extends MenuWidget implements WidgetManag
     @Override
     public void onGlobalFocusChanged(View oldFocus, View newFocus) {
         if (!ViewUtils.isEqualOrChildrenOf(this, newFocus) && isVisible()) {
-            onDismiss();
+            hide(KEEP_WIDGET);
         }
     }
 

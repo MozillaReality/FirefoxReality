@@ -9,19 +9,16 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.net.Uri;
-import android.view.View;
 
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.telemetry.GleanMetricsService;
-import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
 import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
 import org.mozilla.vrbrowser.utils.StringUtils;
-import org.mozilla.vrbrowser.utils.ViewUtils;
 
 import java.util.ArrayList;
 
-public class ContextMenuWidget extends MenuWidget implements WidgetManagerDelegate.FocusChangeListener {
+public class ContextMenuWidget extends MenuWidget {
     ArrayList<MenuItem> mItems;
     private Runnable mDismissCallback;
 
@@ -31,12 +28,7 @@ public class ContextMenuWidget extends MenuWidget implements WidgetManagerDelega
     }
 
     private void initialize() {
-        mAdapter.updateBackgrounds(R.drawable.context_menu_item_background_first,
-                R.drawable.context_menu_item_background_last,
-                R.drawable.context_menu_item_background,
-                R.drawable.context_menu_item_background_single);
-        mAdapter.updateLayoutId(R.layout.context_menu_item);
-        menuContainer.setBackground(getContext().getDrawable(R.drawable.context_menu_background));
+        updateUI();
     }
 
     @Override
@@ -51,16 +43,15 @@ public class ContextMenuWidget extends MenuWidget implements WidgetManagerDelega
     }
 
     @Override
-    public void show(@ShowFlags int aShowFlags) {
-        mWidgetManager.addFocusChangeListener(ContextMenuWidget.this);
-        super.show(aShowFlags);
-    }
+    public void updateUI() {
+        super.updateUI();
 
-    @Override
-    public void hide(@HideFlags int aHideFlags) {
-        super.hide(aHideFlags);
-
-        mWidgetManager.removeFocusChangeListener(this);
+        mAdapter.updateBackgrounds(R.drawable.context_menu_item_background_first,
+                R.drawable.context_menu_item_background_last,
+                R.drawable.context_menu_item_background,
+                R.drawable.context_menu_item_background_single);
+        mAdapter.updateLayoutId(R.layout.context_menu_item);
+        menuContainer.setBackground(getContext().getDrawable(R.drawable.context_menu_background));
     }
 
     @Override
@@ -119,15 +110,6 @@ public class ContextMenuWidget extends MenuWidget implements WidgetManagerDelega
         mWidgetPlacement.height = mItems.size() * WidgetPlacement.dpDimension(getContext(), R.dimen.context_menu_row_height);
         mWidgetPlacement.height += mBorderWidth * 2;
         mWidgetPlacement.height += 10.0f; // Link separator
-    }
-
-    // WidgetManagerDelegate.FocusChangeListener
-
-    @Override
-    public void onGlobalFocusChanged(View oldFocus, View newFocus) {
-        if (!ViewUtils.isEqualOrChildrenOf(this, newFocus) && isVisible()) {
-            onDismiss();
-        }
     }
 
 }

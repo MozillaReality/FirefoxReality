@@ -67,11 +67,7 @@ public class SuggestionsWidget extends UIWidget implements WidgetManagerDelegate
     }
 
     private void initialize(Context aContext) {
-        inflate(aContext, R.layout.list_popup_window, this);
-
-        mWidgetManager.addFocusChangeListener(this);
-
-        mList = findViewById(R.id.list);
+        updateUI();
 
         mScaleUpAnimation = AnimationUtils.loadAnimation(getContext(), R.anim.popup_scaleup);
         mScaleDownAnimation = AnimationUtils.loadAnimation(getContext(), R.anim.popup_scaledown);
@@ -92,12 +88,6 @@ public class SuggestionsWidget extends UIWidget implements WidgetManagerDelegate
             }
         });
 
-        mAdapter = new SuggestionsAdapter(getContext(), R.layout.list_popup_window_item, new ArrayList<>());
-        mList.setAdapter(mAdapter);
-        mList.setOnItemClickListener(mClickListener);
-        mList.setOnItemLongClickListener(mLongClickListener);
-        mList.setOnScrollChangeListener((v, scrollX, scrollY, oldScrollX, oldScrollY) -> hideMenu());
-
         mAudio = AudioEngine.fromContext(aContext);
         mClipboard = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
 
@@ -105,9 +95,22 @@ public class SuggestionsWidget extends UIWidget implements WidgetManagerDelegate
     }
 
     @Override
-    public void releaseWidget() {
-        mWidgetManager.removeFocusChangeListener(this);
+    public void updateUI() {
+        removeAllViews();
 
+        inflate(getContext(), R.layout.list_popup_window, this);
+
+        mList = findViewById(R.id.list);
+
+        mAdapter = new SuggestionsAdapter(getContext(), R.layout.list_popup_window_item, new ArrayList<>());
+        mList.setAdapter(mAdapter);
+        mList.setOnItemClickListener(mClickListener);
+        mList.setOnItemLongClickListener(mLongClickListener);
+        mList.setOnScrollChangeListener((v, scrollX, scrollY, oldScrollX, oldScrollY) -> hideMenu());
+    }
+
+    @Override
+    public void releaseWidget() {
         super.releaseWidget();
     }
 
@@ -128,12 +131,14 @@ public class SuggestionsWidget extends UIWidget implements WidgetManagerDelegate
     @Override
     public void show(@ShowFlags int aShowFlags) {
         super.show(aShowFlags);
+        mWidgetManager.addFocusChangeListener(this);
         mList.startAnimation(mScaleUpAnimation);
         mList.post(() -> mList.setSelectionAfterHeaderView());
     }
 
     @Override
     public void hide(@HideFlags int aHideFlags) {
+        mWidgetManager.removeFocusChangeListener(this);
         mList.startAnimation(mScaleDownAnimation);
     }
 

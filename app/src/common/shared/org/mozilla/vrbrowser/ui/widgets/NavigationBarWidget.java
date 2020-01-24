@@ -128,12 +128,40 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
     }
 
     private void initialize(@NonNull Context aContext) {
+        updateUI();
+
         mAppContext = aContext.getApplicationContext();
-        inflate(aContext, R.layout.navigation_bar, this);
 
         mUIThreadExecutor = ((VRBrowserApplication)aContext.getApplicationContext()).getExecutors().mainThread();
 
         mAudio = AudioEngine.fromContext(aContext);
+
+        mResizeBackHandler = () -> exitResizeMode(ResizeAction.RESTORE_SIZE);
+
+        mFullScreenBackHandler = this::exitFullScreenMode;
+        mVRVideoBackHandler = () -> {
+            exitVRVideo();
+            if (mAutoEnteredVRVideo) {
+                exitFullScreenMode();
+            }
+        };
+
+        mWidgetManager.addUpdateListener(this);
+        mWidgetManager.addWorldClickListener(this);
+        mWidgetManager.addConnectivityListener(mConnectivityDelegate);
+
+        mSuggestionsProvider = new SuggestionsProvider(getContext());
+
+        mPrefs = PreferenceManager.getDefaultSharedPreferences(mAppContext);
+        mPrefs.registerOnSharedPreferenceChangeListener(this);
+    }
+
+    @Override
+    public void updateUI() {
+        removeAllViews();
+
+        inflate(getContext(), R.layout.navigation_bar, this);
+
         mBackButton = findViewById(R.id.backButton);
         mForwardButton = findViewById(R.id.forwardButton);
         mReloadButton = findViewById(R.id.reloadButton);
@@ -147,16 +175,6 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         mBrightnessButton = findViewById(R.id.brightnessButton);
         mFullScreenResizeButton = findViewById(R.id.fullScreenResizeEnterButton);
         mProjectionButton = findViewById(R.id.projectionButton);
-
-        mResizeBackHandler = () -> exitResizeMode(ResizeAction.RESTORE_SIZE);
-
-        mFullScreenBackHandler = this::exitFullScreenMode;
-        mVRVideoBackHandler = () -> {
-            exitVRVideo();
-            if (mAutoEnteredVRVideo) {
-                exitFullScreenMode();
-            }
-        };
 
         mBackButton.setOnClickListener(v -> {
             v.requestFocusFromTouch();
@@ -250,7 +268,6 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         });
 
         mProjectionButton.setOnClickListener(view -> {
-            view.requestFocusFromTouch();
             if (mAudio != null) {
                 mAudio.playSound(AudioEngine.Sound.CLICK);
             }
@@ -265,19 +282,28 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
             if (!wasVisible) {
                 mProjectionMenu.show(REQUEST_FOCUS);
             }
+
+            if (!mProjectionMenu.isVisible()) {
+                view.requestFocusFromTouch();
+            }
         });
 
         mBrightnessButton.setOnClickListener(view -> {
-            view.requestFocusFromTouch();
             if (mAudio != null) {
                 mAudio.playSound(AudioEngine.Sound.CLICK);
             }
+
             boolean wasVisible = mBrightnessWidget.isVisible();
             closeFloatingMenus();
+
             if (!wasVisible) {
                 float anchor = 0.5f + (float)mBrightnessButton.getMeasuredWidth() / (float)NavigationBarWidget.this.getMeasuredWidth();
                 mBrightnessWidget.getPlacement().parentAnchorX = anchor;
                 mBrightnessWidget.setVisible(true);
+            }
+
+            if (!mBrightnessWidget.isVisible()) {
+                view.requestFocusFromTouch();
             }
         });
 
@@ -329,17 +355,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
 
         mURLBar.setDelegate(this);
 
-        mWidgetManager.addUpdateListener(this);
-        mWidgetManager.addWorldClickListener(this);
-        mWidgetManager.addConnectivityListener(mConnectivityDelegate);
-
-        mVoiceSearchWidget = createChild(VoiceSearchWidget.class, false);
-        mVoiceSearchWidget.setDelegate(this);
-
-        mSuggestionsProvider = new SuggestionsProvider(getContext());
-
-        mPrefs = PreferenceManager.getDefaultSharedPreferences(mAppContext);
-        mPrefs.registerOnSharedPreferenceChangeListener(this);
+        updateState();
     }
 
     @Override
@@ -759,6 +775,12 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         }
     }
 
+    private void updateState() {
+        handleSessionState();
+        updateServoButton();
+        mURLBar.updateState();
+    }
+
     private void handleSessionState() {
         if (getSession() != null) {
             boolean isPrivateMode = getSession().isPrivateMode();
@@ -936,13 +958,13 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
 
     @Override
     public void onVoiceSearchClicked() {
-        if (mVoiceSearchWidget.isVisible()) {
-            mVoiceSearchWidget.hide(REMOVE_WIDGET);
-
-        } else {
-            mVoiceSearchWidget.getPlacement().parentHandle = mAttachedWindow.getHandle();
-            mVoiceSearchWidget.show(REQUEST_FOCUS);
+        if (mVoiceSearchWidget == null) {
+            mVoiceSearchWidget = new VoiceSearchWidget(getContext());
+            mVoiceSearchWidget.setDelegate(this);
         }
+
+        mVoiceSearchWidget.getPlacement().parentHandle = mAttachedWindow.getHandle();
+        mVoiceSearchWidget.show(REQUEST_FOCUS);
     }
 
 
@@ -1153,43 +1175,38 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
             return;
         }
 
-        if (mHamburgerMenu == null) {
-            mHamburgerMenu = new HamburgerMenuWidget(getContext());
-            mHamburgerMenu.getPlacement().parentHandle = getHandle();
-            mHamburgerMenu.setMenuDelegate(new HamburgerMenuWidget.MenuDelegate() {
-                @Override
-                public void onSendTab() {
-                    hideMenu();
+        mHamburgerMenu = new HamburgerMenuWidget(getContext());
+        mHamburgerMenu.getPlacement().parentHandle = getHandle();
+        mHamburgerMenu.setMenuDelegate(new HamburgerMenuWidget.MenuDelegate() {
+            @Override
+            public void onSendTab() {
+                hideMenu();
 
-                    showSendTabDialog();
+                showSendTabDialog();
+            }
+
+            @Override
+            public void onResize() {
+                hideMenu();
+
+                enterResizeMode();
+            }
+
+            @Override
+            public void onSwitchMode() {
+                int uaMode = mAttachedWindow.getSession().getUaMode();
+                if (uaMode == GeckoSessionSettings.USER_AGENT_MODE_DESKTOP) {
+                    mHamburgerMenu.setUAMode(GeckoSessionSettings.USER_AGENT_MODE_MOBILE);
+                    mAttachedWindow.getSession().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_MOBILE);
+
+                } else {
+                    mHamburgerMenu.setUAMode(GeckoSessionSettings.USER_AGENT_MODE_DESKTOP);
+                    mAttachedWindow.getSession().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_DESKTOP);
                 }
 
-                @Override
-                public void onResize() {
-                    hideMenu();
-
-                    enterResizeMode();
-                }
-
-                @Override
-                public void onSwitchMode() {
-                    if (mAttachedWindow.getSession() != null) {
-                        int uaMode = mAttachedWindow.getSession().getUaMode();
-                        if (uaMode == GeckoSessionSettings.USER_AGENT_MODE_DESKTOP) {
-                            mHamburgerMenu.setUAMode(GeckoSessionSettings.USER_AGENT_MODE_MOBILE);
-                            mAttachedWindow.getSession().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_MOBILE);
-
-                        } else {
-                            mHamburgerMenu.setUAMode(GeckoSessionSettings.USER_AGENT_MODE_DESKTOP);
-                            mAttachedWindow.getSession().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_DESKTOP);
-                        }
-                    }
-
-                    hideMenu();
-                }
-            });
-        }
-
+                hideMenu();
+            }
+        });
         mHamburgerMenu.setSendTabEnabled(!UrlUtils.isPrivateAboutPage(getContext(), mAttachedWindow.getSession().getCurrentUri()));
         mHamburgerMenu.setUAMode(mAttachedWindow.getSession().getUaMode());
         mHamburgerMenu.show(UIWidget.KEEP_FOCUS);

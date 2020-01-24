@@ -72,6 +72,13 @@ public class TabsWidget extends UIDialog {
     }
 
     private void initialize() {
+        updateUI();
+    }
+
+    @Override
+    public void updateUI() {
+        removeAllViews();
+
         inflate(getContext(), R.layout.tabs, this);
 
         mTabsList = findViewById(R.id.tabsRecyclerView);

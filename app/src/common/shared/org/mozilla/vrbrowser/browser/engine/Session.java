@@ -170,7 +170,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         }
     }
 
-    private void dumpAllState() {
+    protected void dumpAllState() {
         for (GeckoSession.NavigationDelegate listener: mNavigationListeners) {
             dumpState(listener);
         }

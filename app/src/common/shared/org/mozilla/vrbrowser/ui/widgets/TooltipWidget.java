@@ -15,6 +15,7 @@ public class TooltipWidget extends UIWidget {
 
     protected TextView mText;
     protected ViewGroup mLayout;
+    protected int mLayoutRes;
 
     public TooltipWidget(@NonNull Context aContext, @NonNull  @LayoutRes int layoutRes) {
         super(aContext);
@@ -29,10 +30,8 @@ public class TooltipWidget extends UIWidget {
     }
 
     private void initialize(@NonNull @LayoutRes int layoutRes) {
-        inflate(getContext(), layoutRes, this);
-
-        mLayout = findViewById(R.id.layout);
-        mText = findViewById(R.id.tooltipText);
+        mLayoutRes = layoutRes;
+        updateUI();
     }
 
     @Override
@@ -45,6 +44,16 @@ public class TooltipWidget extends UIWidget {
         aPlacement.anchorX = 0.5f;
         aPlacement.anchorY = 0.5f;
         aPlacement.translationZ = WidgetPlacement.unitFromMeters(getContext(), R.dimen.tooltip_z_distance);
+    }
+
+    @Override
+    public void updateUI() {
+        removeAllViews();
+
+        inflate(getContext(), mLayoutRes, this);
+
+        mLayout = findViewById(R.id.layout);
+        mText = findViewById(R.id.tooltipText);
     }
 
     @Override

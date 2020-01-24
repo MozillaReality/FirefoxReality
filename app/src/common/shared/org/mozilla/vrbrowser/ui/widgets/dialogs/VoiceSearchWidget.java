@@ -80,21 +80,12 @@ public class VoiceSearchWidget extends UIDialog implements WidgetManagerDelegate
     }
 
     private void initialize(Context aContext) {
-        LayoutInflater inflater = LayoutInflater.from(aContext);
-
-        // Inflate this data binding layout
-        mBinding = DataBindingUtil.inflate(inflater, R.layout.voice_search_dialog, this, true);
+        updateUI();
 
         mWidgetManager.addPermissionListener(this);
 
         mMozillaSpeechService = MozillaSpeechService.getInstance();
         mMozillaSpeechService.setProductTag(getContext().getString(R.string.voice_app_id));
-
-        Drawable mVoiceInputBackgroundDrawable = getResources().getDrawable(R.drawable.ic_voice_search_volume_input_black, getContext().getTheme());
-        mVoiceInputClipDrawable = new ClipDrawable(getContext().getDrawable(R.drawable.ic_voice_search_volume_input_clip), Gravity.START, ClipDrawable.HORIZONTAL);
-        Drawable[] layers = new Drawable[] {mVoiceInputBackgroundDrawable, mVoiceInputClipDrawable };
-        mBinding.voiceSearchAnimationListening.setImageDrawable(new LayerDrawable(layers));
-        mVoiceInputClipDrawable.setLevel(0);
 
         mSearchingAnimation = new RotateAnimation(0, 360f,
                 Animation.RELATIVE_TO_SELF, 0.5f,
@@ -104,10 +95,26 @@ public class VoiceSearchWidget extends UIDialog implements WidgetManagerDelegate
         mSearchingAnimation.setDuration(ANIMATION_DURATION);
         mSearchingAnimation.setRepeatCount(Animation.INFINITE);
 
-        mBinding.closeButton.setOnClickListener(view -> onDismiss());
-
         mMozillaSpeechService.addListener(mVoiceSearchListener);
         ((Application)aContext.getApplicationContext()).registerActivityLifecycleCallbacks(this);
+    }
+
+    @Override
+    public void updateUI() {
+        removeAllViews();
+
+        LayoutInflater inflater = LayoutInflater.from(getContext());
+
+        // Inflate this data binding layout
+        mBinding = DataBindingUtil.inflate(inflater, R.layout.voice_search_dialog, this, true);
+
+        Drawable mVoiceInputBackgroundDrawable = getResources().getDrawable(R.drawable.ic_voice_search_volume_input_black, getContext().getTheme());
+        mVoiceInputClipDrawable = new ClipDrawable(getContext().getDrawable(R.drawable.ic_voice_search_volume_input_clip), Gravity.START, ClipDrawable.HORIZONTAL);
+        Drawable[] layers = new Drawable[] {mVoiceInputBackgroundDrawable, mVoiceInputClipDrawable };
+        mBinding.voiceSearchAnimationListening.setImageDrawable(new LayerDrawable(layers));
+        mVoiceInputClipDrawable.setLevel(0);
+
+        mBinding.closeButton.setOnClickListener(view -> hide(KEEP_WIDGET));
     }
 
     public void setDelegate(VoiceSearchDelegate delegate) {
@@ -175,7 +182,7 @@ public class VoiceSearchWidget extends UIDialog implements WidgetManagerDelegate
                         if (mDelegate != null) {
                             mDelegate.OnVoiceSearchResult(transcription, confidence);
                         }
-                        hide(REMOVE_WIDGET);
+                        hide(KEEP_WIDGET);
                         break;
                     case START_LISTEN:
                         // Handle when the api successfully opened the microphone and started listening

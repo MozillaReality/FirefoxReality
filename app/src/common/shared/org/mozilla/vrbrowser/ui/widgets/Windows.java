@@ -1309,6 +1309,8 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             mNoInternetDialog.setBody(R.string.no_internet_message);
             mNoInternetDialog.setButtonsDelegate(index -> {
                 mNoInternetDialog.hide(UIWidget.REMOVE_WIDGET);
+                mNoInternetDialog.releaseWidget();
+                mNoInternetDialog = null;
             });
         }
 
@@ -1317,6 +1319,8 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
 
         } else if (connected && mNoInternetDialog.isVisible()) {
             mNoInternetDialog.hide(UIWidget.REMOVE_WIDGET);
+            mNoInternetDialog.releaseWidget();
+            mNoInternetDialog = null;
         }
     };
 }

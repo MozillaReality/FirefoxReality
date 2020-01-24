@@ -38,6 +38,12 @@ public class TitleBarWidget extends UIWidget implements WidgetManagerDelegate.Up
     private boolean mVisible = false;
     private Media mMedia;
     private boolean mWidgetAdded = false;
+    private Delegate mDelegate;
+    private String mUrl;
+    private boolean mInsecure;
+    private int mInsecureVisibility;
+    private boolean mPrivateMode;
+    private boolean mMediaAvailability;
 
     public TitleBarWidget(Context aContext) {
         super(aContext);
@@ -55,17 +61,29 @@ public class TitleBarWidget extends UIWidget implements WidgetManagerDelegate.Up
     }
 
     private void initialize(@NonNull Context aContext) {
-        LayoutInflater inflater = LayoutInflater.from(aContext);
-
-        mBinding = DataBindingUtil.inflate(inflater, R.layout.title_bar, this, true);
-        mBinding.setWidget(this);
-        mBinding.executePendingBindings();
+        updateUI();
 
         mWidgetManager.addUpdateListener(this);
     }
 
+    @Override
+    public void updateUI() {
+        removeAllViews();
+
+        LayoutInflater inflater = LayoutInflater.from(getContext());
+
+        mBinding = DataBindingUtil.inflate(inflater, R.layout.title_bar, this, true);
+        mBinding.setWidget(this);
+        mBinding.setDelegate(mDelegate);
+
+        mBinding.executePendingBindings();
+
+        updateState();
+    }
+
     public void setDelegate(Delegate delegate) {
-        mBinding.setDelegate(delegate);
+        mDelegate = delegate;
+        mBinding.setDelegate(mDelegate);
     }
 
     public @Nullable
@@ -134,7 +152,9 @@ public class TitleBarWidget extends UIWidget implements WidgetManagerDelegate.Up
         }
     }
 
-    private void setPrivateMode(boolean aPrivateMode) {
+    public void setPrivateMode(boolean aPrivateMode) {
+        mPrivateMode = aPrivateMode;
+
         mBinding.titleBar.setBackground(getContext().getDrawable(aPrivateMode ? R.drawable.title_bar_background_private : R.drawable.title_bar_background));
         mBinding.mediaButton.setPrivateMode(aPrivateMode);
     }
@@ -147,6 +167,8 @@ public class TitleBarWidget extends UIWidget implements WidgetManagerDelegate.Up
         if (urlString == null) {
             return;
         }
+
+        mUrl = urlString;
 
         if (URLUtil.isValidUrl(urlString)) {
             try {
@@ -167,6 +189,8 @@ public class TitleBarWidget extends UIWidget implements WidgetManagerDelegate.Up
     }
 
     public void setIsInsecure(boolean aIsInsecure) {
+        mInsecure = aIsInsecure;
+
         if (mAttachedWindow != null && mAttachedWindow.getSession() != null &&
                 mAttachedWindow.getSession().getCurrentUri() != null &&
                 !(mAttachedWindow.getSession().getCurrentUri().startsWith("data") &&
@@ -176,10 +200,13 @@ public class TitleBarWidget extends UIWidget implements WidgetManagerDelegate.Up
     }
 
     public void setInsecureVisibility(int visibility) {
+        mInsecureVisibility = visibility;
         mBinding.insecureIcon.setVisibility(visibility);
     }
 
     public void mediaAvailabilityChanged(boolean available) {
+        mMediaAvailability = available;
+
         if (mMedia != null) {
             mMedia.removeMediaListener(mMediaDelegate);
         }
@@ -203,6 +230,15 @@ public class TitleBarWidget extends UIWidget implements WidgetManagerDelegate.Up
             mBinding.setIsMediaAvailable(mMedia.isPlayed());
             mBinding.setIsMediaPlaying(mMedia.isPlaying());
         }
+    }
+
+    private void updateState() {
+        setPrivateMode(mPrivateMode);
+        setIsInsecure(mInsecure);
+        setInsecureVisibility(mInsecureVisibility);
+        mediaAvailabilityChanged(mMediaAvailability);
+        updateMediaStatus();
+        setURL(mUrl);
     }
 
     MediaElement.Delegate mMediaDelegate = new MediaElement.Delegate() {

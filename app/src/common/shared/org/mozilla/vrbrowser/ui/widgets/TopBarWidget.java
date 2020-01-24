@@ -29,6 +29,10 @@ public class TopBarWidget extends UIWidget implements WidgetManagerDelegate.Upda
     private LinearLayout mMultiWindowControlsContainer;
     private boolean mVisible = false;
     private boolean mWidgetAdded = false;
+    private boolean mPrivateMode;
+    private boolean mClearMode;
+    private boolean mMoveLeftEnabled;
+    private boolean mMoveRightEnaabled;
 
     public TopBarWidget(Context aContext) {
         super(aContext);
@@ -52,7 +56,32 @@ public class TopBarWidget extends UIWidget implements WidgetManagerDelegate.Upda
     }
 
     private void initialize(Context aContext) {
-        inflate(aContext, R.layout.top_bar, this);
+        updateUI();
+
+        mAudio = AudioEngine.fromContext(aContext);
+
+        mWidgetManager.addUpdateListener(this);
+    }
+
+    @Override
+    protected void initializeWidgetPlacement(WidgetPlacement aPlacement) {
+        Context context = getContext();
+        aPlacement.width = WidgetPlacement.dpDimension(context, R.dimen.top_bar_width);
+        aPlacement.height = WidgetPlacement.dpDimension(context, R.dimen.top_bar_height);
+        aPlacement.worldWidth = WidgetPlacement.floatDimension(getContext(), R.dimen.window_world_width) * aPlacement.width/getWorldWidth();
+        aPlacement.translationY = WidgetPlacement.dpDimension(context, R.dimen.top_bar_window_margin);
+        aPlacement.anchorX = 0.5f;
+        aPlacement.anchorY = 0.0f;
+        aPlacement.parentAnchorX = 0.5f;
+        aPlacement.parentAnchorY = 1.0f;
+        aPlacement.opaque = false;
+    }
+
+    @Override
+    public void updateUI() {
+        removeAllViews();
+
+        inflate(getContext(), R.layout.top_bar, this);
 
         mMultiWindowControlsContainer = findViewById(R.id.multiWindowControlsContainer);
 
@@ -100,23 +129,7 @@ public class TopBarWidget extends UIWidget implements WidgetManagerDelegate.Upda
             }
         });
 
-        mAudio = AudioEngine.fromContext(aContext);
-
-        mWidgetManager.addUpdateListener(this);
-    }
-
-    @Override
-    protected void initializeWidgetPlacement(WidgetPlacement aPlacement) {
-        Context context = getContext();
-        aPlacement.width = WidgetPlacement.dpDimension(context, R.dimen.top_bar_width);
-        aPlacement.height = WidgetPlacement.dpDimension(context, R.dimen.top_bar_height);
-        aPlacement.worldWidth = WidgetPlacement.floatDimension(getContext(), R.dimen.window_world_width) * aPlacement.width/getWorldWidth();
-        aPlacement.translationY = WidgetPlacement.dpDimension(context, R.dimen.top_bar_window_margin);
-        aPlacement.anchorX = 0.5f;
-        aPlacement.anchorY = 0.0f;
-        aPlacement.parentAnchorX = 0.5f;
-        aPlacement.parentAnchorY = 1.0f;
-        aPlacement.opaque = false;
+        updateState();
     }
 
     @Override
@@ -148,6 +161,8 @@ public class TopBarWidget extends UIWidget implements WidgetManagerDelegate.Upda
     }
 
     private void setPrivateMode(boolean aPrivateMode) {
+        mPrivateMode = aPrivateMode;
+
         mCloseButton.setPrivateMode(aPrivateMode);
         mMoveLeftButton.setPrivateMode(aPrivateMode);
         mMoveRightButton.setPrivateMode(aPrivateMode);
@@ -172,6 +187,8 @@ public class TopBarWidget extends UIWidget implements WidgetManagerDelegate.Upda
     }
 
     public void setClearMode(boolean showClear) {
+        mClearMode = showClear;
+
         mMultiWindowControlsContainer.setVisibility(showClear ? GONE : VISIBLE);
         mClearButton.setVisibility(showClear ? VISIBLE : GONE);
     }
@@ -181,11 +198,21 @@ public class TopBarWidget extends UIWidget implements WidgetManagerDelegate.Upda
     }
 
     public void setMoveLeftButtonEnabled(boolean aEnabled) {
+        mMoveLeftEnabled = aEnabled;
         mMoveLeftButton.setEnabled(aEnabled);
     }
 
     public void setMoveRightButtonEnabled(boolean aEnabled) {
+        mMoveRightEnaabled = aEnabled;
         mMoveRightButton.setEnabled(aEnabled);
+    }
+
+    private void updateState() {
+        setPrivateMode(mPrivateMode);
+        setClearMode(mClearMode);
+        setMoveLeftButtonEnabled(mMoveLeftEnabled);
+        setMoveRightButtonEnabled(mMoveRightEnaabled);
+        setVisible(mVisible);
     }
 
     // WidgetManagerDelegate.UpdateListener
