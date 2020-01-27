@@ -16,7 +16,7 @@ import org.mozilla.vrbrowser.browser.BookmarksStore;
 import org.mozilla.vrbrowser.browser.HistoryStore;
 import org.mozilla.vrbrowser.browser.PermissionDelegate;
 import org.mozilla.vrbrowser.browser.Services;
-import org.mozilla.vrbrowser.browser.engine.gecko.FxRSessionManager;
+import org.mozilla.vrbrowser.browser.extensions.WebExtensionsManager;
 import org.mozilla.vrbrowser.utils.LocaleUtils;
 import org.mozilla.vrbrowser.utils.SystemUtils;
 
@@ -46,7 +46,7 @@ public class SessionStore implements GeckoSession.PermissionDelegate {
     private HistoryStore mHistoryStore;
     private Services mServices;
     private boolean mSuspendPending;
-    private FxRSessionManager mSessionManager;
+    private WebExtensionsManager mWebExtensionsManager;
 
     private SessionStore() {
         mSessions = new ArrayList<>();
@@ -66,14 +66,14 @@ public class SessionStore implements GeckoSession.PermissionDelegate {
         mBookmarksStore = new BookmarksStore(context);
         mHistoryStore = new HistoryStore(context);
 
-        mSessionManager = new FxRSessionManager(mContext, this);
+        mWebExtensionsManager = new WebExtensionsManager(mContext, this);
     }
 
     @NonNull
     private Session addSession(@NonNull Session aSession) {
         aSession.setPermissionDelegate(this);
         aSession.addNavigationListener(mServices);
-        aSession.addSessionChangeListener(mSessionManager);
+        aSession.addSessionChangeListener(mWebExtensionsManager);
         mSessions.add(aSession);
         sessionActiveStateChanged();
 
@@ -115,7 +115,7 @@ public class SessionStore implements GeckoSession.PermissionDelegate {
         mSessions.remove(aSession);
         if (aSession != null) {
             shutdownSession(aSession);
-            aSession.removeSessionChangeListener(mSessionManager);
+            aSession.removeSessionChangeListener(mWebExtensionsManager);
         }
     }
 

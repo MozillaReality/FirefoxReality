@@ -1,61 +1,37 @@
-package org.mozilla.vrbrowser.browser.engine.gecko;
+package org.mozilla.vrbrowser.browser.extensions;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 import org.mozilla.geckoview.GeckoResult;
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.geckoview.WebExtensionController;
+import org.mozilla.vrbrowser.browser.engine.Session;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import mozilla.components.concept.engine.EngineSession;
 import mozilla.components.concept.engine.webextension.ActionHandler;
 import mozilla.components.concept.engine.webextension.MessageHandler;
 import mozilla.components.concept.engine.webextension.Metadata;
 import mozilla.components.concept.engine.webextension.Port;
 import mozilla.components.concept.engine.webextension.WebExtension;
+import mozilla.components.concept.engine.webextension.WebExtensionEngineSession;
 
 public class GeckoWebExtension extends WebExtension {
 
     private org.mozilla.geckoview.WebExtension mNativeExtension;
     private Map<PortId, Port> mConnectedPorts = new HashMap<>();
 
-    @org.jetbrains.annotations.Nullable
-    @Override
-    public Metadata getMetadata() {
-        return null;
-    }
-
-    @Override
-    public boolean hasActionHandler(@NotNull EngineSession engineSession) {
-        return false;
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return false;
-    }
-
-    @Override
-    public void registerActionHandler(@NotNull EngineSession engineSession, @NotNull ActionHandler actionHandler) {
-
-    }
-
-    @Override
-    public void registerActionHandler(@NotNull ActionHandler actionHandler) {
-
-    }
-
     class PortId {
 
         public String name;
-        public EngineSession engineSession;
+        public WebExtensionEngineSession engineSession;
 
-        PortId(@NonNull String name, @Nullable EngineSession engineSession) {
+        PortId(@NonNull String name, @Nullable WebExtensionEngineSession engineSession) {
             this.name = name;
             this.engineSession = engineSession;
         }
@@ -154,7 +130,7 @@ public class GeckoWebExtension extends WebExtension {
      * See [WebExtension.registerContentMessageHandler].
      */
     @Override
-    public void registerContentMessageHandler(@NonNull EngineSession session, @NonNull String name, @NonNull MessageHandler messageHandler) {
+    public void registerContentMessageHandler(@NonNull WebExtensionEngineSession session, @NonNull String name, @NonNull MessageHandler messageHandler) {
         org.mozilla.geckoview.WebExtension.PortDelegate portDelegate = new org.mozilla.geckoview.WebExtension.PortDelegate() {
             @Override
             public void onPortMessage(@NonNull Object message, @NonNull org.mozilla.geckoview.WebExtension.Port port) {
@@ -188,30 +164,71 @@ public class GeckoWebExtension extends WebExtension {
             }
         };
 
-        GeckoSession geckoSession = ((GeckoEngineSession)session).getGeckoSession();
+        GeckoSession geckoSession = ((Session)session).getGeckoSession();
         geckoSession.setMessageDelegate(mNativeExtension, messageDelegate, name);
     }
 
     @Override
-    public boolean hasContentMessageHandler(@NonNull EngineSession session, @NonNull String name) {
-        GeckoSession geckoSession = ((GeckoEngineSession)session).getGeckoSession();
+    public boolean hasContentMessageHandler(@NonNull WebExtensionEngineSession session, @NonNull String name) {
+        GeckoSession geckoSession = ((Session)session).getGeckoSession();
         return geckoSession.getMessageDelegate(mNativeExtension, name) != null;
     }
 
     @Nullable
     @Override
-    public Port getConnectedPort(@NonNull String name, @Nullable EngineSession session) {
+    public Port getConnectedPort(@NonNull String name, @Nullable WebExtensionEngineSession session) {
         return mConnectedPorts.get(new PortId(name, session));
     }
 
     @Override
-    public void disconnectPort(@NonNull String name, @Nullable EngineSession session) {
+    public void disconnectPort(@NonNull String name, @Nullable WebExtensionEngineSession session) {
         PortId portId = new PortId(name, session);
         Port port = mConnectedPorts.get(portId);
         if (port != null) {
             port.disconnect();
             mConnectedPorts.remove(portId);
         }
+    }
+
+    @Override
+    public void registerActionHandler(@NonNull WebExtensionEngineSession engineSession, @NonNull ActionHandler actionHandler) {
+        // TODO
+    }
+
+    @Override
+    public void registerActionHandler(@NonNull ActionHandler actionHandler) {
+        // TODO
+    }
+
+    @Override
+    public boolean hasActionHandler(@NonNull WebExtensionEngineSession engineSession) {
+        return false;
+    }
+
+    @Override
+    public Metadata getMetadata() {
+        if (mNativeExtension.metaData != null) {
+            return new Metadata(
+                    mNativeExtension.metaData.version,
+                    Stream.of(mNativeExtension.metaData.permissions).collect(Collectors.toList()),
+                    Stream.of(mNativeExtension.metaData.origins).collect(Collectors.toList()),
+                    mNativeExtension.metaData.name,
+                    mNativeExtension.metaData.description,
+                    mNativeExtension.metaData.creatorName,
+                    mNativeExtension.metaData.creatorUrl,
+                    mNativeExtension.metaData.homepageUrl,
+                    null, // TODO
+                    null,  // TODO
+                    null // TODO
+            );
+        }
+
+        return null;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return true;
     }
 
     private long createWebExtensionFlags(boolean allowContentMessaging) {
@@ -231,7 +248,7 @@ public class GeckoWebExtension extends WebExtension {
         private org.mozilla.geckoview.WebExtension.Port mNativePort;
 
         GeckoPort(@NonNull org.mozilla.geckoview.WebExtension.Port port,
-                  @Nullable EngineSession session) {
+                  @Nullable WebExtensionEngineSession session) {
             super(session);
 
             mNativePort = port;

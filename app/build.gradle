@@ -474,26 +474,27 @@ dependencies {
     annotationProcessor deps.room.compiler
 
     // Android Components
+    def withoutConceptEngine = {
+        exclude group: 'org.mozilla.components', module: 'concept-engine'
+    }
     implementation deps.mozilla_speech
-    implementation deps.android_components.telemetry
-    implementation deps.android_components.browser_errorpages
-    implementation deps.android_components.browser_search
-    implementation deps.android_components.browser_storage
-    implementation deps.android_components.browser_domains
-    implementation deps.android_components.service_accounts
-    implementation deps.android_components.ui_autocomplete
-    implementation deps.android_components.concept_fetch
-    implementation deps.android_components.lib_fetch
-    implementation deps.android_components.support_rustlog
-    implementation deps.android_components.support_rusthttp
-    implementation deps.android_components.glean
-    implementation deps.app_services.rustlog
-    implementation deps.android_components.concept_engine
-    implementation deps.android_components.support_webextensions
-    implementation deps.android_components.browser_session
-    implementation deps.android_components.feature_accounts
-    implementation deps.android_components.feature_accounts
-    implementation deps.android_components.feature_webcompat
+    implementation deps.android_components.telemetry, withoutConceptEngine
+    implementation deps.android_components.browser_errorpages, withoutConceptEngine
+    implementation deps.android_components.browser_search, withoutConceptEngine
+    implementation deps.android_components.browser_storage, withoutConceptEngine
+    implementation deps.android_components.browser_domains, withoutConceptEngine
+    implementation deps.android_components.service_accounts, withoutConceptEngine
+    implementation deps.android_components.ui_autocomplete, withoutConceptEngine
+    implementation deps.android_components.concept_fetch, withoutConceptEngine
+    implementation deps.android_components.lib_fetch, withoutConceptEngine
+    implementation deps.android_components.support_rustlog, withoutConceptEngine
+    implementation deps.android_components.support_rusthttp, withoutConceptEngine
+    implementation deps.android_components.glean, withoutConceptEngine
+    implementation deps.app_services.rustlog, withoutConceptEngine
+    implementation(name:'concept-engine-debug', ext:'aar')
+    implementation(name:'support-webextensions-debug', ext:'aar')
+    implementation(name:'feature-accounts-debug', ext:'aar')
+    implementation(name:'browser-session-debug', ext:'aar')
 
     // For production builds, the native code for all `org.mozilla.appservices`
     // dependencies gets compiled together into a single "megazord" build, and

@@ -51,6 +51,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import mozilla.components.concept.engine.webextension.WebExtensionEngineSession;
+
 import static java.util.Objects.requireNonNull;
 import static org.mozilla.vrbrowser.utils.ServoUtils.createServoSession;
 import static org.mozilla.vrbrowser.utils.ServoUtils.isInstanceOfServoSession;
@@ -59,7 +61,8 @@ import static org.mozilla.vrbrowser.utils.ServoUtils.isServoAvailable;
 public class Session implements ContentBlocking.Delegate, GeckoSession.NavigationDelegate,
         GeckoSession.ProgressDelegate, GeckoSession.ContentDelegate, GeckoSession.TextInputDelegate,
         GeckoSession.PromptDelegate, GeckoSession.MediaDelegate, GeckoSession.HistoryDelegate, GeckoSession.PermissionDelegate,
-        GeckoSession.SelectionActionDelegate, SharedPreferences.OnSharedPreferenceChangeListener, SessionChangeListener {
+        GeckoSession.SelectionActionDelegate, SharedPreferences.OnSharedPreferenceChangeListener, SessionChangeListener,
+        WebExtensionEngineSession {
 
     private static final String LOGTAG = SystemUtils.createLogtag(Session.class);
     private static UserAgentOverride sUserAgentOverride;
@@ -86,6 +89,11 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     private transient boolean mFirstContentfulPaint;
     private transient long mKeepAlive;
     private transient boolean mIsFirstActivation;
+
+    @Override
+    public void getNativeSession() {
+        
+    }
 
     public interface BitmapChangedListener {
         void onBitmapChanged(Session aSession, Bitmap aBitmap);

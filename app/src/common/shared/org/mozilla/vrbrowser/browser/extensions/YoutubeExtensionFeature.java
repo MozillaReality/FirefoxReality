@@ -4,8 +4,9 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
-import org.mozilla.vrbrowser.browser.engine.gecko.GeckoEngine;
 import org.mozilla.vrbrowser.utils.SystemUtils;
+
+import mozilla.components.concept.engine.webextension.WebExtensionEngine;
 
 public class YoutubeExtensionFeature {
 
@@ -14,7 +15,7 @@ public class YoutubeExtensionFeature {
     private static final String EXTENSION_ID = "mozacYoutube";
     private static final String EXTENSION_URL = "resource://android/assets/web_extensions/webcompat_youtube/";
 
-    public static void install(@NonNull GeckoEngine engine) {
+    public static void install(@NonNull WebExtensionEngine engine) {
 
         engine.installWebExtension(EXTENSION_ID, EXTENSION_URL, false, false, (webExtension) -> {
             Log.i(LOGTAG, "Youtube Web Extension successfully installed");
