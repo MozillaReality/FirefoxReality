@@ -15,7 +15,7 @@ public class VimeoExtensionFeature {
     private static final String EXTENSION_URL = "resource://android/assets/web_extensions/webcompat_vimeo/";
 
     public static void install(@NonNull GeckoEngine engine) {
-        engine.installWebExtension(EXTENSION_ID, EXTENSION_URL, false, webExtension -> {
+        engine.installWebExtension(EXTENSION_ID, EXTENSION_URL, false, false, webExtension -> {
             Log.i(LOGTAG, "Vimeo Web Extension successfully installed");
             return null;
         }, (s, throwable) -> {

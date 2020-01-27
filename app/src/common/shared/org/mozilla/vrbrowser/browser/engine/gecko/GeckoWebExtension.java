@@ -3,15 +3,19 @@ package org.mozilla.vrbrowser.browser.engine.gecko;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 import org.mozilla.geckoview.GeckoResult;
 import org.mozilla.geckoview.GeckoSession;
+import org.mozilla.geckoview.WebExtensionController;
 
 import java.util.HashMap;
 import java.util.Map;
 
 import mozilla.components.concept.engine.EngineSession;
+import mozilla.components.concept.engine.webextension.ActionHandler;
 import mozilla.components.concept.engine.webextension.MessageHandler;
+import mozilla.components.concept.engine.webextension.Metadata;
 import mozilla.components.concept.engine.webextension.Port;
 import mozilla.components.concept.engine.webextension.WebExtension;
 
@@ -19,6 +23,32 @@ public class GeckoWebExtension extends WebExtension {
 
     private org.mozilla.geckoview.WebExtension mNativeExtension;
     private Map<PortId, Port> mConnectedPorts = new HashMap<>();
+
+    @org.jetbrains.annotations.Nullable
+    @Override
+    public Metadata getMetadata() {
+        return null;
+    }
+
+    @Override
+    public boolean hasActionHandler(@NotNull EngineSession engineSession) {
+        return false;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return false;
+    }
+
+    @Override
+    public void registerActionHandler(@NotNull EngineSession engineSession, @NotNull ActionHandler actionHandler) {
+
+    }
+
+    @Override
+    public void registerActionHandler(@NotNull ActionHandler actionHandler) {
+
+    }
 
     class PortId {
 
@@ -64,10 +94,15 @@ public class GeckoWebExtension extends WebExtension {
      */
     public GeckoWebExtension(@NonNull String id,
                              @NonNull String url,
+                             WebExtensionController webExtensionController,
                              boolean allowContentMessaging) {
-        super(id, url);
+        super(id, url, allowContentMessaging);
 
-        mNativeExtension = new org.mozilla.geckoview.WebExtension(url, id, createWebExtensionFlags(allowContentMessaging));
+
+        mNativeExtension = new org.mozilla.geckoview.WebExtension(url,
+                id,
+                createWebExtensionFlags(allowContentMessaging),
+                webExtensionController);
     }
 
     public org.mozilla.geckoview.WebExtension getNativeExtension() {

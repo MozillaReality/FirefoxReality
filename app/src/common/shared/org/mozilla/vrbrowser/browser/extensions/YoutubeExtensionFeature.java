@@ -15,7 +15,8 @@ public class YoutubeExtensionFeature {
     private static final String EXTENSION_URL = "resource://android/assets/web_extensions/webcompat_youtube/";
 
     public static void install(@NonNull GeckoEngine engine) {
-        engine.installWebExtension(EXTENSION_ID, EXTENSION_URL, false, webExtension -> {
+
+        engine.installWebExtension(EXTENSION_ID, EXTENSION_URL, false, false, (webExtension) -> {
             Log.i(LOGTAG, "Youtube Web Extension successfully installed");
             return null;
         }, (s, throwable) -> {

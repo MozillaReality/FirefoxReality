@@ -680,7 +680,6 @@ public class SettingsStore {
         return mPrefs.getBoolean(mContext.getString(R.string.settings_key_restore_tabs), RESTORE_TABS_ENABLED);
     }
 
-}
     public void setFxAWebChannelsEnabled(boolean isEnabled) {
         SharedPreferences.Editor editor = mPrefs.edit();
         editor.putBoolean(mContext.getString(R.string.settings_key_webchannels_enabled), isEnabled);

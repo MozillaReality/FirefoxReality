@@ -17,6 +17,7 @@ import org.mozilla.vrbrowser.browser.HistoryStore;
 import org.mozilla.vrbrowser.browser.PermissionDelegate;
 import org.mozilla.vrbrowser.browser.Services;
 import org.mozilla.vrbrowser.browser.engine.gecko.FxRSessionManager;
+import org.mozilla.vrbrowser.utils.LocaleUtils;
 import org.mozilla.vrbrowser.utils.SystemUtils;
 
 import java.util.ArrayList;

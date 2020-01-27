@@ -35,6 +35,7 @@ import mozilla.components.concept.engine.Settings;
 import mozilla.components.concept.engine.content.blocking.TrackerLog;
 import mozilla.components.concept.engine.content.blocking.TrackingProtectionExceptionStorage;
 import mozilla.components.concept.engine.utils.EngineVersion;
+import mozilla.components.concept.engine.webextension.EnableSource;
 import mozilla.components.concept.engine.webextension.WebExtension;
 import mozilla.components.concept.engine.webextension.WebExtensionDelegate;
 import mozilla.components.concept.engine.webnotifications.WebNotificationDelegate;
@@ -147,8 +148,8 @@ public class GeckoEngine implements Engine {
     }
 
     @Override
-    public void installWebExtension(@NotNull String id, @NotNull String url, boolean allowContentMessaging, @NotNull Function1<? super WebExtension, Unit> onSuccess, @NotNull Function2<? super String, ? super Throwable, Unit> onError) {
-        final GeckoWebExtension extension = new GeckoWebExtension(id, url, allowContentMessaging);
+    public void installWebExtension(@NotNull String id, @NotNull String url, boolean allowContentMessaging, boolean actions, @NotNull Function1<? super WebExtension, Unit> onSuccess, @NotNull Function2<? super String, ? super Throwable, Unit> onError) {
+        final GeckoWebExtension extension = new GeckoWebExtension(id, url, mSessionStore.getRuntime().getWebExtensionController(), allowContentMessaging);
         mSessionStore.getRuntime().registerWebExtension(extension.getNativeExtension()).then(aVoid -> {
             if (mWebExtensionDelegate != null) {
                 mWebExtensionDelegate.onInstalled(extension);
@@ -188,7 +189,7 @@ public class GeckoEngine implements Engine {
                 GeckoEngineSession geckoEngineSession = new GeckoEngineSession(mContext, session);
                 GeckoWebExtension extension = null;
                 if (webExtension != null) {
-                    extension = new GeckoWebExtension(webExtension.id, webExtension.location, true);
+                    extension = new GeckoWebExtension(webExtension.id, webExtension.location, mSessionStore.getRuntime().getWebExtensionController(), true);
                 }
 
                 mWebExtensionDelegate.onNewTab(extension, url != null ? url : "", geckoEngineSession);
@@ -214,7 +215,7 @@ public class GeckoEngine implements Engine {
                 }
 
                 if (webExtension != null && tabs.get(geckoEngineSession).equals(webExtension.id)) {
-                    GeckoWebExtension geckoWebExtension = new GeckoWebExtension(webExtension.id, webExtension.location, true);
+                    GeckoWebExtension geckoWebExtension = new GeckoWebExtension(webExtension.id, webExtension.location, mSessionStore.getRuntime().getWebExtensionController(), true);
                     if (webExtensionDelegate.onCloseTab(geckoWebExtension, geckoEngineSession)) {
                         return GeckoResult.ALLOW;
 
@@ -299,5 +300,30 @@ public class GeckoEngine implements Engine {
             case ContentBlockingController.Event.BLOCKED_TRACKING_CONTENT: return TrackingProtectionPolicy.TrackingCategory.SCRIPTS_AND_SUB_RESOURCES;
             default: return TrackingProtectionPolicy.TrackingCategory.NONE;
         }
+    }
+
+    @Override
+    public void disableWebExtension(@NotNull WebExtension webExtension, @NotNull EnableSource enableSource, @NotNull Function1<? super WebExtension, Unit> function1, @NotNull Function1<? super Throwable, Unit> function11) {
+
+    }
+
+    @Override
+    public void enableWebExtension(@NotNull WebExtension webExtension, @NotNull EnableSource enableSource, @NotNull Function1<? super WebExtension, Unit> function1, @NotNull Function1<? super Throwable, Unit> function11) {
+
+    }
+
+    @Override
+    public void listInstalledWebExtensions(@NotNull Function1<? super List<? extends WebExtension>, Unit> function1, @NotNull Function1<? super Throwable, Unit> function11) {
+
+    }
+
+    @Override
+    public void uninstallWebExtension(@NotNull WebExtension webExtension, @NotNull Function0<Unit> function0, @NotNull Function2<? super String, ? super Throwable, Unit> function2) {
+
+    }
+
+    @Override
+    public void updateWebExtension(@NotNull WebExtension webExtension, @NotNull Function1<? super WebExtension, Unit> function1, @NotNull Function2<? super String, ? super Throwable, Unit> function2) {
+
     }
 }

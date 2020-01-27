@@ -396,7 +396,7 @@ public class GeckoEngineSession extends EngineSession {
 
                     InterceptionResponse response = null;
                     if (mSettings.getRequestInterceptor() != null) {
-                        response = mSettings.getRequestInterceptor().onLoadRequest(GeckoEngineSession.this, loadRequest.uri);
+                        response = mSettings.getRequestInterceptor().onLoadRequest(GeckoEngineSession.this, loadRequest.uri, false, false);
                         if (response instanceof InterceptionResponse.Content) {
                             InterceptionResponse.Content content = (InterceptionResponse.Content) response;
                             loadData(content.getData(), content.getMimeType(), content.getEncoding());
