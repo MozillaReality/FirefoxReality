@@ -6,6 +6,7 @@
 package org.mozilla.vrbrowser.ui.widgets.dialogs;
 
 import android.content.Context;
+import android.content.res.Configuration;
 import android.view.LayoutInflater;
 import android.view.View;
 
@@ -73,6 +74,13 @@ public class SendTabDialogWidget extends SettingDialogWidget implements
         mBinding.headerLayout.setDescription(R.string.send_tab_dialog_description);
         mBinding.footerLayout.setFooterButtonText(R.string.send_tab_dialog_button);
         mBinding.footerLayout.setFooterButtonClickListener(this::sendTabButtonClick);
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        updateUI();
     }
 
     @Override

@@ -46,7 +46,6 @@ public abstract class MenuWidget extends UIWidget implements WidgetManagerDelega
         updateUI();
     }
 
-    @Override
     public void updateUI() {
         removeAllViews();
 

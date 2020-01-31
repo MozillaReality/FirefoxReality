@@ -1,6 +1,7 @@
 package org.mozilla.vrbrowser.ui.widgets.dialogs;
 
 import android.content.Context;
+import android.content.res.Configuration;
 import android.graphics.Point;
 import android.graphics.RectF;
 import android.view.View;
@@ -49,12 +50,18 @@ public class SelectionActionWidget extends UIWidget implements WidgetManagerDele
         mBackHandler = this::onDismiss;
     }
 
-    @Override
     public void updateUI() {
         removeAllViews();
 
         inflate(getContext(), R.layout.selection_action_menu, this);
         mContainer = findViewById(R.id.selectionMenuContainer);
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        updateUI();
     }
 
     @Override

@@ -6,6 +6,7 @@
 package org.mozilla.vrbrowser.ui.widgets.dialogs;
 
 import android.content.Context;
+import android.content.res.Configuration;
 import android.view.LayoutInflater;
 
 import androidx.databinding.DataBindingUtil;
@@ -44,6 +45,13 @@ public class ClearHistoryDialogWidget extends SettingDialogWidget {
         super.show(aShowFlags);
 
         mClearHistoryBinding.clearHistoryRadio.setChecked(0, false);
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        updateUI();
     }
 
     @Override

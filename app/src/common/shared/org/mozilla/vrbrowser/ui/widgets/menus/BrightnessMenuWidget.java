@@ -1,6 +1,7 @@
 package org.mozilla.vrbrowser.ui.widgets.menus;
 
 import android.content.Context;
+import android.content.res.Configuration;
 import android.view.View;
 
 import org.mozilla.vrbrowser.R;
@@ -36,6 +37,13 @@ public class BrightnessMenuWidget extends MenuWidget {
         super.updateUI();
 
         createMenuItems();
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        updateUI();
     }
 
     public void setParentWidget(UIWidget aParent) {

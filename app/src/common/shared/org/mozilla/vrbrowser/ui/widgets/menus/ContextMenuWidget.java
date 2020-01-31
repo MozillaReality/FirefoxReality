@@ -8,11 +8,13 @@ package org.mozilla.vrbrowser.ui.widgets.menus;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.res.Configuration;
 import android.net.Uri;
 
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.telemetry.GleanMetricsService;
+import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
 import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
 import org.mozilla.vrbrowser.utils.StringUtils;
 
@@ -52,6 +54,13 @@ public class ContextMenuWidget extends MenuWidget {
                 R.drawable.context_menu_item_background_single);
         mAdapter.updateLayoutId(R.layout.context_menu_item);
         menuContainer.setBackground(getContext().getDrawable(R.drawable.context_menu_background));
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        updateUI();
     }
 
     @Override

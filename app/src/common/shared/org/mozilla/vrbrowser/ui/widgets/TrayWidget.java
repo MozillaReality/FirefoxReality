@@ -8,23 +8,32 @@ package org.mozilla.vrbrowser.ui.widgets;
 import android.animation.Animator;
 import android.animation.ValueAnimator;
 import android.content.Context;
+import android.content.res.Configuration;
 import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
 
 import androidx.annotation.NonNull;
+import androidx.databinding.DataBindingUtil;
+import androidx.databinding.ObservableBoolean;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
 
 import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.R;
+import org.mozilla.vrbrowser.VRBrowserActivity;
 import org.mozilla.vrbrowser.audio.AudioEngine;
 import org.mozilla.vrbrowser.browser.BookmarksStore;
 import org.mozilla.vrbrowser.browser.SessionChangeListener;
 import org.mozilla.vrbrowser.browser.engine.Session;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
+import org.mozilla.vrbrowser.databinding.TrayBinding;
+import org.mozilla.vrbrowser.ui.viewmodel.WindowViewModel;
 import org.mozilla.vrbrowser.ui.views.UIButton;
 import org.mozilla.vrbrowser.ui.widgets.settings.SettingsWidget;
 
@@ -32,18 +41,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class TrayWidget extends UIWidget implements SessionChangeListener, WindowWidget.BookmarksViewDelegate,
-        WindowWidget.HistoryViewDelegate, WidgetManagerDelegate.UpdateListener {
+public class TrayWidget extends UIWidget implements SessionChangeListener, WidgetManagerDelegate.UpdateListener {
 
     private static final int ICON_ANIMATION_DURATION = 200;
     private static final int LIBRARY_NOTIFICATION_DURATION = 3000;
 
-    private UIButton mAddWindowButton;
-    private UIButton mSettingsButton;
-    private UIButton mPrivateButton;
-    private UIButton mBookmarksButton;
-    private UIButton mHistoryButton;
-    private UIButton mTabsButton;
+    private WindowViewModel mViewModel;
+    private TrayBinding mBinding;
     private AudioEngine mAudio;
     private int mSettingsDialogHandle = -1;
     private boolean mIsLastSessionPrivate;
@@ -87,15 +91,15 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
         mWidgetManager.addUpdateListener(this);
     }
 
-    @Override
     public void updateUI() {
-        removeAllViews();
+        LayoutInflater inflater = LayoutInflater.from(getContext());
 
-        inflate(getContext(), R.layout.tray, this);
+        // Inflate this data binding layout
+        mBinding = DataBindingUtil.inflate(inflater, R.layout.tray, this, true);
+        mBinding.setLifecycleOwner((VRBrowserActivity)getContext());
 
-        mPrivateButton = findViewById(R.id.privateButton);
-        mPrivateButton.setOnHoverListener(mButtonScaleHoverListener);
-        mPrivateButton.setOnClickListener(view -> {
+        mBinding.privateButton.setOnHoverListener(mButtonScaleHoverListener);
+        mBinding.privateButton.setOnClickListener(view -> {
             if (mAudio != null) {
                 mAudio.playSound(AudioEngine.Sound.CLICK);
             }
@@ -103,11 +107,10 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
             notifyPrivateBrowsingClicked();
             view.requestFocusFromTouch();
         });
-        mPrivateButton.setCurvedTooltip(false);
+        mBinding.privateButton.setCurvedTooltip(false);
 
-        mSettingsButton = findViewById(R.id.settingsButton);
-        mSettingsButton.setOnHoverListener(mButtonScaleHoverListener);
-        mSettingsButton.setOnClickListener(view -> {
+        mBinding.settingsButton.setOnHoverListener(mButtonScaleHoverListener);
+        mBinding.settingsButton.setOnClickListener(view -> {
             if (mAudio != null) {
                 mAudio.playSound(AudioEngine.Sound.CLICK);
             }
@@ -117,11 +120,10 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
                 view.requestFocusFromTouch();
             }
         });
-        mSettingsButton.setCurvedTooltip(false);
+        mBinding.settingsButton.setCurvedTooltip(false);
 
-        mBookmarksButton = findViewById(R.id.bookmarksButton);
-        mBookmarksButton.setOnHoverListener(mButtonScaleHoverListener);
-        mBookmarksButton.setOnClickListener(view -> {
+        mBinding.bookmarksButton.setOnHoverListener(mButtonScaleHoverListener);
+        mBinding.bookmarksButton.setOnClickListener(view -> {
             if (mAudio != null) {
                 mAudio.playSound(AudioEngine.Sound.CLICK);
             }
@@ -129,11 +131,10 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
             notifyBookmarksClicked();
             view.requestFocusFromTouch();
         });
-        mBookmarksButton.setCurvedTooltip(false);
+        mBinding.bookmarksButton.setCurvedTooltip(false);
 
-        mHistoryButton = findViewById(R.id.historyButton);
-        mHistoryButton.setOnHoverListener(mButtonScaleHoverListener);
-        mHistoryButton.setOnClickListener(view -> {
+        mBinding.historyButton.setOnHoverListener(mButtonScaleHoverListener);
+        mBinding.historyButton.setOnClickListener(view -> {
             if (mAudio != null) {
                 mAudio.playSound(AudioEngine.Sound.CLICK);
             }
@@ -141,11 +142,10 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
             notifyHistoryClicked();
             view.requestFocusFromTouch();
         });
-        mHistoryButton.setCurvedTooltip(false);
+        mBinding.historyButton.setCurvedTooltip(false);
 
-        mTabsButton = findViewById(R.id.tabsButton);
-        mTabsButton.setOnHoverListener(mButtonScaleHoverListener);
-        mTabsButton.setOnClickListener(view -> {
+        mBinding.tabsButton.setOnHoverListener(mButtonScaleHoverListener);
+        mBinding.tabsButton.setOnClickListener(view -> {
             if (mAudio != null) {
                 mAudio.playSound(AudioEngine.Sound.CLICK);
             }
@@ -153,11 +153,10 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
             view.requestFocusFromTouch();
             notifyTabsClicked();
         });
-        mHistoryButton.setCurvedTooltip(false);
+        mBinding.tabsButton.setCurvedTooltip(false);
 
-        mAddWindowButton = findViewById(R.id.addwindowButton);
-        mAddWindowButton.setOnHoverListener(mButtonScaleHoverListener);
-        mAddWindowButton.setOnClickListener(view -> {
+        mBinding.addwindowButton.setOnHoverListener(mButtonScaleHoverListener);
+        mBinding.addwindowButton.setOnClickListener(view -> {
             if (mAudio != null) {
                 mAudio.playSound(AudioEngine.Sound.CLICK);
             }
@@ -166,9 +165,16 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
 
             notifyAddWindowClicked();
         });
-        mAddWindowButton.setCurvedTooltip(false);
+        mBinding.addwindowButton.setCurvedTooltip(false);
 
         updateState();
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        updateUI();
     }
 
     private OnHoverListener mButtonScaleHoverListener = (view, motionEvent) -> {
@@ -300,8 +306,8 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
 
     @Override
     public void hide(@HideFlags int aHideFlags) {
-        hideNotification(mBookmarksButton);
-        hideNotification(mTabsButton);
+        hideNotification(mBinding.bookmarksButton);
+        hideNotification(mBinding.tabsButton);
 
         if (mWidgetPlacement.visible) {
             mWidgetPlacement.visible = false;
@@ -315,8 +321,8 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
 
     @Override
     public void detachFromWindow() {
-        hideNotification(mBookmarksButton);
-        hideNotification(mTabsButton);
+        hideNotification(mBinding.bookmarksButton);
+        hideNotification(mBinding.tabsButton);
 
         if (mSession != null) {
             mSession.removeSessionChangeListener(this);
@@ -324,12 +330,37 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
         }
         if (mAttachedWindow != null) {
             SessionStore.get().getBookmarkStore().addListener(mBookmarksListener);
-            mAttachedWindow.removeBookmarksViewListener(this);
-            mAttachedWindow.removeHistoryViewListener(this);
         }
         mWidgetPlacement.parentHandle = -1;
 
+        if (mViewModel != null) {
+            mViewModel.getIsBookmraksVisible().removeObserver(mBookmarksVisibleObserver);
+            mViewModel.getIsHistoryVisible().removeObserver(mHistoryVisibleObserver);
+            mViewModel = null;
+        }
     }
+
+    Observer<ObservableBoolean> mBookmarksVisibleObserver = isBookmarksVisible -> {
+        if (isBookmarksVisible.get()) {
+            mBinding.bookmarksButton.setTooltip(getResources().getString(R.string.close_bookmarks_tooltip));
+            mBinding.bookmarksButton.setActiveMode(true);
+
+        } else {
+            mBinding.bookmarksButton.setTooltip(getResources().getString(R.string.open_bookmarks_tooltip));
+            mBinding.bookmarksButton.setActiveMode(false);
+        }
+    };
+
+    Observer<ObservableBoolean> mHistoryVisibleObserver = isHistoryVisible -> {
+        if (isHistoryVisible.get()) {
+            mBinding.historyButton.setTooltip(getResources().getString(R.string.close_history_tooltip));
+            mBinding.historyButton.setActiveMode(true);
+
+        } else {
+            mBinding.historyButton.setTooltip(getResources().getString(R.string.open_history_tooltip));
+            mBinding.historyButton.setActiveMode(false);
+        }
+    };
 
     @Override
     public void attachToWindow(@NonNull WindowWidget aWindow) {
@@ -340,8 +371,17 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
 
         mAttachedWindow = aWindow;
         mWidgetPlacement.parentHandle = aWindow.getHandle();
-        mAttachedWindow.addBookmarksViewListener(this);
-        mAttachedWindow.addHistoryViewListener(this);
+
+        // ModelView creation and observers setup
+        mViewModel = new ViewModelProvider(
+                (VRBrowserActivity)getContext(),
+                ViewModelProvider.AndroidViewModelFactory.getInstance(((VRBrowserActivity) getContext()).getApplication()))
+                .get(String.valueOf(mAttachedWindow.hashCode()), WindowViewModel.class);
+
+        mBinding.setViewmodel(mViewModel);
+
+        mViewModel.getIsBookmraksVisible().observe((VRBrowserActivity)getContext(), mBookmarksVisibleObserver);
+        mViewModel.getIsHistoryVisible().observe((VRBrowserActivity)getContext(), mHistoryVisibleObserver);
 
         SessionStore.get().getBookmarkStore().addListener(mBookmarksListener);
 
@@ -349,18 +389,6 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
         if (mSession != null) {
             mSession.addSessionChangeListener(this);
             handleSessionState(false);
-        }
-
-        if (mAttachedWindow.isBookmarksVisible()) {
-            onBookmarksShown(aWindow);
-        } else {
-            onBookmarksHidden(aWindow);
-        }
-
-        if (mAttachedWindow.isHistoryVisible()) {
-            onHistoryViewShown(aWindow);
-        } else {
-            onHistoryViewHidden(aWindow);
         }
     }
 
@@ -374,15 +402,6 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
     private void updateState() {
         handleSessionState(true);
         setAddWindowVisible(mAddWindowVisible);
-
-        if (mAttachedWindow != null) {
-            if (mAttachedWindow.isBookmarksVisible()) {
-                onBookmarksShown(mAttachedWindow);
-            }
-            if (mAttachedWindow.isHistoryVisible()) {
-                onHistoryViewShown(mAttachedWindow);
-            }
-        }
     }
 
     private void handleSessionState(boolean refresh) {
@@ -390,20 +409,20 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
             boolean isPrivateMode = mSession.isPrivateMode();
 
             if (isPrivateMode != mIsLastSessionPrivate || refresh) {
-                mPrivateButton.setPrivateMode(isPrivateMode);
+                mBinding.privateButton.setPrivateMode(isPrivateMode);
                 if (isPrivateMode) {
                     if (!refresh) {
                         mWidgetManager.pushWorldBrightness(this, WidgetManagerDelegate.DEFAULT_DIM_BRIGHTNESS);
                     }
-                    mPrivateButton.setImageResource(R.drawable.ic_icon_tray_private_browsing_on_v2);
-                    mPrivateButton.setTooltip(getResources().getString(R.string.private_browsing_exit_tooltip));
+                    mBinding.privateButton.setImageResource(R.drawable.ic_icon_tray_private_browsing_on_v2);
+                    mBinding.privateButton.setTooltip(getResources().getString(R.string.private_browsing_exit_tooltip));
 
                 } else {
                     if (!refresh) {
                         mWidgetManager.popWorldBrightness(this);
                     }
-                    mPrivateButton.setImageResource(R.drawable.ic_icon_tray_private_browsing_v2);
-                    mPrivateButton.setTooltip(getResources().getString(R.string.private_browsing_enter_tooltip));
+                    mBinding.privateButton.setImageResource(R.drawable.ic_icon_tray_private_browsing_v2);
+                    mBinding.privateButton.setTooltip(getResources().getString(R.string.private_browsing_enter_tooltip));
                 }
             }
 
@@ -475,44 +494,16 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
     public void setAddWindowVisible(boolean aVisible) {
         mAddWindowVisible = aVisible;
 
-        mAddWindowButton.setVisibility(aVisible ? View.VISIBLE : View.GONE);
+        mBinding.addwindowButton.setVisibility(aVisible ? View.VISIBLE : View.GONE);
         if (aVisible) {
-            mTabsButton.updateBackgrounds(R.drawable.tray_background_unchecked_middle,
+            mBinding.tabsButton.updateBackgrounds(R.drawable.tray_background_unchecked_middle,
                     R.drawable.tray_background_middle_private,
                     R.drawable.tray_background_checked_middle);
         } else {
-            mTabsButton.updateBackgrounds(R.drawable.tray_background_unchecked_start,
+            mBinding.tabsButton.updateBackgrounds(R.drawable.tray_background_unchecked_start,
                     R.drawable.tray_background_start_private,
                     R.drawable.tray_background_checked_start);
         }
-    }
-
-    // BookmarksViewListener
-
-    @Override
-    public void onBookmarksShown(WindowWidget aWindow) {
-        mBookmarksButton.setTooltip(getResources().getString(R.string.close_bookmarks_tooltip));
-        mBookmarksButton.setActiveMode(true);
-    }
-
-    @Override
-    public void onBookmarksHidden(WindowWidget aWindow) {
-        mBookmarksButton.setTooltip(getResources().getString(R.string.open_bookmarks_tooltip));
-        mBookmarksButton.setActiveMode(false);
-    }
-
-    // HistoryViewListener
-
-    @Override
-    public void onHistoryViewShown(WindowWidget aWindow) {
-        mHistoryButton.setTooltip(getResources().getString(R.string.close_history_tooltip));
-        mHistoryButton.setActiveMode(true);
-    }
-
-    @Override
-    public void onHistoryViewHidden(WindowWidget aWindow) {
-        mHistoryButton.setTooltip(getResources().getString(R.string.open_history_tooltip));
-        mHistoryButton.setActiveMode(false);
     }
 
     // WidgetManagerDelegate.UpdateListener
@@ -531,13 +522,13 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
     }
 
     public void showTabAddedNotification() {
-        mTabsButton.setNotificationMode(true);
-        ThreadUtils.postToUiThread(() -> showNotification(mTabsButton, R.string.tab_added_notification));
+        mBinding.tabsButton.setNotificationMode(true);
+        ThreadUtils.postToUiThread(() -> showNotification(mBinding.tabsButton, R.string.tab_added_notification));
     }
 
     public void showTabSentNotification() {
-        mTabsButton.setNotificationMode(true);
-        ThreadUtils.postToUiThread(() -> showNotification(mTabsButton, R.string.tab_sent_notification));
+        mBinding.tabsButton.setNotificationMode(true);
+        ThreadUtils.postToUiThread(() -> showNotification(mBinding.tabsButton, R.string.tab_sent_notification));
     }
 
     private BookmarksStore.BookmarkListener mBookmarksListener = new BookmarksStore.BookmarkListener() {
@@ -548,8 +539,8 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Windo
 
         @Override
         public void onBookmarkAdded() {
-            mBookmarksButton.setNotificationMode(true);
-            ThreadUtils.postToUiThread(() -> showNotification(mBookmarksButton, R.string.bookmarks_saved_notification));
+            mBinding.bookmarksButton.setNotificationMode(true);
+            ThreadUtils.postToUiThread(() -> showNotification(mBinding.bookmarksButton, R.string.bookmarks_saved_notification));
         }
     };
 

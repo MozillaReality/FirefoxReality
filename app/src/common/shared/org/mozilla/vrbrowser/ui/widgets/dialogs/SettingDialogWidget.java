@@ -1,6 +1,7 @@
 package org.mozilla.vrbrowser.ui.widgets.dialogs;
 
 import android.content.Context;
+import android.content.res.Configuration;
 import android.view.LayoutInflater;
 
 import androidx.databinding.DataBindingUtil;
@@ -48,7 +49,6 @@ public abstract class SettingDialogWidget extends UIDialog {
 
     }
 
-    @Override
     public void updateUI() {
         removeAllViews();
 
@@ -62,5 +62,12 @@ public abstract class SettingDialogWidget extends UIDialog {
 
         // Footer
         mBinding.footerLayout.setFooterButtonClickListener(v -> onFooterButton());
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        updateUI();
     }
 }

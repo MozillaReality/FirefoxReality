@@ -6,6 +6,7 @@
 package org.mozilla.vrbrowser.ui.widgets;
 
 import android.content.Context;
+import android.content.res.Configuration;
 import android.graphics.Canvas;
 import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
@@ -57,6 +58,7 @@ public abstract class UIWidget extends FrameLayout implements Widget {
         initialize();
     }
 
+
     public UIWidget(Context aContext, AttributeSet aAttrs) {
         super(aContext, aAttrs);
         initialize();
@@ -92,6 +94,10 @@ public abstract class UIWidget extends FrameLayout implements Widget {
 
     @Override
     public void onResume() {
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
     }
 
     @Override
@@ -429,6 +435,4 @@ public abstract class UIWidget extends FrameLayout implements Widget {
         return mWorldWidth;
     }
 
-    @Override
-    public abstract void updateUI();
 }

@@ -1,6 +1,7 @@
 package org.mozilla.vrbrowser.ui.widgets.menus;
 
 import android.content.Context;
+import android.content.res.Configuration;
 import android.net.Uri;
 import android.view.View;
 
@@ -70,6 +71,13 @@ public class VideoProjectionMenuWidget extends MenuWidget {
         super.updateUI();
 
         createMenuItems();
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        updateUI();
     }
 
     public void setParentWidget(UIWidget aParent) {

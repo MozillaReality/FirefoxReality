@@ -268,11 +268,6 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
     }
 
     @Override
-    public void updateUI() {
-        // Nothing to do here
-    }
-
-    @Override
     public void releaseWidget() {
         detachFromWindow();
         mWidgetManager.removeFocusChangeListener(this);

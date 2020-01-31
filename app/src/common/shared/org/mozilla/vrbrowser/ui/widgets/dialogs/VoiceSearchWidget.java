@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.graphics.drawable.ClipDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
@@ -99,7 +100,6 @@ public class VoiceSearchWidget extends UIDialog implements WidgetManagerDelegate
         ((Application)aContext.getApplicationContext()).registerActivityLifecycleCallbacks(this);
     }
 
-    @Override
     public void updateUI() {
         removeAllViews();
 
@@ -115,6 +115,13 @@ public class VoiceSearchWidget extends UIDialog implements WidgetManagerDelegate
         mVoiceInputClipDrawable.setLevel(0);
 
         mBinding.closeButton.setOnClickListener(view -> hide(KEEP_WIDGET));
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        updateUI();
     }
 
     public void setDelegate(VoiceSearchDelegate delegate) {

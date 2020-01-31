@@ -1,6 +1,7 @@
 package org.mozilla.vrbrowser.ui.widgets.menus;
 
 import android.content.Context;
+import android.content.res.Configuration;
 
 import androidx.annotation.NonNull;
 
@@ -72,6 +73,13 @@ public class LibraryMenuWidget extends MenuWidget {
                 R.drawable.library_context_menu_item_background_middle,
                 R.drawable.library_context_menu_item_background_single);
         mAdapter.updateLayoutId(R.layout.library_menu_item);
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        updateUI();
     }
 
     @Override

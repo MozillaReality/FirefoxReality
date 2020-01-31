@@ -2,6 +2,7 @@ package org.mozilla.vrbrowser.ui.widgets.menus;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.res.Configuration;
 
 import androidx.annotation.IntDef;
 
@@ -53,6 +54,13 @@ public class HamburgerMenuWidget extends MenuWidget {
         mAdapter.updateLayoutId(R.layout.hamburger_menu_item);
 
         updateMenuItems();
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        updateUI();
     }
 
     @Override

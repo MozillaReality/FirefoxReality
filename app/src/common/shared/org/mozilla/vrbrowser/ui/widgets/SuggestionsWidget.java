@@ -3,6 +3,7 @@ package org.mozilla.vrbrowser.ui.widgets;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.res.Configuration;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Typeface;
@@ -94,7 +95,6 @@ public class SuggestionsWidget extends UIWidget implements WidgetManagerDelegate
         mHighlightedText = "";
     }
 
-    @Override
     public void updateUI() {
         removeAllViews();
 
@@ -107,6 +107,13 @@ public class SuggestionsWidget extends UIWidget implements WidgetManagerDelegate
         mList.setOnItemClickListener(mClickListener);
         mList.setOnItemLongClickListener(mLongClickListener);
         mList.setOnScrollChangeListener((v, scrollX, scrollY, oldScrollX, oldScrollY) -> hideMenu());
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        updateUI();
     }
 
     @Override

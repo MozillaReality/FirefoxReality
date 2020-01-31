@@ -9,6 +9,7 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.graphics.Point;
 import android.graphics.drawable.BitmapDrawable;
 import android.text.Html;
@@ -114,7 +115,6 @@ public class SettingsWidget extends UIDialog implements SettingsView.Delegate {
     }
 
     @SuppressLint("ClickableViewAccessibility")
-    @Override
     public void updateUI() {
         removeAllViews();
 
@@ -225,6 +225,13 @@ public class SettingsWidget extends UIDialog implements SettingsView.Delegate {
         });
 
         mCurrentView = null;
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        updateUI();
     }
 
     @Override

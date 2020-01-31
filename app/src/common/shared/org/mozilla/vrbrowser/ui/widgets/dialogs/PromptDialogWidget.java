@@ -6,6 +6,7 @@
 package org.mozilla.vrbrowser.ui.widgets.dialogs;
 
 import android.content.Context;
+import android.content.res.Configuration;
 import android.graphics.drawable.Drawable;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -43,7 +44,6 @@ public class PromptDialogWidget extends UIDialog {
         updateUI();
     }
 
-    @Override
     public void updateUI() {
         removeAllViews();
 
@@ -62,6 +62,13 @@ public class PromptDialogWidget extends UIDialog {
                 mAppDialogDelegate.onButtonClicked(POSITIVE);
             }
         });
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        updateUI();
     }
 
     @Override
