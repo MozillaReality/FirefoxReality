@@ -1030,7 +1030,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         final int currentCount = mBlockedCount;
         postDelayed(() -> {
             if (currentCount == mBlockedCount) {
-                showNotification(POPUP_NOTIFICATION_ID, mURLBar.getPopUpButton(), R.string.popup_tooltip);
+                showNotification(POPUP_NOTIFICATION_ID, mBinding.navigationBarNavigation.urlBar.getPopUpButton(), R.string.popup_tooltip);
             }
         }, POP_UP_NOTIFICATION_DELAY);
     }

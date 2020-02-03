@@ -9,7 +9,6 @@ import android.animation.Animator;
 import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.res.Configuration;
-import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -44,6 +43,10 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Widge
 
     private static final int ICON_ANIMATION_DURATION = 200;
 
+    private static final int TAB_ADDED_NOTIFICATION_ID = 0;
+    private static final int TAB_SENT_NOTIFICATION_ID = 1;
+    private static final int BOOKMARK_ADDED_NOTIFICATION_ID = 2;
+
     private WindowViewModel mViewModel;
     private TrayBinding mBinding;
     private AudioEngine mAudio;
@@ -56,7 +59,7 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Widge
     private boolean mTrayVisible = true;
     private Session mSession;
     private WindowWidget mAttachedWindow;
-    private TooltipWidget mLibraryNotification;
+    private boolean mAddWindowVisible;
 
     public TrayWidget(Context aContext) {
         super(aContext);
@@ -517,15 +520,15 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Widge
     }
 
     public void showTabAddedNotification() {
-        showNotification(TAB_ADDED_NOTIFICATION_ID, mTabsButton, R.string.tab_added_notification);
+        showNotification(TAB_ADDED_NOTIFICATION_ID, mBinding.tabsButton, R.string.tab_added_notification);
     }
 
     public void showTabSentNotification() {
-        showNotification(TAB_SENT_NOTIFICATION_ID, mTabsButton, R.string.tab_sent_notification);
+        showNotification(TAB_SENT_NOTIFICATION_ID, mBinding.tabsButton, R.string.tab_sent_notification);
     }
 
     public void showBookmarkAddedNotification() {
-        showNotification(BOOKMARK_ADDED_NOTIFICATION_ID, mBookmarksButton, R.string.bookmarks_saved_notification);
+        showNotification(BOOKMARK_ADDED_NOTIFICATION_ID, mBinding.bookmarksButton, R.string.bookmarks_saved_notification);
     }
 
     private void showNotification(int notificationId, UIButton button, int stringRes) {
