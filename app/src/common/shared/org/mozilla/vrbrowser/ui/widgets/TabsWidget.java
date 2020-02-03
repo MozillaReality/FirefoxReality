@@ -234,6 +234,9 @@ public class TabsWidget extends UIDialog {
             holder.tabView.setSelecting(mSelecting);
             holder.tabView.setSelected(mSelectedTabs.contains(holder.tabView.getSession()));
             holder.tabView.setActive(SessionStore.get().getActiveSession() == holder.tabView.getSession());
+            if (holder.tabView.getSession() != null) {
+                holder.tabView.setPrivate(holder.tabView.getSession().isPrivateMode());
+            }
             holder.tabView.setDelegate(new TabView.Delegate() {
                 @Override
                 public void onClose(TabView aSender) {
