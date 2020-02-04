@@ -35,6 +35,7 @@ import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.databinding.TrayBinding;
 import org.mozilla.vrbrowser.ui.viewmodel.WindowViewModel;
 import org.mozilla.vrbrowser.ui.views.UIButton;
+import org.mozilla.vrbrowser.ui.widgets.settings.SettingsView;
 import org.mozilla.vrbrowser.ui.widgets.settings.SettingsWidget;
 
 import java.util.ArrayList;
@@ -431,10 +432,10 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Widge
     }
 
     public void toggleSettingsDialog() {
-        toggleSettingsDialog(SettingsWidget.SettingDialog.MAIN);
+        toggleSettingsDialog(SettingsView.SettingViewType.MAIN);
     }
 
-    public void toggleSettingsDialog(@NonNull SettingsWidget.SettingDialog settingDialog) {
+    public void toggleSettingsDialog(@NonNull SettingsView.SettingViewType settingDialog) {
         UIWidget widget = getChild(mSettingsDialogHandle);
         if (widget == null) {
             widget = createChild(SettingsWidget.class, false);
@@ -451,7 +452,7 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Widge
         }
     }
 
-    public void showSettingsDialog(@NonNull SettingsWidget.SettingDialog settingDialog) {
+    public void showSettingsDialog(@NonNull SettingsView.SettingViewType settingDialog) {
         UIWidget widget = getChild(mSettingsDialogHandle);
         if (widget == null) {
             widget = createChild(SettingsWidget.class, false);

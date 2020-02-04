@@ -75,6 +75,7 @@ import mozilla.components.concept.storage.RedirectSource;
 import mozilla.components.concept.storage.VisitInfo;
 import mozilla.components.concept.storage.VisitType;
 
+import static org.mozilla.vrbrowser.ui.widgets.settings.SettingsView.SettingViewType.FXA;
 import static org.mozilla.vrbrowser.utils.ServoUtils.isInstanceOfServoSession;
 
 public class WindowWidget extends UIWidget implements SessionChangeListener,
@@ -1361,7 +1362,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
 
         @Override
         public void onFxASynSettings(@NonNull View view) {
-            mWidgetManager.getTray().showSettingsDialog(SettingsWidget.SettingDialog.FXA);
+            mWidgetManager.getTray().showSettingsDialog(FXA);
         }
 
         @Override
@@ -1400,7 +1401,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
 
         @Override
         public void onFxASynSettings(@NonNull View view) {
-            mWidgetManager.getTray().showSettingsDialog(SettingsWidget.SettingDialog.FXA);
+            mWidgetManager.getTray().showSettingsDialog(FXA);
         }
 
         @Override
