@@ -55,7 +55,6 @@ public class WindowViewModel extends AndroidViewModel {
     private MutableLiveData<ObservableBoolean> isMicrophoneEnabled;
     private MutableLiveData<ObservableBoolean> isBookmarked;
     private MutableLiveData<ObservableBoolean> isFocused;
-    private MutableLiveData<ObservableBoolean> isSpecialUrl;
     private MutableLiveData<ObservableBoolean> isUrlEmpty;
     private MutableLiveData<ObservableBoolean> isPopUpAvailable;
     private MutableLiveData<ObservableBoolean> canGoForward;
@@ -130,7 +129,6 @@ public class WindowViewModel extends AndroidViewModel {
         isMicrophoneEnabled = new MutableLiveData<>(new ObservableBoolean(true));
         isBookmarked = new MutableLiveData<>(new ObservableBoolean(false));
         isFocused = new MutableLiveData<>(new ObservableBoolean(false));
-        isSpecialUrl = new MutableLiveData<>(new ObservableBoolean(false));
         isUrlEmpty = new MutableLiveData<>(new ObservableBoolean(false));
         isPopUpAvailable = new MutableLiveData<>(new ObservableBoolean(false));
         canGoForward = new MutableLiveData<>(new ObservableBoolean(false));
@@ -304,7 +302,6 @@ public class WindowViewModel extends AndroidViewModel {
         isMicrophoneEnabled.postValue(isMicrophoneEnabled.getValue());
         isBookmarked.postValue(isBookmarked.getValue());
         isFocused.postValue(isFocused.getValue());
-        isSpecialUrl.postValue(isSpecialUrl.getValue());
         isUrlEmpty.postValue(isUrlEmpty.getValue());
         isPopUpAvailable.postValue(isPopUpAvailable.getValue());
         canGoForward.postValue(canGoForward.getValue());
@@ -390,8 +387,6 @@ public class WindowViewModel extends AndroidViewModel {
                 this.url.setValue(url);
             }
         }
-
-        setIsSpecialUrl(aURL.isEmpty());
 
         this.url.setValue(url);
     }
@@ -556,15 +551,6 @@ public class WindowViewModel extends AndroidViewModel {
 
     public void setIsFocused(boolean isFocused) {
         this.isFocused.postValue(new ObservableBoolean(isFocused));
-    }
-
-    @NonNull
-    public MutableLiveData<ObservableBoolean> getIsSpecialUrl() {
-        return isSpecialUrl;
-    }
-
-    public void setIsSpecialUrl(boolean isSpecialUrl) {
-        this.isSpecialUrl.postValue(new ObservableBoolean(isSpecialUrl));
     }
 
     @NonNull
