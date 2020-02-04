@@ -23,14 +23,15 @@ import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 
 import org.mozilla.geckoview.GeckoSession;
+import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.VRBrowserActivity;
 import org.mozilla.vrbrowser.audio.AudioEngine;
 import org.mozilla.vrbrowser.browser.BookmarksStore;
-import org.mozilla.vrbrowser.browser.SessionChangeListener;
 import org.mozilla.vrbrowser.browser.engine.Session;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.databinding.TrayBinding;
+import org.mozilla.vrbrowser.ui.viewmodel.TrayViewModel;
 import org.mozilla.vrbrowser.ui.viewmodel.WindowViewModel;
 import org.mozilla.vrbrowser.ui.views.UIButton;
 import org.mozilla.vrbrowser.ui.widgets.settings.SettingsView;
@@ -40,7 +41,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class TrayWidget extends UIWidget implements SessionChangeListener, WidgetManagerDelegate.UpdateListener {
+public class TrayWidget extends UIWidget implements WidgetManagerDelegate.UpdateListener {
 
     private static final int ICON_ANIMATION_DURATION = 200;
 
@@ -49,15 +50,13 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Widge
     private static final int BOOKMARK_ADDED_NOTIFICATION_ID = 2;
 
     private WindowViewModel mViewModel;
+    private TrayViewModel mTrayViewModel;
     private TrayBinding mBinding;
     private AudioEngine mAudio;
-    private int mSettingsDialogHandle = -1;
-    private boolean mIsLastSessionPrivate;
+    private SettingsWidget mSettingsWidget;
     private List<TrayListener> mTrayListeners;
     private int mMinPadding;
     private int mMaxPadding;
-    private boolean mKeyboardVisible;
-    private boolean mTrayVisible = true;
     private Session mSession;
     private WindowWidget mAttachedWindow;
     private boolean mAddWindowVisible;
@@ -78,6 +77,12 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Widge
     }
 
     private void initialize(Context aContext) {
+        mTrayViewModel = new ViewModelProvider(
+                (VRBrowserActivity)getContext(),
+                ViewModelProvider.AndroidViewModelFactory.getInstance(((VRBrowserActivity) getContext()).getApplication()))
+                .get(TrayViewModel.class);
+        mTrayViewModel.getIsVisible().observe((VRBrowserActivity) getContext(), mIsVisibleObserver);
+
         updateUI();
 
         mTrayListeners = new ArrayList<>();
@@ -86,8 +91,6 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Widge
         mMaxPadding = WidgetPlacement.pixelDimension(getContext(), R.dimen.tray_icon_padding_max);
 
         mAudio = AudioEngine.fromContext(aContext);
-
-        mIsLastSessionPrivate = false;
 
         mWidgetManager.addUpdateListener(this);
     }
@@ -100,6 +103,8 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Widge
         // Inflate this data binding layout
         mBinding = DataBindingUtil.inflate(inflater, R.layout.tray, this, true);
         mBinding.setLifecycleOwner((VRBrowserActivity)getContext());
+        mBinding.setTraymodel(mTrayViewModel);
+        mBinding.setViewmodel(mViewModel);
 
         mBinding.privateButton.setOnHoverListener(mButtonScaleHoverListener);
         mBinding.privateButton.setOnClickListener(view -> {
@@ -119,7 +124,7 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Widge
             }
 
             toggleSettingsDialog();
-            if (isDialogOpened(mSettingsDialogHandle)) {
+            if (mSettingsWidget.isVisible()) {
                 view.requestFocusFromTouch();
             }
         });
@@ -169,15 +174,26 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Widge
             notifyAddWindowClicked();
         });
         mBinding.addwindowButton.setCurvedTooltip(false);
-
-        updateState();
     }
+
+    Observer<ObservableBoolean> mIsVisibleObserver = aVisible -> {
+        if (aVisible.get()) {
+            this.show(REQUEST_FOCUS);
+
+        } else {
+            this.hide(UIWidget.KEEP_WIDGET);
+        }
+
+        mWidgetManager.updateWidget(TrayWidget.this);
+    };
 
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
 
         updateUI();
+
+        mTrayViewModel.refresh();
     }
 
     private OnHoverListener mButtonScaleHoverListener = (view, motionEvent) -> {
@@ -294,12 +310,13 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Widge
 
     @Override
     public void releaseWidget() {
-        if (mSession != null) {
-            mSession.removeSessionChangeListener(this);
-        }
-
         mWidgetManager.removeUpdateListener(this);
         mTrayListeners.clear();
+
+        if (mTrayViewModel != null) {
+            mTrayViewModel.getIsVisible().removeObserver(mIsVisibleObserver);
+            mTrayViewModel = null;
+        }
 
         super.releaseWidget();
     }
@@ -331,7 +348,6 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Widge
         hideNotifications();
         
         if (mSession != null) {
-            mSession.removeSessionChangeListener(this);
             mSession = null;
         }
         if (mAttachedWindow != null) {
@@ -340,33 +356,9 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Widge
         mWidgetPlacement.parentHandle = -1;
 
         if (mViewModel != null) {
-            mViewModel.getIsBookmraksVisible().removeObserver(mBookmarksVisibleObserver);
-            mViewModel.getIsHistoryVisible().removeObserver(mHistoryVisibleObserver);
             mViewModel = null;
         }
     }
-
-    Observer<ObservableBoolean> mBookmarksVisibleObserver = isBookmarksVisible -> {
-        if (isBookmarksVisible.get()) {
-            mBinding.bookmarksButton.setTooltipText(getResources().getString(R.string.close_bookmarks_tooltip));
-            mBinding.bookmarksButton.setActiveMode(true);
-
-        } else {
-            mBinding.bookmarksButton.setTooltipText(getResources().getString(R.string.open_bookmarks_tooltip));
-            mBinding.bookmarksButton.setActiveMode(false);
-        }
-    };
-
-    Observer<ObservableBoolean> mHistoryVisibleObserver = isHistoryVisible -> {
-        if (isHistoryVisible.get()) {
-            mBinding.historyButton.setTooltipText(getResources().getString(R.string.close_history_tooltip));
-            mBinding.historyButton.setActiveMode(true);
-
-        } else {
-            mBinding.historyButton.setTooltipText(getResources().getString(R.string.open_history_tooltip));
-            mBinding.historyButton.setActiveMode(false);
-        }
-    };
 
     @Override
     public void attachToWindow(@NonNull WindowWidget aWindow) {
@@ -386,130 +378,38 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Widge
 
         mBinding.setViewmodel(mViewModel);
 
-        mViewModel.getIsBookmraksVisible().observe((VRBrowserActivity)getContext(), mBookmarksVisibleObserver);
-        mViewModel.getIsHistoryVisible().observe((VRBrowserActivity)getContext(), mHistoryVisibleObserver);
-
         SessionStore.get().getBookmarkStore().addListener(mBookmarksListener);
-
-        mSession = aWindow.getSession();
-        if (mSession != null) {
-            mSession.addSessionChangeListener(this);
-            handleSessionState(false);
-        }
-    }
-
-    // Session.SessionChangeListener
-
-    @Override
-    public void onCurrentSessionChange(GeckoSession aOldSession, GeckoSession aSession) {
-        handleSessionState(false);
-    }
-
-    private void updateState() {
-        handleSessionState(true);
-        setAddWindowVisible(mAddWindowVisible);
-    }
-
-    private void handleSessionState(boolean refresh) {
-        if (mSession != null) {
-            boolean isPrivateMode = mSession.isPrivateMode();
-
-            if (isPrivateMode != mIsLastSessionPrivate || refresh) {
-                mBinding.privateButton.setPrivateMode(isPrivateMode);
-                if (isPrivateMode) {
-                    if (!refresh) {
-                        mWidgetManager.pushWorldBrightness(this, WidgetManagerDelegate.DEFAULT_DIM_BRIGHTNESS);
-                    }
-                    mBinding.privateButton.setImageResource(R.drawable.ic_icon_tray_private_browsing_on_v2);
-                    mBinding.privateButton.setTooltipText(getResources().getString(R.string.private_browsing_exit_tooltip));
-
-                } else {
-                    if (!refresh) {
-                        mWidgetManager.popWorldBrightness(this);
-                    }
-                    mBinding.privateButton.setImageResource(R.drawable.ic_icon_tray_private_browsing_v2);
-                    mBinding.privateButton.setTooltipText(getResources().getString(R.string.private_browsing_enter_tooltip));
-                }
-            }
-
-            mIsLastSessionPrivate = isPrivateMode;
-        }
     }
 
     public void toggleSettingsDialog() {
         toggleSettingsDialog(SettingsView.SettingViewType.MAIN);
     }
 
-    public void toggleSettingsDialog(@NonNull SettingsView.SettingViewType settingDialog) {
-        UIWidget widget = getChild(mSettingsDialogHandle);
-        if (widget == null) {
-            widget = createChild(SettingsWidget.class, false);
-            mSettingsDialogHandle = widget.getHandle();
+    public void toggleSettingsDialog(@NonNull SettingsWidget.SettingDialog settingDialog) {
+        if (mSettingsWidget == null) {
+            mSettingsWidget = new SettingsWidget(getContext());
         }
+        mSettingsWidget.attachToWindow(mAttachedWindow);
 
-        if (mAttachedWindow != null) {
-            widget.getPlacement().parentHandle = mAttachedWindow.getHandle();
-        }
-        if (widget.isVisible()) {
-            widget.hide(KEEP_WIDGET);
-        } else {
-            ((SettingsWidget)widget).show(REQUEST_FOCUS, settingDialog);
-        }
-    }
-
-    public void showSettingsDialog(@NonNull SettingsView.SettingViewType settingDialog) {
-        UIWidget widget = getChild(mSettingsDialogHandle);
-        if (widget == null) {
-            widget = createChild(SettingsWidget.class, false);
-            mSettingsDialogHandle = widget.getHandle();
-        }
-
-        if (mAttachedWindow != null) {
-            widget.getPlacement().parentHandle = mAttachedWindow.getHandle();
-        }
-
-        ((SettingsWidget)widget).show(REQUEST_FOCUS, settingDialog);
-    }
-
-    public void setTrayVisible(boolean aVisible) {
-        if (mTrayVisible != aVisible) {
-            mTrayVisible = aVisible;
-            updateVisibility();
+        if (mSettingsWidget.isVisible()) {
+            mSettingsWidget.hide(KEEP_WIDGET);
 
         } else {
-            mWidgetManager.updateWidget(this);
+            mSettingsWidget.show(REQUEST_FOCUS, settingDialog);
         }
     }
 
-    private void updateVisibility() {
-        if (mTrayVisible && !mKeyboardVisible) {
-            this.show(REQUEST_FOCUS);
-        } else {
-            this.hide(UIWidget.KEEP_WIDGET);
+    public void showSettingsDialog(@NonNull SettingsWidget.SettingDialog settingDialog) {
+        if (mSettingsWidget == null) {
+            mSettingsWidget = new SettingsWidget(getContext());
         }
-    }
+        mSettingsWidget.attachToWindow(mAttachedWindow);
 
-    public boolean isDialogOpened(int aHandle) {
-        UIWidget widget = getChild(aHandle);
-        if (widget != null) {
-            return widget.isVisible();
-        }
-        return false;
+        mSettingsWidget.show(REQUEST_FOCUS, settingDialog);
     }
 
     public void setAddWindowVisible(boolean aVisible) {
-        mAddWindowVisible = aVisible;
-
-        mBinding.addwindowButton.setVisibility(aVisible ? View.VISIBLE : View.GONE);
-        if (aVisible) {
-            mBinding.tabsButton.updateBackgrounds(R.drawable.tray_background_unchecked_middle,
-                    R.drawable.tray_background_middle_private,
-                    R.drawable.tray_background_checked_middle);
-        } else {
-            mBinding.tabsButton.updateBackgrounds(R.drawable.tray_background_unchecked_start,
-                    R.drawable.tray_background_start_private,
-                    R.drawable.tray_background_checked_start);
-        }
+        mTrayViewModel.setIsMaxWindows(!aVisible);
     }
 
     // WidgetManagerDelegate.UpdateListener
@@ -520,11 +420,7 @@ public class TrayWidget extends UIWidget implements SessionChangeListener, Widge
             return;
         }
 
-        boolean keyboardVisible = aWidget.isVisible();
-        if (mKeyboardVisible != keyboardVisible) {
-            mKeyboardVisible = keyboardVisible;
-            updateVisibility();
-        }
+        mTrayViewModel.setIsKeyboardVisible(aWidget.isVisible());
     }
 
     public void showTabAddedNotification() {
