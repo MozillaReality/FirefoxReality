@@ -229,7 +229,7 @@ public class SettingsWidget extends UIDialog implements SettingsView.Delegate {
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
-        
+
         showView(mOpenDialog);
     }
 

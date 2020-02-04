@@ -59,7 +59,6 @@ import org.mozilla.vrbrowser.ui.widgets.dialogs.PromptDialogWidget;
 import org.mozilla.vrbrowser.ui.widgets.dialogs.SelectionActionWidget;
 import org.mozilla.vrbrowser.ui.widgets.menus.ContextMenuWidget;
 import org.mozilla.vrbrowser.ui.widgets.menus.LibraryMenuWidget;
-import org.mozilla.vrbrowser.ui.widgets.settings.SettingsWidget;
 import org.mozilla.vrbrowser.utils.ViewUtils;
 
 import java.util.Arrays;
@@ -315,12 +314,6 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
 
         mHistoryView.updateUI();
         mBookmarksView.updateUI();
-
-        if (mView != null) {
-            View temp = mView;
-            unsetView(mView, false);
-            setView(temp, false);
-        }
 
         mViewModel.refresh();
     }
