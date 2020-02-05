@@ -17,7 +17,6 @@ import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.telemetry.GleanMetricsService;
 import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
 import org.mozilla.vrbrowser.utils.DeviceType;
-import org.mozilla.vrbrowser.utils.LocaleUtils;
 import org.mozilla.vrbrowser.utils.StringUtils;
 import org.mozilla.vrbrowser.utils.SystemUtils;
 
@@ -50,7 +49,7 @@ public class SettingsStore {
     public final static boolean REMOTE_DEBUGGING_DEFAULT = false;
     public final static boolean CONSOLE_LOGS_DEFAULT = false;
     public final static boolean ENV_OVERRIDE_DEFAULT = false;
-    public final static boolean MULTIPROCESS_DEFAULT = true;
+    public final static boolean MULTIPROCESS_DEFAULT = false;
     public final static boolean UI_HARDWARE_ACCELERATION_DEFAULT = true;
     public final static boolean PERFORMANCE_MONITOR_DEFAULT = true;
     public final static boolean DRM_PLAYBACK_DEFAULT = false;
@@ -419,9 +418,6 @@ public class SettingsStore {
     public String getVoiceSearchLocale() {
         String language = mPrefs.getString(
                 mContext.getString(R.string.settings_key_voice_search_language), null);
-        if (language == null) {
-            return LocaleUtils.getDefaultSupportedLocale();
-        }
         return language;
     }
 
@@ -434,9 +430,6 @@ public class SettingsStore {
     public String getDisplayLocale() {
         String language = mPrefs.getString(
                 mContext.getString(R.string.settings_key_display_language), null);
-        if (language == null) {
-            return LocaleUtils.getDefaultSupportedLocale();
-        }
         return language;
     }
 
@@ -481,6 +474,10 @@ public class SettingsStore {
         SharedPreferences.Editor editor = mPrefs.edit();
         editor.putFloat(mContext.getString(R.string.settings_key_cylinder_density), aDensity);
         editor.commit();
+    }
+
+    public boolean isCurvedModeEnabled() {
+        return getCylinderDensity() > 0;
     }
 
     public int getFoveatedLevelApp() {

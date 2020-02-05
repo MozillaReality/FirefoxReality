@@ -3,6 +3,7 @@ package org.mozilla.vrbrowser.ui.widgets;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.res.Configuration;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Typeface;
@@ -49,7 +50,6 @@ public class SuggestionsWidget extends UIWidget implements WidgetManagerDelegate
 
     public interface URLBarPopupDelegate {
         default void OnItemClicked(SuggestionItem item) {}
-        default void OnItemLongClicked(SuggestionItem item) {}
     }
 
     public SuggestionsWidget(Context aContext) {
@@ -68,11 +68,7 @@ public class SuggestionsWidget extends UIWidget implements WidgetManagerDelegate
     }
 
     private void initialize(Context aContext) {
-        inflate(aContext, R.layout.list_popup_window, this);
-
-        mWidgetManager.addFocusChangeListener(this);
-
-        mList = findViewById(R.id.list);
+        updateUI();
 
         mScaleUpAnimation = AnimationUtils.loadAnimation(getContext(), R.anim.popup_scaleup);
         mScaleDownAnimation = AnimationUtils.loadAnimation(getContext(), R.anim.popup_scaledown);
@@ -93,22 +89,35 @@ public class SuggestionsWidget extends UIWidget implements WidgetManagerDelegate
             }
         });
 
-        mAdapter = new SuggestionsAdapter(getContext(), R.layout.list_popup_window_item, new ArrayList<>());
-        mList.setAdapter(mAdapter);
-        mList.setOnItemClickListener(mClickListener);
-        mList.setOnItemLongClickListener(mLongClickListener);
-        mList.setOnScrollChangeListener((v, scrollX, scrollY, oldScrollX, oldScrollY) -> hideMenu());
-
         mAudio = AudioEngine.fromContext(aContext);
         mClipboard = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
 
         mHighlightedText = "";
     }
 
+    public void updateUI() {
+        removeAllViews();
+
+        inflate(getContext(), R.layout.list_popup_window, this);
+
+        mList = findViewById(R.id.list);
+
+        mAdapter = new SuggestionsAdapter(getContext(), R.layout.list_popup_window_item, new ArrayList<>());
+        mList.setAdapter(mAdapter);
+        mList.setOnItemClickListener(mClickListener);
+        mList.setOnItemLongClickListener(mLongClickListener);
+        mList.setOnScrollChangeListener((v, scrollX, scrollY, oldScrollX, oldScrollY) -> hideMenu());
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        updateUI();
+    }
+
     @Override
     public void releaseWidget() {
-        mWidgetManager.removeFocusChangeListener(this);
-
         super.releaseWidget();
     }
 
@@ -129,12 +138,14 @@ public class SuggestionsWidget extends UIWidget implements WidgetManagerDelegate
     @Override
     public void show(@ShowFlags int aShowFlags) {
         super.show(aShowFlags);
+        mWidgetManager.addFocusChangeListener(this);
         mList.startAnimation(mScaleUpAnimation);
         mList.post(() -> mList.setSelectionAfterHeaderView());
     }
 
     @Override
     public void hide(@HideFlags int aHideFlags) {
+        mWidgetManager.removeFocusChangeListener(this);
         mList.startAnimation(mScaleDownAnimation);
     }
 
@@ -297,25 +308,17 @@ public class SuggestionsWidget extends UIWidget implements WidgetManagerDelegate
                 return false;
             }
 
-            View favicon = view.findViewById(R.id.favicon);
             TextView title = view.findViewById(R.id.title);
-            View url = view.findViewById(R.id.url);
             int ev = motionEvent.getActionMasked();
             switch (ev) {
                 case MotionEvent.ACTION_HOVER_ENTER:
                     view.setHovered(true);
-                    favicon.setHovered(true);
-                    title.setHovered(true);
                     title.setShadowLayer(title.getShadowRadius(), title.getShadowDx(), title.getShadowDy(), getContext().getColor(R.color.text_shadow_light));
-                    url.setHovered(true);
                     return true;
 
                 case MotionEvent.ACTION_HOVER_EXIT:
                     view.setHovered(false);
-                    favicon.setHovered(false);
-                    title.setHovered(false);
                     title.setShadowLayer(title.getShadowRadius(), title.getShadowDx(), title.getShadowDy(), getContext().getColor(R.color.text_shadow));
-                    url.setHovered(false);
                     return true;
             }
 

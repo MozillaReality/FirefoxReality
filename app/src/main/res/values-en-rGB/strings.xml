@@ -1,0 +1,465 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- This string is used on the virtual keyboard to label the 'Enter' key (stylized in uppercase letters as 'ENTER'). -->
+    <string name="keyboard_enter_label">ENTER</string>
+
+    <!-- This string is used on the virtual keyboard to label the 'Enter' key with a "Go" IME action.
+         The action key performs a "go" operation to take the user to the target of the text they typed.
+         Typically used, for example, when entering a URL. (stylized in uppercase letters as 'GO')
+    -->
+    <string name="keyboard_go_label">GO</string>
+
+    <!-- This string is used on the virtual keyboard to label the 'Enter' key with a "Search" IME action.
+         The action key performs a "search" operation, taking the user to the results of searching for the text
+         they have typed. (stylized in uppercase letters as 'SEARCH')
+    -->
+    <string name="keyboard_search_label">SEARCH</string>
+
+    <!-- This string is used on the virtual keyboard to label the 'Enter' key with a "Send" IME action.
+         The action key performs a "send" operation, delivering the text to its target. This is typically used
+         when composing a message in IM or SMS where sending is immediate. (stylized in uppercase letters as 'SEND')
+    -->
+    <string name="keyboard_send_label">SEND</string>
+
+    <!-- This string is used on the virtual keyboard to label the 'Enter' key with a "Next" IME action.
+         The action key performs a "next" operation, taking the user to the next field that will accept text.
+         (stylized in uppercase letters as 'NEXT')
+    -->
+    <string name="keyboard_next_label">NEXT</string>
+
+    <!-- This string is used on the virtual keyboard to label the 'Enter' key with a "Done" IME action.
+     The action key performs a "done" operation, typically meaning there is nothing more to input and the
+     IME will be closed. (stylized in uppercase letters as 'DONE')
+    -->
+    <string name="keyboard_done_label">DONE</string>
+
+    <!-- This string is used on the virtual keyboard to label the 'space' key-->
+    <string name="keyboard_space_label">space</string>
+
+    <!-- This string is displayed in the button that means the user accepts the
+         permission requested for in the permission dialog box. -->
+    <string name="permission_allow">Allow</string>
+
+    <!-- This string is displayed in the button that means the user rejects the
+         permission requested for in the permission dialog box. -->
+    <string name="permission_reject">Don’t Allow</string>
+
+    <!-- This string is displayed in the button that means the user wants to enable/grant a permission. -->
+    <string name="permission_enable">Enable</string>
+
+    <!-- This string is displayed in a label that means the permission has already been granted -->
+    <string name="permission_enabled">Enabled</string>
+
+    <!-- This string will be displayed in a dialog box presented to the user
+         when the application needs to request permission to access the device's camera.
+         '%1$s' will be replaced at runtime with the website's domain name. -->
+    <string name="permission_camera">Will you allow %1$s to use your camera?</string>
+
+    <!-- This string will be displayed in a dialog box presented to the user
+         when the application needs to request permission to access the device's microphone.
+         '%1$s' will be replaced at runtime with the website's domain name. -->
+    <string name="permission_microphone">Will you allow %1$s to use your microphone?</string>
+
+    <!-- This string will be displayed in a dialog box presented to the user
+         when the application needs to request permission to access the device's camera and microphone.
+         '%1$s' will be replaced at runtime with the website's domain name. -->
+    <string name="permission_camera_and_microphone">Will you allow %1$s to use your camera and microphone?</string>
+
+    <!-- This string will be displayed in a dialog box presented to the user
+         when the application needs to request permission to access the device's geographic location.
+         '%1$s' will be replaced at runtime with the website's domain name. -->
+    <string name="permission_location">Will you allow %1$s to access your location?</string>
+
+    <!-- This string will be displayed in a dialog box presented to the user
+         when the application needs to request permission to send browser-level
+         push notifications from a particular website (i.e., same origin).
+         '%1$s' will be replaced at runtime with the website's domain name. -->
+    <string name="permission_notification">Will you allow %1$s to send notifications?</string>
+
+    <!-- This string will be displayed in a dialog box presented to the user when the application
+         needs to request permission to access the device's external storage such as the
+         sdcard. '%1$s' will be replaced at runtime with the website's domain name. -->
+    <string name="permission_read_external_storage">Will you allow %1$s to read your external storage?</string>
+
+    <!-- This string will be displayed in a dialog box presented to the user when the application
+         needs to request permission to access the device's external storage such as the
+         sdcard. '%1$s' will be replaced at runtime with the website's domain name. -->
+    <string name="permission_persistent_storage">Will you allow %1$s to store data in persistent storage?</string>
+
+    <!-- This string is displayed in the Settings dialog box and is used to label an
+         On/Off switch which toggles whether an application crash is reported without first
+         prompting the user. -->
+    <string name="settings_crash_reporting">Crash Reporting</string>
+
+    <!-- This string is displayed in the Settings dialog box and is used to label an
+         On/Off switch which toggles whether browser-level Telemetry is reported back to Mozilla. -->
+    <string name="settings_telemetry">Telemetry</string>
+
+    <!-- This string is used to label a button in the 'Settings' dialog window that, when pressed,
+         opens a dialog box that contains privacy and security related settings. -->
+    <string name="settings_privacy_security">Privacy &amp; Security</string>
+
+    <!-- This string is used to label a button that, when pressed, loads a website that
+         describes Mozilla's Privacy Policy. -->
+    <string name="settings_privacy_policy">Privacy Policy</string>
+
+    <!-- This string is used as the title of the pop-ups dialog used to remove sites from the currently
+         allowed pop-up sites. -->
+    <string name="settings_privacy_policy_popups_title">Pop-ups permissions</string>
+
+    <!-- This string is displayed under the title the pop-ups dialog used to remove sites from the currently
+         allowed pop-up sites. -->
+    <string name="settings_privacy_policy_popups_description">You can specify which web sites are allowed to open pop-up windows</string>
+
+    <!-- This string is displayed in the switch of each item of the the pop-up blocking list when the site is allowed. -->
+    <string name="pop_up_site_switch_allow">Allow</string>
+
+    <!-- This string is displayed in the switch of each item of the the pop-up blocking list when the site is denied. -->
+    <string name="pop_up_site_switch_block">Block</string>
+
+    <!-- This string is used to label a button in the 'Settings' dialog window that, when pressed,
+         opens a dialog box that contains settings that an application or Web developer might want to change. -->
+    <string name="settings_developer_options">Developer Options</string>
+
+    <!-- This string is used in the 'Settings' window when user is not signed into a Firefox Account -->
+    <string name="settings_fxa_account_sign_in">Sign Into Account</string>
+
+    <!-- This string is used in the 'Settings' window when user is signed into a Firefox Account -->
+    <string name="settings_fxa_account_manage">Manage Account</string>
+
+    <!-- This string is used in the 'Account' window when user is signed into a Firefox Account -->
+    <string name="settings_fxa_account_sign_out">Sign Out</string>
+
+    <!-- This string is used in the 'Settings' window when user is signed into a Firefox Account, but needs to re-enter their password.
+         Most common reason for this state is that the account password was changed on another device. -->
+    <string name="settings_fxa_account_reconnect">Reconnect</string>
+
+    <!-- This string is used to label a button in the 'Settings' dialog window that, when pressed,
+         opens a dialog box that contains language-related settings. -->
+    <string name="settings_language">Language</string>
+
+    <!-- This string is used to label a text label for selecting the language in the 'Language' dialog window
+         (accessible from the browser's Settings' dialog window). Below this string appears
+         the different options for language settings. -->
+    <string name="settings_language_settings">Language Settings</string>
+
+    <!-- This string is used to label a text label for selecting the language in the 'Language' dialog window
+         (accessible from the browser's Settings' dialog window). Below this string appears a list of locales for
+         the user to choose as their preferred reading languages for website content. Each locale,
+         as `language-tag` strings, is then included in the browser's `Accept-Language` HTTP request
+         header that is sent to websites, as well as the JavaScript property, `navigator.language`. -->
+    <string name="settings_language_choose_language_webpage_content">Choose your preferred language for displaying pages</string>
+
+    <!-- This string is used to label a text label for selecting the language in the 'Language' dialog window
+         (accessible from the browser's Settings' dialog window). Below this string appears a list of locales for
+         the user to choose as their preferred language for the browser's speech-to-text 'Voice Search' system.
+         Based on the user's selection, the printed language is mapped to its ISO 639-1 code
+         (e.g., `Español` is mapped to `es`) when configured in the 'Voice Search' system. -->
+    <string name="settings_language_choose_language_voice_search">Choose your preferred language for voice search</string>
+
+    <!-- This string is used to label a text label that appears in the header of 'Language Settings' ->
+         'Firefox Display Language' dialog window (accessible from the browser's Settings dialog window).
+         Below this string appears a list of locales for the user to choose as their preferred display
+         language for the application UI. -->
+    <string name="settings_language_choose_display_language_title">%1$s Display Language</string>
+
+    <!-- This string is used to label a text label that appears in the header description of 'Language Settings' ->
+         'Firefox Display Language' dialog window (accessible from the browser's Settings dialog window).
+         Below this string appears a list of locales for the user to choose as their preferred display
+         language for the application UI. -->
+    <string name="settings_language_choose_language_display_description">Choose the language used to display menus, messages, and notifications.</string>
+
+    <!-- This string is used to label a text label that appears in the header of 'Language Settings' ->
+         'Voice Search Language' dialog window (accessible from the browser's Settings dialog window).
+         Below this string appears a list of locales for the user to choose as their preferred voice search
+         language. -->
+    <string name="settings_language_choose_language_voice_search_title">Voice Search Language</string>
+
+    <!-- This string is used to label a text label that appears in the header description of 'Language Settings' ->
+         'Voice Search Language' dialog window (accessible from the browser's Settings dialog window).
+         Below this string appears a list of locales for the user to choose as their preferred voice search
+         language. -->
+    <string name="settings_language_choose_language_voice_search_description">Choose your preferred language for voice search.</string>
+
+    <!-- This string is used to label a text label that appears in the header of 'Language Settings' ->
+         'Preferred Language for Displaying Websites' dialog window (accessible from the browser's Settings dialog window).
+         Below this string appears a list of locales for the user to choose as their preferred languages for web content. -->
+    <string name="settings_language_choose_language_content_title">Preferred Web Site Languages</string>
+
+    <!-- This string is used to label a text label that appears in the header description of 'Language Settings' ->
+         'Preferred Language for Displaying Websites' dialog window (accessible from the browser's Settings dialog window).
+         Below this string appears a list of locales for the user to choose as their preferred languages for web content. -->
+    <string name="settings_language_choose_language_content_description">Web pages are sometimes offered in more than one language. Choose the languages you want to display in order of preference to the left side.</string>
+
+    <!-- This string is used to label a radio button in the 'Settings' Language dialog that, when pressed,
+         changes the app and the language of the speech-recognition-based search to 'English (US)'. -->
+    <string name="settings_language_english">English (US)</string>
+
+    <!-- This string is used to label a radio button in the settings language dialog that, when pressed,
+         changes the app and the language of the speech-recognition-based search to 'Chinese (Traditional/Zhuyin)'. -->
+    <string name="settings_language_traditional_chinese">Chinese (Traditional/Zhuyin)</string>
+
+    <!-- This string is used to label a radio button in the settings language dialog that, when pressed,
+         changes the app and the language of the speech-recognition-based search to 'Chinese (Simplified/Pinyin)'. -->
+    <string name="settings_language_simplified_chinese">Chinese (Simplified/Pinyin)</string>
+  
+    <!-- This string is used to label a radio button in the settings language dialog that, when pressed,
+         changes the app and the language of the speech-recognition-based search to 'Japanese'. -->
+    <string name="settings_language_japanese">Japanese</string>
+
+    <!-- This string is used to label a radio button in the settings language dialog that, when pressed,
+         changes the app and the language of the speech-recognition-based search to 'French'. -->
+    <string name="settings_language_french">French</string>
+
+    <!-- This string is used to label a radio button in the settings language dialog that, when pressed,
+         changes the app and the language of the speech-recognition-based search to 'German'. -->
+    <string name="settings_language_german">German</string>
+
+    <!-- This string is used to label a radio button in the settings language dialog that, when pressed,
+         changes the app and the language of the speech-recognition-based search to 'Spanish'. -->
+    <string name="settings_language_spanish">Spanish</string>
+
+    <!-- This string is used to label a radio button in the settings language dialog that, when pressed,
+         changes the app and the language of the speech-recognition-based search to 'Korean'. -->
+    <string name="settings_language_korean">Korean</string>
+
+    <!-- This string is used to label a radio button in the settings language dialog that, when pressed,
+         changes the app and the language of the speech-recognition-based search to 'Italian'. -->
+    <string name="settings_language_italian">Italian</string>
+
+    <!-- This string is used to label a radio button in the settings language dialog that, when pressed,
+     changes the app and the language of the speech-recognition-based search to 'Russian'. -->
+    <string name="settings_language_russian">Russian</string>
+
+    <!-- This string is used to label a radio button in the settings language dialog that, when pressed,
+     changes the app and the language of the speech-recognition-based search to 'Polish'. -->
+    <string name="settings_language_polish">Polish</string>
+
+    <!-- This string is used to label a radio button in the settings language dialog that, when pressed,
+     changes the app and the language of the speech-recognition-based search to 'Danish'. -->
+    <string name="settings_language_danish">Danish</string>
+
+    <!-- This string is used to label a radio button in the settings language dialog that, when pressed,
+     changes the app and the language of the speech-recognition-based search to 'Norwegian'. -->
+    <string name="settings_language_norwegian">Norwegian</string>
+  
+    <!-- This string is used to label a radio button in the settings language dialog that, when pressed,
+     changes the app and the language of the speech-recognition-based search to 'Danish'. -->
+    <string name="settings_language_swedish">Swedish</string>
+
+    <!-- This string is used to label a radio button in the settings language dialog that, when pressed,
+     changes the app and the language of the speech-recognition-based search to 'Finnish'. -->
+    <string name="settings_language_finnish">Finnish</string>
+  
+    <!-- This string is used to label a radio button in the settings language dialog that, when pressed,
+     changes the app and the language of the speech-recognition-based search to 'Dutch'. -->
+    <string name="settings_language_dutch">Dutch</string>
+
+    <!-- This string is used to label a button in the 'Settings' dialog window that, when pressed,
+        opens a dialog box that contains display-related settings: window size, pixel density, etc. -->
+    <string name="settings_display">Display</string>
+
+    <!-- This string is used to label a button in the 'Settings' dialog window that, when pressed,
+         opens a dialog box that contains controller-related options: pointer color and scroll direction. -->
+    <string name="settings_controller_options">Controller Options</string>
+
+
+    <!-- This string is displayed in the 'Settings' dialog window and, is used to label an,
+         On/Off switch that enables/disables the speech-data reporting. -->
+    <string name="settings_report_speech_data">Report Speech Data</string>
+
+    <!-- This string is used to label a button that, when pressed, loads a website
+         that allows the user file an issue or problem they may have encountered while using the
+         application or while visiting a site. -->
+    <string name="settings_report_issue">Report an Issue</string>
+
+    <!-- This string is used in place of the 'settings_version' string (e.g., `version 1.1`) when the user is running
+         a developer-build version of the app. -->
+    <string name="settings_version_developer">Developer Build</string>
+
+    <!-- This string is used to label a button in the 'Settings' dialog window that, when pressed,
+        opens the Firfox Reality support web site in the browser window. -->
+    <string name="settings_help">Help</string>
+
+    <!-- This string is displayed in the settings header under the Firefox Reality logo. When clicked the settings panel is closed
+         a the survey web site in opened in the currently focused window -->
+    <string name="settings_send_your_feedback">Send us Your Feedback</string>
+
+    <!-- This string is used in the 'Settings' window when user is signed-out of Firefox Accounts -->
+    <string name="settings_accounts_sign_in">Sign in</string>
+
+    <!-- This string is used in the 'Settings' window when user is signed into a Firefox Account -->
+    <string name="settings_accounts_sign_out">Sign out</string>
+
+    <!-- This string is used in the 'Settings' window when user is signed into a Firefox Account, but needs to re-enter their password.
+         Most common reason for this state is that the account password was changed on another device. -->
+    <string name="settings_accounts_reconnect">Reconnect</string>
+
+    <!-- This string is the title of a dialog box shown to the user when a settings
+         change requires the application to restart. -->
+    <string name="restart_dialog_restart">Restart Required</string>
+
+    <!-- This string is the text displayed in the restart dialog box explaining why the
+         restart is required. '%1$s' will be replaced at runtime with the app's name. -->
+    <string name="restart_dialog_text">You must restart %1$s in order to complete changes. Would you like to do that now?</string>
+
+    <!-- This string is used to label the button the user presses to restart the
+         application in the restart dialog. -->
+    <string name="restart_now_dialog_button">Restart Now</string>
+
+    <!-- This string is used to label the button the user presses in order to skip the application
+         from being restarted. -->
+    <string name="restart_later_dialog_button">Restart Later</string>
+
+    <!-- This string labels an On/Off switch in the 'Developer Options' dialog
+     and is used to enable or disable curved display. -->
+    <string name="developer_options_curved_display">Enable Curved Display</string>
+
+    <!-- This string labels an On/Off switch in the 'Developer Options' dialog
+         and is used to toggle remote debugging of website content in the application. -->
+    <string name="developer_options_remote_debugging">Enable Remote Debugging</string>
+
+    <!-- This string labels an On/Off switch in the 'Developer Options' dialog
+         and is used to toggle redirecting JavaScript Console output to the Android Logcat (i.e., `adb logcat`). -->
+    <string name="developer_options_show_console">Redirect Console to Logcat</string>
+
+    <!-- This string labels an On/Off switch in the developer options dialog
+         and is used to customize background environments of the app. -->
+    <string name="developer_options_env_override">Enable Environment Override</string>
+
+    <!-- This string labels an On/Off switch in the developer options dialog and is used to toggle
+         running content in a separate process.
+         Multiprocessing: the running of two or more programs or sequences of instructions
+         simultaneously by a computer with more than one central processor.
+         A dialog should appear with a field labeled with the text, 'Enable Multiprocess'. -->
+    <string name="developer_options_multiprocess">Enable Multiprocess</string>
+
+    <!-- This string labels an On/Off switch in the developer options dialog and is used to toggle
+         the performance monitor. The Performance monitor is used to detect pages that cause the
+         browser to run below a target framerate and pauses the page to restore performance.
+    -->
+    <string name="developer_options_performance_monitor">Enable Performance Monitor</string>
+
+    <!-- This string labels an On/Off switch in the developer options dialog and is used to toggle
+         debug logging. Debug logging provides runtime diagnostic information that may be collected
+         to help diagnose and fix problems with the application.
+    -->
+    <string name="developer_options_debug_logging">Enable Debug Logging</string>
+
+    <!-- This string labels an On/Off switch in the developer options dialog and is used to toggle
+     UI render mode. If enables it uses hardware acceleration which should be faster but it may be more unstable.
+     If disabled it uses software rendering which is stable but not as performant as hardware acceleration
+-->
+    <string name="hardware_acceleration_switch">Enable UI Hardware Acceleration</string>
+
+    <!-- The string labels an On/Off switch in the developer options dialog and is used to toggle enabling Servo. -->
+    <string name="developer_options_servo">Enable Servo</string>
+
+    <!-- The string labels the description text for the clear cookies and site data button in the
+         privacy options dialog. -->
+    <string name="developer_options_clear_cache_cookies_site_description">Cookies &amp; Site Data</string>
+
+    <!-- The string labels the description text for the clear cached web content button in the
+         privacy options dialog. -->
+    <string name="developer_options_clear_cache_web_content_description">Cached Web Content</string>
+
+    <!-- The string labels the button text for the clear cache buttons in the privacy options dialog. -->
+    <string name="developer_options_clear_cache">Clear Data</string>
+
+    <!-- This string is used to label a numerical-entry field where the user may set a new value to
+         use for the display density. -->
+    <string name="developer_options_display_density">Display Density:</string>
+
+    <!-- This string is used to label buttons to enable editing of text fields in the
+         'Developer Options' dialog. Pressing this button switches the text to
+         editable-text fields so their values may be changed. -->
+    <string name="developer_options_edit">Edit</string>
+
+    <!-- This string is used to label the 'Edit' button once it has been pressed by the user. It
+         indicates that, when the button is pressed, the user's edits will be saved. -->
+    <string name="developer_options_save">Save</string>
+
+    <!-- This string is used to label the 'Show' button in Settings. It
+     indicates that, when the button is pressed opens a dialog box that contains more information.
+     For example it's used to open a URL with the privacy policy. -->
+    <string name="developer_options_show">Show</string>
+
+    <!-- This string is used to label a numerical entry field where the user may enter a new value
+         for the virtual displays Dots Per Inch (DPI). -->
+    <string name="developer_options_display_dpi">Display DPI:</string>
+
+    <!-- This string is used to label radio buttons for setting Multi-Sample Anti-Aliasing (MSAA) in
+         VR Immersive Mode. -->
+    <string name="developer_options_msaa">MSAA</string>
+
+    <!-- This string is used to label the MSAA radio button that disables MSAA in Immersive Mode. -->
+    <string name="developer_options_msaa_disabled">Disabled</string>
+
+    <!-- This string is used to label the MSAA radio button that enables two times MSAA in Immersive Mode. -->
+    <string name="developer_options_msaa_2">2x</string>
+
+    <!-- This string is used to label the MSAA radio button that enables two times MSAA in Immersive Mode. -->
+    <string name="developer_options_msaa_4">4x</string>
+
+    <!-- This string is used to label a set of radio buttons that allow the user to change the
+         User-Agent (UA) string of the browser. -->
+    <string name="developer_options_ua_mode">User-Agent Mode</string>
+
+    <!-- This string is used to label the 'Desktop' radio button of the 'User-Agent Mode' settings option. -->
+    <string name="developer_options_ua_desktop">Desktop</string>
+
+    <!-- This string is used to label the 'Mobile' radio button of the 'User-Agent Mode' settings option. -->
+    <string name="developer_options_ua_mobile">Mobile</string>
+
+    <!-- This string is used to label the 'VR' radio button of the 'User-Agent Mode' settings option. -->
+    <string name="developer_options_ua_vr">VR</string>
+
+    <!-- This string is used to label radio buttons for setting fixed-foveated-rendering (FFR) level.
+     The term "foveation" derives from "fovea", the area of higher-resolution vision in the human retina.
+     Higher values of this option result in larger parts of the peripheral vision being rendered
+     at lower resolutions than the content in the center of the view.  These higher values reduce
+     quality to increase performance.
+     The Oculus implementation of fixed-foveated-rendering is described in more detail here:
+     https://developer.oculus.com/blog/optimizing-oculus-go-for-performance/-->
+    <string name="developer_options_foveated_app">Foveation Level (App)</string>
+    <!-- This string is used to label radio buttons for setting foveated level for WebVR immersive experiences -->
+    <string name="developer_options_foveated_webvr">Foveation Level (WebVR)</string>
+    <!-- This string is used to label the Foveated radio button that disables fixed-foveated-rendering in immersive mode. -->
+    <string name="developer_options_foveated_disabled">Disabled</string>
+    <!-- This string is used to label the Foveated radio button that enables low-level fixed-foveated-rendering. -->
+    <string name="developer_options_foveated_1">1</string>
+    <!-- This string is used to label the Foveated radio button that enables medium-level fixed-foveated-rendering. -->
+    <string name="developer_options_foveated_2">2</string>
+    <!-- This string is used to label the Foveated radio button that enables high-level fixed-foveated-rendering. -->
+    <string name="developer_options_foveated_3">3</string>
+
+    <!-- This string is used to label a set of radio buttons that allow the user to change the
+     scroll direction of the remote controller. -->
+    <string name="developer_options_scroll_direction">Scroll Direction</string>
+
+    <!-- This string is used to label the 'Natural' radio button of the 'Scroll Direction' settings option.
+         "Natural" refers to the motion of scrolled material being congruent with respect to direction of
+         motion of user input. -->
+    <string name="developer_options_scroll_direction_natural">Natural</string>
+
+    <!-- This string is used to label the 'Reversed' radio button of the 'Scroll Direction' settings option.
+         "Reversed" refers to the motion of scrolled material being reversed with respect to direction of
+         motion of user input. -->
+    <string name="developer_options_scroll_direction_reversed">Reversed</string>
+
+    <!-- This string describes what the 'Reset' button in the developer options does which is
+         restore all the developer settings to their default value. -->
+    <string name="developer_options_reset">Reset Developer Settings</string>
+
+    <!-- This string labels the 'Reset' button that restores the default developer settings values. -->
+    <string name="developer_options_reset_button">Reset</string>
+
+    <!-- This string is used to label buttons to enable editing of other options. -->
+    <string name="settings_button_edit">Edit</string>
+
+    <!-- This string describes the radio buttons used to select the user's background environment
+         (seen while not in Immersive Mode). -->
+    <string name="developer_options_environments">Environment</string>
+
+
+    </resources>

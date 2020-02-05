@@ -186,6 +186,8 @@ struct BrowserWorld::State {
   WidgetMoverPtr movingWidget;
   WidgetResizerPtr widgetResizer;
   std::unordered_map<vrb::Node*, std::pair<Widget*, float>> depthSorting;
+  std::function<void(device::Eye)> drawHandler;
+  std::function<void()> frameEndHandler;
 
   State() : paused(true), glInitialized(false), modelsLoaded(false), env(nullptr), cylinderDensity(0.0f), nearClip(0.1f),
             farClip(300.0f), activity(nullptr), windowsInitialized(false), exitImmersiveRequested(false), loaderDelay(0) {
@@ -227,6 +229,7 @@ struct BrowserWorld::State {
   int ParentCount(const WidgetPtr& aWidget) const;
   float ComputeNormalizedZ(const Widget& aWidget) const;
   void SortWidgets();
+  void UpdateWidgetCylinder(const WidgetPtr& aWidget, const float aDensity);
 };
 
 void
@@ -314,15 +317,7 @@ BrowserWorld::State::EnsureControllerFocused() {
 
 void
 BrowserWorld::State::ChangeControllerFocus(const Controller& aController) {
-  for (Controller& controller: controllers->GetControllers()) {
-    controller.focused = (&controller == &aController);
-    if (controller.pointer) {
-      controller.pointer->SetVisible(controller.focused);
-    }
-    if (controller.beamToggle) {
-      controller.beamToggle->ToggleAll(controller.focused);
-    }
-  }
+  controllers->SetFocused(aController.index);
 }
 
 static inline float
@@ -663,9 +658,27 @@ BrowserWorld::State::SortWidgets() {
     // Depth sort
     return da->second.second < db->second.second;
   });
+}
 
-
-
+void
+BrowserWorld::State::UpdateWidgetCylinder(const WidgetPtr& aWidget, const float aDensity) {
+  const bool useCylinder = aDensity > 0 && aWidget->GetPlacement()->cylinder;
+  if (useCylinder && aWidget->GetCylinder()) {
+    aWidget->SetCylinderDensity(aDensity);
+  } else if (useCylinder && !aWidget->GetCylinder()) {
+    VRLayerSurfacePtr moveLayer = aWidget->GetLayer();
+    VRLayerCylinderPtr layer = device->CreateLayerCylinder(moveLayer);
+    CylinderPtr cylinder = Cylinder::Create(create, layer);
+    aWidget->SetCylinder(cylinder);
+    aWidget->SetCylinderDensity(aDensity);
+  } else if (aWidget->GetCylinder()) {
+    float w = 0, h = 0;
+    aWidget->GetWorldSize(w, h);
+    VRLayerSurfacePtr moveLayer = aWidget->GetLayer();
+    VRLayerQuadPtr layer = device->CreateLayerQuad(moveLayer);
+    QuadPtr quad = Quad::Create(create, w, h, layer);
+    aWidget->SetQuad(quad);
+  }
 }
 
 static BrowserWorldPtr sWorldInstance;
@@ -844,7 +857,7 @@ BrowserWorld::ShutdownGL() {
 }
 
 void
-BrowserWorld::Draw() {
+BrowserWorld::StartFrame() {
   ASSERT_ON_RENDER_THREAD();
   if (!m.device) {
     VRB_WARN("No device");
@@ -872,28 +885,49 @@ BrowserWorld::Draw() {
   m.context->Update();
   m.externalVR->PullBrowserState();
   m.externalVR->SetHapticState(m.controllers);
-
   m.CheckExitImmersive();
+
   if (m.splashAnimation) {
-    DrawSplashAnimation();
+    TickSplashAnimation();
   } else if (m.externalVR->IsPresenting()) {
     m.CheckBackButton();
-    DrawImmersive();
+    TickImmersive();
   } else {
     bool relayoutWidgets = false;
     m.UpdateControllers(relayoutWidgets);
     if (relayoutWidgets) {
       UpdateVisibleWidgets();
     }
-    DrawWorld();
+    TickWorld();
     m.externalVR->PushSystemState();
   }
+}
+
+void
+BrowserWorld::EndFrame() {
+  ASSERT_ON_RENDER_THREAD();
+
+  if (m.frameEndHandler) {
+    m.frameEndHandler();
+    m.frameEndHandler = nullptr;
+  } else {
+    m.device->EndFrame(false);
+  }
+  m.drawHandler = nullptr;
+
   // Update the 3d audio engine with the most recent head rotation.
   const vrb::Matrix &head = m.device->GetHeadTransform();
   const vrb::Vector p = head.GetTranslation();
   const vrb::Quaternion q(head);
   VRBrowser::HandleAudioPose(q.x(), q.y(), q.z(), q.w(), p.x(), p.y(), p.z());
+}
 
+void
+BrowserWorld::Draw(device::Eye aEye) {
+  ASSERT_ON_RENDER_THREAD();
+  if (m.drawHandler) {
+    m.drawHandler(aEye);
+  }
 }
 
 void
@@ -1022,7 +1056,7 @@ BrowserWorld::UpdateWidget(int32_t aHandle, const WidgetPlacementPtr& aPlacement
   }
 
   widget->SetPlacement(aPlacement);
-  widget->SetCylinderDensity(m.cylinderDensity);
+  m.UpdateWidgetCylinder(widget, m.cylinderDensity);
   widget->ToggleWidget(aPlacement->visible);
   widget->SetSurfaceTextureSize(aPlacement->GetTextureWidth(), aPlacement->GetTextureHeight());
 
@@ -1218,7 +1252,7 @@ BrowserWorld::LayoutWidget(int32_t aHandle) {
   }
   widget->SetTransform(parent ? parent->GetTransform().PostMultiply(transform) : transform);
 
-  if (!widget->GetCylinder() && parent) {
+  if (!widget->GetCylinder()) {
     widget->LayoutQuadWithCylinderParent(parent);
   }
 }
@@ -1289,21 +1323,7 @@ void
 BrowserWorld::SetCylinderDensity(const float aDensity) {
   m.cylinderDensity = aDensity;
   for (WidgetPtr& widget: m.widgets) {
-    const bool useCylinder = m.cylinderDensity > 0 && widget->GetPlacement()->cylinder;
-    if (useCylinder && widget->GetCylinder()) {
-      widget->SetCylinderDensity(aDensity);
-    } else if (useCylinder && !widget->GetCylinder()) {
-      VRLayerCylinderPtr layer = m.device->CreateLayerCylinder(widget->GetLayer());
-      CylinderPtr cylinder = Cylinder::Create(m.create, layer);
-      widget->SetCylinder(cylinder);
-      widget->SetCylinderDensity(aDensity);
-    } else if (widget->GetCylinder()) {
-      float w = 0, h = 0;
-      widget->GetWorldSize(w, h);
-      VRLayerQuadPtr layer = m.device->CreateLayerQuad(widget->GetLayer());
-      QuadPtr quad = Quad::Create(m.create, w, h, layer);
-      widget->SetQuad(quad);
-    }
+    m.UpdateWidgetCylinder(widget, aDensity);
   }
 }
 
@@ -1334,8 +1354,9 @@ BrowserWorld::Create() {
 
 BrowserWorld::BrowserWorld(State& aState) : m(aState) {}
 
+
 void
-BrowserWorld::DrawWorld() {
+BrowserWorld::TickWorld() {
   m.externalVR->SetCompositorEnabled(true);
   m.device->SetRenderMode(device::RenderMode::StandAlone);
   if (m.fadeAnimation) {
@@ -1351,51 +1372,36 @@ BrowserWorld::DrawWorld() {
   m.rootOpaque->SetTransform(m.device->GetReorientTransform());
   m.rootTransparent->SetTransform(m.device->GetReorientTransform());
 
-  m.device->BindEye(device::Eye::Left);
-  m.drawList->Reset();
-  m.rootOpaqueParent->Cull(*m.cullVisitor, *m.drawList);
-  m.drawList->Draw(*m.leftCamera);
-  if (m.vrVideo) {
-    m.vrVideo->SelectEye(device::Eye::Left);
-    m.drawList->Reset();
-    m.vrVideo->GetRoot()->Cull(*m.cullVisitor, *m.drawList);
-    m.drawList->Draw(*m.leftCamera);
-  }
-  m.drawList->Reset();
-  m.rootController->Cull(*m.cullVisitor, *m.drawList);
-  m.drawList->Draw(*m.leftCamera);
-  VRB_GL_CHECK(glDepthMask(GL_FALSE));
-  m.drawList->Reset();
-  m.rootTransparent->Cull(*m.cullVisitor, *m.drawList);
-  m.drawList->Draw(*m.leftCamera);
-  VRB_GL_CHECK(glDepthMask(GL_TRUE));
-  // When running the noapi flavor, we only want to render one eye.
-#if !defined(VRBROWSER_NO_VR_API)
-  m.device->BindEye(device::Eye::Right);
-  m.drawList->Reset();
-  m.rootOpaqueParent->Cull(*m.cullVisitor, *m.drawList);
-  m.drawList->Draw(*m.rightCamera);
-  if (m.vrVideo) {
-    m.vrVideo->SelectEye(device::Eye::Right);
-    m.drawList->Reset();
-    m.vrVideo->GetRoot()->Cull(*m.cullVisitor, *m.drawList);
-    m.drawList->Draw(*m.leftCamera);
-  }
-  m.drawList->Reset();
-  m.rootController->Cull(*m.cullVisitor, *m.drawList);
-  m.drawList->Draw(*m.rightCamera);
-  VRB_GL_CHECK(glDepthMask(GL_FALSE));
-  m.drawList->Reset();
-  m.rootTransparent->Cull(*m.cullVisitor, *m.drawList);
-  m.drawList->Draw(*m.rightCamera);
-  VRB_GL_CHECK(glDepthMask(GL_TRUE));
-#endif // !defined(VRBROWSER_NO_VR_API)
-
-  m.device->EndFrame(false);
+  m.drawHandler = [=](device::Eye aEye) {
+    DrawWorld(aEye);
+  };
 }
 
 void
-BrowserWorld::DrawImmersive() {
+BrowserWorld::DrawWorld(device::Eye aEye) {
+  const CameraPtr camera = aEye == device::Eye::Left ? m.leftCamera : m.rightCamera;
+  m.device->BindEye(aEye);
+  m.drawList->Reset();
+  m.rootOpaqueParent->Cull(*m.cullVisitor, *m.drawList);
+  m.drawList->Draw(*camera);
+  if (m.vrVideo) {
+    m.vrVideo->SelectEye(aEye);
+    m.drawList->Reset();
+    m.vrVideo->GetRoot()->Cull(*m.cullVisitor, *m.drawList);
+    m.drawList->Draw(*camera);
+  }
+  m.drawList->Reset();
+  m.rootController->Cull(*m.cullVisitor, *m.drawList);
+  m.drawList->Draw(*camera);
+  VRB_GL_CHECK(glDepthMask(GL_FALSE));
+  m.drawList->Reset();
+  m.rootTransparent->Cull(*m.cullVisitor, *m.drawList);
+  m.drawList->Draw(*camera);
+  VRB_GL_CHECK(glDepthMask(GL_TRUE));
+}
+
+void
+BrowserWorld::TickImmersive() {
   m.externalVR->SetCompositorEnabled(false);
   m.device->SetRenderMode(device::RenderMode::Immersive);
 
@@ -1413,66 +1419,76 @@ BrowserWorld::DrawImmersive() {
         m.device->SetImmersiveSize((uint32_t) textureWidth/2, (uint32_t) textureHeight);
       }
       m.blitter->StartFrame(surfaceHandle, leftEye, rightEye);
-      m.device->BindEye(device::Eye::Left);
-      m.blitter->Draw(device::Eye::Left);
-#if !defined(VRBROWSER_NO_VR_API)
-      m.device->BindEye(device::Eye::Right);
-      m.blitter->Draw(device::Eye::Right);
-#endif // !defined(VRBROWSER_NO_VR_API)
+      m.drawHandler = [=](device::Eye aEye) {
+        DrawImmersive(aEye);
+      };
     }
-    m.device->EndFrame(aDiscardFrame);
-    m.blitter->EndFrame();
+    m.frameEndHandler = [=]() {
+      m.device->EndFrame(aDiscardFrame);
+      m.blitter->EndFrame();
+    };
   } else {
     if (surfaceHandle != 0) {
       m.blitter->CancelFrame(surfaceHandle);
     }
-    DrawLoadingAnimation();
-    m.device->EndFrame(false);
+    TickLoadingAnimation();
   }
 }
 
 void
-BrowserWorld::DrawLoadingAnimation() {
-  VRB_GL_CHECK(glDepthMask(GL_TRUE));
-  m.loadingAnimation->Update();
-  m.drawList->Reset();
-  m.loadingAnimation->GetRoot()->Cull(*m.cullVisitor, *m.drawList);
-
-  m.device->BindEye(device::Eye::Left);
-  m.drawList->Draw(*m.leftCamera);
-#if !defined(VRBROWSER_NO_VR_API)
-  m.device->BindEye(device::Eye::Right);
-  m.drawList->Draw(*m.rightCamera);
-#endif // !defined(VRBROWSER_NO_VR_API)
+BrowserWorld::DrawImmersive(device::Eye aEye) {
+  m.device->BindEye(aEye);
+  m.blitter->Draw(aEye);
 }
 
+void
+BrowserWorld::TickLoadingAnimation() {
+  m.loadingAnimation->Update();
+  m.drawHandler = [=](device::Eye eye) {
+    DrawLoadingAnimation(eye);
+  };
+}
 
 void
-BrowserWorld::DrawSplashAnimation() {
+BrowserWorld::DrawLoadingAnimation(device::Eye aEye) {
+  VRB_GL_CHECK(glDepthMask(GL_TRUE));
+  m.drawList->Reset();
+  m.loadingAnimation->GetRoot()->Cull(*m.cullVisitor, *m.drawList);
+  m.device->BindEye(aEye);
+  m.drawList->Draw(aEye == device::Eye::Left ? *m.leftCamera : *m.rightCamera);
+}
+
+void
+BrowserWorld::TickSplashAnimation() {
   if (!m.splashAnimation) {
     return;
   }
   m.device->StartFrame();
   const bool animationFinished = m.splashAnimation->Update(m.device->GetHeadTransform());
+  m.drawHandler = [=](device::Eye aEye) {
+    DrawSplashAnimation(aEye);
+  };
+  if (animationFinished) {
+    m.frameEndHandler = [=]() {
+      if (m.splashAnimation && m.splashAnimation->GetLayer()) {
+        m.device->DeleteLayer(m.splashAnimation->GetLayer());
+      }
+      m.splashAnimation = nullptr;
+      if (m.fadeAnimation) {
+        m.fadeAnimation->FadeIn();
+      }
+      m.device->EndFrame(false);
+    };
+  }
+}
+
+void
+BrowserWorld::DrawSplashAnimation(device::Eye aEye) {
   m.drawList->Reset();
   m.splashAnimation->GetRoot()->Cull(*m.cullVisitor, *m.drawList);
 
-  m.device->BindEye(device::Eye::Left);
-  m.drawList->Draw(*m.leftCamera);
-#if !defined(VRBROWSER_NO_VR_API)
-  m.device->BindEye(device::Eye::Right);
-  m.drawList->Draw(*m.rightCamera);
-#endif // !defined(VRBROWSER_NO_VR_API)
-  m.device->EndFrame();
-  if (animationFinished) {
-    if (m.splashAnimation && m.splashAnimation->GetLayer()) {
-      m.device->DeleteLayer(m.splashAnimation->GetLayer());
-    }
-    m.splashAnimation = nullptr;
-    if (m.fadeAnimation) {
-      m.fadeAnimation->FadeIn();
-    }
-  }
+  m.device->BindEye(aEye);
+  m.drawList->Draw(aEye == device::Eye::Left ? *m.leftCamera : *m.rightCamera);
 }
 
 void

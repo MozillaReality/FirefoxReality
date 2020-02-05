@@ -1,21 +1,21 @@
 package org.mozilla.vrbrowser.ui.widgets.menus;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
-import android.view.View;
+import android.content.res.Configuration;
 
 import androidx.annotation.IntDef;
 
 import org.mozilla.geckoview.GeckoSessionSettings;
 import org.mozilla.vrbrowser.R;
-import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
 import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
 import org.mozilla.vrbrowser.utils.AnimationHelper;
-import org.mozilla.vrbrowser.utils.ViewUtils;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Optional;
 
-public class HamburgerMenuWidget extends MenuWidget implements WidgetManagerDelegate.FocusChangeListener {
+public class HamburgerMenuWidget extends MenuWidget {
 
     public interface MenuDelegate {
         void onSendTab();
@@ -29,22 +29,38 @@ public class HamburgerMenuWidget extends MenuWidget implements WidgetManagerDele
     public static final int WINDOW_RESIZE = 1;
     public static final int SWITCH_MODE = 2;
 
-    ArrayList<MenuItem> mItems;
+    HashMap<Integer, MenuItem> mItems;
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     Optional<MenuDelegate> mMenuDelegate;
+    boolean mSendTabEnabled = true;
 
     public HamburgerMenuWidget(Context aContext) {
         super(aContext, R.layout.hamburger_menu);
         initialize();
-        createMenuItems();
     }
 
     private void initialize() {
+        updateUI();
+    }
+
+    @Override
+    public void updateUI() {
+        super.updateUI();
+
         mAdapter.updateBackgrounds(R.drawable.context_menu_item_background_first,
                 R.drawable.context_menu_item_background_last,
                 R.drawable.context_menu_item_background,
                 R.drawable.context_menu_item_background_single);
         mAdapter.updateLayoutId(R.layout.hamburger_menu_item);
+
+        updateMenuItems();
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        updateUI();
     }
 
     @Override
@@ -52,13 +68,11 @@ public class HamburgerMenuWidget extends MenuWidget implements WidgetManagerDele
         super.show(aShowFlags);
 
         AnimationHelper.scaleIn(findViewById(R.id.menuContainer), 100, 0, null);
-        mWidgetManager.addFocusChangeListener(this);
     }
 
     @Override
     public void hide(int aHideFlags) {
         AnimationHelper.scaleOut(findViewById(R.id.menuContainer), 100, 0, () -> HamburgerMenuWidget.super.hide(aHideFlags));
-        mWidgetManager.removeFocusChangeListener(this);
     }
 
     @Override
@@ -94,37 +108,37 @@ public class HamburgerMenuWidget extends MenuWidget implements WidgetManagerDele
         mMenuDelegate = Optional.ofNullable(delegate);
     }
 
-    private void createMenuItems() {
-        mItems = new ArrayList<>();
+    @SuppressLint("UseSparseArrays")
+    private void updateMenuItems() {
+        mItems = new HashMap<>();
 
-        mItems.add(SEND_TAB,
-                new MenuItem(getContext().getString(R.string.hamburger_menu_send_tab),
-                        R.drawable.ic_icon_tabs_sendtodevice,
-                        () -> mMenuDelegate.ifPresent(MenuDelegate::onSendTab)));
+        if (mSendTabEnabled) {
+            mItems.put(SEND_TAB,
+                    new MenuItem(getContext().getString(R.string.hamburger_menu_send_tab),
+                            R.drawable.ic_icon_tabs_sendtodevice,
+                            () -> mMenuDelegate.ifPresent(MenuDelegate::onSendTab)));
+        }
 
-        mItems.add(WINDOW_RESIZE,
+        mItems.put(WINDOW_RESIZE,
                 new MenuItem(getContext().getString(R.string.hamburger_menu_resize),
                         R.drawable.ic_icon_resize,
                         () -> mMenuDelegate.ifPresent(MenuDelegate::onResize)));
 
-        mItems.add(SWITCH_MODE,
+        mItems.put(SWITCH_MODE,
                 new MenuItem(getContext().getString(R.string.hamburger_menu_switch_to_desktop),
                         R.drawable.ic_icon_ua_default,
                         () -> mMenuDelegate.ifPresent(MenuDelegate::onSwitchMode)));
 
-        super.updateMenuItems(mItems);
+        super.updateMenuItems(new ArrayList<>(mItems.values()));
 
         mWidgetPlacement.height = mItems.size() * WidgetPlacement.dpDimension(getContext(), R.dimen.hamburger_menu_item_height);
         mWidgetPlacement.height += mBorderWidth * 2;
         mWidgetPlacement.height += WidgetPlacement.dpDimension(getContext(), R.dimen.hamburger_menu_triangle_height);
     }
 
-    // FocusChangeListener
-
-    @Override
-    public void onGlobalFocusChanged(View oldFocus, View newFocus) {
-        if (!ViewUtils.isEqualOrChildrenOf(this, newFocus)) {
-            onDismiss();
-        }
+    public void setSendTabEnabled(boolean value) {
+        mSendTabEnabled = value;
+        updateMenuItems();
     }
+
 }

@@ -122,7 +122,7 @@
     <item name="tray_world_y" format="float" type="dimen">0.25</item>
     <item name="tray_world_z" format="float" type="dimen">-2.5</item>
     <item name="tray_world_width" format="float" type="dimen">1.42</item>
-    <dimen name="tray_width">246dp</dimen>
+    <dimen name="tray_width">255dp</dimen>
     <dimen name="tray_height">40dp</dimen>
     <item name="tray_tooltip_density" format="float" type="dimen">4.0</item>
     <dimen name="tray_tooltip_padding_h">20dp</dimen>
@@ -218,15 +218,13 @@
     <item name="tooltip_default_density" format="float" type="dimen">3.0</item>
 
     <!-- General 2nd level settings dimensions -->
-    <dimen name="settings_dialog_width">585dp</dimen>
+    <dimen name="settings_dialog_width">600dp</dimen>
     <dimen name="settings_dialog_height">360dp</dimen>
 
     <!-- Privacy settings -->
-    <dimen name="privacy_options_width">585dp</dimen>
     <dimen name="privacy_options_height">490dp</dimen>
 
     <!-- Display settings -->
-    <dimen name="display_options_width">585dp</dimen>
     <dimen name="display_options_height">420dp</dimen>
 
     <!-- JS Prompt dialogs -->

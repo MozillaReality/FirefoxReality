@@ -246,13 +246,19 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
         mKeyboardPopupTopMargin  = getResources().getDimensionPixelSize(R.dimen.keyboard_key_pressed_padding) * 2;
 
         setOnClickListener(view -> hideOverlays());
-        mPopupKeyboardLayer.setOnClickListener(view -> hideOverlays());
+        setOnTouchListener((v, event) -> {
+            v.performClick();
+            dismiss();
+            return true;
+        });
 
         mKeyboardView.setVisibility(View.VISIBLE);
         mKeyboardNumericView.setKeyboard(mKeyboardNumeric);
+
+        mPopupKeyboardLayer.setOnClickListener(view -> hideOverlays());
         hideOverlays();
 
-        mBackHandler = () -> onDismiss();
+        mBackHandler = this::onDismiss;
 
         mAutoCompletionView = findViewById(R.id.autoCompletionView);
         mAutoCompletionView.setExtendedHeight((int)(mWidgetPlacement.height * mWidgetPlacement.density));
@@ -619,7 +625,6 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
 
     private void handleShift(boolean isShifted) {
         CustomKeyboard keyboard = (CustomKeyboard) mKeyboardView.getKeyboard();
-        boolean shifted = isShifted;
         int[] shiftIndices = keyboard.getShiftKeyIndices();
         for (int shiftIndex: shiftIndices) {
             if (shiftIndex >= 0) {
@@ -635,13 +640,13 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
                         key.pressed = true;
 
                     } else {
-                        key.icon = shifted ? mShiftOnIcon : mShiftOffIcon;
+                        key.icon = isShifted ? mShiftOnIcon : mShiftOffIcon;
                         key.pressed = false;
                     }
                 }
             }
         }
-        mKeyboardView.setShifted(shifted || mIsCapsLock);
+        mKeyboardView.setShifted(isShifted || mIsCapsLock);
     }
 
     private void handleBackspace() {
@@ -822,11 +827,16 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
         handleText(str);
     }
 
-    private void handleText(final String aText) {
+    private void handleText(String aText) {
         if (mFocusedView == null || mInputConnection == null) {
             return;
         }
 
+        if (mKeyboardView.isShifted()) {
+            aText = aText.toUpperCase();
+        }
+
+        final String text = aText;
         if (mCurrentKeyboard.usesComposingText()) {
             CharSequence seq = mInputConnection.getSelectedText(0);
             String selected = seq != null ? seq.toString() : "";
@@ -834,23 +844,23 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
                 // Clean composing text if the text is selected.
                 mComposingText = "";
             }
-            mComposingText += aText;
+            mComposingText += text;
         } else if (mCurrentKeyboard.usesTextOverride()) {
             String beforeText = getTextBeforeCursor(mInputConnection);
-            final String newBeforeText = mCurrentKeyboard.overrideAddText(beforeText, aText);
+            final String newBeforeText = mCurrentKeyboard.overrideAddText(beforeText, text);
             final InputConnection connection = mInputConnection;
             postInputCommand(() -> {
                 if (newBeforeText != null) {
                     connection.deleteSurroundingText(beforeText.length(), 0);
                     connection.commitText(newBeforeText, 1);
                 } else {
-                    connection.commitText(aText, 1);
+                    connection.commitText(text, 1);
                 }
             });
 
         } else {
             final InputConnection connection = mInputConnection;
-            postInputCommand(() -> connection.commitText(aText, 1));
+            postInputCommand(() -> connection.commitText(text, 1));
         }
         updateCandidates();
     }
@@ -1123,7 +1133,7 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
 
     private void exitVoiceInputMode() {
         if (mIsInVoiceInput && mVoiceSearchWidget != null) {
-            mVoiceSearchWidget.hide(REMOVE_WIDGET);
+            mVoiceSearchWidget.hide(KEEP_WIDGET);
             mWidgetPlacement.visible = true;
             mWidgetManager.updateWidget(this);
             mIsInVoiceInput = false;

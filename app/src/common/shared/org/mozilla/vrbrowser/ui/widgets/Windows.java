@@ -65,7 +65,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             WidgetPlacement widgetPlacement;
             if (aWindow.isFullScreen()) {
                 widgetPlacement = aWindow.getBeforeFullscreenPlacement();
-                placement = aWindow.getmWindowPlacementBeforeFullscreen();
+                placement = aWindow.getWindowPlacementBeforeFullscreen();
             } else if (aWindow.isResizing()) {
                 widgetPlacement = aWindow.getBeforeResizePlacement();
                 placement = aWindow.getWindowPlacement();
@@ -156,7 +156,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         try (Writer writer = new FileWriter(file)) {
             WindowsState state = new WindowsState();
             state.privateMode = mPrivateMode;
-            state.focusedWindowPlacement = mFocusedWindow.isFullScreen() ?  mFocusedWindow.getmWindowPlacementBeforeFullscreen() : mFocusedWindow.getWindowPlacement();
+            state.focusedWindowPlacement = mFocusedWindow.isFullScreen() ?  mFocusedWindow.getWindowPlacementBeforeFullscreen() : mFocusedWindow.getWindowPlacement();
             ArrayList<Session> sessions = SessionStore.get().getSortedSessions(false);
             state.tabs = sessions.stream().map(Session::getSessionState).collect(Collectors.toCollection(ArrayList::new));
             for (WindowWidget window : mRegularWindows) {
@@ -207,7 +207,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         return mFocusedWindow;
     }
 
-    @NonNull
+    @Nullable
     public WindowWidget addWindow() {
         if (getCurrentWindows().size() >= MAX_WINDOWS) {
             return null;
@@ -383,17 +383,13 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         }
     }
 
-    public void focusWindow(@NonNull WindowWidget aWindow) {
+    public void focusWindow(@Nullable WindowWidget aWindow) {
         if (aWindow != mFocusedWindow) {
             WindowWidget prev = mFocusedWindow;
             mFocusedWindow = aWindow;
             if (prev != null && getCurrentWindows().contains(prev)) {
                 prev.setActiveWindow(false);
-                if (prev.isVisible()) {
-                    prev.getTitleBar().setVisible(true);
-                }
             }
-            mFocusedWindow.getTitleBar().setVisible(false);
             mFocusedWindow.setActiveWindow(true);
             if (mDelegate != null) {
                 mDelegate.onFocusedWindowChanged(mFocusedWindow, prev);
@@ -523,10 +519,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             }
 
         } else {
-            WindowWidget window = getWindowWithPlacement(mRegularWindowPlacement);
-            if (window != null) {
-                focusWindow(window);
-            }
+            focusWindow(getWindowWithPlacement(mPrivateWindowPlacement));
         }
         updateViews();
         mWidgetManager.pushWorldBrightness(this, WidgetManagerDelegate.DEFAULT_DIM_BRIGHTNESS);
@@ -667,11 +660,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         mWidgetManager.removeWidget(aWindow);
         mRegularWindows.remove(aWindow);
         mPrivateWindows.remove(aWindow);
-        aWindow.getTopBar().setVisible(false);
-        aWindow.getTopBar().setDelegate((TopBarWidget.Delegate) null);
         aWindow.removeWindowListener(this);
-        aWindow.getTitleBar().setVisible(false);
-        aWindow.getTitleBar().setDelegate((TitleBarWidget.Delegate) null);
         aWindow.close();
         updateMaxWindowScales();
         updateCurvedMode(true);
@@ -688,8 +677,6 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             setFirstPaint(aWindow, aWindow.getSession());
         }
         aWindow.setVisible(aVisible);
-        aWindow.getTopBar().setVisible(aVisible);
-        aWindow.getTitleBar().setVisible(aVisible);
     }
 
     private void placeWindow(@NonNull WindowWidget aWindow, WindowPlacement aPosition) {
@@ -809,54 +796,17 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             frontWindow.getPlacement().parentHandle = -1;
         }
 
-        updateTopBars();
-        updateTitleBars();
-
         ArrayList<WindowWidget> windows = getCurrentWindows();
+        for (WindowWidget window: windows) {
+            window.setIsOnlyWindow(windows.size() == 1);
+        }
+
         // Sort windows so frontWindow is the first one. Required for proper native matrix updates.
         windows.sort((o1, o2) -> o1 == frontWindow ? -1 : 0);
         for (WindowWidget window: getCurrentWindows()) {
             mWidgetManager.updateWidget(window);
             mWidgetManager.updateWidget(window.getTopBar());
             mWidgetManager.updateWidget(window.getTitleBar());
-        }
-    }
-
-    private void updateTopBars() {
-        ArrayList<WindowWidget> windows = getCurrentWindows();
-        WindowWidget leftWindow = getLeftWindow();
-        WindowWidget rightWindow = getRightWindow();
-        boolean visible = mFullscreenWindow == null && (windows.size() > 1 || isInPrivateMode());
-        for (WindowWidget window: windows) {
-            window.getTopBar().setVisible(visible);
-            window.getTopBar().setClearMode((windows.size() == 1 && isInPrivateMode()));
-            if (visible) {
-                window.getTopBar().setMoveLeftButtonEnabled(window != leftWindow);
-                window.getTopBar().setMoveRightButtonEnabled(window != rightWindow);
-            }
-        }
-        if (isInPrivateMode() && mPrivateWindows.size() == 1) {
-            if (mFocusedWindow != null) {
-                mFocusedWindow.getTopBar().setMoveLeftButtonEnabled(false);
-                mFocusedWindow.getTopBar().setMoveRightButtonEnabled(false);
-            }
-        }
-    }
-
-    private void updateTitleBars() {
-        ArrayList<WindowWidget> windows = getCurrentWindows();
-        for (WindowWidget window: windows) {
-            if (window == mFocusedWindow) {
-                window.getTitleBar().setVisible(false);
-
-            } else {
-                if (mFullscreenWindow != null) {
-                    window.getTitleBar().setVisible(false);
-
-                } else {
-                    window.getTitleBar().setVisible(true);
-                }
-            }
         }
     }
 
@@ -889,7 +839,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
     public void enterResizeMode() {
         if (mFullscreenWindow == null) {
             for (WindowWidget window : getCurrentWindows()) {
-                window.getTopBar().setVisible(false);
+                window.setResizeMode(true);
             }
         }
     }
@@ -897,9 +847,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
     public void exitResizeMode() {
         if (mFullscreenWindow == null) {
             for (WindowWidget window : getCurrentWindows()) {
-                if (getCurrentWindows().size() > 1 || isInPrivateMode()) {
-                    window.getTopBar().setVisible(true);
-                }
+                window.setResizeMode(false);
             }
         }
     }
@@ -1127,8 +1075,11 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         if (aFullScreen) {
             mFullscreenWindow = aWindow;
             aWindow.saveBeforeFullscreenPlacement();
+            // Do not depend on how many windows are opened to select flat/curved when entering fullscreen.
+            boolean fullscreenCurved = SettingsStore.getInstance(mContext).isCurvedModeEnabled() && (mStoredCurvedMode || mForcedCurvedMode);
+            aWindow.getPlacement().cylinder = fullscreenCurved;
             setFullScreenSize(aWindow);
-            placeWindow(aWindow, WindowPlacement.FRONT);
+            placeWindow(aWindow, WindowPlacement.FRONT, fullscreenCurved);
             focusWindow(aWindow);
             for (WindowWidget win: getCurrentWindows()) {
                 setWindowVisible(win, win == mFullscreenWindow);
@@ -1311,6 +1262,8 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             mNoInternetDialog.setBody(R.string.no_internet_message);
             mNoInternetDialog.setButtonsDelegate(index -> {
                 mNoInternetDialog.hide(UIWidget.REMOVE_WIDGET);
+                mNoInternetDialog.releaseWidget();
+                mNoInternetDialog = null;
             });
         }
 
@@ -1319,6 +1272,8 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
 
         } else if (connected && mNoInternetDialog.isVisible()) {
             mNoInternetDialog.hide(UIWidget.REMOVE_WIDGET);
+            mNoInternetDialog.releaseWidget();
+            mNoInternetDialog = null;
         }
     };
 }
