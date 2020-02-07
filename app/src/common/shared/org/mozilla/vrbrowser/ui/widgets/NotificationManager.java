@@ -149,6 +149,7 @@ public class NotificationManager {
         }
 
         TooltipWidget notificationView = new TooltipWidget(notification.mParent.getContext(), notification.mLayoutRes);
+        notificationView.setDelegate(() -> hide(notificationId));
 
         notification.mParent.requestFocus();
         notification.mParent.requestFocusFromTouch();
