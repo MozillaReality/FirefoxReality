@@ -381,6 +381,11 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
     }
 
     public void dismiss() {
+        if (mPopupKeyboardLayer.getVisibility() == VISIBLE) {
+            hideOverlays();
+            return;
+        }
+
         exitVoiceInputMode();
         if (mFocusedView != null && mFocusedView != mAttachedWindow) {
             mFocusedView.clearFocus();
@@ -393,7 +398,6 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
         mIsCapsLock = false;
         mIsLongPress = false;
         handleShift(false);
-        hideOverlays();
     }
 
     public void proxifyLayerIfNeeded(ArrayList<WindowWidget> aWindows) {
