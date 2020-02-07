@@ -860,7 +860,7 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
             postInputCommand(() -> connection.commitText(text, 1));
         }
 
-        if (!mIsCapsLock && mPopupKeyboardView.getVisibility() != View.VISIBLE) {
+        if (!mIsCapsLock) {
             handleShift(false);
         }
 
