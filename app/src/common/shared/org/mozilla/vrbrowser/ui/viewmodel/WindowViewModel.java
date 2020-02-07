@@ -127,7 +127,7 @@ public class WindowViewModel extends AndroidViewModel {
         isMicrophoneEnabled = new MutableLiveData<>(new ObservableBoolean(true));
         isBookmarked = new MutableLiveData<>(new ObservableBoolean(false));
         isFocused = new MutableLiveData<>(new ObservableBoolean(false));
-        isUrlEmpty = new MutableLiveData<>(new ObservableBoolean(false));
+        isUrlEmpty = new MutableLiveData<>(new ObservableBoolean(true));
         isPopUpAvailable = new MutableLiveData<>(new ObservableBoolean(false));
         canGoForward = new MutableLiveData<>(new ObservableBoolean(false));
         canGoBack = new MutableLiveData<>(new ObservableBoolean(false));
