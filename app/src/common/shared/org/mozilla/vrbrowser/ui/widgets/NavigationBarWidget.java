@@ -378,7 +378,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
 
     @Override
     public void detachFromWindow() {
-        hideNotification();
+        hideAllNotifications();
 
         if (mAttachedWindow != null && mAttachedWindow.isResizing()) {
             exitResizeMode(ResizeAction.RESTORE_SIZE);
@@ -586,7 +586,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
             }
         }
 
-        hideNotifications();
+        hideAllNotifications();
 
         // Update preset styles
     }
@@ -1044,13 +1044,9 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         final int currentCount = mBlockedCount;
         post(() -> {
             if (currentCount == mBlockedCount) {
-                hideNotification();
+                hideNotification(POPUP_NOTIFICATION_ID);
             }
         });
-    }
-
-    public void hideNotifications() {
-        hidePopUpsBlockedNotification();
     }
 
     public void showTabAddedNotification() {
@@ -1088,8 +1084,12 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         NotificationManager.show(notificationId, notification);
     }
 
-    private void hideNotification() {
+    public void hideAllNotifications() {
         NotificationManager.hideAll();
+    }
+
+    private void hideNotification(int notificationId) {
+        NotificationManager.hide(notificationId);
     }
 
     private ConnectivityReceiver.Delegate mConnectivityDelegate = connected -> {
