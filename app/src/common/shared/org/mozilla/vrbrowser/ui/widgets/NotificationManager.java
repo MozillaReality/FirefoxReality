@@ -154,14 +154,11 @@ public class NotificationManager {
 
         TooltipWidget notificationView = new TooltipWidget(notification.mParent.getContext(), notification.mLayoutRes);
 
-        notification.mParent.requestFocus();
-        notification.mParent.requestFocusFromTouch();
-
         setPlacement(notificationView, notification);
 
         notificationView.setText(notification.mString);
         notificationView.setCurvedMode(false);
-        notificationView.show(UIWidget.CLEAR_FOCUS);
+        notificationView.show(UIWidget.KEEP_FOCUS);
 
         if (notification.mView instanceof UIButton) {
             ((UIButton)notification.mView).setNotificationMode(true);
