@@ -42,6 +42,7 @@ import org.mozilla.vrbrowser.ui.viewmodel.WindowViewModel;
 import org.mozilla.vrbrowser.ui.views.NavigationURLBar;
 import org.mozilla.vrbrowser.ui.views.UIButton;
 import org.mozilla.vrbrowser.ui.views.UITextButton;
+import org.mozilla.vrbrowser.ui.widgets.NotificationManager.Notification.NotificationPosition;
 import org.mozilla.vrbrowser.ui.widgets.dialogs.SelectionActionWidget;
 import org.mozilla.vrbrowser.ui.widgets.dialogs.SendTabDialogWidget;
 import org.mozilla.vrbrowser.ui.widgets.dialogs.VoiceSearchWidget;
@@ -1030,7 +1031,10 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         final int currentCount = mBlockedCount;
         postDelayed(() -> {
             if (currentCount == mBlockedCount) {
-                showNotification(POPUP_NOTIFICATION_ID, mBinding.navigationBarNavigation.urlBar.getPopUpButton(), R.string.popup_tooltip);
+                showNotification(POPUP_NOTIFICATION_ID,
+                        mBinding.navigationBarNavigation.urlBar.getPopUpButton(),
+                        NotificationManager.Notification.TOP,
+                        R.string.popup_tooltip);
             }
         }, POP_UP_NOTIFICATION_DELAY);
     }
@@ -1050,30 +1054,36 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
     }
 
     public void showTabAddedNotification() {
-        showNotification(TAB_ADDED_NOTIFICATION_ID, R.string.tab_added_notification);
+        showNotification(TAB_ADDED_NOTIFICATION_ID,
+                NotificationManager.Notification.BOTTOM,
+                R.string.tab_added_notification);
     }
 
     public void showTabSentNotification() {
-        showNotification(TAB_SENT_NOTIFICATION_ID, R.string.tab_sent_notification);
+        showNotification(TAB_SENT_NOTIFICATION_ID,
+                NotificationManager.Notification.BOTTOM,
+                R.string.tab_sent_notification);
     }
 
     public void showBookmarkAddedNotification() {
-        showNotification(BOOKMARK_ADDED_NOTIFICATION_ID, R.string.bookmarks_saved_notification);
+        showNotification(BOOKMARK_ADDED_NOTIFICATION_ID,
+                NotificationManager.Notification.BOTTOM,
+                R.string.bookmarks_saved_notification);
     }
 
-    private void showNotification(int notificationId, UIButton button, int stringRes) {
+    private void showNotification(int notificationId, UIButton button, @NotificationPosition int position, int stringRes) {
         NotificationManager.Notification notification = new NotificationManager.Builder(this)
                 .withView(button)
                 .withString(stringRes)
-                .withPosition(NotificationManager.Notification.BOTTOM)
+                .withPosition(position)
                 .withMargin(20.0f).build();
         NotificationManager.show(notificationId, notification);
     }
 
-    private void showNotification(int notificationId, int stringRes) {
+    private void showNotification(int notificationId, @NotificationPosition int position, int stringRes) {
         NotificationManager.Notification notification = new NotificationManager.Builder(this)
                 .withString(stringRes)
-                .withPosition(NotificationManager.Notification.BOTTOM)
+                .withPosition(position)
                 .withMargin(20.0f).build();
         NotificationManager.show(notificationId, notification);
     }
