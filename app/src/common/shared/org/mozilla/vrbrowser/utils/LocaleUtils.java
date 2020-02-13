@@ -100,6 +100,7 @@ public class LocaleUtils {
         return Resources.getSystem().getConfiguration().getLocales().get(0);
     }
 
+    @NonNull
     private static List<String> getLanguageTagsForLanguages(final List<Language> languages) {
         List<String> result = new ArrayList<>();
         if (languages != null) {
@@ -141,16 +142,19 @@ public class LocaleUtils {
         return new ArrayList<>();
     }
 
+    @NonNull
     public static String getDefaultLanguageId() {
         return DEFAULT_LANGUAGE_ID;
     }
 
     // Preferred and Available language methods
 
+    @NonNull
     public static List<String> getPreferredLanguageTags(@NonNull Context context) {
         return LocaleUtils.getLanguageTagsForLanguages(LocaleUtils.getPreferredLanguages(context));
     }
 
+    @NonNull
     public static List<Language> getPreferredLanguages(@NonNull Context aContext) {
         // We can't us stream here because an Android 24/25 bug the makes the stream implementation not top respect the order when iterating
         // https://android.googlesource.com/platform/libcore/+/7ae7ae73754c8b82a2e396098e35553d404c69ef%5E%21/#F0
@@ -158,7 +162,7 @@ public class LocaleUtils {
         List<Language> preferredLanguages = getLanguagesForIds(savedLanguageIds);
         preferredLanguages.forEach(language -> language.setPreferred(true));
 
-        if (savedLanguageIds.isEmpty()) {
+        if (savedLanguageIds == null || savedLanguageIds.isEmpty()) {
             Language lang = mLanguagesCache.get(DEFAULT_LANGUAGE_ID);
             if (lang != null) {
                 lang.setPreferred(true);
