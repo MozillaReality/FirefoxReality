@@ -4,6 +4,7 @@ import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.os.Build;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 
@@ -15,6 +16,8 @@ import java.util.GregorianCalendar;
 import java.util.Locale;
 
 public class StringUtils {
+    static final String LOGTAG = SystemUtils.createLogtag(StringUtils.class);
+
     @NonNull
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR1)
     public static String getStringByLocale(Context context, int id, Locale locale) {
@@ -112,6 +115,11 @@ public class StringUtils {
 
     @NonNull
     public static String capitalize(@NonNull String input) {
-        return input.substring(0, 1).toUpperCase() + input.substring(1);
+        try {
+            return input.substring(0, 1).toUpperCase() + input.substring(1);
+        } catch (StringIndexOutOfBoundsException e) {
+            Log.e(LOGTAG, "String index is out of bound at capitalize(). " + e);
+            return input;
+        }
     }
 }
