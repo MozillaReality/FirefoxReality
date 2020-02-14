@@ -22,8 +22,6 @@ import androidx.databinding.ObservableBoolean;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 
-import org.mozilla.geckoview.GeckoSession;
-import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.VRBrowserActivity;
 import org.mozilla.vrbrowser.audio.AudioEngine;
@@ -36,6 +34,7 @@ import org.mozilla.vrbrowser.ui.viewmodel.WindowViewModel;
 import org.mozilla.vrbrowser.ui.views.UIButton;
 import org.mozilla.vrbrowser.ui.widgets.settings.SettingsView;
 import org.mozilla.vrbrowser.ui.widgets.settings.SettingsWidget;
+import org.mozilla.vrbrowser.utils.ViewUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -59,7 +58,6 @@ public class TrayWidget extends UIWidget implements WidgetManagerDelegate.Update
     private int mMaxPadding;
     private Session mSession;
     private WindowWidget mAttachedWindow;
-    private boolean mAddWindowVisible;
 
     public TrayWidget(Context aContext) {
         super(aContext);
@@ -197,6 +195,11 @@ public class TrayWidget extends UIWidget implements WidgetManagerDelegate.Update
     }
 
     private OnHoverListener mButtonScaleHoverListener = (view, motionEvent) -> {
+        UIButton button = (UIButton)view;
+        if (button.isActive() || button.isPrivate()) {
+            return false;
+        }
+
         int ev = motionEvent.getActionMasked();
         switch (ev) {
             case MotionEvent.ACTION_HOVER_ENTER:
@@ -212,46 +215,43 @@ public class TrayWidget extends UIWidget implements WidgetManagerDelegate.Update
     };
 
     private void animateViewPadding(View view, int paddingStart, int paddingEnd, int duration) {
-        UIButton button = (UIButton)view;
-        if (!button.isActive() && !button.isPrivate()) {
-            ValueAnimator animation = ValueAnimator.ofInt(paddingStart, paddingEnd);
-            animation.setDuration(duration);
-            animation.setInterpolator(new AccelerateDecelerateInterpolator());
-            animation.addUpdateListener(valueAnimator -> {
-                try {
-                    int newPadding = Integer.parseInt(valueAnimator.getAnimatedValue().toString());
-                    view.setPadding(newPadding, newPadding, newPadding, newPadding);
-                }
-                catch (NumberFormatException ex) {
-                    Log.e(LOGTAG, "Error parsing tray animation value: " + valueAnimator.getAnimatedValue().toString());
-                }
-            });
-            animation.addListener(new Animator.AnimatorListener() {
+        ValueAnimator animation = ValueAnimator.ofInt(paddingStart, paddingEnd);
+        animation.setDuration(duration);
+        animation.setInterpolator(new AccelerateDecelerateInterpolator());
+        animation.addUpdateListener(valueAnimator -> {
+            try {
+                int newPadding = Integer.parseInt(valueAnimator.getAnimatedValue().toString());
+                view.setPadding(newPadding, newPadding, newPadding, newPadding);
+            }
+            catch (NumberFormatException ex) {
+                Log.e(LOGTAG, "Error parsing tray animation value: " + valueAnimator.getAnimatedValue().toString());
+            }
+        });
+        animation.addListener(new Animator.AnimatorListener() {
 
-                @Override
-                public void onAnimationStart(Animator animator) {
+            @Override
+            public void onAnimationStart(Animator animator) {
+            }
+
+            @Override
+            public void onAnimationEnd(Animator animator) {
+                UIButton button = (UIButton)view;
+                if(button.isActive() || button.isPrivate()) {
+                    view.setPadding(mMinPadding, mMinPadding, mMinPadding, mMinPadding);
                 }
+            }
 
-                @Override
-                public void onAnimationEnd(Animator animator) {
-                    UIButton button = (UIButton)view;
-                    if(button.isActive() || button.isPrivate()) {
-                        view.setPadding(mMinPadding, mMinPadding, mMinPadding, mMinPadding);
-                    }
-                }
+            @Override
+            public void onAnimationCancel(Animator animator) {
 
-                @Override
-                public void onAnimationCancel(Animator animator) {
+            }
 
-                }
+            @Override
+            public void onAnimationRepeat(Animator animator) {
 
-                @Override
-                public void onAnimationRepeat(Animator animator) {
-
-                }
-            });
-            animation.start();
-        }
+            }
+        });
+        animation.start();
     }
 
     public void addListeners(TrayListener... listeners) {
@@ -356,6 +356,8 @@ public class TrayWidget extends UIWidget implements WidgetManagerDelegate.Update
         mWidgetPlacement.parentHandle = -1;
 
         if (mViewModel != null) {
+            mViewModel.getIsBookmarksVisible().removeObserver(mIsBookmarksVisible);
+            mViewModel.getIsHistoryVisible().removeObserver(mIsHistoryVisible);
             mViewModel = null;
         }
     }
@@ -375,17 +377,35 @@ public class TrayWidget extends UIWidget implements WidgetManagerDelegate.Update
                 (VRBrowserActivity)getContext(),
                 ViewModelProvider.AndroidViewModelFactory.getInstance(((VRBrowserActivity) getContext()).getApplication()))
                 .get(String.valueOf(mAttachedWindow.hashCode()), WindowViewModel.class);
+        mViewModel.getIsBookmarksVisible().observe((VRBrowserActivity)getContext(), mIsBookmarksVisible);
+        mViewModel.getIsHistoryVisible().observe((VRBrowserActivity)getContext(), mIsHistoryVisible);
 
         mBinding.setViewmodel(mViewModel);
 
         SessionStore.get().getBookmarkStore().addListener(mBookmarksListener);
     }
 
+    private Observer<ObservableBoolean> mIsBookmarksVisible = aBoolean -> {
+        if (aBoolean.get()) {
+            animateViewPadding(mBinding.bookmarksButton, mMaxPadding, mMinPadding, ICON_ANIMATION_DURATION);
+        } else {
+            animateViewPadding(mBinding.bookmarksButton, mMinPadding, mMaxPadding, ICON_ANIMATION_DURATION);
+        }
+    };
+
+    private Observer<ObservableBoolean> mIsHistoryVisible = aBoolean -> {
+        if (aBoolean.get()) {
+            animateViewPadding(mBinding.historyButton, mMaxPadding, mMinPadding, ICON_ANIMATION_DURATION);
+        } else {
+            animateViewPadding(mBinding.historyButton, mMinPadding, mMaxPadding, ICON_ANIMATION_DURATION);
+        }
+    };
+
     public void toggleSettingsDialog() {
         toggleSettingsDialog(SettingsView.SettingViewType.MAIN);
     }
 
-    public void toggleSettingsDialog(@NonNull SettingsWidget.SettingDialog settingDialog) {
+    public void toggleSettingsDialog(@NonNull SettingsView.SettingViewType settingDialog) {
         if (mSettingsWidget == null) {
             mSettingsWidget = new SettingsWidget(getContext());
         }
@@ -399,7 +419,7 @@ public class TrayWidget extends UIWidget implements WidgetManagerDelegate.Update
         }
     }
 
-    public void showSettingsDialog(@NonNull SettingsWidget.SettingDialog settingDialog) {
+    public void showSettingsDialog(@NonNull SettingsView.SettingViewType settingDialog) {
         if (mSettingsWidget == null) {
             mSettingsWidget = new SettingsWidget(getContext());
         }
