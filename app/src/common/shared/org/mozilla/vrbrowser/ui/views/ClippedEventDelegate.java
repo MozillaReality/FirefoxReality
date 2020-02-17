@@ -15,6 +15,7 @@ public abstract class ClippedEventDelegate implements View.OnHoverListener, View
     private boolean mTouched;
     private OnClickListener mClickListener;
     private View.OnHoverListener mOnHoverListener;
+    private View.OnTouchListener mOnTouchListener;
 
     View mView;
     Region mRegion;
@@ -37,6 +38,10 @@ public abstract class ClippedEventDelegate implements View.OnHoverListener, View
 
     // The region should be recreated in this event based on the current state drawable
     abstract boolean onUpdateRegion();
+
+    public void setOnTouchListener(View.OnTouchListener listener) {
+        mOnTouchListener = listener;
+    }
 
     public void setOnHoverListener(View.OnHoverListener listener) {
         mOnHoverListener = listener;
@@ -93,9 +98,9 @@ public abstract class ClippedEventDelegate implements View.OnHoverListener, View
                     if (mTouched) {
                         v.requestFocus();
                         v.requestFocusFromTouch();
-                        if (mClickListener != null) {
-                            v.performClick();
-                            mClickListener.onClick(v);
+                        event.setAction(MotionEvent.ACTION_CANCEL);
+                        if (mOnTouchListener != null) {
+                            mOnTouchListener.onTouch(v, event);
                         }
                     }
                     v.onHoverChanged(false);
@@ -104,11 +109,18 @@ public abstract class ClippedEventDelegate implements View.OnHoverListener, View
                     mTouched = false;
             }
 
+            if (mOnTouchListener != null) {
+                mOnTouchListener.onTouch(v, event);
+            }
+
             return true;
 
         } else {
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
+                    if (mOnTouchListener != null) {
+                        mOnTouchListener.onTouch(v, event);
+                    }
                     v.setPressed(true);
                     mTouched = true;
                     return true;
@@ -121,6 +133,15 @@ public abstract class ClippedEventDelegate implements View.OnHoverListener, View
                             v.performClick();
                             mClickListener.onClick(v);
                         }
+                        if (mOnTouchListener != null) {
+                            mOnTouchListener.onTouch(v, event);
+                        }
+
+                    } else {
+                        event.setAction(MotionEvent.ACTION_CANCEL);
+                        if (mOnTouchListener != null) {
+                            mOnTouchListener.onTouch(v, event);
+                        }
                     }
                     v.setHovered(false);
                     v.onHoverChanged(false);
@@ -129,9 +150,15 @@ public abstract class ClippedEventDelegate implements View.OnHoverListener, View
                     return true;
 
                 case MotionEvent.ACTION_MOVE:
+                    if (mOnTouchListener != null) {
+                        mOnTouchListener.onTouch(v, event);
+                    }
                     return true;
 
                 case MotionEvent.ACTION_CANCEL:
+                    if (mOnTouchListener != null) {
+                        mOnTouchListener.onTouch(v, event);
+                    }
                     v.setPressed(false);
                     mTouched = false;
                     return true;

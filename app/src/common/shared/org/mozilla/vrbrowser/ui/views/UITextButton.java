@@ -5,16 +5,18 @@
 
 package org.mozilla.vrbrowser.ui.views;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.content.res.TypedArray;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 
-import org.mozilla.vrbrowser.R;
-
 import androidx.annotation.IdRes;
+import androidx.annotation.Nullable;
 import androidx.appcompat.widget.AppCompatButton;
+
+import org.mozilla.vrbrowser.R;
 
 public class UITextButton extends AppCompatButton implements CustomUIButton {
 
@@ -32,6 +34,7 @@ public class UITextButton extends AppCompatButton implements CustomUIButton {
     private @IdRes int mPrivateModeTintColorListRes;
     private @IdRes int mActiveModeTintColorListRes;
     private State mState;
+    private ShapeClippedEventDelegate mClippedEventDelegate;
 
     public UITextButton(Context context) {
         this(context, null);
@@ -41,6 +44,7 @@ public class UITextButton extends AppCompatButton implements CustomUIButton {
         this(context, attrs, R.attr.imageButtonStyle);
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     public UITextButton(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
 
@@ -70,6 +74,26 @@ public class UITextButton extends AppCompatButton implements CustomUIButton {
         mBackground = getBackground();
 
         mState = State.NORMAL;
+
+        mClippedEventDelegate = new ShapeClippedEventDelegate(this);
+        super.setOnHoverListener(mClippedEventDelegate);
+        super.setOnTouchListener(mClippedEventDelegate);
+        super.setOnTouchListener(mClippedEventDelegate);
+    }
+
+    @Override
+    public void setOnHoverListener(@Nullable OnHoverListener l) {
+        mClippedEventDelegate.setOnHoverListener(l);
+    }
+
+    @Override
+    public void setOnClickListener(@Nullable OnClickListener l) {
+        mClippedEventDelegate.setOnClickListener(l);
+    }
+
+    @Override
+    public void setOnTouchListener(@Nullable OnTouchListener l) {
+        mClippedEventDelegate.setOnTouchListener(l);
     }
 
     public void setTintColorList(int aColorListId) {

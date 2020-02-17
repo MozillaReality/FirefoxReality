@@ -80,6 +80,7 @@ public class UIButton extends AppCompatImageButton implements CustomUIButton {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             TypedArray arr = context.obtainStyledAttributes(attrs, new int [] {android.R.attr.tooltipText});
             mTooltipText = arr.getString(0);
+            arr.recycle();
         }
         mTooltipLayout = attributes.getResourceId(R.styleable.UIButton_tooltipLayout, R.layout.tooltip);
         attributes.recycle();
@@ -88,6 +89,7 @@ public class UIButton extends AppCompatImageButton implements CustomUIButton {
 
         mClippedEventDelegate = new ShapeClippedEventDelegate(this);
         super.setOnHoverListener(mClippedEventDelegate);
+        super.setOnTouchListener(mClippedEventDelegate);
         super.setOnTouchListener(mClippedEventDelegate);
     }
 
@@ -114,13 +116,18 @@ public class UIButton extends AppCompatImageButton implements CustomUIButton {
     }
 
     @Override
-    public void setOnHoverListener(OnHoverListener l) {
+    public void setOnHoverListener(@Nullable OnHoverListener l) {
         mClippedEventDelegate.setOnHoverListener(l);
     }
 
     @Override
     public void setOnClickListener(@Nullable OnClickListener l) {
         mClippedEventDelegate.setOnClickListener(l);
+    }
+
+    @Override
+    public void setOnTouchListener(@Nullable OnTouchListener l) {
+        mClippedEventDelegate.setOnTouchListener(l);
     }
 
     public void setCurvedTooltip(boolean aEnabled) {
