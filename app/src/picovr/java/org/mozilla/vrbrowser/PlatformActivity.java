@@ -30,7 +30,10 @@ import com.psmart.vrlib.PicovrSDK;
 import org.mozilla.vrbrowser.utils.SystemUtils;
 
 
-public class PlatformActivity extends VRActivity implements RenderInterface, CVControllerListener {
+//add java import util : IOException
+import java.util.IOException;
+
+public class PlatformActivity extends VRActivity implements RenderInterface, CVControllerListener throws IOException{
     static String LOGTAG = SystemUtils.createLogtag(PlatformActivity.class);
     public static boolean filterPermission(final String aPermission) {
         return false;
