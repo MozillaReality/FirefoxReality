@@ -388,14 +388,17 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
                         mRenderer = new UISurfaceTextureRenderer(mSurface, mWidgetPlacement.textureWidth(), mWidgetPlacement.textureHeight());
                     }
                     mWidgetManager.updateWidget(WindowWidget.this);
-                    mWidgetManager.pushWorldBrightness(this, WidgetManagerDelegate.DEFAULT_DIM_BRIGHTNESS);
-                    mWidgetManager.pushBackHandler(mBackHandler);
+
                     setWillNotDraw(false);
                     postInvalidate();
                 }
             }
         };
 
+        if (switchSurface) {
+            mWidgetManager.pushWorldBrightness(this, WidgetManagerDelegate.DEFAULT_DIM_BRIGHTNESS);
+            mWidgetManager.pushBackHandler(mBackHandler);
+        }
         if (mAfterFirstPaint) {
             setView.run();
 
@@ -1566,6 +1569,9 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         if (mFirstDrawCallback != null) {
             mUIThreadExecutor.execute(mFirstDrawCallback);
             mFirstDrawCallback = null;
+
+            mSetViewQueuedCalls.forEach(Runnable::run);
+            mSetViewQueuedCalls.clear();
         }
     }
 
@@ -1578,7 +1584,9 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
             mUIThreadExecutor.execute(mFirstDrawCallback);
             mFirstDrawCallback = null;
             mAfterFirstPaint = true;
+
             mSetViewQueuedCalls.forEach(Runnable::run);
+            mSetViewQueuedCalls.clear();
         }
     }
 
