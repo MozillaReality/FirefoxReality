@@ -1573,6 +1573,8 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         if (mFirstDrawCallback != null) {
             mUIThreadExecutor.execute(mFirstDrawCallback);
             mFirstDrawCallback = null;
+            mSetViewQueuedCalls.forEach(Runnable::run);
+            mSetViewQueuedCalls.clear();
         }
     }
 
