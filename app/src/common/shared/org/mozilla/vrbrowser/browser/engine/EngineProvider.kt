@@ -62,7 +62,6 @@ object EngineProvider {
     }
 
     fun createClient(context: Context): Client {
-        val runtime = getOrCreateRuntime(context)
-        return GeckoViewFetchClient(context, runtime)
+        return GeckoViewFetchClient(context)
     }
 }

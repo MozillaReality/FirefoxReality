@@ -27,6 +27,7 @@ import com.mozilla.speechlibrary.STTResult;
 
 import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.vrbrowser.R;
+import org.mozilla.vrbrowser.VRBrowserApplication;
 import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.databinding.VoiceSearchDialogBinding;
@@ -86,6 +87,7 @@ public class VoiceSearchWidget extends UIDialog implements WidgetManagerDelegate
         mWidgetManager.addPermissionListener(this);
 
         mMozillaSpeechService = MozillaSpeechService.getInstance();
+        mMozillaSpeechService.setGeckoWebExecutor(((VRBrowserApplication)aContext.getApplicationContext()).getGeckoWebExecutor());
         mMozillaSpeechService.setProductTag(getContext().getString(R.string.voice_app_id));
 
         mSearchingAnimation = new RotateAnimation(0, 360f,

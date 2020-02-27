@@ -118,7 +118,10 @@ public class SearchEngineWrapper implements SharedPreferences.OnSharedPreference
         // TODO: Use mSuggestionsClient.getSuggestions when fixed in browser-search.
         String query = getSuggestionURL(aQuery);
         mUIThreadExecutor.execute(() ->
-                SuggestionsClient.getSuggestions(mSearchEngine, query).thenAcceptAsync(future::complete));
+                SuggestionsClient.getSuggestions(
+                        ((VRBrowserApplication)mContext.getApplicationContext()).getGeckoWebExecutor(),
+                        mSearchEngine,
+                        query).thenAcceptAsync(future::complete));
 
         return future;
     }

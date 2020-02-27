@@ -9,9 +9,11 @@ import android.app.Application;
 import android.content.Context;
 import android.content.res.Configuration;
 
+import org.mozilla.geckoview.GeckoWebExecutor;
 import org.mozilla.vrbrowser.browser.Accounts;
 import org.mozilla.vrbrowser.browser.Places;
 import org.mozilla.vrbrowser.browser.Services;
+import org.mozilla.vrbrowser.browser.engine.EngineProvider;
 import org.mozilla.vrbrowser.db.AppDatabase;
 import org.mozilla.vrbrowser.db.DataRepository;
 import org.mozilla.vrbrowser.telemetry.GleanMetricsService;
@@ -24,6 +26,7 @@ public class VRBrowserApplication extends Application {
 
     private AppExecutors mAppExecutors;
     private BitmapCache mBitmapCache;
+    private GeckoWebExecutor mGeckoWebExecutor;
     private Services mServices;
     private Places mPlaces;
     private Accounts mAccounts;
@@ -37,6 +40,7 @@ public class VRBrowserApplication extends Application {
         mBitmapCache = new BitmapCache(this, mAppExecutors.diskIO(), mAppExecutors.mainThread());
         mServices = new Services(this, mPlaces);
         mAccounts = new Accounts(this);
+        mGeckoWebExecutor = new GeckoWebExecutor(EngineProvider.INSTANCE.getOrCreateRuntime(this));
 
         TelemetryWrapper.init(this);
         GleanMetricsService.init(this);
@@ -71,6 +75,10 @@ public class VRBrowserApplication extends Application {
 
     public AppExecutors getExecutors() {
         return mAppExecutors;
+    }
+
+    public GeckoWebExecutor getGeckoWebExecutor() {
+        return mGeckoWebExecutor;
     }
 
     public DataRepository getRepository() {

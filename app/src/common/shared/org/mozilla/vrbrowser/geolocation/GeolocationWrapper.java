@@ -2,11 +2,12 @@ package org.mozilla.vrbrowser.geolocation;
 
 import android.content.Context;
 
+import androidx.annotation.NonNull;
+
 import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.vrbrowser.R;
+import org.mozilla.vrbrowser.VRBrowserApplication;
 import org.mozilla.vrbrowser.browser.SettingsStore;
-
-import androidx.annotation.NonNull;
 
 public class GeolocationWrapper {
 
@@ -24,8 +25,8 @@ public class GeolocationWrapper {
                                final int maxRetries) {
         if (retryCount <= maxRetries - 1) {
             GeolocationClient.getGeolocation(
+                    ((VRBrowserApplication)aContext.getApplicationContext()).getGeckoWebExecutor(),
                     endPoint,
-                    MAX_RETRIES,
                     (data) -> {
                         if (data == null) {
                             if (retryCount <= maxRetries) {
