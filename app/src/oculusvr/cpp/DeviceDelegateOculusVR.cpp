@@ -99,6 +99,7 @@ struct DeviceDelegateOculusVR::State {
   vrb::Color clearColor;
   float near = 0.1f;
   float far = 100.f;
+  bool hasEventFocus = true;
   std::vector<ControllerState> controllerStateList;
   crow::ElbowModelPtr elbow;
   ControllerDelegatePtr controller;
@@ -173,9 +174,6 @@ struct DeviceDelegateOculusVR::State {
     } else if ((type >= VRAPI_DEVICE_TYPE_OCULUSQUEST_START) && (type <= VRAPI_DEVICE_TYPE_OCULUSQUEST_END)) {
       VRB_DEBUG("Detected Oculus Quest");
       deviceType = device::OculusQuest;
-    } else if ((type >= VRAPI_DEVICE_TYPE_GEARVR_START) && (type <= VRAPI_DEVICE_TYPE_GEARVR_END)) {
-      VRB_DEBUG("Detected Gear VR");
-      appId = OCULUS_3DOF_APP_ID;
     } else {
       VRB_DEBUG("Detected Unknown Oculus device");
     }
@@ -325,6 +323,13 @@ struct DeviceDelegateOculusVR::State {
       controllerState.enabled = false;
     }
 
+    if (!hasEventFocus) {
+      for (ControllerState& controllerState: controllerStateList) {
+        controller->SetVisible(controllerState.index, controllerState.enabled);
+      }
+      return;
+    }
+
     uint32_t count = 0;
     ovrInputCapabilityHeader capsHeader = {};
     while (vrapi_EnumerateInputDevices(ovr, count++, &capsHeader) >= 0) {
@@ -389,6 +394,10 @@ struct DeviceDelegateOculusVR::State {
   void UpdateControllers(const vrb::Matrix & head) {
     UpdateDeviceId();
     if (!controller) {
+      return;
+    }
+
+    if (!hasEventFocus) {
       return;
     }
 
@@ -795,6 +804,30 @@ DeviceDelegateOculusVR::SetCPULevel(const device::CPULevel aLevel) {
 
 void
 DeviceDelegateOculusVR::ProcessEvents() {
+  ovrEventDataBuffer eventDataBuffer = {};
+  ovrEventHeader* eventHeader = (ovrEventHeader*)(&eventDataBuffer);
+  // Poll for VrApi events at regular frequency
+  while (vrapi_PollEvent(eventHeader) == ovrSuccess) {
+
+    switch (eventHeader->EventType) {
+      case VRAPI_EVENT_FOCUS_GAINED:
+        // FOCUS_GAINED is sent when the application is in the foreground and has
+        // input focus. This may be due to a system overlay relinquishing focus
+        // back to the application.
+        m.hasEventFocus = true;
+        break;
+      case VRAPI_EVENT_FOCUS_LOST:
+        // FOCUS_LOST is sent when the application is no longer in the foreground and
+        // therefore does not have input focus. This may be due to a system overlay taking
+        // focus from the application. The application should take appropriate action when
+        // this occurs.
+        m.hasEventFocus = false;
+        break;
+      default:
+        break;
+    }
+  }
+
   if (m.applicationEntitled) {
     return;
   }
@@ -858,8 +891,6 @@ DeviceDelegateOculusVR::StartFrame() {
 
   ovrMatrix4f matrix = vrapi_GetTransformFromPose(&m.predictedTracking.HeadPose.Pose);
   vrb::Matrix head = vrb::Matrix::FromRowMajor(matrix.M[0]);
-
-
 
   if (m.renderMode == device::RenderMode::StandAlone) {
     head.TranslateInPlace(kAverageHeight);
