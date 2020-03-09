@@ -325,7 +325,7 @@ public class PlatformActivity extends VRActivity implements RenderInterface, CVC
             if (mControllerManager != null) {
                 float intensity = 255.0f * Math.max(Math.min(aIntensity, 1.0f), 0.0f);
                 int durationMs = Math.round(aDurationSeconds * 1000);
-                ControllerClient.vibrateCV2ControllerStrength(intensity, durationMs, aControllerIndex);
+                ControllerClient.vibrateCV2ControllerStrength(intensity, durationMs, 1 - aControllerIndex);
             }
         });
     }
