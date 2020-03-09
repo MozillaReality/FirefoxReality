@@ -62,7 +62,9 @@ public class PlatformActivity extends VRActivity implements RenderInterface, CVC
         if (ControllerClient.isControllerServiceExisted(this)) {
             mControllerManager = new CVControllerManager(this);
             mControllerManager.setListener(this);
-            mType = 1;
+            mType = 1; // Neo2
+            // Enable high res
+            PicovrSDK.SetEyeBufferSize(1920, 1920);
         } else {
             mHbManager = new HbManager(this);
             mHbManager.InitServices();
@@ -297,6 +299,11 @@ public class PlatformActivity extends VRActivity implements RenderInterface, CVC
     */
 
     @Override
+    public void onBindSuccess() {
+
+    }
+
+    @Override
     public void onBindFail() {
         mControllersReady = false;
     }
@@ -313,11 +320,12 @@ public class PlatformActivity extends VRActivity implements RenderInterface, CVC
     @Override
     public void onMainControllerChanged(int serialNum) {
     }
-/*
+
     @Override
-    public void onChannelChanged(int var1, int var2) {
+    public void onChannelChanged(int i, int i1) {
+
     }
-*/
+
     protected native void nativeOnCreate();
     protected native void nativeInitialize(int width, int height, Object aAssetManager, int type, int focusIndex);
     protected native void nativeShutdown();
