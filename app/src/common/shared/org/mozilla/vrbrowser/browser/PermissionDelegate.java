@@ -174,9 +174,8 @@ public class PermissionDelegate implements GeckoSession.PermissionDelegate, Widg
         };
 
         // Temporary fix for https://bugzilla.mozilla.org/show_bug.cgi?id=1621380
-        if ((DeviceType.isWaveBuild() || DeviceType.isPicoVR()) &&
-                (type == PermissionWidget.PermissionType.Camera ||
-                        type == PermissionWidget.PermissionType.CameraAndMicrophone)) {
+        if ((type == PermissionWidget.PermissionType.Camera ||
+                type == PermissionWidget.PermissionType.CameraAndMicrophone)) {
             callback.reject();
             return;
         }
