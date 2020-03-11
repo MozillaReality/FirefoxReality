@@ -10,7 +10,6 @@ import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.graphics.Canvas;
 import android.graphics.Rect;
-import android.os.Build;
 import android.preference.PreferenceManager;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -104,7 +103,6 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
     private int mBlockedCount;
     private Executor mUIThreadExecutor;
     private ArrayList<NavigationListener> mNavigationListeners;
-    private boolean mAfterLongClick = false;
 
     public NavigationBarWidget(Context aContext) {
         super(aContext);
@@ -185,10 +183,6 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         });
 
         mBinding.navigationBarNavigation.reloadButton.setOnClickListener(v -> {
-            if (mAfterLongClick) {
-                mAfterLongClick = false;
-                return;
-            }
             v.requestFocusFromTouch();
             if (mViewModel.getIsLoading().getValue().get()) {
                 getSession().stop();
@@ -213,9 +207,6 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
                 mAudio.playSound(AudioEngine.Sound.CLICK);
             }
             mNavigationListeners.forEach(NavigationListener::onReload);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                mAfterLongClick = true;
-            }
             return true;
         });
 
