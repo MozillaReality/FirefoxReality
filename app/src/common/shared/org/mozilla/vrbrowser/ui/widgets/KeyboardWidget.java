@@ -755,7 +755,12 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
                 }
             }
         }
-        mKeyboardView.setShifted(isShifted || mIsCapsLock);
+
+        // setShifted trigger a full keyboard redraw.
+        // To avoid this we only call setShifted if it's state has changed.
+        if (mKeyboardView.isShifted() != isShifted) {
+            mKeyboardView.setShifted(isShifted || mIsCapsLock);
+        }
     }
 
     private void handleBackspace() {
