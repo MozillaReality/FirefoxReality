@@ -67,7 +67,6 @@ import org.mozilla.vrbrowser.utils.ViewUtils;
 
 import java.util.ArrayList;
 import java.util.Locale;
-import java.util.concurrent.atomic.AtomicInteger;
 
 
 public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKeyboardActionListener, AutoCompletionView.Delegate,
@@ -1187,6 +1186,11 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
             }
         }
         return false;
+    }
+
+    @Override
+    public boolean supportsMultipleInputDevices() {
+        return true;
     }
 
     // GeckoSession.TextInputDelegate

@@ -11,7 +11,6 @@ import android.util.SparseArray;
 import android.view.InputDevice;
 import android.view.MotionEvent;
 
-import org.mozilla.vrbrowser.ui.widgets.KeyboardWidget;
 import org.mozilla.vrbrowser.ui.widgets.Widget;
 import org.mozilla.vrbrowser.utils.SystemUtils;
 
@@ -74,7 +73,7 @@ public class MotionEventGenerator {
                 /*source*/ InputDevice.SOURCE_TOUCHSCREEN,
                 /*flags*/ 0);
         if (aGeneric) {
-            if (aWidget instanceof KeyboardWidget) {
+            if (aWidget.supportsMultipleInputDevices()) {
                 aWidget.handleHoverEvent(event);
 
             } else if (aFocused) {
@@ -120,13 +119,18 @@ public class MotionEventGenerator {
         if (aPressed && !device.mWasPressed) {
             device.mDownTime = SystemClock.uptimeMillis();
             device.mWasPressed = true;
-            generateEvent(aWidget, device, aFocused, MotionEvent.ACTION_HOVER_EXIT, true);
-            generateEvent(aWidget, device, aFocused, MotionEvent.ACTION_DOWN, false);
+            if (!isOtherDeviceDown(device.mDevice)) {
+                generateEvent(aWidget, device, aFocused, MotionEvent.ACTION_HOVER_EXIT, true);
+                generateEvent(aWidget, device, aFocused, MotionEvent.ACTION_DOWN, false);
+            }
             device.mTouchStartWidget = aWidget;
         } else if (!aPressed && device.mWasPressed) {
             device.mWasPressed = false;
-            generateEvent(device.mTouchStartWidget, device, aFocused, MotionEvent.ACTION_UP, false);
-            generateEvent(aWidget, device, aFocused, MotionEvent.ACTION_HOVER_ENTER, true);
+            if (!isOtherDeviceDown(device.mDevice)) {
+                generateEvent(device.mTouchStartWidget, device, aFocused, MotionEvent.ACTION_UP, false);
+                generateEvent(aWidget, device, aFocused, MotionEvent.ACTION_HOVER_ENTER, true);
+            }
+            device.mTouchStartWidget = null;
         } else if (moving && aPressed) {
             generateEvent(aWidget, device, aFocused, MotionEvent.ACTION_MOVE, false);
         } else if (moving) {
@@ -136,6 +140,26 @@ public class MotionEventGenerator {
             return;
         }
         device.mPreviousWidget = aWidget;
+    }
+
+    /**
+     * Checks if any other device has an ongoing touch down event.
+     * Android throw away all previous state when starting a new touch gesture
+     * and this seem to make the previous touch to be sent up the view hierarchy.
+     * To avoid this we check if any other device has a button down before sending
+     * touch down/up event.
+     * @param deviceId Device Id to filter
+     * @return true if any other device has a button down, false otherwise
+     */
+    private static boolean isOtherDeviceDown(int deviceId) {
+        boolean result = false;
+        for (int i=0; i<devices.size(); i++) {
+            if (i != deviceId) {
+                result |= devices.get(i).mTouchStartWidget != null;
+            }
+        }
+
+        return result;
     }
 
     public static void dispatchScroll(Widget aWidget, int aDevice, boolean aFocused, float aX, float aY) {
