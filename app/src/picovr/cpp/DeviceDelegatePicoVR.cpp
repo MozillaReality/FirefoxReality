@@ -288,9 +288,7 @@ DeviceDelegatePicoVR::GetReorientTransform() const {
 
 void
 DeviceDelegatePicoVR::SetReorientTransform(const vrb::Matrix& aMatrix) {
-  if (m.type == kTypeNeo2) {
-    m.reorientMatrix = aMatrix;
-  }
+  m.reorientMatrix = aMatrix;
 }
 
 void
