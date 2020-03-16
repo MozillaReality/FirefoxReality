@@ -334,7 +334,7 @@ public class NavigationURLBar extends FrameLayout {
 
         String url;
         if ((UrlUtils.isDomain(text) || UrlUtils.isIPUri(text)) && !text.contains(" ")) {
-            url = text;
+            url = UrlUtils.ensureHttps(text);
             TelemetryWrapper.urlBarEvent(true);
             GleanMetricsService.urlBarEvent(true);
         } else if (text.startsWith("about:") || text.startsWith("resource://")) {

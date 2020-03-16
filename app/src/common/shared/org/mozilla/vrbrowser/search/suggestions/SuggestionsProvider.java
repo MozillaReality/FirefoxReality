@@ -60,7 +60,7 @@ public class SuggestionsProvider {
 
     private String getSearchURLOrDomain(String text) {
         if (UrlUtils.isDomain(text)) {
-            return text;
+            return UrlUtils.ensureHttps(text);
         } else if (UrlUtils.isIPUri(text)) {
             return text;
         } else {

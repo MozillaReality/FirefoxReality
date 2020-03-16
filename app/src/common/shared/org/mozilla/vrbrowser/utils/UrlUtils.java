@@ -92,6 +92,24 @@ public class UrlUtils {
                localhostPattern.matcher(uri).find();
     }
 
+    /**
+     * Add HTTPS protocol in case there it is a domain URI without protocol
+     * Keep the protocol otherwise.
+     * @param aUri The input uri
+     * @return The output uri
+     */
+    public static String ensureHttps(@NonNull final String aUri) {
+        String output = aUri;
+        URI uri = URI.create(aUri);
+        if (uri.getScheme() == null && isDomain(aUri)) {
+            String[] parts = uri.getSchemeSpecificPart().split("//");
+            output = parts[parts.length-1];
+            output = "https://" + output;
+        }
+
+        return output;
+    }
+
     public static boolean isPrivateAboutPage(@NonNull Context context,  @NonNull String uri) {
         InternalPages.PageResources pageResources = InternalPages.PageResources.create(R.raw.private_mode, R.raw.private_style);
         byte[] privatePageBytes = InternalPages.createAboutPage(context, pageResources);
