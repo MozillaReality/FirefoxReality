@@ -199,7 +199,7 @@ public class SearchEngineWrapper implements SharedPreferences.OnSharedPreference
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
         if (mContext != null) {
-            if (key == mContext.getString(R.string.settings_key_geolocation_data)) {
+            if (key.equals(mContext.getString(R.string.settings_key_geolocation_data))) {
                 setupSearchEngine(mContext, EMPTY);
             }
         }
