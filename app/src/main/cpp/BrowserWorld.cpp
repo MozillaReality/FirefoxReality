@@ -189,7 +189,7 @@ struct BrowserWorld::State {
   std::unordered_map<vrb::Node*, std::pair<Widget*, float>> depthSorting;
   std::function<void(device::Eye)> drawHandler;
   std::function<void()> frameEndHandler;
-  bool wasInGazeMode;
+  bool wasInGazeMode = false;
 
   State() : paused(true), glInitialized(false), modelsLoaded(false), env(nullptr), cylinderDensity(0.0f), nearClip(0.1f),
             farClip(300.0f), activity(nullptr), windowsInitialized(false), exitImmersiveRequested(false), loaderDelay(0) {

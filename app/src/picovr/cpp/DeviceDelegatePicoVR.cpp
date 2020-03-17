@@ -115,9 +115,7 @@ struct DeviceDelegatePicoVR::State {
       } else {
         controllers[index].hand = ElbowModel::HandEnum::Left;
       }
-      if (index != gazeIndex) {
-        controllers[index].is6DoF = true;
-      }
+      controllers[index].is6DoF = true;
     }
 
     elbow = ElbowModel::Create();
@@ -406,15 +404,14 @@ DeviceDelegatePicoVR::StartFrame() {
   // Update te gaze mode state based on controllers availability
   m.isInGazeMode = true;
   for (int32_t i = 0; i < m.controllers.size(); ++i) {
-    if (i != m.gazeIndex) {
-      m.isInGazeMode &= !m.controllers[i].enabled;
+    if (i != m.gazeIndex && m.controllers[i].enabled) {
+      m.isInGazeMode = false;
+      break;
     }
   }
 
   if (m.isInGazeMode) {
-    for (int i=0; i<m.controllers.size(); i++) {
-      m.controllers[i].enabled = (i == m.gazeIndex);
-    }
+    m.controllers[m.gazeIndex].enabled = m.isInGazeMode;
     m.controllers[m.gazeIndex].transform = GetHeadTransform();
   }
 
