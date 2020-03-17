@@ -144,7 +144,6 @@ PerformanceObserver::PerformanceRestored(const double& aTargetFrameRate, const d
 } // namespace
 
 namespace crow {
-
 struct BrowserWorld::State {
   BrowserWorldWeakPtr self;
   std::vector<WidgetPtr> widgets;
@@ -934,7 +933,7 @@ BrowserWorld::EndFrame() {
     m.frameEndHandler();
     m.frameEndHandler = nullptr;
   } else {
-    m.device->EndFrame(false);
+    m.device->EndFrame();
   }
   m.drawHandler = nullptr;
 
@@ -1422,13 +1421,27 @@ BrowserWorld::TickImmersive() {
   m.externalVR->SetCompositorEnabled(false);
   m.device->SetRenderMode(device::RenderMode::Immersive);
 
-  m.device->StartFrame();
+  DeviceDelegate::FramePrediction prediction = DeviceDelegate::FramePrediction::NO_FRAME_AHEAD;
+  if (m.device->SupportsFramePrediction(DeviceDelegate::FramePrediction::ONE_FRAME_AHEAD)
+      && m.externalVR->GetVRState() == ExternalVR::VRState::Rendering) {
+    prediction = DeviceDelegate::FramePrediction::ONE_FRAME_AHEAD;
+  }
+
   VRB_GL_CHECK(glDepthMask(GL_FALSE));
-  m.externalVR->PushFramePoses(m.device->GetHeadTransform(), m.controllers->GetControllers(), m.context->GetTimestamp());
+  if (prediction == DeviceDelegate::FramePrediction::NO_FRAME_AHEAD) {
+      m.device->StartFrame(prediction);
+      m.externalVR->PushFramePoses(m.device->GetHeadTransform(), m.controllers->GetControllers(),
+                                   m.context->GetTimestamp());
+  }
   int32_t surfaceHandle, textureWidth, textureHeight = 0;
   device::EyeRect leftEye, rightEye;
   bool aDiscardFrame = !m.externalVR->WaitFrameResult();
   m.externalVR->GetFrameResult(surfaceHandle, textureWidth, textureHeight, leftEye, rightEye);
+  if (prediction == DeviceDelegate::FramePrediction::ONE_FRAME_AHEAD) {
+      m.device->StartFrame(prediction);
+      m.externalVR->PushFramePoses(m.device->GetHeadTransform(), m.controllers->GetControllers(),
+              m.context->GetTimestamp());
+  }
   ExternalVR::VRState state = m.externalVR->GetVRState();
   if (state == ExternalVR::VRState::Rendering) {
     if (!aDiscardFrame) {
@@ -1441,7 +1454,7 @@ BrowserWorld::TickImmersive() {
       };
     }
     m.frameEndHandler = [=]() {
-      m.device->EndFrame(aDiscardFrame);
+      m.device->EndFrame(aDiscardFrame ? DeviceDelegate::FrameEndMode::DISCARD : DeviceDelegate::FrameEndMode::APPLY);
       m.blitter->EndFrame();
     };
   } else {
@@ -1494,7 +1507,7 @@ BrowserWorld::TickSplashAnimation() {
       if (m.fadeAnimation) {
         m.fadeAnimation->FadeIn();
       }
-      m.device->EndFrame(false);
+      m.device->EndFrame();
     };
   }
 }

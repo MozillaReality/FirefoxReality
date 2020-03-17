@@ -88,7 +88,10 @@ struct DeviceDelegateOculusVR::State {
   vrb::FBOPtr previousFBO;
   vrb::CameraEyePtr cameras[2];
   uint32_t frameIndex = 0;
+  FramePrediction framePrediction = FramePrediction::NO_FRAME_AHEAD;
+  double prevPredictedDisplayTime = 0;
   double predictedDisplayTime = 0;
+  ovrTracking2 prevPredictedTracking = {};
   ovrTracking2 predictedTracking = {};
   ovrTracking2 discardPredictedTracking = {};
   uint32_t discardedFrameIndex = 0;
@@ -818,15 +821,28 @@ DeviceDelegateOculusVR::ProcessEvents() {
   }
 }
 
+bool
+DeviceDelegateOculusVR::SupportsFramePrediction(FramePrediction aPrediction) const {
+  return true;
+}
+
 void
-DeviceDelegateOculusVR::StartFrame() {
+DeviceDelegateOculusVR::StartFrame(const FramePrediction aPrediction) {
   if (!m.ovr) {
     VRB_LOG("StartFrame called while not in VR mode");
     return;
   }
 
+  m.framePrediction = aPrediction;
   m.frameIndex++;
-  m.predictedDisplayTime = vrapi_GetPredictedDisplayTime(m.ovr, m.frameIndex);
+  if (aPrediction == FramePrediction::ONE_FRAME_AHEAD) {
+    m.prevPredictedDisplayTime = m.predictedDisplayTime;
+    m.prevPredictedTracking = m.predictedTracking;
+    m.predictedDisplayTime = vrapi_GetPredictedDisplayTime(m.ovr, m.frameIndex + 1);
+  } else {
+    m.predictedDisplayTime = vrapi_GetPredictedDisplayTime(m.ovr, m.frameIndex);
+  }
+
   m.predictedTracking = vrapi_GetPredictedTracking2(m.ovr, m.predictedDisplayTime);
 
   float ipd = vrapi_GetInterpupillaryDistance(&m.predictedTracking);
@@ -908,7 +924,7 @@ DeviceDelegateOculusVR::BindEye(const device::Eye aWhich) {
 }
 
 void
-DeviceDelegateOculusVR::EndFrame(const bool aDiscard) {
+DeviceDelegateOculusVR::EndFrame(const FrameEndMode aEndMode) {
   if (!m.ovr) {
     VRB_LOG("EndFrame called while not in VR mode");
     return;
@@ -918,11 +934,15 @@ DeviceDelegateOculusVR::EndFrame(const bool aDiscard) {
     m.currentFBO.reset();
   }
 
-  if (aDiscard) {
+  const bool frameAhead = m.framePrediction == FramePrediction::ONE_FRAME_AHEAD;
+  const ovrTracking2& tracking = frameAhead ? m.prevPredictedTracking : m.predictedTracking;
+  const double displayTime = frameAhead ? m.prevPredictedDisplayTime : m.predictedDisplayTime;
+
+  if (aEndMode == FrameEndMode::DISCARD) {
     // Reuse the last frame when a frame is discarded.
     // The last frame is timewarped by the VR compositor.
     if (m.discardCount == 0) {
-      m.discardPredictedTracking = m.predictedTracking;
+      m.discardPredictedTracking = tracking;
       m.discardedFrameIndex = m.frameIndex;
     }
     m.discardCount++;
@@ -936,13 +956,13 @@ DeviceDelegateOculusVR::EndFrame(const bool aDiscard) {
   const ovrLayerHeader2* layers[ovrMaxLayerCount] = {};
 
   if (m.cubeLayer && m.cubeLayer->IsLoaded() && m.cubeLayer->IsDrawRequested()) {
-    m.cubeLayer->Update(m.predictedTracking, m.clearColorSwapChain);
+    m.cubeLayer->Update(tracking, m.clearColorSwapChain);
     layers[layerCount++] = m.cubeLayer->Header();
     m.cubeLayer->ClearRequestDraw();
   }
 
   if (m.equirectLayer && m.equirectLayer->IsDrawRequested()) {
-    m.equirectLayer->Update(m.predictedTracking, m.clearColorSwapChain);
+    m.equirectLayer->Update(tracking, m.clearColorSwapChain);
     layers[layerCount++] = m.equirectLayer->Header();
     m.equirectLayer->ClearRequestDraw();
   }
@@ -955,7 +975,7 @@ DeviceDelegateOculusVR::EndFrame(const bool aDiscard) {
   // Draw back layers
   for (const OculusLayerPtr& layer: m.uiLayers) {
     if (!layer->GetDrawInFront() && layer->IsDrawRequested() && (layerCount < ovrMaxLayerCount - 1)) {
-      layer->Update(m.predictedTracking, m.clearColorSwapChain);
+      layer->Update(tracking, m.clearColorSwapChain);
       layers[layerCount++] = layer->Header();
       layer->ClearRequestDraw();
     }
@@ -967,7 +987,7 @@ DeviceDelegateOculusVR::EndFrame(const bool aDiscard) {
   const ovrMatrix4f projectionMatrix = ovrMatrix4f_CreateProjectionFov(fovX, fovY, 0.0f, 0.0f, VRAPI_ZNEAR, 0.0f);
 
   ovrLayerProjection2 projection = vrapi_DefaultLayerProjection2();
-  projection.HeadPose = m.predictedTracking.HeadPose;
+  projection.HeadPose = tracking.HeadPose;
   projection.Header.SrcBlend = VRAPI_FRAME_LAYER_BLEND_ONE;
   projection.Header.DstBlend = VRAPI_FRAME_LAYER_BLEND_ONE_MINUS_SRC_ALPHA;
   for (int i = 0; i < VRAPI_FRAME_LAYER_EYE_MAX; ++i) {
@@ -983,7 +1003,7 @@ DeviceDelegateOculusVR::EndFrame(const bool aDiscard) {
   // Draw front layers
   for (const OculusLayerPtr& layer: m.uiLayers) {
     if (layer->GetDrawInFront() && layer->IsDrawRequested() && layerCount < ovrMaxLayerCount) {
-      layer->Update(m.predictedTracking, m.clearColorSwapChain);
+      layer->Update(tracking, m.clearColorSwapChain);
       layers[layerCount++] = layer->Header();
       layer->ClearRequestDraw();
     }
@@ -998,7 +1018,7 @@ DeviceDelegateOculusVR::EndFrame(const bool aDiscard) {
   }
   frameDesc.SwapInterval = 1;
   frameDesc.FrameIndex = m.frameIndex;
-  frameDesc.DisplayTime = m.predictedDisplayTime;
+  frameDesc.DisplayTime = displayTime;
 
   frameDesc.LayerCount = layerCount;
   frameDesc.Layers = layers;
