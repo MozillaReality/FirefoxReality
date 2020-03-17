@@ -202,10 +202,12 @@ ControllerContainer::CreateController(const int32_t aControllerIndex, const int3
   CreationContextPtr create = m.context.lock();
   controller.transform = Transform::Create(create);
   controller.pointer = Pointer::Create(create);
+  controller.pointer->SetVisible(true);
   if (aControllerIndex != m.gazeIndex) {
     if ((m.models.size() >= aModelIndex) && m.models[aModelIndex]) {
       controller.transform->AddNode(m.models[aModelIndex]);
       controller.beamToggle = vrb::Toggle::Create(create);
+      controller.beamToggle->ToggleAll(true);
       if (aBeamTransform.IsIdentity()) {
         controller.beamParent = controller.beamToggle;
       } else {
@@ -215,7 +217,6 @@ ControllerContainer::CreateController(const int32_t aControllerIndex, const int3
         controller.beamToggle->AddNode(beamTransform);
       }
       controller.transform->AddNode(controller.beamToggle);
-      controller.beamToggle->ToggleAll(false);
       if (m.beamModel && controller.beamParent) {
         controller.beamParent->AddNode(m.beamModel);
       }
