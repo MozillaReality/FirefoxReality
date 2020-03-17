@@ -35,14 +35,13 @@ struct ControllerContainer::State {
   GeometryPtr beamModel;
   bool visible = false;
   vrb::Color pointerColor;
-  int gazeIndex;
+  int gazeIndex = -1;
 
   void Initialize(vrb::CreationContextPtr& aContext) {
     context = aContext;
     root = Toggle::Create(aContext);
     visible = true;
     pointerColor = vrb::Color(1.0f, 1.0f, 1.0f, 1.0f);
-    gazeIndex = 0;
   }
 
   bool Contains(const int32_t aControllerIndex) {
