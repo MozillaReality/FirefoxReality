@@ -92,7 +92,7 @@ public class StringUtils {
      * @return String The converted date in the format yyyy-MM-dd
      */
     public static String versionCodeToDate(final @NonNull Context context, final int aVersionCode) {
-        String versionCode = Integer.toString(aVersionCode);
+        String versionCode = Integer.toString(aVersionCode - 100000000);
 
         String formatted;
         try {
@@ -106,7 +106,7 @@ public class StringUtils {
             SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
             formatted = format.format(cal.getTime());
 
-        } catch (StringIndexOutOfBoundsException e) {
+        } catch (StringIndexOutOfBoundsException | NumberFormatException e) {
             formatted = context.getString(R.string.settings_version_developer);
         }
 

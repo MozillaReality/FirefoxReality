@@ -292,7 +292,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         mSearchEngineWrapper = SearchEngineWrapper.get(this);
         mSearchEngineWrapper.registerForUpdates();
 
-        GeolocationWrapper.update(this);
+        GeolocationWrapper.INSTANCE.update(this);
 
         mConnectivityReceiver = new ConnectivityReceiver();
         mPoorPerformanceWhiteList = new HashSet<>();
@@ -707,18 +707,6 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
             }
             return result || super.dispatchKeyEvent(event);
 
-        } else if (DeviceType.isGoogleVR()) {
-            boolean result;
-            switch (keyCode) {
-                case KeyEvent.KEYCODE_VOLUME_UP:
-                case KeyEvent.KEYCODE_VOLUME_DOWN:
-                    result = true;
-                    break;
-                default:
-                    result = super.dispatchKeyEvent(event);
-                    break;
-            }
-            return result;
         }
         return super.dispatchKeyEvent(event);
     }
@@ -1371,13 +1359,6 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
                 mBrightnessQueue.remove(i);
                 break;
             }
-        }
-    }
-
-    @Override
-    public void setTrayVisible(boolean visible) {
-        if (mTray != null && !mTray.isReleased()) {
-            mTray.setTrayVisible(visible);
         }
     }
 
