@@ -215,6 +215,7 @@ public class CustomKeyboardView extends View implements View.OnClickListener {
     private int mCurrentKey = NOT_A_KEY;
     // Fork
     private int[] mHoveredKey = new int[3];
+    private int[] mPrevHoveredKey = new int[3];
     private int mDownKey = NOT_A_KEY;
     private long mLastKeyTime;
     private long mCurrentKeyTime;
@@ -1261,8 +1262,9 @@ public class CustomKeyboardView extends View implements View.OnClickListener {
             keyIndex = getKeyIndices(touchX, touchY, null);
         }
 
-        int prevHovered = mHoveredKey[event.getDeviceId()];
+        mPrevHoveredKey[event.getDeviceId()] = mHoveredKey[event.getDeviceId()];
         mHoveredKey[event.getDeviceId()] = keyIndex;
+        int prevHovered = mPrevHoveredKey[event.getDeviceId()];
         int currentHovered = mHoveredKey[event.getDeviceId()];
         if (currentHovered != NOT_A_KEY && prevHovered != currentHovered) {
             invalidateKey(currentHovered);
@@ -1276,8 +1278,15 @@ public class CustomKeyboardView extends View implements View.OnClickListener {
     @Override
     public void setHovered(boolean hovered) {
         if (!hovered) {
-            clearHover();
-            invalidateAllKeys();
+            boolean hasChanged = false;
+            for (int i=0; i<mHoveredKey.length; i++) {
+                hasChanged |= mPrevHoveredKey[i] != mHoveredKey[i];
+            }
+
+            if (hasChanged) {
+                clearHover();
+                invalidateAllKeys();
+            }
         }
         super.setHovered(hovered);
     }
@@ -1302,6 +1311,7 @@ public class CustomKeyboardView extends View implements View.OnClickListener {
 
     private void clearHover() {
         Arrays.fill(mHoveredKey, NOT_A_KEY);
+        Arrays.fill(mPrevHoveredKey, NOT_A_KEY);
     }
 
     public void setFeaturedKeyBackground(int resId, int[] keyCodes) {
