@@ -790,6 +790,10 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         }
     }
 
+    public @SessionState.WebXRState int getWebXRState() {
+        return mState.mWebXRState;
+    }
+
     // Session Settings
 
     protected void setServo(final boolean enabled) {
