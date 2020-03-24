@@ -1421,15 +1421,11 @@ BrowserWorld::TickImmersive() {
   m.externalVR->SetCompositorEnabled(false);
   m.device->SetRenderMode(device::RenderMode::Immersive);
 
-  DeviceDelegate::FramePrediction prediction = DeviceDelegate::FramePrediction::NO_FRAME_AHEAD;
-  if (m.device->SupportsFramePrediction(DeviceDelegate::FramePrediction::ONE_FRAME_AHEAD)
-      && m.externalVR->GetVRState() == ExternalVR::VRState::Rendering) {
-    prediction = DeviceDelegate::FramePrediction::ONE_FRAME_AHEAD;
-  }
-
+  const bool supportsFrameAhead = m.device->SupportsFramePrediction(DeviceDelegate::FramePrediction::ONE_FRAME_AHEAD);
   VRB_GL_CHECK(glDepthMask(GL_FALSE));
-  if (prediction == DeviceDelegate::FramePrediction::NO_FRAME_AHEAD) {
-      m.device->StartFrame(prediction);
+  if (!supportsFrameAhead || (m.externalVR->GetVRState() != ExternalVR::VRState::Rendering)) {
+      // Do not use one frame ahead prediction if not supported or we are rendering the spinner.
+      m.device->StartFrame(DeviceDelegate::FramePrediction::NO_FRAME_AHEAD);
       m.externalVR->PushFramePoses(m.device->GetHeadTransform(), m.controllers->GetControllers(),
                                    m.context->GetTimestamp());
   }
@@ -1437,12 +1433,21 @@ BrowserWorld::TickImmersive() {
   device::EyeRect leftEye, rightEye;
   bool aDiscardFrame = !m.externalVR->WaitFrameResult();
   m.externalVR->GetFrameResult(surfaceHandle, textureWidth, textureHeight, leftEye, rightEye);
-  if (prediction == DeviceDelegate::FramePrediction::ONE_FRAME_AHEAD) {
-      m.device->StartFrame(prediction);
+  ExternalVR::VRState state = m.externalVR->GetVRState();
+  if (supportsFrameAhead) {
+      if (m.externalVR->WasFirstPresentingFrame()) {
+          // StartFrame() has been already called to render the spinner, do not call it again.
+          // Instead, repeat the XR frame and render the spinner while we transition
+          // to one frame ahead prediction.
+          state = ExternalVR::VRState::Loading;
+      } else {
+          // Predict poses for one frame ahead and push the data to shmem so Gecko
+          // can start the next XR RAF ASAP.
+          m.device->StartFrame(DeviceDelegate::FramePrediction::ONE_FRAME_AHEAD);
+      }
       m.externalVR->PushFramePoses(m.device->GetHeadTransform(), m.controllers->GetControllers(),
               m.context->GetTimestamp());
   }
-  ExternalVR::VRState state = m.externalVR->GetVRState();
   if (state == ExternalVR::VRState::Rendering) {
     if (!aDiscardFrame) {
       if (textureWidth > 0 && textureHeight > 0) {
