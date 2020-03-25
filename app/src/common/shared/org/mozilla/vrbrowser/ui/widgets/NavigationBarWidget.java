@@ -1181,14 +1181,12 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
             public void onBlock() {
                 SessionStore.get().setPermissionAllowed(uri, aCategory, false);
                 mQuickPermissionWidget.onDismiss();
-                mAttachedWindow.getSession().reload();
             }
 
             @Override
             public void onAllow() {
                 SessionStore.get().setPermissionAllowed(uri, aCategory, true);
                 mQuickPermissionWidget.onDismiss();
-                mAttachedWindow.getSession().reload();
             }
         });
         mQuickPermissionWidget.getPlacement().parentHandle = getHandle();
