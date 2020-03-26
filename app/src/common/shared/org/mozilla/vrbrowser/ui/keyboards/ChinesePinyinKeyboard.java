@@ -78,7 +78,14 @@ public class ChinesePinyinKeyboard extends BaseKeyboard {
         }
 
         // Autocomplete when special characters are clicked
+        final char kBackslashCode = 92;
         char lastChar = aComposingText.charAt(aComposingText.length() - 1);
+
+        // When using backslashes ({@code \}) in the replacement string
+        // will cause crash at `replaceFirst()`, so we need to replace it first.
+        if (lastChar == kBackslashCode) {
+            aComposingText = aComposingText.replace("\\", "\\\\");
+        }
         boolean autocomponse = mAutocompleteEndings.indexOf(lastChar) >= 0;
 
         aComposingText = aComposingText.replaceAll("\\s","");
