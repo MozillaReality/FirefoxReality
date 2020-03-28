@@ -20,6 +20,7 @@
 
 #include <array>
 #include <vector>
+#include <deque>
 
 #include <wvr/wvr.h>
 #include <wvr/wvr_render.h>
@@ -35,6 +36,7 @@ namespace crow {
 static const vrb::Vector kAverageHeight(0.0f, 1.7f, 0.0f);
 static const int32_t kMaxControllerCount = 2;
 static const int32_t kRecenterDelay = 72;
+static const int32_t kMaxTimeSamples = 10;
 
 struct DeviceDelegateWaveVR::State {
   struct Controller {
@@ -85,6 +87,11 @@ struct DeviceDelegateWaveVR::State {
   uint32_t renderHeight;
 
   WVR_DevicePosePair_t devicePairs[WVR_DEVICE_COUNT_LEVEL_1];
+  WVR_PoseState_t predictedPose;
+  DeviceDelegate::FramePrediction framePrediction;
+  std::deque<double> timeSamples;
+  double currentStartTime = 0;
+  double prevStartTime = 0;
   ElbowModelPtr elbow;
   ControllerDelegatePtr delegate;
   GestureDelegatePtr gestures;
@@ -96,6 +103,7 @@ struct DeviceDelegateWaveVR::State {
   bool ignoreNextRecenter;
   int32_t sixDoFControllerCount;
   bool handsCalculated;
+  uint32_t delta = 0;
   State()
       : isRunning(true)
       , near(0.1f)
@@ -224,6 +232,31 @@ struct DeviceDelegateWaveVR::State {
     ReleaseTextureQueues();
   }
 
+  void AddTimeSample(double sample) {
+    timeSamples.push_back(sample);
+    if (timeSamples.size() > kMaxTimeSamples) {
+      timeSamples.pop_front();
+    }
+  }
+
+  double GetTimestamp() {
+    vrb::RenderContextPtr render = context.lock();
+    return render->GetTimestamp();
+  }
+
+  uint32_t GetFrameAheadPredictedTimeMs() {
+    if (timeSamples.size() == 0) {
+      vrb::RenderContextPtr render = context.lock();
+      return (uint32_t) (render->GetFrameDelta() * 1000.0f);
+    }
+    double t = 0;
+    for (double delta: timeSamples) {
+      t += delta;
+    }
+    uint32_t predictedFrameTime = (uint32_t) (1000.0f * t / timeSamples.size());
+    return predictedFrameTime;
+  }
+
   void CreateController(Controller& aController) {
     if (!delegate) {
       VRB_ERROR("Failed to create controller. No ControllerDelegate has been set.");
@@ -285,6 +318,19 @@ struct DeviceDelegateWaveVR::State {
       const bool touchpadPressed = WVR_GetInputButtonState(controller.type, WVR_InputId_Alias1_Touchpad);
       const bool touchpadTouched = WVR_GetInputTouchState(controller.type, WVR_InputId_Alias1_Touchpad);
       const bool menuPressed = WVR_GetInputButtonState(controller.type, WVR_InputId_Alias1_Menu);
+      const bool grip = WVR_GetInputButtonState(controller.type, WVR_InputId_Alias1_Grip);
+      static bool sTouchpadPressed = false;
+      static bool sBumperPressed = false;
+      if (renderMode == device::RenderMode::Immersive) {
+        if (grip && !sTouchpadPressed) {
+          delta += 1;
+        }
+        if (bumperPressed && !sBumperPressed) {
+          delta -= 1;
+        }
+      }
+      sTouchpadPressed = grip;
+      sBumperPressed = bumperPressed;
 
       delegate->SetButtonCount(controller.index, controller.is6DoF ? 3 : 2); // For immersive mode
       delegate->SetButtonState(controller.index, ControllerDelegate::BUTTON_TOUCHPAD, 0, touchpadPressed, touchpadTouched);
@@ -696,6 +742,11 @@ DeviceDelegateWaveVR::ProcessEvents() {
   m.UpdateControllers();
 }
 
+bool
+DeviceDelegateWaveVR::SupportsFramePrediction(FramePrediction aPrediction) const {
+  return true;
+}
+
 static inline vrb::Vector
 GetDirection(const vrb::Vector& location, const vrb::Vector& head) {
   vrb::Vector result = location - head;
@@ -712,6 +763,8 @@ HandToString(ElbowModel::HandEnum hand) {
   return "Left";
 }
 
+static float old = 0;
+
 void
 DeviceDelegateWaveVR::StartFrame(const FramePrediction aPrediction) {
   VRB_GL_CHECK(glClearColor(m.clearColor.Red(), m.clearColor.Green(), m.clearColor.Blue(), m.clearColor.Alpha()));
@@ -719,8 +772,24 @@ DeviceDelegateWaveVR::StartFrame(const FramePrediction aPrediction) {
     m.leftFBOIndex = WVR_GetAvailableTextureIndex(m.leftTextureQueue);
     m.rightFBOIndex = WVR_GetAvailableTextureIndex(m.rightTextureQueue);
   }
+
+  m.framePrediction = aPrediction;
+  if (aPrediction == FramePrediction::ONE_FRAME_AHEAD) {
+    m.prevStartTime = m.currentStartTime;
+    m.currentStartTime = m.GetTimestamp();
+    uint32_t predictedTime = m.GetFrameAheadPredictedTimeMs();
+    m.predictedPose = m.devicePairs[WVR_DEVICE_HMD].pose;
+    WVR_GetPoseState(WVR_DeviceType_HMD, WVR_PoseOriginModel_OriginOnHead, predictedTime, &m.devicePairs[WVR_DEVICE_HMD].pose);
+    m.devicePairs[WVR_DEVICE_HMD + 1].type = WVR_DeviceType_Controller_Left;
+    m.devicePairs[WVR_DEVICE_HMD + 2].type = WVR_DeviceType_Controller_Right;
+    WVR_GetPoseState(WVR_DeviceType_Controller_Left, WVR_PoseOriginModel_OriginOnTrackingObserver, predictedTime, &m.devicePairs[WVR_DEVICE_HMD + 1].pose);
+    WVR_GetPoseState(WVR_DeviceType_Controller_Right, WVR_PoseOriginModel_OriginOnTrackingObserver, predictedTime, &m.devicePairs[WVR_DEVICE_HMD + 2].pose);
+  } else {
+    WVR_GetSyncPose(WVR_PoseOriginModel_OriginOnHead, m.devicePairs, WVR_DEVICE_COUNT_LEVEL_1);
+    m.predictedPose = m.devicePairs[WVR_DEVICE_HMD].pose;
+  }
   // Update cameras
-  WVR_GetSyncPose(WVR_PoseOriginModel_OriginOnHead, m.devicePairs, WVR_DEVICE_COUNT_LEVEL_1);
+  //
   vrb::Matrix hmd = vrb::Matrix::Identity();
   if (m.devicePairs[WVR_DEVICE_HMD].pose.isValidPose) {
     hmd = vrb::Matrix::FromRowMajor(m.devicePairs[WVR_DEVICE_HMD].pose.poseMatrix.m);
@@ -840,7 +909,11 @@ DeviceDelegateWaveVR::EndFrame(const FrameEndMode aMode) {
 
   // Right eye
   WVR_TextureParams_t rightEyeTexture = WVR_GetTexture(m.rightTextureQueue, m.rightFBOIndex);
-  result = WVR_SubmitFrame(WVR_Eye_Right, &rightEyeTexture);
+  result = WVR_SubmitFrame(WVR_Eye_Right, &rightEyeTexture, &m.predictedPose);
+  if (m.framePrediction == DeviceDelegate::FramePrediction::ONE_FRAME_AHEAD
+      && m.prevStartTime > 0) {
+    m.AddTimeSample(m.GetTimestamp() - m.prevStartTime);
+  }
   if (result != WVR_SubmitError_None) {
     VRB_ERROR("Failed to submit right eye frame");
   }
