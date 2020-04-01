@@ -1233,6 +1233,11 @@ DeviceDelegateOculusVR::EnterVR(const crow::BrowserEGLContext& aEGLContext) {
 
 void
 DeviceDelegateOculusVR::LeaveVR() {
+  if (m.ovr) {
+    vrapi_LeaveVrMode(m.ovr);
+    m.ovr = nullptr;
+  }
+
   for (OculusLayerPtr& layer: m.uiLayers) {
     layer->Destroy();
   }
@@ -1252,11 +1257,6 @@ DeviceDelegateOculusVR::LeaveVR() {
   }
   m.currentFBO = nullptr;
   m.previousFBO = nullptr;
-
-  if (m.ovr) {
-    vrapi_LeaveVrMode(m.ovr);
-    m.ovr = nullptr;
-  }
 }
 
 bool
