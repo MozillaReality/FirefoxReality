@@ -11,6 +11,8 @@ import android.graphics.drawable.ClipDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.Gravity;
@@ -292,11 +294,9 @@ public class VoiceSearchWidget extends UIDialog implements WidgetManagerDelegate
                         if (index == PromptDialogWidget.POSITIVE) {
                             SettingsStore.getInstance(getContext()).setSpeechDataCollectionEnabled(true);
                         }
-                        post(() -> show(aShowFlags));
+                        new Handler(Looper.getMainLooper()).post(() -> show(aShowFlags));
                     },
-                    () -> {
-                        mWidgetManager.openNewTabForeground(getResources().getString(R.string.private_policy_url));
-                    });
+                    () -> mWidgetManager.openNewTabForeground(getResources().getString(R.string.private_policy_url)));
         }
     }
 
