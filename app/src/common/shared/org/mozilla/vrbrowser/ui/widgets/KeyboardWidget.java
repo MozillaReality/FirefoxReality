@@ -877,6 +877,7 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
         mKeyboardView.setKeyboard(mCurrentKeyboard.getAlphabeticKeyboard());
         updateSpaceBarLanguageLabel();
         disableShift(getSymbolsKeyboard());
+        mIsCapsLock = false;
         handleShift(false);
         hideOverlays();
         updateCandidates();
