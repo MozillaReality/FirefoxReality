@@ -826,7 +826,7 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
 
     private void handleDomain() {
         if (!mIsLongPress) {
-            handleText(mCurrentKeyboard.getDomains()[0]);
+            handleText(mCurrentKeyboard.getDomains()[0], true);
         }
     }
 
