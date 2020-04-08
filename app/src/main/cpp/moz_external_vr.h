@@ -47,8 +47,8 @@ namespace gfx {
 // and mapped files if we have both release and nightlies
 // running at the same time? Or...what if we have multiple
 // release builds running on same machine? (Bug 1563232)
-#define SHMEM_VERSION "0.0.8"
-static const int32_t kVRExternalVersion = 15;
+#define SHMEM_VERSION "0.0.9"
+static const int32_t kVRExternalVersion = 16;
 
 // We assign VR presentations to groups with a bitmask.
 // Currently, we will only display either content or chrome.
@@ -133,11 +133,18 @@ enum class ControllerCapabilityFlags : uint16_t {
 
 enum class VRControllerType : uint8_t {
   _empty,
-  Vive,
-  WMR,
-  Knuckles,
-  Cosmos,
+  HTCVive,
+  HTCViveCosmos,
+  HTCViveFocus,
+  HTCViveFocusPlus,
+  MSMR,
+  ValveIndex,
+  OculusGo,
   OculusTouch,
+  OculusTouch2,
+  PicoGaze,
+  PicoG2,
+  PicoNeo2,
   _end
 };
 
@@ -218,9 +225,16 @@ enum class VRDisplayCapabilityFlags : uint16_t {
    */
   Cap_ImmersiveAR = 1 << 12,
   /**
+   * Cap_UseDepthValues is set if the device will use the depth values of the
+   * submitted frames if provided.  How the depth values are used is determined
+   * by the VR runtime.  Often the depth is used for occlusion of system UI
+   * or to enable more effective asynchronous reprojection of frames.
+   */
+  Cap_UseDepthValues = 1 << 13,
+  /**
    * Cap_All used for validity checking during IPC serialization
    */
-  Cap_All = (1 << 13) - 1
+  Cap_All = (1 << 14) - 1
 };
 
 #ifdef MOZILLA_INTERNAL_API
