@@ -78,6 +78,9 @@ public class TrayWidget extends UIWidget implements WidgetManagerDelegate.Update
     }
 
     private void initialize(Context aContext) {
+        // Downloads icon progress clipping doesn't work if HW acceleration is enabled.
+        setIsHardwareAccelerationEnabled(false);
+
         mTrayViewModel = new ViewModelProvider(
                 (VRBrowserActivity)getContext(),
                 ViewModelProvider.AndroidViewModelFactory.getInstance(((VRBrowserActivity) getContext()).getApplication()))
