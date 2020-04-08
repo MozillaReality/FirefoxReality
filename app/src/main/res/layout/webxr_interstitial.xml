@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        tools:layout_width="@dimen/webxr_interstitial_width"
+        tools:layout_height="@dimen/webxr_interstitial_height"
+        android:padding="5dp"
+        >
+        <ImageView
+            android:id="@+id/webxrSpinner"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_centerInParent="true"
+            android:padding="5dp"
+            android:scaleType="fitCenter"
+            android:layout_gravity="center_horizontal"
+            android:src="@drawable/webxr_spinner" />
+    </RelativeLayout>
+
+</layout>
