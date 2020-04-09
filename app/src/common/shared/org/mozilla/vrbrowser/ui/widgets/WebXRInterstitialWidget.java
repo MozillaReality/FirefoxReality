@@ -3,8 +3,6 @@ package org.mozilla.vrbrowser.ui.widgets;
 import android.content.Context;
 import android.graphics.drawable.AnimatedVectorDrawable;
 import android.view.LayoutInflater;
-import android.view.animation.Animation;
-import android.view.animation.RotateAnimation;
 
 import androidx.databinding.DataBindingUtil;
 
@@ -12,6 +10,7 @@ import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.VRBrowserActivity;
 import org.mozilla.vrbrowser.databinding.WebxrInterstitialBinding;
 import org.mozilla.vrbrowser.utils.DeviceType;
+import org.mozilla.vrbrowser.utils.ViewUtils;
 
 import java.util.ArrayList;
 
@@ -43,12 +42,13 @@ public class WebXRInterstitialWidget extends UIWidget implements WidgetManagerDe
     }
 
     private void initialize() {
-        // AnimatedVectorDrawable doesn't work with a Hardware Accelerated canvas, we disable it for this view.
-        setIsHardwareAccelerationEnabled(false);
         LayoutInflater inflater = LayoutInflater.from(getContext());
         mBinding = DataBindingUtil.inflate(inflater, R.layout.webxr_interstitial, this, true);
         mBinding.setLifecycleOwner((VRBrowserActivity)getContext());
         mSpinnerAnimation = (AnimatedVectorDrawable) mBinding.webxrSpinner.getDrawable();
+        if (DeviceType.isPicoVR()) {
+            ViewUtils.forceAnimationOnUI(mSpinnerAnimation);
+        }
         mWidgetManager.addWebXRListener(this);
     }
 
