@@ -398,8 +398,8 @@ BrowserWorld::State::UpdateControllers(bool& aRelayoutWidgets) {
                             controller.lastButtonState & ControllerDelegate::BUTTON_TOUCHPAD;
 
     bool isResizing = resizingWidget && resizingWidget->IsResizingActive();
-    bool isDragging = pressed && wasPressed && controller.widget;
-    if (isDragging && !isResizing) {
+    bool isDragging = pressed && wasPressed && controller.widget && !isResizing;
+    if (isDragging) {
       WidgetPtr widget = GetWidget(controller.widget);
       vrb::Vector result;
       vrb::Vector normal;
