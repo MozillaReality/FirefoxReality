@@ -188,7 +188,7 @@ struct BrowserWorld::State {
   std::function<void(device::Eye)> drawHandler;
   std::function<void()> frameEndHandler;
   bool wasInGazeMode = false;
-  bool webXRIntestitialForced = true;
+  WebXRInterstialState webXRInterstialState;
 
   State() : paused(true), glInitialized(false), modelsLoaded(false), env(nullptr), cylinderDensity(0.0f), nearClip(0.1f),
             farClip(300.0f), activity(nullptr), windowsInitialized(false), exitImmersiveRequested(false), loaderDelay(0) {
@@ -215,6 +215,7 @@ struct BrowserWorld::State {
     monitor = PerformanceMonitor::Create(create);
     monitor->AddPerformanceMonitorObserver(std::make_shared<PerformanceObserver>());
     wasInGazeMode = false;
+    webXRInterstialState = WebXRInterstialState::FORCED;
 #if defined(WAVEVR)
     monitor->SetPerformanceDelta(15.0);
 #endif
@@ -238,15 +239,19 @@ struct BrowserWorld::State {
 void
 BrowserWorld::State::CheckBackButton() {
   for (Controller& controller: controllers->GetControllers()) {
-    if (!controller.enabled || (controller.index < 0)) {
-      continue;
-    }
+      if (!controller.enabled || (controller.index < 0)) {
+          continue;
+      }
 
-    if (!(controller.lastButtonState & ControllerDelegate::BUTTON_APP) &&
-        (controller.buttonState & ControllerDelegate::BUTTON_APP)) {
+      if (!(controller.lastButtonState & ControllerDelegate::BUTTON_APP) &&
+          (controller.buttonState & ControllerDelegate::BUTTON_APP)) {
+          VRBrowser::HandleBack();
+      } else if (webXRInterstialState == WebXRInterstialState::ALLOW_DISMISS
+                 && controller.lastButtonState == 0 && controller.buttonState) {
+          VRBrowser::OnDismissWebXRInterstitial();
+          webXRInterstialState = WebXRInterstialState::HIDDEN;
+      }
       controller.lastButtonState = controller.buttonState;
-      VRBrowser::HandleBack();
-    }
   }
 }
 
@@ -1377,8 +1382,8 @@ BrowserWorld::SetCPULevel(const device::CPULevel aLevel) {
 }
 
 void
-BrowserWorld::SetWebXRIntersitialForced(const bool aForced) {
-  m.webXRIntestitialForced = aForced;
+BrowserWorld::SetWebXRInterstitalState(const WebXRInterstialState aState) {
+  m.webXRInterstialState = aState;
 }
 
 void
@@ -1456,7 +1461,7 @@ BrowserWorld::TickImmersive() {
 
   const bool supportsFrameAhead = m.device->SupportsFramePrediction(DeviceDelegate::FramePrediction::ONE_FRAME_AHEAD);
   auto framePrediction = DeviceDelegate::FramePrediction::ONE_FRAME_AHEAD;
-  if (!supportsFrameAhead || (m.externalVR->GetVRState() != ExternalVR::VRState::Rendering) || m.webXRIntestitialForced) {
+  if (!supportsFrameAhead || (m.externalVR->GetVRState() != ExternalVR::VRState::Rendering) || m.webXRInterstialState != WebXRInterstialState::HIDDEN) {
       // Do not use one frame ahead prediction if not supported or we are rendering the spinner.
       framePrediction = DeviceDelegate::FramePrediction::NO_FRAME_AHEAD;
       m.device->StartFrame(framePrediction);
@@ -1488,7 +1493,7 @@ BrowserWorld::TickImmersive() {
         m.device->SetImmersiveSize((uint32_t) textureWidth/2, (uint32_t) textureHeight);
       }
       m.blitter->StartFrame(surfaceHandle, leftEye, rightEye);
-      if (m.webXRIntestitialForced) {
+      if (m.webXRInterstialState != WebXRInterstialState::HIDDEN) {
         TickWebXRInterstitial();
       } else {
         m.drawHandler = [=](device::Eye aEye) {
@@ -1740,9 +1745,17 @@ JNI_METHOD(void, setCPULevelNative)
   crow::BrowserWorld::Instance().SetCPULevel(static_cast<crow::device::CPULevel>(aCPULevel));
 }
 
-JNI_METHOD(void, setWebXRIntersitialForcedNative)
-(JNIEnv*, jobject, jboolean aForced) {
-  crow::BrowserWorld::Instance().SetWebXRIntersitialForced(aForced);
+JNI_METHOD(void, setWebXRIntersitialStateNative)
+(JNIEnv*, jobject, jint aState) {
+  crow::BrowserWorld::WebXRInterstialState value;
+  if (aState == 0) {
+    value = crow::BrowserWorld::WebXRInterstialState::FORCED;
+  } else if (aState == 1) {
+    value = crow::BrowserWorld::WebXRInterstialState::ALLOW_DISMISS;
+  } else {
+    value = crow::BrowserWorld::WebXRInterstialState::HIDDEN;
+  }
+  crow::BrowserWorld::Instance().SetWebXRInterstitalState(value);
 }
 
 JNI_METHOD(void, setIsServo)

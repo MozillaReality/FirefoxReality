@@ -15,7 +15,6 @@ import org.mozilla.vrbrowser.utils.ViewUtils;
 import java.util.ArrayList;
 
 public class WebXRInterstitialWidget extends UIWidget implements WidgetManagerDelegate.WebXRListener {
-    private static final int INTERSTITIAL_FORCE_TIME = 3000;
     private WebxrInterstitialBinding mBinding;
     private ArrayList<WebXRInterstitialController> mControllers = new ArrayList<>();
     private boolean firstEnterXR = true;
@@ -32,7 +31,6 @@ public class WebXRInterstitialWidget extends UIWidget implements WidgetManagerDe
         aPlacement.scene = WidgetPlacement.SCENE_WEBXR_INTERSTITIAL;
         aPlacement.width = WidgetPlacement.dpDimension(context, R.dimen.webxr_interstitial_width);
         aPlacement.height = WidgetPlacement.dpDimension(context, R.dimen.webxr_interstitial_height);
-        aPlacement.worldWidth = WidgetPlacement.floatDimension(getContext(), R.dimen.window_world_width) * aPlacement.width / getWorldWidth();
         aPlacement.translationY = WidgetPlacement.unitFromMeters(context, R.dimen.webxr_interstitial_world_y);
         aPlacement.translationZ = WidgetPlacement.unitFromMeters(getContext(), R.dimen.webxr_interstitial_world_z);
         aPlacement.anchorX = 0.5f;
@@ -45,11 +43,27 @@ public class WebXRInterstitialWidget extends UIWidget implements WidgetManagerDe
         LayoutInflater inflater = LayoutInflater.from(getContext());
         mBinding = DataBindingUtil.inflate(inflater, R.layout.webxr_interstitial, this, true);
         mBinding.setLifecycleOwner((VRBrowserActivity)getContext());
+        setHowToVisible(true);
+
         mSpinnerAnimation = (AnimatedVectorDrawable) mBinding.webxrSpinner.getDrawable();
         if (DeviceType.isPicoVR()) {
             ViewUtils.forceAnimationOnUI(mSpinnerAnimation);
         }
         mWidgetManager.addWebXRListener(this);
+
+    }
+
+    private void setHowToVisible(boolean aShow) {
+        mBinding.setShowHowTo(aShow);
+        mBinding.executePendingBindings();
+        mWidgetPlacement.setSizeFromMeasure(getContext(), this);
+        if (aShow) {
+            // Scale the widget a bit to better see the text
+            mWidgetPlacement.worldWidth = mWidgetPlacement.width * WidgetPlacement.worldToDpRatio(getContext()) * 0.5f;
+        } else {
+            // MAke the spinner a bit smaller than the text
+            mWidgetPlacement.worldWidth = mWidgetPlacement.width * WidgetPlacement.worldToDpRatio(getContext()) * 0.3f;
+        }
     }
 
     @Override
@@ -111,23 +125,30 @@ public class WebXRInterstitialWidget extends UIWidget implements WidgetManagerDe
     @Override
     public void onEnterWebXR() {
         startAnimation();
-        show(KEEP_FOCUS);
         if (firstEnterXR) {
             firstEnterXR = false;
             showControllers();
+            // Add some delay to duplicated input detection conflicts with the EnterVR button.
             postDelayed(() -> {
                 if (mWidgetManager != null) {
-                    mWidgetManager.setWebXRIntersitialForced(false);
+                    mWidgetManager.setWebXRIntersitialState(WidgetManagerDelegate.WEBXR_INTERSTITIAL_ALLOW_DISMISS);
                 }
-            }, INTERSTITIAL_FORCE_TIME);
+            }, 50);
         }
+        show(KEEP_FOCUS);
     }
-
 
     @Override
     public void onExitWebXR() {
         stopAnimation();
         hideControllers();
+        setHowToVisible(false);
         hide(KEEP_WIDGET);
+    }
+
+    @Override
+    public void onDismissWebXRInterstitial() {
+        setHowToVisible(false);
+        hideControllers();
     }
 }

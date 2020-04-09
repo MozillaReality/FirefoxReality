@@ -1039,6 +1039,18 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
             }
         }, 20);
     }
+    @Keep
+    @SuppressWarnings("unused")
+    void onDismissWebXRInterstitial() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                for (WebXRListener listener: mWebXRListeners) {
+                    listener.onDismissWebXRInterstitial();
+                }
+            }
+        });
+    }
 
     @Keep
     @SuppressWarnings("unused")
@@ -1415,8 +1427,8 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     }
 
     @Override
-    public void setWebXRIntersitialForced(boolean aForced) {
-        queueRunnable(() -> setWebXRIntersitialForcedNative(aForced));
+    public void setWebXRIntersitialState(@WebXRInterstitialState int aState) {
+        queueRunnable(() -> setWebXRIntersitialStateNative(aState));
     }
 
     @Override
@@ -1657,6 +1669,6 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     private native void runCallbackNative(long aCallback);
     private native void setCylinderDensityNative(float aDensity);
     private native void setCPULevelNative(@CPULevelFlags int aCPULevel);
-    private native void setWebXRIntersitialForcedNative(boolean aForced);
+    private native void setWebXRIntersitialStateNative(@WebXRInterstitialState int aState);
     private native void setIsServo(boolean aIsServo);
 }

@@ -67,7 +67,8 @@ public:
   void SetControllersVisible(const bool aVisible);
   void ResetUIYaw();
   void SetCylinderDensity(const float aDensity);
-  void SetWebXRIntersitialForced(const bool aForced);
+  enum class WebXRInterstialState { FORCED, ALLOW_DISMISS, HIDDEN };
+  void SetWebXRInterstitalState(const WebXRInterstialState aState);
   void SetIsServo(const bool aIsServo);
   void SetCPULevel(const device::CPULevel aLevel);
   JNIEnv* GetJNIEnv() const;

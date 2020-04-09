@@ -1209,6 +1209,12 @@
      has to be used to exit from WebXR. It's preferred to separate it in two lines if possible. -->
     <string name="webxr_interstitial_exit_webxr">Exit\nWebXR"</string>
 
+    <!-- This string appears in the WebXR interstitial. -->
+    <string name="webxr_interstitial_how_to_exit">Check the controller images to see how to exit from WebXR."</string>
+
+    <!-- This string appears in the WebXR interstitial. -->
+    <string name="webxr_interstitial_how_to_continue">Press any button to continue."</string>
+
     <!-- This string is for the tooltip that appears upon hovering the 'Tracking' button in the
      browser's navigation bar. The button it labels, when pressed, Shows the Tracking dialog. -->
     <string name="tracking_allowed_tooltip">Tracking Protection Enabled</string>

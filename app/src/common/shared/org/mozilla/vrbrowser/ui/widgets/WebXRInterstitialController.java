@@ -34,6 +34,7 @@ public class WebXRInterstitialController extends UIWidget {
 
     private void updatePlacement() {
         mWidgetPlacement.setSizeFromMeasure(getContext(), this);
+        mWidgetPlacement.worldWidth = mWidgetPlacement.width * WidgetPlacement.worldToDpRatio(getContext()) * 1.15f;
         if (mBinding.getHand() == HAND_LEFT) {
             mWidgetPlacement.anchorX = 1.0f;
             mWidgetPlacement.anchorY = 0.5f;
