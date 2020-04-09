@@ -110,12 +110,12 @@ public class UrlUtils {
         return aUri != null && aUri.startsWith("data");
     }
 
-    public static Boolean isFileUri(@NonNull String aUri) {
-        return aUri.startsWith("file");
+    public static Boolean isFileUri(@Nullable String aUri) {
+        return aUri != null && aUri.startsWith("file");
     }
 
-    public static Boolean isBlankUri(@NonNull Context context, @NonNull String aUri) {
-        return aUri.equals(context.getString(R.string.about_blank));
+    public static Boolean isBlankUri(@Nullable Context context, @Nullable String aUri) {
+        return context != null && aUri != null && aUri.equals(context.getString(R.string.about_blank));
     }
 
     public static String titleBarUrl(@Nullable String aUri) {
