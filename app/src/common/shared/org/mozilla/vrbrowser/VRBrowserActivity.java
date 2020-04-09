@@ -693,7 +693,22 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
             return;
         }
         if (!mWindows.handleBack()) {
-            super.onBackPressed();
+            if (DeviceType.isPicoVR()) {
+                mWindows.getFocusedWindow().showConfirmPrompt(
+                        getString(R.string.app_name),
+                        getString(R.string.exit_confirm_dialog_body, getString(R.string.app_name)),
+                        new String[]{
+                                getString(R.string.exit_confirm_dialog_button_cancel),
+                                getString(R.string.exit_confirm_dialog_button_quit),
+                        }, index -> {
+                            if (index == PromptDialogWidget.POSITIVE) {
+                                VRBrowserActivity.super.onBackPressed();
+                            }
+                        });
+
+            } else {
+                super.onBackPressed();
+            }
         }
     }
 
@@ -961,7 +976,8 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
             return;
         }
         mIsPresentingImmersive = true;
-        mWindows.enterImmersiveMode();
+        runOnUiThread(() -> mWindows.enterImmersiveMode());
+
         TelemetryWrapper.startImmersive();
         GleanMetricsService.startImmersive();
         PauseCompositorRunnable runnable = new PauseCompositorRunnable();
@@ -985,7 +1001,8 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
             return;
         }
         mIsPresentingImmersive = false;
-        mWindows.exitImmersiveMode();
+        runOnUiThread(() -> mWindows.exitImmersiveMode());
+
         // Show the window in front of you when you exit immersive mode.
         resetUIYaw();
 
