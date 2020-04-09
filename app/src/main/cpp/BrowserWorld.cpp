@@ -227,6 +227,7 @@ struct BrowserWorld::State {
   void ChangeControllerFocus(const Controller& aController);
   void UpdateGazeModeState();
   void UpdateControllers(bool& aRelayoutWidgets);
+  void ClearWebXRControllerData();
   WidgetPtr GetWidget(int32_t aHandle) const;
   WidgetPtr FindWidget(const std::function<bool(const WidgetPtr&)>& aCondition) const;
   bool IsParent(const Widget& aChild, const Widget& aParent) const;
@@ -570,6 +571,20 @@ BrowserWorld::State::UpdateControllers(bool& aRelayoutWidgets) {
       }
     }
   }
+}
+
+void
+BrowserWorld::State::ClearWebXRControllerData() {
+    for (Controller& controller: controllers->GetControllers()) {
+        if (!controller.enabled || (controller.index < 0)) {
+            continue;
+        };
+        controller.immersiveTouchedState = 0;
+        controller.immersivePressedState = 0;
+        for (int i = 0; i < controller.numAxes; ++i) {
+            controller.immersiveAxes[i] = 0;
+        }
+    }
 }
 
 WidgetPtr
@@ -1465,6 +1480,10 @@ BrowserWorld::TickImmersive() {
       // Do not use one frame ahead prediction if not supported or we are rendering the spinner.
       framePrediction = DeviceDelegate::FramePrediction::NO_FRAME_AHEAD;
       m.device->StartFrame(framePrediction);
+      if (m.webXRInterstialState != WebXRInterstialState::HIDDEN) {
+          // Hide controller input until the interstitial is hidden.
+          m.ClearWebXRControllerData();
+      }
       m.externalVR->PushFramePoses(m.device->GetHeadTransform(), m.controllers->GetControllers(),
                                    m.context->GetTimestamp());
   }
