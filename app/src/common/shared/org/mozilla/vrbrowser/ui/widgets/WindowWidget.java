@@ -537,12 +537,29 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         showPanel(panelType, true);
     }
 
+    Runnable mRestoreFirstPaint;
+
     private void showPanel(@NonNull Windows.PanelType panelType, boolean switchSurface) {
         LibraryView libraryView = getPanelByType(panelType);
         if (mView == null && libraryView != null) {
             setView(libraryView, switchSurface);
             libraryView.onShow();
             mViewModel.setIsPanelVisible(panelType, true);
+            if (mRestoreFirstPaint == null && !isFirstPaintReady() && (mFirstDrawCallback != null)) {
+                onFirstContentfulPaint(mSession.getGeckoSession());
+                mRestoreFirstPaint = () -> {
+                    setFirstPaintReady(false);
+                    setFirstDrawCallback(() -> {
+                        setFirstPaintReady(true);
+                        if (mWidgetManager != null) {
+                            mWidgetManager.updateWidget(WindowWidget.this);
+                        }
+                    });
+                    if (mWidgetManager != null) {
+                        mWidgetManager.updateWidget(WindowWidget.this);
+                    }
+                };
+            }
         }
     }
 
@@ -556,6 +573,10 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
             unsetView(libraryView, switchSurface);
             libraryView.onHide();
             mViewModel.setIsPanelVisible(panelType, false);
+        }
+        if (switchSurface && mRestoreFirstPaint != null) {
+            mUIThreadExecutor.execute(mRestoreFirstPaint);
+            mRestoreFirstPaint = null;
         }
     }
 
