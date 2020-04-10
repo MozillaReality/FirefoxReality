@@ -1331,13 +1331,6 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         mAppDialog.show(REQUEST_FOCUS);
     }
 
-    public void showClearCacheDialog() {
-        if (mClearHistoryDialog == null) {
-            mClearHistoryDialog = new ClearHistoryDialogWidget(getContext());
-        }
-        mClearHistoryDialog.show(REQUEST_FOCUS);
-    }
-
     public void showFirstTimeDrmDialog(@NonNull Runnable callback) {
         showConfirmPrompt(
                 getContext().getString(R.string.drm_first_use_title),
