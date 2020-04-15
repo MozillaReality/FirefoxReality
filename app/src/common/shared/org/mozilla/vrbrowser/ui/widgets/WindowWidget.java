@@ -7,8 +7,8 @@ package org.mozilla.vrbrowser.ui.widgets;
 
 import android.content.ActivityNotFoundException;
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
@@ -138,6 +138,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     private SharedPreferences mPrefs;
     private DownloadsManager mDownloadsManager;
     private Windows.PanelType mVisiblePanelType;
+    private boolean mIsContentEmpty;
 
     public interface WindowListener {
         default void onFocusRequest(@NonNull WindowWidget aWindow) {}
@@ -172,6 +173,8 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
 
     private void initialize(Context aContext) {
         mSetViewQueuedCalls = new CopyOnWriteArrayList<>();
+
+        mIsContentEmpty = true;
 
         mPrefs = PreferenceManager.getDefaultSharedPreferences(getContext());
         mPrefs.registerOnSharedPreferenceChangeListener(this);
@@ -418,7 +421,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
             }
         };
 
-        if (mAfterFirstPaint) {
+        if (mAfterFirstPaint || mIsContentEmpty) {
             setView.run();
 
         } else {
@@ -443,6 +446,9 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
                         mRenderer = null;
                     }
                     mSurface = new Surface(mTexture);
+                }
+                if (mIsContentEmpty) {
+                    mWidgetPlacement.composited = false;
                 }
                 mWidgetPlacement.density = 1.0f;
                 mWidgetManager.updateWidget(WindowWidget.this);
@@ -537,30 +543,13 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         showPanel(panelType, true);
     }
 
-    Runnable mRestoreFirstPaint;
-
     private void showPanel(@NonNull Windows.PanelType panelType, boolean switchSurface) {
-        LibraryView libraryView = getPanelByType(panelType);
-        if (mView == null && libraryView != null) {
-            setView(libraryView, switchSurface);
-            libraryView.onShow();
-            mViewModel.setIsPanelVisible(panelType, true);
-            if (mRestoreFirstPaint == null && !isFirstPaintReady() && (mFirstDrawCallback != null)) {
-                onFirstContentfulPaint(mSession.getGeckoSession());
-                mRestoreFirstPaint = () -> {
-                    setFirstPaintReady(false);
-                    setFirstDrawCallback(() -> {
-                        setFirstPaintReady(true);
-                        if (mWidgetManager != null) {
-                            mWidgetManager.updateWidget(WindowWidget.this);
-                        }
-                    });
-                    if (mWidgetManager != null) {
-                        mWidgetManager.updateWidget(WindowWidget.this);
-                    }
-                };
+            LibraryView libraryView = getPanelByType(panelType);
+            if (mView == null && libraryView != null) {
+                setView(libraryView, switchSurface);
+                libraryView.onShow();
+                mViewModel.setIsPanelVisible(panelType, true);
             }
-        }
     }
 
     public void hidePanel(@NonNull Windows.PanelType panelType) {
@@ -573,10 +562,6 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
             unsetView(libraryView, switchSurface);
             libraryView.onHide();
             mViewModel.setIsPanelVisible(panelType, false);
-        }
-        if (switchSurface && mRestoreFirstPaint != null) {
-            mUIThreadExecutor.execute(mRestoreFirstPaint);
-            mRestoreFirstPaint = null;
         }
     }
 
@@ -970,6 +955,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
 
     public void waitForFirstPaint() {
         setFirstPaintReady(false);
+        mIsContentEmpty = true;
         setFirstDrawCallback(() -> {
             if (!isFirstPaintReady()) {
                 setFirstPaintReady(true);
@@ -1579,6 +1565,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
             mUIThreadExecutor.execute(mFirstDrawCallback);
             mFirstDrawCallback = null;
             mAfterFirstPaint = true;
+            mIsContentEmpty = false;
             // view queue calls need to be delayed to avoid a deadlock
             // caused by GeckoSession.syncResumeResizeCompositor()
             // See: https://github.com/MozillaReality/FirefoxReality/issues/2889
