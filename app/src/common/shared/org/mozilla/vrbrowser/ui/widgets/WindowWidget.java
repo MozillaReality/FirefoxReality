@@ -134,11 +134,8 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     private PromptDelegate mPromptDelegate;
     private Executor mUIThreadExecutor;
     private WindowViewModel mViewModel;
-    private CopyOnWriteArrayList<Runnable> mSetViewQueuedCalls;
     private SharedPreferences mPrefs;
     private DownloadsManager mDownloadsManager;
-    private Windows.PanelType mVisiblePanelType;
-    private boolean mIsContentEmpty;
 
     public interface WindowListener {
         default void onFocusRequest(@NonNull WindowWidget aWindow) {}
@@ -172,10 +169,6 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     }
 
     private void initialize(Context aContext) {
-        mSetViewQueuedCalls = new CopyOnWriteArrayList<>();
-
-        mIsContentEmpty = true;
-
         mPrefs = PreferenceManager.getDefaultSharedPreferences(getContext());
         mPrefs.registerOnSharedPreferenceChangeListener(this);
 
@@ -395,42 +388,35 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     }
 
     private void setView(View view, boolean switchSurface) {
-        Runnable setView = () -> {
-            if (switchSurface) {
-                pauseCompositor();
+        if (switchSurface) {
+            pauseCompositor();
+        }
+
+        mView = view;
+        removeView(view);
+        mView.setVisibility(VISIBLE);
+        addView(mView);
+
+        if (switchSurface) {
+            mWidgetPlacement.density = getContext().getResources().getDisplayMetrics().density;
+            if (mTexture != null && mSurface != null && mRenderer == null) {
+                // Create the UI Renderer for the current surface.
+                // Surface must be released when switching back to WebView surface or the browser
+                // will not render it correctly. See release code in unsetView().
+                mRenderer = new UISurfaceTextureRenderer(mSurface, mWidgetPlacement.textureWidth(), mWidgetPlacement.textureHeight());
             }
-
-            mView = view;
-            removeView(view);
-            mView.setVisibility(VISIBLE);
-            addView(mView);
-
-            if (switchSurface) {
-                mWidgetPlacement.density = getContext().getResources().getDisplayMetrics().density;
-                if (mTexture != null && mSurface != null && mRenderer == null) {
-                    // Create the UI Renderer for the current surface.
-                    // Surface must be released when switching back to WebView surface or the browser
-                    // will not render it correctly. See release code in unsetView().
-                    mRenderer = new UISurfaceTextureRenderer(mSurface, mWidgetPlacement.textureWidth(), mWidgetPlacement.textureHeight());
-                }
-                mWidgetManager.updateWidget(WindowWidget.this);
-                mWidgetManager.pushWorldBrightness(WindowWidget.this, WidgetManagerDelegate.DEFAULT_DIM_BRIGHTNESS);
-                mWidgetManager.pushBackHandler(mBackHandler);
-                setWillNotDraw(false);
-                postInvalidate();
+            if (!mAfterFirstPaint) {
+                mWidgetPlacement.composited = true;
             }
-        };
-
-        if (mAfterFirstPaint || mIsContentEmpty) {
-            setView.run();
-
-        } else {
-            mSetViewQueuedCalls.add(setView);
+            mWidgetManager.updateWidget(WindowWidget.this);
+            mWidgetManager.pushWorldBrightness(WindowWidget.this, WidgetManagerDelegate.DEFAULT_DIM_BRIGHTNESS);
+            mWidgetManager.pushBackHandler(mBackHandler);
+            setWillNotDraw(false);
+            postInvalidate();
         }
     }
 
     private void unsetView(View view, boolean switchSurface) {
-        mSetViewQueuedCalls.clear();
         if (mView != null && mView == view) {
             mView = null;
             removeView(view);
@@ -447,7 +433,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
                     }
                     mSurface = new Surface(mTexture);
                 }
-                if (mIsContentEmpty) {
+                if (!mAfterFirstPaint) {
                     mWidgetPlacement.composited = false;
                 }
                 mWidgetPlacement.density = 1.0f;
@@ -955,7 +941,6 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
 
     public void waitForFirstPaint() {
         setFirstPaintReady(false);
-        mIsContentEmpty = true;
         setFirstDrawCallback(() -> {
             if (!isFirstPaintReady()) {
                 setFirstPaintReady(true);
@@ -984,7 +969,6 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
 
         mPrefs.unregisterOnSharedPreferenceChangeListener(this);
 
-        mSetViewQueuedCalls.clear();
         if (mSession != null) {
             mSession.releaseDisplay();
         }
@@ -1565,15 +1549,6 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
             mUIThreadExecutor.execute(mFirstDrawCallback);
             mFirstDrawCallback = null;
             mAfterFirstPaint = true;
-            mIsContentEmpty = false;
-            // view queue calls need to be delayed to avoid a deadlock
-            // caused by GeckoSession.syncResumeResizeCompositor()
-            // See: https://github.com/MozillaReality/FirefoxReality/issues/2889
-            mUIThreadExecutor.execute(() -> {
-                mSetViewQueuedCalls.forEach(Runnable::run);
-                mSetViewQueuedCalls.clear();
-            });
-
         }
     }
 
