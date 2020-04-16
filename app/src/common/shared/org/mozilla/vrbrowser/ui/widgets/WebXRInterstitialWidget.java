@@ -44,6 +44,7 @@ public class WebXRInterstitialWidget extends UIWidget implements WidgetManagerDe
         mBinding = DataBindingUtil.inflate(inflater, R.layout.webxr_interstitial, this, true);
         mBinding.setLifecycleOwner((VRBrowserActivity)getContext());
         setHowToVisible(true);
+        setIsHardwareAccelerationEnabled(false);
 
         mSpinnerAnimation = (AnimatedVectorDrawable) mBinding.webxrSpinner.getDrawable();
         if (DeviceType.isPicoVR()) {
@@ -150,5 +151,6 @@ public class WebXRInterstitialWidget extends UIWidget implements WidgetManagerDe
     public void onDismissWebXRInterstitial() {
         setHowToVisible(false);
         hideControllers();
+        mWidgetManager.updateWidget(this);
     }
 }
