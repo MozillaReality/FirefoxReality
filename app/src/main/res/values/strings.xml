@@ -104,7 +104,7 @@
 
     <!-- This string is used as the title of the pop-ups dialog used to remove sites from the currently
          allowed pop-up sites. -->
-    <string name="settings_privacy_policy_popups_title">Exceptions for Pop-Ups</string>
+    <string name="settings_privacy_policy_popups_title_v1">Exceptions for Pop-Ups</string>
 
     <!-- This string is displayed under the title the pop-ups dialog used to remove sites from the currently
          allowed pop-up sites. -->
