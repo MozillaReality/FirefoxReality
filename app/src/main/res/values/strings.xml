@@ -877,7 +877,7 @@
     <string name="bookmarks_saved_notification">Saved to Bookmarks!</string>
 
     <!-- This string is displayed in a notification that appears in the tray bar on top of the
-         downloads tray button then a download finishes. -->
+         downloads tray button then a download finishes. %1$s will be replaced with the downloaded file name. -->
     <string name="download_completed_notification">%1$s Downloaded</string>
 
     <!-- This string is displayed in a tooltip that appears when a user hovers
