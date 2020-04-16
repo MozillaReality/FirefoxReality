@@ -671,7 +671,7 @@
 
     <!-- This string labels the button in the privacy option panel that open the dialog to add/remove
          pop-up blocked sites. -->
-    <string name="security_options_block_pup_up_settings_v2">Advanced</string>
+    <string name="security_options_block_pup_up_settings">Advanced</string>
 
     <!-- This string labels the button in the privacy option panel that enables/disables Virtual Reality
         Devices access to websites (WebXR). -->
