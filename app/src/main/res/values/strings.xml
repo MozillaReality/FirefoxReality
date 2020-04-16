@@ -1551,7 +1551,7 @@ the Select` button. When clicked it closes all the previously selected tabs -->
     <string name="slow_script_dialog_action_wait">Wait</string>
 
     <!-- This string is displayed in the title of the quick PopUp blocking dialog, accessed from the PopUp icon in the URL bar.
-     '%1$s' will be replaced at runtime with the app's name. -->
+     '%1$s' will be replaced at runtime with the status of the setting. -->
     <string name="popup_permission_dialog_message">Popup blocking is %1$s for this site.</string>
 
     <!-- This string is displayed in the on button of the quick Popup blocking dialog when it's in enabled state. It's accessed from the Popup icon in the URL bar. -->
