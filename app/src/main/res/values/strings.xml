@@ -1690,5 +1690,5 @@ the Select` button. When clicked it closes all the previously selected tabs -->
     <string name="download_error_body">An error occurred while downloading %1$s. Please try again.</string>
 
     <!-- This string is displayed in the button to dismiss the download error dialog. -->
-    <string name="download_error_ok">Ok</string>
+    <string name="download_error_ok">OK</string>
 </resources>
