@@ -105,7 +105,7 @@
 
     <!-- This string is used as the title of the pop-ups dialog used to remove sites from the currently
          allowed pop-up sites. -->
-    <string name="settings_privacy_policy_popups_title_v1">Pop-ups permissions</string>
+    <string name="settings_privacy_policy_popups_title">Pop-ups permissions</string>
 
     <!-- This string is displayed under the title the pop-ups dialog used to remove sites from the currently
          allowed pop-up sites. -->
