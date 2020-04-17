@@ -84,6 +84,9 @@ public class VoiceSearchWidget extends UIDialog implements WidgetManagerDelegate
     }
 
     private void initialize(Context aContext) {
+        // AnimatedVectorDrawable doesn't work with a Hardware Accelerated canvas, we disable it for this view.
+        setIsHardwareAccelerationEnabled(false);
+
         updateUI();
 
         mWidgetManager.addPermissionListener(this);

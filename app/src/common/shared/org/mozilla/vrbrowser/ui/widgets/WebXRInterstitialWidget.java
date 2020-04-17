@@ -44,6 +44,8 @@ public class WebXRInterstitialWidget extends UIWidget implements WidgetManagerDe
         mBinding = DataBindingUtil.inflate(inflater, R.layout.webxr_interstitial, this, true);
         mBinding.setLifecycleOwner((VRBrowserActivity)getContext());
         setHowToVisible(true);
+
+        // AnimatedVectorDrawable doesn't work with a Hardware Accelerated canvas, we disable it for this view.
         setIsHardwareAccelerationEnabled(false);
 
         mSpinnerAnimation = (AnimatedVectorDrawable) mBinding.webxrSpinner.getDrawable();
