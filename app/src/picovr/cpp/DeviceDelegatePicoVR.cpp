@@ -293,8 +293,10 @@ DeviceDelegatePicoVR::RegisterImmersiveDisplay(ImmersiveDisplayPtr aDisplay) {
           device::ImmersiveVRSession | device::InlineSession;
   if (m.type == k6DofHeadSet) {
     flags |= device::Position | device::StageParameters;
+    m.immersiveDisplay->SetSittingToStandingTransform(vrb::Matrix::Translation(kAverageSittingToStanding));
+  } else {
+    m.immersiveDisplay->SetSittingToStandingTransform(vrb::Matrix::Translation(kAverageHeight));
   }
-  m.immersiveDisplay->SetSittingToStandingTransform(vrb::Matrix::Translation(kAverageSittingToStanding));
   m.immersiveDisplay->SetCapabilityFlags(flags);
   m.immersiveDisplay->SetEyeResolution(m.renderWidth / 2, m.renderHeight / 2);
   m.immersiveDisplay->CompleteEnumeration();
