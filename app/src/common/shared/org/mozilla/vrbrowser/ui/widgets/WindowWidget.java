@@ -1754,6 +1754,8 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     public void onLocationChange(@NonNull GeckoSession session, @Nullable String url) {
         mViewModel.setUrl(url);
         mViewModel.setIsDrmUsed(false);
+        mViewModel.setIsMediaAvailable(false);
+        mViewModel.setIsMediaPlaying(false);
 
         if (StringUtils.isEmpty(url)) {
             mViewModel.setIsBookmarked(false);
