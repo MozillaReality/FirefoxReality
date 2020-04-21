@@ -22,6 +22,7 @@ const CapabilityFlags PositionEmulated = 1u << 9u;
 const CapabilityFlags InlineSession = 1u << 10u;
 const CapabilityFlags ImmersiveVRSession = 1u << 11u;
 const CapabilityFlags ImmersiveARSession = 1u << 12u;
+const CapabilityFlags GripSpacePosition = 1u << 13u;
 enum class Eye { Left, Right };
 enum class RenderMode { StandAlone, Immersive };
 enum class CPULevel { Normal = 0, High };

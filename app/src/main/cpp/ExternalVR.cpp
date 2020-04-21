@@ -411,6 +411,12 @@ ExternalVR::GetControllerCapabilityFlags(device::CapabilityFlags aFlags) {
   if (device::LinearAcceleration & aFlags) {
     result |= static_cast<uint16_t>(mozilla::gfx::ControllerCapabilityFlags::Cap_LinearAcceleration);
   }
+  if (device::PositionEmulated & aFlags) {
+    result |= static_cast<uint16_t>(mozilla::gfx::ControllerCapabilityFlags::Cap_PositionEmulated);
+  }
+  if (device::GripSpacePosition & aFlags) {
+    result |= static_cast<uint16_t>(mozilla::gfx::ControllerCapabilityFlags::Cap_GripSpacePosition);
+  }
 
   return result;
 }
@@ -476,20 +482,25 @@ ExternalVR::PushFramePoses(const vrb::Matrix& aHeadTransform, const std::vector<
     if (flags & static_cast<uint16_t>(mozilla::gfx::ControllerCapabilityFlags::Cap_Orientation)) {
       immersiveController.isOrientationValid = true;
 
-      vrb::Quaternion quaternion(controller.transformMatrix);
-      quaternion = quaternion.Inverse();
-      memcpy(&(immersiveController.pose.orientation), quaternion.Data(), sizeof(immersiveController.pose.orientation));
-
-      quaternion.SetFromRotationMatrix(beamTransform);
-      quaternion = quaternion.Inverse();
-      memcpy(&(immersiveController.targetRayPose.orientation), quaternion.Data(), sizeof(immersiveController.targetRayPose.orientation));
+      vrb::Quaternion rotate;
+      if (flags & static_cast<uint16_t>(mozilla::gfx::ControllerCapabilityFlags::Cap_GripSpacePosition)) {
+        rotate = controller.transformMatrix;
+        rotate = rotate.Inverse();
+        memcpy(&(immersiveController.pose.orientation), rotate.Data(), sizeof(immersiveController.pose.orientation));
+      }
+      rotate.SetFromRotationMatrix(beamTransform);
+      rotate = rotate.Inverse();
+      memcpy(&(immersiveController.targetRayPose.orientation), rotate.Data(), sizeof(immersiveController.targetRayPose.orientation));
     }
-    if (flags & static_cast<uint16_t>(mozilla::gfx::ControllerCapabilityFlags::Cap_Position)) {
+    if (flags & static_cast<uint16_t>(mozilla::gfx::ControllerCapabilityFlags::Cap_Position) ||
+      flags & static_cast<uint16_t>(mozilla::gfx::ControllerCapabilityFlags::Cap_PositionEmulated)) {
       immersiveController.isPositionValid = true;
 
-      vrb::Vector position(controller.transformMatrix.GetTranslation());
-      memcpy(&(immersiveController.pose.position), position.Data(), sizeof(immersiveController.pose.position));
-
+      vrb::Vector position;
+      if (flags & static_cast<uint16_t>(mozilla::gfx::ControllerCapabilityFlags::Cap_GripSpacePosition)) {
+        position = controller.transformMatrix.GetTranslation();
+        memcpy(&(immersiveController.pose.position), position.Data(), sizeof(immersiveController.pose.position));
+      }
       position = beamTransform.GetTranslation();
       memcpy(&(immersiveController.targetRayPose.position), position.Data(), sizeof(immersiveController.targetRayPose.position));
     }

@@ -170,7 +170,10 @@ struct DeviceDelegatePicoVR::State {
       device::CapabilityFlags flags = device::Orientation;
       if (controller.is6DoF) {
         flags |= device::Position;
+      } else {
+        flags |= device::PositionEmulated;
       }
+      flags |= device::GripSpacePosition;
       controllerDelegate->SetCapabilityFlags(i, flags);
       const bool appPressed = (controller.buttonsState & kButtonApp) > 0;
       const bool triggerPressed = (controller.buttonsState & kButtonTrigger) > 0;
@@ -295,6 +298,7 @@ DeviceDelegatePicoVR::RegisterImmersiveDisplay(ImmersiveDisplayPtr aDisplay) {
     flags |= device::Position | device::StageParameters;
     m.immersiveDisplay->SetSittingToStandingTransform(vrb::Matrix::Translation(kAverageSittingToStanding));
   } else {
+    flags |=  device::PositionEmulated;
     m.immersiveDisplay->SetSittingToStandingTransform(vrb::Matrix::Translation(kAverageHeight));
   }
   m.immersiveDisplay->SetCapabilityFlags(flags);

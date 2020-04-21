@@ -448,8 +448,10 @@ struct DeviceDelegateOculusVR::State {
         flags |= device::Position;
       } else {
         controllerState.transform = elbow->GetTransform(controllerState.hand, head, controllerState.transform);
+        flags |= device::PositionEmulated;
       }
 
+      flags |= device::GripSpacePosition;
       controller->SetCapabilityFlags(controllerState.index, flags);
       if (renderMode == device::RenderMode::Immersive && controllerState.Is6DOF()) {
         static vrb::Matrix transform(vrb::Matrix::Identity());
@@ -963,10 +965,10 @@ DeviceDelegateOculusVR::StartFrame(const FramePrediction aPrediction) {
   if (m.immersiveDisplay) {
     m.immersiveDisplay->SetEyeOffset(device::Eye::Left, -ipd * 0.5f, 0.f, 0.f);
     m.immersiveDisplay->SetEyeOffset(device::Eye::Right, ipd * 0.5f, 0.f, 0.f);
-    device::CapabilityFlags caps = device::Orientation | device::Present | device::StageParameters |
+    device::CapabilityFlags caps = device::Orientation | device::Present |
                                    device::InlineSession | device::ImmersiveVRSession;
     if (m.predictedTracking.Status & VRAPI_TRACKING_STATUS_POSITION_TRACKED) {
-      caps |= device::Position;
+      caps |= device::Position | device::StageParameters;
       auto standing = vrapi_LocateTrackingSpace(m.ovr, VRAPI_TRACKING_SPACE_LOCAL_FLOOR);
       vrb::Vector translation(-standing.Position.x, -standing.Position.y, -standing.Position.z);
       m.immersiveDisplay->SetSittingToStandingTransform(vrb::Matrix::Translation(translation));

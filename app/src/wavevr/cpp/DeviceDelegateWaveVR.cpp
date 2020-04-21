@@ -297,9 +297,11 @@ struct DeviceDelegateWaveVR::State {
         }
         continue;
       } else if (!controller.enabled) {
-        device::CapabilityFlags flags = device::Orientation;
+        device::CapabilityFlags flags = device::Orientation | device::GripSpacePosition;
         if (controller.is6DoF) {
           flags |= device::Position;
+        } else {
+          flags |= device::PositionEmulated;
         }
         controller.enabled = true;
         delegate->SetEnabled(controller.index, true);
@@ -488,11 +490,11 @@ DeviceDelegateWaveVR::RegisterImmersiveDisplay(ImmersiveDisplayPtr aDisplay) {
   }
 
   m.immersiveDisplay->SetDeviceName("Wave");
-  device::CapabilityFlags flags = device::Orientation | device::Present | device::StageParameters |
+  device::CapabilityFlags flags = device::Orientation | device::Present |
                                   device::InlineSession | device::ImmersiveVRSession;
 
   if (WVR_GetDegreeOfFreedom(WVR_DeviceType_HMD) == WVR_NumDoF_6DoF) {
-    flags |= device::Position;
+    flags |= device::Position | device::StageParameters;
   } else {
     flags |= device::PositionEmulated;
   }
