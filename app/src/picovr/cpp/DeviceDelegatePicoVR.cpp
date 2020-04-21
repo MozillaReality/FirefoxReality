@@ -234,14 +234,20 @@ struct DeviceDelegatePicoVR::State {
       }
 
       vrb::Matrix transform = controller.transform;
-      if ((renderMode == device::RenderMode::StandAlone) && (i != gazeIndex)) {
-        if (type == k6DofHeadSet) {
-          transform.TranslateInPlace(headOffset);
-        } else {
-          vrb::Matrix head = vrb::Matrix::Rotation(orientation);
-          head.PreMultiplyInPlace(vrb::Matrix::Position(headOffset));
-          transform = elbow->GetTransform(controller.hand, head, transform);
-        }
+      if (i != gazeIndex) {
+          if (renderMode == device::RenderMode::StandAlone) {
+              if (type == k6DofHeadSet) {
+                  transform.TranslateInPlace(headOffset);
+              } else {
+                  vrb::Matrix head = vrb::Matrix::Rotation(orientation);
+                  head.PreMultiplyInPlace(vrb::Matrix::Position(headOffset));
+                  transform = elbow->GetTransform(controller.hand, head, transform);
+              }
+          }
+          else if (type != k6DofHeadSet) {
+              vrb::Matrix head = vrb::Matrix::Rotation(orientation);
+              transform = elbow->GetTransform(controller.hand, head, transform);
+          }
       }
 
       controllerDelegate->SetTransform(i, transform);
