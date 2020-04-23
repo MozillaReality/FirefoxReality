@@ -1043,7 +1043,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         });
 
         // Show the window in front of you when you exit immersive mode.
-        resetUIYaw();
+        recenterUIYaw(WidgetManagerDelegate.YAW_TARGET_ALL);
 
         TelemetryWrapper.uploadImmersiveToHistogram();
         GleanMetricsService.stopImmersive();
@@ -1591,8 +1591,8 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     }
 
     @Override
-    public void resetUIYaw() {
-        queueRunnable(this::resetUIYawNative);
+    public void recenterUIYaw(@YawTarget int aTarget) {
+        queueRunnable(() -> recenterUIYawNative(aTarget));
     }
 
     @Override
@@ -1687,7 +1687,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     private native void updatePointerColorNative();
     private native void showVRVideoNative(int aWindowHandler, int aVideoProjection);
     private native void hideVRVideoNative();
-    private native void resetUIYawNative();
+    private native void recenterUIYawNative(@YawTarget int aTarget);
     private native void setControllersVisibleNative(boolean aVisible);
     private native void runCallbackNative(long aCallback);
     private native void setCylinderDensityNative(float aDensity);
