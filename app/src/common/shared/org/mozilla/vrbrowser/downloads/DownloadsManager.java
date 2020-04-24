@@ -210,17 +210,8 @@ public class DownloadsManager {
         mListeners.forEach(listener -> listener.onDownloadError(error, file));
     }
 
-    private Runnable mDownloadUpdateTask = new Runnable() {
-        @Override
-        public void run() {
-            DownloadManager.Query query = new DownloadManager.Query();
-            Cursor c = mDownloadManager.query(query);
-
-            while (c.moveToNext()) {
-                mMainHandler.post(() -> notifyDownloadsUpdate());
-            }
-            c.close();
-        }
+    private Runnable mDownloadUpdateTask = () -> {
+        mMainHandler.post(this::notifyDownloadsUpdate);
     };
 
 }
