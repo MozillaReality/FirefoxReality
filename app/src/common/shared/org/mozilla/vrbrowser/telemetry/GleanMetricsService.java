@@ -194,7 +194,7 @@ public class GleanMetricsService {
         }
 
         public static void receivedTab(@NonNull mozilla.components.concept.sync.DeviceType source) {
-            FirefoxAccount.INSTANCE.getReceivedTab().get(source.name()).add();
+            FirefoxAccount.INSTANCE.getReceivedTab().get(source.name().toLowerCase()).add();
         }
     }
 
@@ -213,7 +213,7 @@ public class GleanMetricsService {
         }
 
         public static void openedCounter(@NonNull TabSource source) {
-            org.mozilla.vrbrowser.GleanMetrics.Tabs.INSTANCE.getOpened().get(source.name()).add();
+            org.mozilla.vrbrowser.GleanMetrics.Tabs.INSTANCE.getOpened().get(source.name().toLowerCase()).add();
         }
 
         public static void activatedEvent() {

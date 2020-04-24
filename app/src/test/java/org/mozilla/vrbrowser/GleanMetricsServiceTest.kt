@@ -119,18 +119,18 @@ class GleanMetricsServiceTest {
         assertTrue(FirefoxAccount.tabSent.testHasValue())
         assertEquals(FirefoxAccount.tabSent.testGetValue(), 1)
 
-        assertFalse(FirefoxAccount.receivedTab[DeviceType.MOBILE.name].testHasValue())
+        assertFalse(FirefoxAccount.receivedTab[DeviceType.MOBILE.name.toLowerCase()].testHasValue())
         GleanMetricsService.FxA.receivedTab(DeviceType.MOBILE)
-        assertTrue(FirefoxAccount.receivedTab[DeviceType.MOBILE.name].testHasValue())
-        assertEquals(FirefoxAccount.receivedTab[DeviceType.MOBILE.name].testGetValue(), 1)
+        assertTrue(FirefoxAccount.receivedTab[DeviceType.MOBILE.name.toLowerCase()].testHasValue())
+        assertEquals(FirefoxAccount.receivedTab[DeviceType.MOBILE.name.toLowerCase()].testGetValue(), 1)
     }
 
     @Test
     fun testTabTelemetry() {
-        assertFalse(Tabs.opened[GleanMetricsService.Tabs.TabSource.BOOKMARKS.name].testHasValue())
+        assertFalse(Tabs.opened[GleanMetricsService.Tabs.TabSource.BOOKMARKS.name.toLowerCase()].testHasValue())
         GleanMetricsService.Tabs.openedCounter(GleanMetricsService.Tabs.TabSource.BOOKMARKS)
-        assertTrue(Tabs.opened[GleanMetricsService.Tabs.TabSource.BOOKMARKS.name].testHasValue())
-        assertEquals(Tabs.opened[GleanMetricsService.Tabs.TabSource.BOOKMARKS.name].testGetValue(), 1)
+        assertTrue(Tabs.opened[GleanMetricsService.Tabs.TabSource.BOOKMARKS.name.toLowerCase()].testHasValue())
+        assertEquals(Tabs.opened[GleanMetricsService.Tabs.TabSource.BOOKMARKS.name.toLowerCase()].testGetValue(), 1)
 
         assertFalse(Tabs.activated.testHasValue())
         GleanMetricsService.Tabs.activatedEvent()
