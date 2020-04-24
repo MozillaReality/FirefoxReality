@@ -209,7 +209,8 @@ public class DownloadsView extends LibraryView implements DownloadsManager.Downl
                     getContext().getString(R.string.download_delete_all_confirm_checkbox),
                     (index, isChecked) -> {
                         if (index == PromptDialogWidget.POSITIVE) {
-                            mDownloadsManager.removeAllDownloads(isChecked);
+                            mViewModel.setIsEmpty(true);
+                            post(() -> mDownloadsManager.removeAllDownloads(isChecked));
                         }
                     }
             );
