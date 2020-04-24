@@ -380,7 +380,7 @@ public class DownloadsView extends LibraryView implements DownloadsManager.Downl
     public void onDownloadError(@NonNull String error, @NonNull String filename) {
         Log.e(LOGTAG, error);
         mWidgetManager.getFocusedWindow().showAlert(
-                getContext().getString(R.string.download_error_title, filename),
+                getContext().getString(R.string.download_error_title),
                 error,
                 null
         );
