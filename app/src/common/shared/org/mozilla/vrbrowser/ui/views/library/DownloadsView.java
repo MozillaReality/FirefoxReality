@@ -161,9 +161,9 @@ public class DownloadsView extends LibraryView implements DownloadsManager.Downl
                             getContext().getString(R.string.download_delete_confirm_delete)
                     },
                     getContext().getString(R.string.download_delete_file_confirm_checkbox),
-                    index -> {
+                    (index, isChecked) -> {
                         if (index == PromptDialogWidget.POSITIVE) {
-                            mDownloadsManager.removeDownload(item.getId());
+                            mDownloadsManager.removeDownload(item.getId(), isChecked);
                         }
                     }
             );
@@ -207,9 +207,9 @@ public class DownloadsView extends LibraryView implements DownloadsManager.Downl
                             getContext().getString(R.string.download_delete_confirm_delete)
                     },
                     getContext().getString(R.string.download_delete_all_confirm_checkbox),
-                    index -> {
+                    (index, isChecked) -> {
                         if (index == PromptDialogWidget.POSITIVE) {
-                            mDownloadsManager.clearAllDownloads();
+                            mDownloadsManager.removeAllDownloads(isChecked);
                         }
                     }
             );
@@ -293,9 +293,9 @@ public class DownloadsView extends LibraryView implements DownloadsManager.Downl
                             getContext().getString(R.string.download_delete_confirm_delete)
                     },
                     getContext().getString(R.string.download_delete_file_confirm_checkbox),
-                    index -> {
+                    (index, isChecked) -> {
                         if (index == PromptDialogWidget.POSITIVE) {
-                            mDownloadsManager.removeDownload(item.getDownloadsId());
+                            mDownloadsManager.removeDownload(item.getDownloadsId(), isChecked);
                         }
                     }
             );

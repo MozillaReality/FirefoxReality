@@ -117,37 +117,30 @@ public class DownloadsManager {
         return null;
     }
 
-    public void removeDownload(long downloadId) {
-        mDownloadManager.remove(downloadId);
-        notifyDownloadsUpdate();
-    }
-
-    public void removeAllDownloads() {
-        if (getDownloads().size() > 0) {
-            mDownloadManager.remove(getDownloads().stream().mapToLong(Download::getId).toArray());
-            notifyDownloadsUpdate();
-        }
-    }
-
-    public void clearDownload(long downloadId) {
+    public void removeDownload(long downloadId, boolean deleteFiles) {
         Download download = getDownload(downloadId);
         if (download != null) {
-            File file = new File(UrlUtils.stripProtocol(download.getOutputFile()));
-            if (file.exists()) {
-                File newFile = new File(UrlUtils.stripProtocol(download.getOutputFile().concat(".bak")));
-                file.renameTo(newFile);
+            if (!deleteFiles) {
+                File file = new File(UrlUtils.stripProtocol(download.getOutputFile()));
+                if (file.exists()) {
+                    File newFile = new File(UrlUtils.stripProtocol(download.getOutputFile().concat(".bak")));
+                    file.renameTo(newFile);
+                    mDownloadManager.remove(downloadId);
+                    newFile.renameTo(file);
+
+                } else {
+                    mDownloadManager.remove(downloadId);
+                }
+
+            } else {
                 mDownloadManager.remove(downloadId);
-                newFile.renameTo(file);
             }
         }
         notifyDownloadsUpdate();
     }
 
-    public void clearAllDownloads() {
-        getDownloads().forEach(download -> {
-            clearDownload(download.getId());
-        });
-        notifyDownloadsUpdate();
+    public void removeAllDownloads(boolean deleteFiles) {
+        getDownloads().forEach(download -> removeDownload(download.getId(), deleteFiles));
     }
 
     @Nullable
