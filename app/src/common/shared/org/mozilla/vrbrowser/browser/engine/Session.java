@@ -8,7 +8,9 @@ package org.mozilla.vrbrowser.browser.engine;
 import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.Surface;
@@ -471,7 +473,15 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
                 mState.mSession.loadUri(mState.mUri, GeckoSession.LOAD_FLAGS_REPLACE_HISTORY);
             }
         } else if (mState.mUri != null) {
-            mState.mSession.loadUri(mState.mUri);
+            boolean permission = true;
+            final Uri uri = Uri.parse(mState.mUri);
+            if ("file".equalsIgnoreCase(uri.getScheme())) {
+                permission = mContext.checkSelfPermission(
+                        android.Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
+            }
+            if (permission) {
+                mState.mSession.loadUri(mState.mUri);
+            }
         } else {
             loadDefaultPage();
         }
