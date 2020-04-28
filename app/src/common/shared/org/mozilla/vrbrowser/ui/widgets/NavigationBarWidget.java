@@ -409,8 +409,6 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
     public void onPause() {
         super.onPause();
         mBinding.navigationBarNavigation.urlBar.onPause();
-        exitFullScreenMode();
-        exitVRVideo();
     }
 
     @Override
