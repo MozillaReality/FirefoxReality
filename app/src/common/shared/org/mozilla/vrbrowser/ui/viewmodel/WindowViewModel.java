@@ -333,8 +333,9 @@ public class WindowViewModel extends AndroidViewModel {
         @Override
         public void onChanged(ObservableBoolean o) {
             isUrlBarIconsVisible.postValue(new ObservableBoolean(
-                    isLoading.getValue().get() ||
-                            isInsecureVisible.getValue().get()
+                    !isLibraryVisible.getValue().get() &&
+                            (isLoading.getValue().get() ||
+                                    isInsecureVisible.getValue().get())
             ));
         }
     };
