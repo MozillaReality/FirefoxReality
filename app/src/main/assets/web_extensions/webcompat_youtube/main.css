@@ -60,3 +60,12 @@ div.ytp-fullscreen video, .fxr-vr-video {
     height: 100% !important;
     position: relative !important;
 }
+
+
+
+#card #items
+{
+	display: block;
+	height: 70%;
+	overflow-y:scroll;
+}
