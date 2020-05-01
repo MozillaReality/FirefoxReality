@@ -115,7 +115,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
     private Executor mUIThreadExecutor;
     private ArrayList<NavigationListener> mNavigationListeners;
     private TrackingProtectionStore mTrackingDelegate;
-    private boolean mIsWindowAttached;
+    private WidgetPlacement mBeforeFullscreenPlacement;
 
     public NavigationBarWidget(Context aContext) {
         super(aContext);
@@ -140,8 +140,6 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
                 .get(TrayViewModel.class);
 
         updateUI();
-
-        mIsWindowAttached = false;
 
         mAppContext = aContext.getApplicationContext();
 
@@ -304,6 +302,8 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
             boolean wasVisible = mProjectionMenu.isVisible();
             closeFloatingMenus();
 
+            mProjectionMenu.mWidgetPlacement.cylinder = SettingsStore.getInstance(getContext()).isCurvedModeEnabled();
+
             if (!wasVisible) {
                 mProjectionMenu.show(REQUEST_FOCUS);
             }
@@ -320,6 +320,8 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
 
             boolean wasVisible = mBrightnessWidget.isVisible();
             closeFloatingMenus();
+
+            mBrightnessWidget.mWidgetPlacement.cylinder = SettingsStore.getInstance(getContext()).isCurvedModeEnabled();
 
             if (!wasVisible) {
                 float anchor = 0.5f + (float)mBinding.navigationBarFullscreen.brightnessButton.getMeasuredWidth() / (float)NavigationBarWidget.this.getMeasuredWidth();
@@ -501,8 +503,6 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
             mViewModel.getIsPopUpBlocked().removeObserver(mIsPopUpBlockedListener);
             mViewModel = null;
         }
-
-        mIsWindowAttached = false;
     }
 
     @Override
@@ -530,14 +530,14 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
 
         mAttachedWindow.addWindowListener(this);
 
+        mBeforeFullscreenPlacement = mWidgetPlacement;
+
         clearFocus();
 
         if (getSession() != null) {
             setUpSession(getSession());
         }
         handleWindowResize();
-
-        mIsWindowAttached = true;
     }
 
     private Session getSession() {
@@ -572,6 +572,10 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         if (aFullScreen) {
             enterFullScreenMode();
 
+            mBeforeFullscreenPlacement = mWidgetPlacement.clone();
+            mWidgetPlacement.cylinder = SettingsStore.getInstance(getContext()).isCurvedModeEnabled();
+            updateWidget();
+
             if (mAttachedWindow.isResizing()) {
                 exitResizeMode(ResizeAction.KEEP_SIZE);
             }
@@ -587,6 +591,9 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
                 }
             }
         } else {
+            mWidgetPlacement = mBeforeFullscreenPlacement;
+            updateWidget();
+
             if (mViewModel.getIsInVRVideo().getValue().get()) {
                 exitVRVideo();
             }
