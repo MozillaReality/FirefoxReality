@@ -16,6 +16,7 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.util.Pair;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.webkit.URLUtil;
 import android.widget.EditText;
@@ -385,6 +386,12 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         if (mAttachedWindow != null) {
             mBinding.navigationBarNavigation.urlBar.attachToWindow(mAttachedWindow);
         }
+
+        setOnTouchListener((v, event) -> {
+            closeFloatingMenus();
+            v.performClick();
+            return true;
+        });
     }
 
     TrackingProtectionStore.TrackingProtectionListener mTrackingListener = new TrackingProtectionStore.TrackingProtectionListener() {
