@@ -340,6 +340,7 @@ public class DownloadsView extends LibraryView implements DownloadsManager.Downl
                     break;
             }
             onDownloadsUpdate(mDownloadsManager.getDownloads());
+            mBinding.downloadsList.scrollToPosition(0);
         });
         menu.getPlacement().parentHandle = window.getHandle();
 
@@ -354,12 +355,46 @@ public class DownloadsView extends LibraryView implements DownloadsManager.Downl
 
     // DownloadsManager.DownloadsListener
 
-    private Comparator<Download> mAZFileNameComparator = (o1, o2) -> o1.getFilename().compareTo(o2.getFilename());
-    private Comparator<Download> mZAFilenameComparator = (o1, o2) -> o2.getFilename().compareTo(o1.getFilename());
-    private Comparator<Download> mDownloadDateAscComparator = (o1, o2) -> (int)(o1.getLastModified() - o2.getLastModified());
-    private Comparator<Download> mDownloadDateDescComparator = (o1, o2) -> (int)(o2.getLastModified() - o1.getLastModified());
-    private Comparator<Download> mDownloadSizeAscComparator = (o1, o2) -> (int)(o1.getSizeBytes() - o2.getSizeBytes());
-    private Comparator<Download> mDownloadSizeDescComparator = (o1, o2) -> (int)(o2.getSizeBytes() - o1.getSizeBytes());
+    private Comparator<Download> mDownloadIdDescComparator = (o1, o2) -> (int)(o1.getId() - o2.getId());
+
+    private Comparator<Download> mAZFileNameComparator = (o1, o2) -> {
+        int nameDiff = o1.getFilename().compareTo(o2.getFilename());
+        if (nameDiff == 0) {
+            return  mDownloadIdDescComparator.compare(o1, o2);
+
+        } else {
+            return nameDiff;
+        }
+    };
+    private Comparator<Download> mZAFilenameComparator = (o1, o2) -> {
+        int nameDiff = o2.getFilename().compareTo(o1.getFilename());
+        if (nameDiff == 0) {
+            return  mDownloadIdDescComparator.compare(o1, o2);
+
+        } else {
+            return nameDiff;
+        }
+    };
+    private Comparator<Download> mDownloadDateAscComparator = (o1, o2) -> mDownloadIdDescComparator.compare(o1, o2);
+    private Comparator<Download> mDownloadDateDescComparator = (o1, o2) -> mDownloadIdDescComparator.compare(o2, o1);
+    private Comparator<Download> mDownloadSizeAscComparator = (o1, o2) -> {
+        int sizeDiff = (int)(o1.getSizeBytes() - o2.getSizeBytes());
+        if (sizeDiff == 0) {
+            return  mDownloadIdDescComparator.compare(o1, o2);
+
+        } else {
+            return sizeDiff;
+        }
+    };
+    private Comparator<Download> mDownloadSizeDescComparator = (o1, o2) -> {
+        int sizeDiff = (int)(o2.getSizeBytes() - o1.getSizeBytes());
+        if (sizeDiff == 0) {
+            return mDownloadIdDescComparator.compare(o1, o2);
+
+        } else {
+            return sizeDiff;
+        }
+    };
 
     @Override
     public void onDownloadsUpdate(@NonNull List<Download> downloads) {
