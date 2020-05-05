@@ -7,8 +7,10 @@ import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mozilla.telemetry.TelemetryHolder
 import org.mozilla.vrbrowser.GleanMetrics.Distribution
 import org.mozilla.vrbrowser.GleanMetrics.FirefoxAccount
+import org.mozilla.vrbrowser.GleanMetrics.LegacyTelemetry
 import org.mozilla.vrbrowser.GleanMetrics.Tabs
 import org.mozilla.vrbrowser.GleanMetrics.Url
 import org.mozilla.vrbrowser.telemetry.GleanMetricsService
@@ -136,5 +138,13 @@ class GleanMetricsServiceTest {
         GleanMetricsService.Tabs.activatedEvent()
         assertTrue(Tabs.activated.testHasValue())
         assertEquals(Tabs.activated.testGetValue(), 1)
+    }
+
+    @Test
+    fun testLegacyTelemetry() {
+        assertFalse(LegacyTelemetry.clientId.testHasValue())
+        LegacyTelemetry.clientId.set(java.util.UUID.fromString(TelemetryHolder.get().getClientId()))
+        assertTrue(LegacyTelemetry.clientId.testHasValue())
+        assertEquals(LegacyTelemetry.clientId.testGetValue().toString(), TelemetryHolder.get().getClientId())
     }
 }
