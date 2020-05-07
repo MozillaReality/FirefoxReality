@@ -23,9 +23,9 @@ class Places(var context: Context) {
     var history = PlacesHistoryStorage(context)
 
     fun clear() {
-        val files = context.filesDir.listFiles { dir, name ->
+        val files = context.filesDir.listFiles { _, name ->
             name.matches("places\\.sqlite.*".toRegex())
-        }
+        }!!
         for (file in files) {
             if (!file.delete()) {
                 Logger(LOGTAG).debug("Can't remove " + file.absolutePath)
