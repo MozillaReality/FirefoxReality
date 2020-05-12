@@ -11,6 +11,7 @@ import org.mozilla.vrbrowser.browser.SettingsStore
 import org.mozilla.vrbrowser.browser.content.TrackingProtectionPolicy
 import org.mozilla.vrbrowser.browser.content.TrackingProtectionStore
 import org.mozilla.vrbrowser.crashreporting.CrashReporterService
+import java.util.concurrent.CompletableFuture
 
 object EngineProvider {
 
@@ -54,13 +55,21 @@ object EngineProvider {
             }
 
             runtime = GeckoRuntime.create(context, builder.build())
-            for (extension in WEB_EXTENSIONS) {
-                val path = "resource://android/assets/web_extensions/$extension/"
-                runtime!!.registerWebExtension(WebExtension(path, runtime!!.webExtensionController))
-            }
         }
 
         return runtime!!
+    }
+
+    fun loadExtensions() : CompletableFuture<Void> {
+        val futures : List<CompletableFuture<Void>> = WEB_EXTENSIONS.map {
+            val future = CompletableFuture<Void>()
+            val path = "resource://android/assets/web_extensions/$it/"
+            runtime!!.registerWebExtension(WebExtension(path, runtime!!.webExtensionController)).accept {
+                future.complete(null)
+            }
+            future
+        }
+        return CompletableFuture.allOf(*futures.toTypedArray())
     }
 
     fun createGeckoWebExecutor(context: Context): GeckoWebExecutor {
