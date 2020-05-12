@@ -63,8 +63,8 @@ object EngineProvider {
     fun loadExtensions() : CompletableFuture<Void> {
         val futures : List<CompletableFuture<Void>> = WEB_EXTENSIONS.map {
             val future = CompletableFuture<Void>()
-            val path = "resource://android/assets/web_extensions/$it/"
-            runtime!!.registerWebExtension(WebExtension(path, runtime!!.webExtensionController)).accept {
+            val url = "resource://android/assets/web_extensions/$it/"
+            runtime!!.webExtensionController.installBuiltIn(url).accept {
                 future.complete(null)
             }
             future
