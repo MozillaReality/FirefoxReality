@@ -405,6 +405,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
                     if (msg != null) {
                         Log.e(LOGTAG, "Extensions load error: " + msg);
                     }
+                    mWindows.restoreSessions();
                     return null;
                 });
     }
