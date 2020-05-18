@@ -901,7 +901,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
 
         } else {
             GeckoSession session = mSession.getGeckoSession();
-            if (session != null) {
+            if (session != null && !isContextMenuVisible()) {
                 session.getPanZoomController().onMotionEvent(aEvent);
             }
         }
@@ -1592,6 +1592,11 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         } else {
             download.run();
         }
+    }
+
+    private boolean isContextMenuVisible() {
+        return (mContextMenu != null && mContextMenu.isVisible() ||
+            mSelectionMenu != null && mSelectionMenu.isVisible());
     }
 
     // GeckoSession.ContentDelegate
