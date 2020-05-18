@@ -39,7 +39,6 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -1213,21 +1212,14 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             Session moveTo = targetWindow.getSession();
             moveFrom.surfaceDestroyed();
             moveTo.surfaceDestroyed();
-            windowToMove.setupListeners(moveTo);
-            windowToMove.setSession(moveTo, WindowWidget.SESSION_DO_NOT_RELEASE_DISPLAY);
-            targetWindow.setupListeners(moveFrom);
-            targetWindow.setSession(moveFrom, WindowWidget.SESSION_DO_NOT_RELEASE_DISPLAY);
-            SessionStore.get().setActiveSession(targetWindow.getSession());
+            windowToMove.setSession(moveTo, WindowWidget.SESSION_DO_NOT_RELEASE_DISPLAY, WindowWidget.LEAVE_CURRENT_SESSION_ACTIVE);
+            targetWindow.setSession(moveFrom, WindowWidget.SESSION_DO_NOT_RELEASE_DISPLAY, WindowWidget.LEAVE_CURRENT_SESSION_ACTIVE);
             windowToMove.setActiveWindow(false);
             targetWindow.setActiveWindow(true);
 
         } else {
             setFirstPaint(targetWindow, aTab);
-            targetWindow.getSession().setActive(false);
-            targetWindow.setupListeners(aTab);
-            aTab.setActive(true);
-            targetWindow.setSession(aTab);
-            SessionStore.get().setActiveSession(aTab);
+            targetWindow.setSession(aTab, WindowWidget.DEACTIVATE_CURRENT_SESSION);
         }
     }
 
@@ -1238,16 +1230,12 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
     public void addTab(@NonNull WindowWidget targetWindow, @Nullable String aUri) {
         Session session = SessionStore.get().createSuspendedSession(aUri, targetWindow.getSession().isPrivateMode());
         setFirstPaint(targetWindow, session);
-        targetWindow.getSession().setActive(false);
-        targetWindow.setupListeners(session);
-        session.setActive(true);
-        targetWindow.setSession(session);
+        targetWindow.setSession(session, WindowWidget.DEACTIVATE_CURRENT_SESSION);
         if (aUri == null || aUri.isEmpty()) {
             session.loadHomePage();
         } else {
             session.loadUri(aUri);
         }
-        SessionStore.get().setActiveSession(session);
     }
 
     public void addBackgroundTab(WindowWidget targetWindow, String aUri) {
@@ -1303,9 +1291,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
                 Session tab = available.get(0);
                 if (tab != null) {
                     setFirstPaint(window, tab);
-                    window.setupListeners(tab);
-                    tab.setActive(true);
-                    window.setSession(tab);
+                    window.setSession(tab, WindowWidget.LEAVE_CURRENT_SESSION_ACTIVE);
                 }
 
                 available.remove(0);
@@ -1320,8 +1306,6 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             cache.removeBitmap(session.getId());
             SessionStore.get().destroySession(session);
         }
-
-        SessionStore.get().setActiveSession(targetWindow.getSession());
     }
 
     @Override
@@ -1342,10 +1326,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
 
             if (i == 0 && !fullscreen) {
                 // Set the first received tab of the list the current one.
-                SessionStore.get().setActiveSession(session);
-                targetWindow.setupListeners(session);
-                targetWindow.getSession().setActive(false);
-                targetWindow.setSession(session);
+                targetWindow.setSession(session, WindowWidget.LEAVE_CURRENT_SESSION_ACTIVE);
             }
         }
 
