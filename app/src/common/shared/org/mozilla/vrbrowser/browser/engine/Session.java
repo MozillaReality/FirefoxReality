@@ -121,7 +121,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         mRuntime = aRuntime;
         initialize();
         mState = createSession(aSettings, aOpenMode);
-        mState.setActive(true);
+        mState.setActive(aOpenMode == SESSION_OPEN);
     }
 
     protected Session(Context aContext, GeckoRuntime aRuntime, @NonNull SessionState aRestoreState) {
@@ -286,7 +286,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     }
 
     public void addNavigationListener(GeckoSession.NavigationDelegate aListener) {
-        mNavigationListeners.add(aListener);
+        mNavigationListeners.addIfAbsent(aListener);
         dumpState(aListener);
     }
 
@@ -295,7 +295,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     }
 
     public void addProgressListener(GeckoSession.ProgressDelegate aListener) {
-        mProgressListeners.add(aListener);
+        mProgressListeners.addIfAbsent(aListener);
         dumpState(aListener);
     }
 
@@ -304,7 +304,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     }
 
     public void addContentListener(GeckoSession.ContentDelegate aListener) {
-        mContentListeners.add(aListener);
+        mContentListeners.addIfAbsent(aListener);
         dumpState(aListener);
     }
 
@@ -313,7 +313,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     }
 
     public void addSessionChangeListener(SessionChangeListener aListener) {
-        mSessionChangeListeners.add(aListener);
+        mSessionChangeListeners.addIfAbsent(aListener);
     }
 
     public void removeSessionChangeListener(SessionChangeListener aListener) {
@@ -321,7 +321,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     }
 
     public void addTextInputListener(GeckoSession.TextInputDelegate aListener) {
-        mTextInputListeners.add(aListener);
+        mTextInputListeners.addIfAbsent(aListener);
     }
 
     public void removeTextInputListener(GeckoSession.TextInputDelegate aListener) {
@@ -329,7 +329,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     }
 
     public void addVideoAvailabilityListener(VideoAvailabilityListener aListener) {
-        mVideoAvailabilityListeners.add(aListener);
+        mVideoAvailabilityListeners.addIfAbsent(aListener);
         dumpState(aListener);
     }
 
@@ -338,7 +338,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     }
 
     public void addSelectionActionListener(GeckoSession.SelectionActionDelegate aListener) {
-        mSelectionActionListeners.add(aListener);
+        mSelectionActionListeners.addIfAbsent(aListener);
     }
 
     public void removeSelectionActionListener(GeckoSession.ContentDelegate aListener) {
@@ -346,7 +346,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     }
 
     public void addBitmapChangedListener(BitmapChangedListener aListener) {
-        mBitmapChangedListeners.add(aListener);
+        mBitmapChangedListeners.addIfAbsent(aListener);
     }
 
     public void removeBitmapChangedListener(BitmapChangedListener aListener) {
@@ -354,7 +354,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     }
 
     public void addWebXRStateChangedListener(WebXRStateChangedListener aListener) {
-        mWebXRStateListeners.add(aListener);
+        mWebXRStateListeners.addIfAbsent(aListener);
         dumpState(aListener);
     }
 
@@ -363,7 +363,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     }
 
     public void addPopUpStateChangedListener(PopUpStateChangedListener aListener) {
-        mPopUpStateStateListeners.add(aListener);
+        mPopUpStateStateListeners.addIfAbsent(aListener);
         dumpState(aListener);
     }
 
@@ -372,7 +372,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     }
 
     public void addDrmStateChangedListener(DrmStateChangedListener aListener) {
-        mDrmStateStateListeners.add(aListener);
+        mDrmStateStateListeners.addIfAbsent(aListener);
         dumpState(aListener);
     }
 
@@ -406,6 +406,16 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         aSession.setHistoryDelegate(null);
         aSession.setSelectionActionDelegate(null);
         aSession.setContentBlockingDelegate(null);
+    }
+
+    public void updateTrackingProtection() {
+        if ((mState != null) && (mState.mSettings != null)) {
+            TrackingProtectionPolicy policy = TrackingProtectionStore.getTrackingProtectionPolicy(mContext);
+            mState.mSettings.setTrackingProtectionEnabled(mState.mSettings.isPrivateBrowsingEnabled() || policy.shouldBlockContent());
+            if (mState.mSession != null) {
+                mState.mSession.getSettings().setUseTrackingProtection(mState.mSettings.isTrackingProtectionEnabled());
+            }
+        }
     }
 
     public void suspend() {
@@ -450,6 +460,8 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
             settings = new SessionSettings.Builder()
                     .withDefaultSettings(mContext)
                     .build();
+        } else {
+            updateTrackingProtection();
         }
 
         mState.mSession = createGeckoSession(settings);
@@ -520,9 +532,6 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
 
         SessionState previous = mState;
         mState = mState.recreate();
-
-        TrackingProtectionPolicy policy = TrackingProtectionStore.getTrackingProtectionPolicy(mContext);
-        mState.mSettings.setTrackingProtectionEnabled(mState.mSettings.isPrivateBrowsingEnabled() || policy.shouldBlockContent());
 
         restore();
 
@@ -758,15 +767,19 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     }
 
     public void setActive(boolean aActive) {
+        if (!aActive && mState.mSession != null && !mState.isActive()) {
+            // Prevent duplicated setActive(false) calls. There is a GV
+            // bug that makes the session not to be resumed correctly.
+            // See https://github.com/MozillaReality/FirefoxReality/issues/3375.
+            return;
+        }
         // Flush the events queued while the session was inactive
         if (mState.mSession != null && !mState.isActive() && aActive) {
             flushQueuedEvents();
         }
 
         if (mState.mSession != null) {
-            if (mState.isActive() != aActive) {
-                mState.mSession.setActive(aActive);
-            }
+            mState.mSession.setActive(aActive);
             mState.setActive(aActive);
         } else if (aActive) {
             restore();
@@ -1679,5 +1692,21 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
             mState.mDisplay = mState.mSession.acquireDisplay();
         }
         mState.mDisplay.surfaceChanged(surface, left, top, width, height);
+    }
+
+    public void logState() {
+        if (mState == null) {
+            Log.d(LOGTAG, "Session state is null");
+            return;
+        }
+        Log.d(LOGTAG, "Session: " + (mState.mSession != null ? mState.mSession.hashCode() : "null"));
+        Log.d(LOGTAG, "\tActive: " + mState.isActive());
+        Log.d(LOGTAG, "\tUri: " + (mState.mUri != null ? mState.mUri : "null"));
+        Log.d(LOGTAG, "\tFullscreen: " + mState.mFullScreen);
+        Log.d(LOGTAG, "\tCan go back: " + mState.mCanGoBack);
+        Log.d(LOGTAG, "\tCan go forward: " + mState.mCanGoForward);
+        if (mState.mSettings != null) {
+            Log.d(LOGTAG, "\tPrivate Browsing: " + mState.mSettings.isPrivateBrowsingEnabled());
+        }
     }
 }

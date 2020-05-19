@@ -84,7 +84,7 @@ public class SettingsStore {
     public final static int POINTER_COLOR_DEFAULT_DEFAULT = Color.parseColor("#FFFFFF");
     public final static int SCROLL_DIRECTION_DEFAULT = 0;
     public final static String ENV_DEFAULT = "offworld";
-    public final static int MSAA_DEFAULT_LEVEL = 1;
+    public final static int MSAA_DEFAULT_LEVEL = 0;
     public final static boolean AUDIO_ENABLED = false;
     public final static float CYLINDER_DENSITY_ENABLED_DEFAULT = 4680.0f;
     private final static long CRASH_RESTART_DELTA = 2000;
@@ -101,7 +101,7 @@ public class SettingsStore {
     public final static boolean BYPASS_CACHE_ON_RELOAD = false;
     public final static boolean MULTI_E10S = false;
     public final static int DOWNLOADS_STORAGE_DEFAULT = INTERNAL;
-    public final static int DOWNLOADS_SORTING_ORDER_DEFAULT = SortingContextMenuWidget.SORT_FILENAME_AZ;
+    public final static int DOWNLOADS_SORTING_ORDER_DEFAULT = SortingContextMenuWidget.SORT_DATE_ASC;
 
     // Enable telemetry by default (opt-out).
     public final static boolean CRASH_REPORTING_DEFAULT = false;

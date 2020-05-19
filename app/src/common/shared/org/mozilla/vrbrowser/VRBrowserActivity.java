@@ -93,9 +93,13 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
+import java.util.function.Function;
+
+import static org.mozilla.vrbrowser.ui.widgets.UIWidget.REMOVE_WIDGET;
 
 public class VRBrowserActivity extends PlatformActivity implements WidgetManagerDelegate, ComponentCallbacks2, LifecycleOwner, ViewModelStoreOwner {
 
@@ -169,6 +173,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     NavigationBarWidget mNavigationBar;
     CrashDialogWidget mCrashDialog;
     TrayWidget mTray;
+    WhatsNewWidget mWhatsNewWidget = null;
     WebXRInterstitialWidget mWebXRInterstitial;
     PermissionDelegate mPermissionDelegate;
     LinkedList<UpdateListener> mWidgetUpdateListeners;
@@ -190,6 +195,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     private Widget mActiveDialog;
     private Set<String> mPoorPerformanceWhiteList;
     private float mCurrentCylinderDensity = 0;
+    private boolean mHideWebXRIntersitial = false;
 
     private boolean callOnAudioManager(Consumer<AudioManager> fn) {
         if (mAudioManager == null) {
@@ -383,11 +389,25 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
 
         // Show the what's upp dialog if we haven't showed it yet and this is v6.
         if (!SettingsStore.getInstance(this).isWhatsNewDisplayed()) {
-            final WhatsNewWidget whatsNew = new WhatsNewWidget(this);
-            whatsNew.setLoginOrigin(Accounts.LoginOrigin.NONE);
-            whatsNew.getPlacement().parentHandle = mWindows.getFocusedWindow().getHandle();
-            whatsNew.show(UIWidget.REQUEST_FOCUS);
+            mWhatsNewWidget = new WhatsNewWidget(this);
+            mWhatsNewWidget.setLoginOrigin(Accounts.LoginOrigin.NONE);
+            mWhatsNewWidget.getPlacement().parentHandle = mWindows.getFocusedWindow().getHandle();
+            mWhatsNewWidget.show(UIWidget.REQUEST_FOCUS);
         }
+
+        EngineProvider.INSTANCE.loadExtensions()
+                .thenAcceptAsync(aVoid -> {
+                    Log.d(LOGTAG, "WebExtensions loaded");
+                    mWindows.restoreSessions();
+                }, getServicesProvider().getExecutors().mainThread())
+                .exceptionally(throwable -> {
+                    String msg = throwable.getLocalizedMessage();
+                    if (msg != null) {
+                        Log.e(LOGTAG, "Extensions load error: " + msg);
+                    }
+                    mWindows.restoreSessions();
+                    return null;
+                });
     }
 
     private void attachToWindow(@NonNull WindowWidget aWindow, @Nullable WindowWidget aPrevWindow) {
@@ -519,6 +539,9 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         super.onDestroy();
         mLifeCycle.setCurrentState(Lifecycle.State.DESTROYED);
         mViewModelStore.clear();
+        // Always exit to work around https://github.com/MozillaReality/FirefoxReality/issues/3363
+        finish();
+        System.exit(0);
     }
 
     @Override
@@ -614,6 +637,20 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
                 openInWindow = extras.getBoolean("create_new_window", false);
                 if (uri == null) {
                     uri = Uri.parse(SettingsStore.getInstance(this).getHomepage());
+                }
+            }
+
+            if (extras.containsKey("hide_webxr_interstitial")) {
+                mHideWebXRIntersitial = extras.getBoolean("hide_webxr_interstitial", false);
+                if (mHideWebXRIntersitial) {
+                    setWebXRIntersitialState(WEBXR_INTERSTITIAL_HIDDEN);
+                }
+            }
+
+            if (extras.containsKey("hide_whats_new")) {
+                boolean hideWhatsNew = extras.getBoolean("hide_whats_new", false);
+                if (hideWhatsNew && mWhatsNewWidget != null) {
+                    mWhatsNewWidget.hide(REMOVE_WIDGET);
                 }
             }
         }
@@ -729,7 +766,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
                         new String[]{
                                 getString(R.string.exit_confirm_dialog_button_cancel),
                                 getString(R.string.exit_confirm_dialog_button_quit),
-                        }, index -> {
+                        }, (index, isChecked) -> {
                             if (index == PromptDialogWidget.POSITIVE) {
                                 VRBrowserActivity.super.onBackPressed();
                             }
@@ -1030,7 +1067,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
 
     @Keep
     @SuppressWarnings("unused")
-    void onExitWebXR() {
+    void onExitWebXR(long aCallback) {
         if (Thread.currentThread() == mUiThread) {
             return;
         }
@@ -1052,6 +1089,9 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
             if (!mWindows.isPaused()) {
                 Log.d(LOGTAG, "Compositor resume begin");
                 mWindows.resumeCompositor();
+                if (aCallback != 0) {
+                    queueRunnable(() -> runCallbackNative(aCallback));
+                }
                 Log.d(LOGTAG, "Compositor resume end");
             }
         }, 20);
@@ -1059,12 +1099,19 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     @Keep
     @SuppressWarnings("unused")
     void onDismissWebXRInterstitial() {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                for (WebXRListener listener: mWebXRListeners) {
-                    listener.onDismissWebXRInterstitial();
-                }
+        runOnUiThread(() -> {
+            for (WebXRListener listener: mWebXRListeners) {
+                listener.onDismissWebXRInterstitial();
+            }
+        });
+    }
+
+    @Keep
+    @SuppressWarnings("unused")
+    void onWebXRRenderStateChange(boolean aRendering) {
+        runOnUiThread(() -> {
+            for (WebXRListener listener: mWebXRListeners) {
+                listener.onWebXRRenderStateChange(aRendering);
             }
         });
     }
@@ -1137,7 +1184,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     @Keep
     @SuppressWarnings("unused")
     private void setDeviceType(int aType) {
-        if (DeviceType.isOculusBuild()) {
+        if (DeviceType.isOculusBuild() || DeviceType.isWaveBuild()) {
             runOnUiThread(() -> DeviceType.setType(aType));
         }
     }
@@ -1150,7 +1197,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
                 mWindows.getFocusedWindow().showAlert(
                         getString(R.string.not_entitled_title),
                         getString(R.string.not_entitled_message, getString(R.string.app_name)),
-                        index -> finish());
+                        (index, isChecked) -> finish());
             }
         });
     }
@@ -1176,7 +1223,10 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
             }
             window.getSession().loadHomePage();
             final String[] buttons = {getString(R.string.ok_button), getString(R.string.performance_unblock_page)};
-            window.showConfirmPrompt(getString(R.string.performance_title), getString(R.string.performance_message), buttons, index -> {
+            window.showConfirmPrompt(getString(R.string.performance_title),
+                    getString(R.string.performance_message),
+                    buttons,
+                    (index, isChecked) -> {
                 if (index == PromptDialogWidget.NEGATIVE) {
                     mPoorPerformanceWhiteList.add(originalUri);
                     window.getSession().loadUri(originalUri);
@@ -1452,6 +1502,11 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     @Override
     public void setWebXRIntersitialState(@WebXRInterstitialState int aState) {
         queueRunnable(() -> setWebXRIntersitialStateNative(aState));
+    }
+
+    @Override
+    public boolean isWebXRIntersitialHidden() {
+        return mHideWebXRIntersitial;
     }
 
     @Override

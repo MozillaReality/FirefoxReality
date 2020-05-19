@@ -10,6 +10,7 @@ import android.net.Uri;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.webkit.URLUtil;
 
 import androidx.annotation.NonNull;
@@ -21,6 +22,7 @@ import org.mozilla.vrbrowser.utils.UrlUtils;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -41,6 +43,7 @@ public class DownloadsManager {
     private List<DownloadsListener> mListeners;
     private DownloadManager mDownloadManager;
     private ScheduledThreadPoolExecutor mExecutor;
+    private ScheduledFuture<?> mFuture;
 
     public DownloadsManager(@NonNull Context context) {
         mMainHandler = new Handler(Looper.getMainLooper());
@@ -67,14 +70,29 @@ public class DownloadsManager {
     public void addListener(@NonNull DownloadsListener listener) {
         mListeners.add(listener);
         if (mListeners.size() == 1) {
-            mExecutor.scheduleAtFixedRate(mDownloadUpdateTask, 0, REFRESH_INTERVAL, TimeUnit.MILLISECONDS);
+            scheduleUpdates();
         }
     }
 
     public void removeListener(@NonNull DownloadsListener listener) {
         mListeners.remove(listener);
         if (mListeners.size() == 0) {
-            mExecutor.remove(mDownloadUpdateTask);
+            stopUpdates();
+        }
+    }
+
+    private void scheduleUpdates() {
+        if (mFuture != null) {
+            // Already scheduled
+            return;
+        }
+        mFuture = mExecutor.scheduleAtFixedRate(mDownloadUpdateTask, 0, REFRESH_INTERVAL, TimeUnit.MILLISECONDS);
+    }
+
+    private void stopUpdates() {
+        if (mFuture != null) {
+            mFuture.cancel(true);
+            mFuture = null;
         }
     }
 
@@ -104,6 +122,7 @@ public class DownloadsManager {
         }
 
         mDownloadManager.enqueue(request);
+        scheduleUpdates();
     }
 
     @Nullable
@@ -117,37 +136,30 @@ public class DownloadsManager {
         return null;
     }
 
-    public void removeDownload(long downloadId) {
-        mDownloadManager.remove(downloadId);
-        notifyDownloadsUpdate();
-    }
-
-    public void removeAllDownloads() {
-        if (getDownloads().size() > 0) {
-            mDownloadManager.remove(getDownloads().stream().mapToLong(Download::getId).toArray());
-            notifyDownloadsUpdate();
-        }
-    }
-
-    public void clearDownload(long downloadId) {
+    public void removeDownload(long downloadId, boolean deleteFiles) {
         Download download = getDownload(downloadId);
         if (download != null) {
-            File file = new File(UrlUtils.stripProtocol(download.getOutputFile()));
-            if (file.exists()) {
-                File newFile = new File(UrlUtils.stripProtocol(download.getOutputFile().concat(".bak")));
-                file.renameTo(newFile);
+            if (!deleteFiles) {
+                File file = new File(UrlUtils.stripProtocol(download.getOutputFile()));
+                if (file.exists()) {
+                    File newFile = new File(UrlUtils.stripProtocol(download.getOutputFile().concat(".bak")));
+                    file.renameTo(newFile);
+                    mDownloadManager.remove(downloadId);
+                    newFile.renameTo(file);
+
+                } else {
+                    mDownloadManager.remove(downloadId);
+                }
+
+            } else {
                 mDownloadManager.remove(downloadId);
-                newFile.renameTo(file);
             }
         }
         notifyDownloadsUpdate();
     }
 
-    public void clearAllDownloads() {
-        getDownloads().forEach(download -> {
-            clearDownload(download.getId());
-        });
-        notifyDownloadsUpdate();
+    public void removeAllDownloads(boolean deleteFiles) {
+        getDownloads().forEach(download -> removeDownload(download.getId(), deleteFiles));
     }
 
     @Nullable
@@ -199,7 +211,12 @@ public class DownloadsManager {
 
     private void notifyDownloadsUpdate() {
         List<Download> downloads = getDownloads();
+        int filter = Download.RUNNING | Download.PAUSED | Download.PENDING;
+        boolean activeDownloads = downloads.stream().filter(d -> (d.getStatus() & filter) != 0).count()  > 0;
         mListeners.forEach(listener -> listener.onDownloadsUpdate(downloads));
+        if (!activeDownloads) {
+            stopUpdates();
+        }
     }
 
     private void notifyDownloadCompleted(@NonNull Download download) {
@@ -210,17 +227,8 @@ public class DownloadsManager {
         mListeners.forEach(listener -> listener.onDownloadError(error, file));
     }
 
-    private Runnable mDownloadUpdateTask = new Runnable() {
-        @Override
-        public void run() {
-            DownloadManager.Query query = new DownloadManager.Query();
-            Cursor c = mDownloadManager.query(query);
-
-            while (c.moveToNext()) {
-                mMainHandler.post(() -> notifyDownloadsUpdate());
-            }
-            c.close();
-        }
+    private Runnable mDownloadUpdateTask = () -> {
+        mMainHandler.post(this::notifyDownloadsUpdate);
     };
 
 }

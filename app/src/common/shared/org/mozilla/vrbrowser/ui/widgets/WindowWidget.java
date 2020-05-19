@@ -9,6 +9,7 @@ import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
@@ -492,8 +493,12 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
             case BOOKMARKS:
                 if (mViewModel.getIsHistoryVisible().getValue().get() ||
                         mViewModel.getIsDownloadsVisible().getValue().get()) {
-                    hidePanel(Windows.PanelType.HISTORY, false);
-                    hidePanel(Windows.PanelType.DOWNLOADS, false);
+                    if (isHistoryVisible()) {
+                        hidePanel(Windows.PanelType.HISTORY, false);
+                    }
+                    if (isDownloadsVisible()) {
+                        hidePanel(Windows.PanelType.DOWNLOADS, false);
+                    }
                     showPanel(Windows.PanelType.BOOKMARKS, false);
 
                 } else if (mViewModel.getIsBookmarksVisible().getValue().get()) {
@@ -506,8 +511,12 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
             case HISTORY:
                 if (mViewModel.getIsBookmarksVisible().getValue().get() ||
                         mViewModel.getIsDownloadsVisible().getValue().get()) {
-                    hidePanel(Windows.PanelType.BOOKMARKS, false);
-                    hidePanel(Windows.PanelType.DOWNLOADS, false);
+                    if (isBookmarksVisible()) {
+                        hidePanel(Windows.PanelType.BOOKMARKS, false);
+                    }
+                    if (isDownloadsVisible()) {
+                        hidePanel(Windows.PanelType.DOWNLOADS, false);
+                    }
                     showPanel(Windows.PanelType.HISTORY, false);
 
                 } else if (mViewModel.getIsHistoryVisible().getValue().get()) {
@@ -520,8 +529,12 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
             case DOWNLOADS:
                 if (mViewModel.getIsBookmarksVisible().getValue().get() ||
                         mViewModel.getIsHistoryVisible().getValue().get()) {
-                    hidePanel(Windows.PanelType.BOOKMARKS, false);
-                    hidePanel(Windows.PanelType.HISTORY, false);
+                    if (isBookmarksVisible()) {
+                        hidePanel(Windows.PanelType.BOOKMARKS, false);
+                    }
+                    if (isHistoryVisible()) {
+                        hidePanel(Windows.PanelType.HISTORY, false);
+                    }
                     showPanel(Windows.PanelType.DOWNLOADS, false);
 
                 } else if (mViewModel.getIsDownloadsVisible().getValue().get()) {
@@ -889,7 +902,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
 
         } else {
             GeckoSession session = mSession.getGeckoSession();
-            if (session != null) {
+            if (session != null && !isContextMenuVisible()) {
                 session.getPanZoomController().onMotionEvent(aEvent);
             }
         }
@@ -1117,12 +1130,9 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
             } else {
                 onCurrentSessionChange(null, aSession.getGeckoSession());
             }
-            setupListeners(mSession);
             for (WindowListener listener: mListeners) {
                 listener.onSessionChanged(oldSession, aSession);
             }
-
-
         }
         mCaptureOnPageStop = false;
         hideLibraryPanels();
@@ -1149,11 +1159,17 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
 
     @Override
     public void onStackSession(Session aSession) {
+        if (aSession == mSession) {
+            Log.e(LOGTAG, "Attempting to stack same session.");
+            return;
+        }
         // e.g. tab opened via window.open()
         aSession.updateLastUse();
         Session current = mSession;
+        setupListeners(aSession);
         setSession(aSession);
         SessionStore.get().setActiveSession(aSession);
+        aSession.setActive(true);
         current.captureBackgroundBitmap(getWindowWidth(), getWindowHeight()).thenAccept(aVoid -> current.setActive(false));
         mWidgetManager.getWindows().showTabAddedNotification();
 
@@ -1164,6 +1180,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     public void onUnstackSession(Session aSession, Session aParent) {
         if (mSession == aSession) {
             aParent.setActive(true);
+            setupListeners(aParent);
             setSession(aParent);
             SessionStore.get().setActiveSession(aParent);
             SessionStore.get().destroySession(aSession);
@@ -1265,10 +1282,10 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         }
         mAlertDialog.setTitle(title);
         mAlertDialog.setBody(msg);
-        mAlertDialog.setButtonsDelegate(index -> {
+        mAlertDialog.setButtonsDelegate((index, isChecked) -> {
             mAlertDialog.hide(REMOVE_WIDGET);
             if (callback != null) {
-                callback.onButtonClicked(index);
+                callback.onButtonClicked(index, isChecked);
             }
             mAlertDialog.releaseWidget();
             mAlertDialog = null;
@@ -1345,10 +1362,10 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         mConfirmDialog.setTitle(title);
         mConfirmDialog.setBody(msg);
         mConfirmDialog.setButtons(btnMsg);
-        mConfirmDialog.setButtonsDelegate(index -> {
+        mConfirmDialog.setButtonsDelegate((index, isChecked) -> {
             mConfirmDialog.hide(REMOVE_WIDGET);
             if (callback != null) {
-                callback.onButtonClicked(index);
+                callback.onButtonClicked(index, isChecked);
             }
             mConfirmDialog.releaseWidget();
             mConfirmDialog = null;
@@ -1371,10 +1388,10 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         mAppDialog.setTitle(title);
         mAppDialog.setBody(description);
         mAppDialog.setButtons(btnMsg);
-        mAppDialog.setButtonsDelegate(index -> {
+        mAppDialog.setButtonsDelegate((index, isChecked) -> {
             mAppDialog.hide(REMOVE_WIDGET);
             if (buttonsCallback != null) {
-                buttonsCallback.onButtonClicked(index);
+                buttonsCallback.onButtonClicked(index, isChecked);
             }
             mAppDialog.releaseWidget();
         });
@@ -1394,12 +1411,12 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         showConfirmPrompt(
                 R.drawable.ic_icon_drm_allowed,
                 getContext().getString(R.string.drm_first_use_title_v1),
-                getContext().getString(R.string.drm_first_use_body_v1, getResources().getString(R.string.sumo_drm_url)),
+                getContext().getString(R.string.drm_first_use_body_v2, getResources().getString(R.string.sumo_drm_url)),
                 new String[]{
                         getContext().getString(R.string.drm_first_use_do_not_allow),
                         getContext().getString(R.string.drm_first_use_allow),
                 },
-                index -> {
+                (index, isChecked) -> {
                     // We remove the prefs listener before the first DRM update to avoid reloading the session
                     mPrefs.unregisterOnSharedPreferenceChangeListener(this);
                     SettingsStore.getInstance(getContext()).setDrmContentPlaybackEnabled(index == PromptDialogWidget.POSITIVE);
@@ -1541,7 +1558,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
                         new String[]{
                                 getResources().getString(R.string.download_confirm_cancel),
                                 getResources().getString(R.string.download_confirm_download)},
-                        index ->  {
+                        (index, isChecked) ->  {
                             if (index == PromptDialogWidget.POSITIVE) {
                                 mDownloadsManager.startDownload(downloadJob);
                             }
@@ -1578,6 +1595,11 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         }
     }
 
+    private boolean isContextMenuVisible() {
+        return (mContextMenu != null && mContextMenu.isVisible() ||
+            mSelectionMenu != null && mSelectionMenu.isVisible());
+    }
+
     // GeckoSession.ContentDelegate
 
     @Override
@@ -1598,6 +1620,10 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         mContextMenu.mWidgetPlacement.parentHandle = getHandle();
         mContextMenu.setDismissCallback(this::hideContextMenus);
         mContextMenu.setContextElement(element);
+        if (!mContextMenu.hasActions()) {
+            hideContextMenus();
+            return;
+        }
         mContextMenu.show(REQUEST_FOCUS);
 
         mWidgetPlacement.tintColor = 0x555555FF;
@@ -1644,30 +1670,39 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
             startDownload(job, true);
 
         } else {
-            showConfirmPrompt(getResources().getString(R.string.download_open_file_unsupported_title),
-                    getResources().getString(R.string.download_open_file_unsupported_body),
-                    new String[]{
-                            getResources().getString(R.string.download_open_file_unsupported_cancel),
-                            getResources().getString(R.string.download_open_file_unsupported_open)
-                    }, index -> {
-                        if (index == PromptDialogWidget.POSITIVE) {
-                            Uri contentUri = FileProvider.getUriForFile(
-                                    getContext(),
-                                    getContext().getApplicationContext().getPackageName() + ".provider",
-                                    new File(webResponseInfo.uri.substring("file://".length())));
-                            Intent newIntent = new Intent(Intent.ACTION_VIEW);
-                            newIntent.setDataAndType(contentUri, webResponseInfo.contentType);
-                            newIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                            try {
-                                getContext().startActivity(newIntent);
-                            } catch (ActivityNotFoundException ex) {
-                                showAlert(
-                                        getResources().getString(R.string.download_open_file_error_title),
-                                        getResources().getString(R.string.download_open_file_error_body),
-                                        null);
+            Uri contentUri = FileProvider.getUriForFile(
+                    getContext(),
+                    getContext().getApplicationContext().getPackageName() + ".provider",
+                    new File(webResponseInfo.uri.substring("file://".length())));
+            Intent newIntent = new Intent(Intent.ACTION_VIEW);
+            newIntent.setDataAndType(contentUri, webResponseInfo.contentType);
+            newIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+            PackageManager packageManager = getContext().getPackageManager();
+            if (newIntent.resolveActivity(packageManager) != null) {
+                showConfirmPrompt(getResources().getString(R.string.download_open_file_unsupported_title),
+                        getResources().getString(R.string.download_open_file_unsupported_body),
+                        new String[]{
+                                getResources().getString(R.string.download_open_file_unsupported_cancel),
+                                getResources().getString(R.string.download_open_file_unsupported_open)
+                        }, (index, isChecked) -> {
+                            if (index == PromptDialogWidget.POSITIVE) {
+                                try {
+                                    getContext().startActivity(newIntent);
+                                } catch (ActivityNotFoundException ignored) {
+                                    showAlert(
+                                            getResources().getString(R.string.download_open_file_error_title),
+                                            getResources().getString(R.string.download_open_file_error_body),
+                                            null);
+                                }
                             }
-                        }
-                    });
+                        });
+            } else {
+                showAlert(
+                        getResources().getString(R.string.download_open_file_error_title),
+                        getResources().getString(R.string.download_open_file_open_unsupported_body),
+                        null);
+            }
         }
     }
 
@@ -1728,8 +1763,6 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     @Override
     public void onPageStart(@NonNull GeckoSession geckoSession, @NonNull String aUri) {
         mCaptureOnPageStop = true;
-
-        mViewModel.setUrl(aUri);
         mViewModel.setIsLoading(true);
     }
 

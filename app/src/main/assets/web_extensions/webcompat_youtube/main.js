@@ -8,7 +8,9 @@ const YT_SELECTORS = {
   embedPlayer: '.html5-video-player',
   largePlayButton: '.ytp-large-play-button',
   thumbnail: '.ytp-cued-thumbnail-overlay-image',
-  embedTitle: '.ytp-title-text'
+  embedTitle: '.ytp-title-text',
+  queueHandle: 'ytd-playlist-panel-video-renderer',
+  playbackControls: '.ytp-left-controls'
 };
 const ENABLE_LOGS = true;
 const logDebug = (...args) => ENABLE_LOGS && console.log(LOGTAG, ...args);
@@ -142,6 +144,56 @@ class YoutubeExtension {
         }
     }
 
+    // Fix for the draggable items to continue being draggable when a context menu is displayed.
+    // https://github.com/MozillaReality/FirefoxReality/issues/2611
+    fixQueueContextMenu() {
+        const handles = document.querySelectorAll(YT_SELECTORS.queueHandle);
+        for (var i=0; i<handles.length; i++) {
+            handles[i].removeEventListener('contextmenu', this.onContextMenu);
+            handles[i].addEventListener('contextmenu', this.onContextMenu);
+        }
+    }
+
+    onContextMenu(event) {
+        setTimeout(() => {
+            var evt = document.createEvent("MouseEvents");
+            evt.initEvent("mouseup", true, true);
+            event.target.dispatchEvent(evt);
+        });
+
+        // This is supposed to prevent the context menu from showing but it doesn't seem to work
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        return false;
+    }
+
+    // Prevent the double click to reach the player to avoid double clicking
+    // to trigger a playback forward event.
+    // https://github.com/MozillaReality/FirefoxReality/issues/2947
+    videoControlsForwardFix() {
+        const playbackControls = document.querySelector(YT_SELECTORS.playbackControls);
+        playbackControls.removeEventListener("touchstart", this.videoControlsOnTouchStart);
+        playbackControls.addEventListener("touchstart", this.videoControlsOnTouchStart);
+        playbackControls.removeEventListener("touchend", this.videoControlsOnTouchEnd);
+        playbackControls.addEventListener("touchend", this.videoControlsOnTouchEnd);
+    }
+
+    videoControlsOnTouchStart(evt) {
+        evt.stopPropagation();
+        return false;
+    }
+
+    videoControlsOnTouchEnd(evt) {
+        evt.stopPropagation();
+        return false;
+    }
+
+    playerFixes() {
+        this.fixQueueContextMenu();
+        this.videoControlsForwardFix();
+    }
+
     // Runs the callback when the video is ready (has loaded the first frame).
     waitForVideoReady(callback) {
         this.retry("VideoReady", () => {
@@ -173,7 +225,10 @@ class YoutubeExtension {
 
     // Get's the preferred video qualities for the current device.
     getPreferredQualities() {
-        let all = ['hd2880', 'hd2160','hd1440', 'hd1080', 'hd720', 'large', 'medium'];
+        // Disable 5k video until issue can be resolved in Gecko Media Process
+        // see https://github.com/MozillaReality/FirefoxReality/issues/3193
+        // let all = ['hd2880', 'hd2160','hd1440', 'hd1080', 'hd720', 'large', 'medium'];
+        let all = ['hd2160','hd1440', 'hd1080', 'hd720', 'large', 'medium'];
         return all;
     }
 
@@ -232,6 +287,7 @@ youtube.overrideViewport();
 window.addEventListener('load', () => {
     logDebug('page load');
     youtube.overrideVideoProjection();
+    youtube.fixQueueContextMenu();
     // Wait until video has loaded the first frame to force quality change.
     // This prevents the infinite spinner problem.
     // See https://github.com/MozillaReality/FirefoxReality/issues/1433
@@ -243,3 +299,5 @@ window.addEventListener('load', () => {
 window.addEventListener('pushstate', () => youtube.overrideVideoProjection());
 window.addEventListener('popstate', () => youtube.overrideVideoProjection());
 window.addEventListener('click', event => youtube.overrideClick(event));
+window.addEventListener('mouseup', event => youtube.playerFixes());
+window.addEventListener("yt-navigate-start", () => youtube.playerFixes());

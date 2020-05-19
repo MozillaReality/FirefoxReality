@@ -15,7 +15,9 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.util.Pair;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
+import android.webkit.URLUtil;
 import android.widget.EditText;
 
 import androidx.annotation.NonNull;
@@ -113,7 +115,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
     private Executor mUIThreadExecutor;
     private ArrayList<NavigationListener> mNavigationListeners;
     private TrackingProtectionStore mTrackingDelegate;
-    private boolean mIsWindowAttached;
+    private WidgetPlacement mBeforeFullscreenPlacement;
 
     public NavigationBarWidget(Context aContext) {
         super(aContext);
@@ -139,8 +141,6 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
 
         updateUI();
 
-        mIsWindowAttached = false;
-
         mAppContext = aContext.getApplicationContext();
 
         mUIThreadExecutor = ((VRBrowserApplication)aContext.getApplicationContext()).getExecutors().mainThread();
@@ -158,7 +158,8 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         };
         mVRVideoBackHandler = () -> {
             exitVRVideo();
-            if (mAttachedWindow != null) {
+            if (mAttachedWindow != null &&
+                    mViewModel.getAutoEnteredVRVideo().getValue().get()) {
                 mAttachedWindow.setIsFullScreen(false);
             }
         };
@@ -301,6 +302,8 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
             boolean wasVisible = mProjectionMenu.isVisible();
             closeFloatingMenus();
 
+            mProjectionMenu.mWidgetPlacement.cylinder = SettingsStore.getInstance(getContext()).isCurvedModeEnabled();
+
             if (!wasVisible) {
                 mProjectionMenu.show(REQUEST_FOCUS);
             }
@@ -317,6 +320,8 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
 
             boolean wasVisible = mBrightnessWidget.isVisible();
             closeFloatingMenus();
+
+            mBrightnessWidget.mWidgetPlacement.cylinder = SettingsStore.getInstance(getContext()).isCurvedModeEnabled();
 
             if (!wasVisible) {
                 float anchor = 0.5f + (float)mBinding.navigationBarFullscreen.brightnessButton.getMeasuredWidth() / (float)NavigationBarWidget.this.getMeasuredWidth();
@@ -380,15 +385,22 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         if (mAttachedWindow != null) {
             mBinding.navigationBarNavigation.urlBar.attachToWindow(mAttachedWindow);
         }
+
+        setOnTouchListener((v, event) -> {
+            closeFloatingMenus();
+            v.performClick();
+            return true;
+        });
     }
 
     TrackingProtectionStore.TrackingProtectionListener mTrackingListener = new TrackingProtectionStore.TrackingProtectionListener() {
         @Override
-        public void onExcludedTrackingProtectionChange(@NonNull String host, boolean excluded) {
+        public void onExcludedTrackingProtectionChange(@NonNull String url, boolean excluded, boolean isPrivate) {
             Session currentSession = getSession();
             if (currentSession != null) {
-                String existingHost = UrlUtils.getHost(currentSession.getCurrentUri());
-                if (existingHost.equals(host)) {
+                String currentSessionHost = UrlUtils.getHost(currentSession.getCurrentUri());
+                String sessionHost = UrlUtils.getHost(url);
+                if (currentSessionHost.equals(sessionHost) && currentSession.isPrivateMode() == isPrivate) {
                     mViewModel.setIsTrackingEnabled(!excluded);
                 }
             }
@@ -497,8 +509,6 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
             mViewModel.getIsPopUpBlocked().removeObserver(mIsPopUpBlockedListener);
             mViewModel = null;
         }
-
-        mIsWindowAttached = false;
     }
 
     @Override
@@ -526,14 +536,14 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
 
         mAttachedWindow.addWindowListener(this);
 
+        mBeforeFullscreenPlacement = mWidgetPlacement;
+
         clearFocus();
 
         if (getSession() != null) {
             setUpSession(getSession());
         }
         handleWindowResize();
-
-        mIsWindowAttached = true;
     }
 
     private Session getSession() {
@@ -568,6 +578,10 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         if (aFullScreen) {
             enterFullScreenMode();
 
+            mBeforeFullscreenPlacement = mWidgetPlacement.clone();
+            mWidgetPlacement.cylinder = SettingsStore.getInstance(getContext()).isCurvedModeEnabled();
+            updateWidget();
+
             if (mAttachedWindow.isResizing()) {
                 exitResizeMode(ResizeAction.KEEP_SIZE);
             }
@@ -583,6 +597,9 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
                 }
             }
         } else {
+            mWidgetPlacement = mBeforeFullscreenPlacement;
+            updateWidget();
+
             if (mViewModel.getIsInVRVideo().getValue().get()) {
                 exitVRVideo();
             }
@@ -1153,7 +1170,12 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
                 hideMenu();
             }
         });
-        mHamburgerMenu.setSendTabEnabled(!UrlUtils.isPrivateAboutPage(getContext(), mAttachedWindow.getSession().getCurrentUri()));
+        boolean isSendTabEnabled = false;
+        if (URLUtil.isHttpUrl(mAttachedWindow.getSession().getCurrentUri()) ||
+                URLUtil.isHttpsUrl(mAttachedWindow.getSession().getCurrentUri())) {
+            isSendTabEnabled = true;
+        }
+        mHamburgerMenu.setSendTabEnabled(isSendTabEnabled);
         mHamburgerMenu.setUAMode(mAttachedWindow.getSession().getUaMode());
         mHamburgerMenu.show(UIWidget.KEEP_FOCUS);
     }
@@ -1181,7 +1203,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
                 showNotification(POPUP_NOTIFICATION_ID,
                         mBinding.navigationBarNavigation.urlBar.getPopUpButton(),
                         NotificationManager.Notification.TOP,
-                        R.string.popup_tooltip);
+                        R.string.popup_blocked_tooltip);
             }
         }, POP_UP_NOTIFICATION_DELAY);
     }

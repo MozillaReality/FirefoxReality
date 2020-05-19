@@ -240,6 +240,7 @@ public class NavigationURLBar extends FrameLayout {
 
     public void detachFromWindow() {
         if (mViewModel != null) {
+            mViewModel.setIsFocused(false);
             mViewModel.getIsLoading().removeObserver(mIsLoadingObserver);
             mViewModel.getIsBookmarked().removeObserver(mIsBookmarkedObserver);
             mViewModel = null;
@@ -373,6 +374,8 @@ public class NavigationURLBar extends FrameLayout {
             TelemetryWrapper.urlBarEvent(false);
             GleanMetricsService.urlBarEvent(false);
         }
+
+        mViewModel.setUrl(url);
 
         mSession.loadUri(url);
 

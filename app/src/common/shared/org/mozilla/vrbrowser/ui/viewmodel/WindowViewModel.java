@@ -6,6 +6,7 @@ import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.style.ForegroundColorSpan;
 import android.util.TypedValue;
+import android.webkit.URLUtil;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -167,7 +168,12 @@ public class WindowViewModel extends AndroidViewModel {
         isDrmUsed = new MutableLiveData<>(new ObservableBoolean(false));
 
         isUrlBarButtonsVisible = new MediatorLiveData<>();
-        isUrlBarButtonsVisible.addSource(url, mIsUrlBarButtonsVisibleObserver);
+        isUrlBarButtonsVisible.addSource(isTrackingEnabled, mIsUrlBarButtonsVisibleObserver);
+        isUrlBarButtonsVisible.addSource(isDrmUsed, mIsUrlBarButtonsVisibleObserver);
+        isUrlBarButtonsVisible.addSource(isPopUpAvailable, mIsUrlBarButtonsVisibleObserver);
+        isUrlBarButtonsVisible.addSource(isWebXRUsed, mIsUrlBarButtonsVisibleObserver);
+        isUrlBarButtonsVisible.addSource(isLibraryVisible, mIsUrlBarButtonsVisibleObserver);
+        isUrlBarButtonsVisible.addSource(isFocused, mIsUrlBarButtonsVisibleObserver);
         isUrlBarButtonsVisible.setValue(new ObservableBoolean(false));
 
         isUrlBarIconsVisible = new MediatorLiveData<>();
@@ -309,15 +315,16 @@ public class WindowViewModel extends AndroidViewModel {
         }
     };
 
-    private Observer<Spannable> mIsUrlBarButtonsVisibleObserver = new Observer<Spannable>() {
+    private Observer<ObservableBoolean> mIsUrlBarButtonsVisibleObserver = new Observer<ObservableBoolean>() {
         @Override
-        public void onChanged(Spannable aUrl) {
+        public void onChanged(ObservableBoolean o) {
+            String aUrl = url.getValue().toString();
             isUrlBarButtonsVisible.postValue(new ObservableBoolean(
                     !isFocused.getValue().get() &&
                             !isLibraryVisible.getValue().get() &&
-                            !UrlUtils.isContentFeed(getApplication(), aUrl.toString()) &&
-                            !UrlUtils.isFileUri(aUrl.toString()) &&
-                            !UrlUtils.isPrivateAboutPage(getApplication(), aUrl.toString()) &&
+                            !UrlUtils.isContentFeed(getApplication(), aUrl) &&
+                            !UrlUtils.isPrivateAboutPage(getApplication(), aUrl) &&
+                            (URLUtil.isHttpUrl(aUrl) || URLUtil.isHttpsUrl(aUrl)) &&
                             (
                                     (SettingsStore.getInstance(getApplication()).getTrackingProtectionLevel() != ContentBlocking.EtpLevel.NONE) ||
                                     isPopUpAvailable.getValue().get() ||
@@ -332,8 +339,9 @@ public class WindowViewModel extends AndroidViewModel {
         @Override
         public void onChanged(ObservableBoolean o) {
             isUrlBarIconsVisible.postValue(new ObservableBoolean(
-                    isLoading.getValue().get() ||
-                            isInsecureVisible.getValue().get()
+                    !isLibraryVisible.getValue().get() &&
+                            (isLoading.getValue().get() ||
+                                    isInsecureVisible.getValue().get())
             ));
         }
     };
@@ -388,10 +396,6 @@ public class WindowViewModel extends AndroidViewModel {
         }
 
         String aURL = url.toString();
-
-        if (isLibraryVisible.getValue().get()) {
-            return;
-        }
 
         int index = -1;
         try {
@@ -549,7 +553,7 @@ public class WindowViewModel extends AndroidViewModel {
     }
 
     public void setIsActiveWindow(boolean isActiveWindow) {
-        this.isActiveWindow.postValue(new ObservableBoolean(isActiveWindow));
+        this.isActiveWindow.setValue(new ObservableBoolean(isActiveWindow));
     }
 
     @NonNull
