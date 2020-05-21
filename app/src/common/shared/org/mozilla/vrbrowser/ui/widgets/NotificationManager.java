@@ -166,10 +166,7 @@ public class NotificationManager {
         }
 
         Runnable hideTask = () -> hide(notificationId);
-
-        if (notification.mView != null) {
-            notification.mView.postDelayed(hideTask, notification.mDuration);
-        }
+        notification.mView.postDelayed(hideTask, notification.mDuration);
 
         mData.put(notificationId, new NotificationData(notificationView, notification, hideTask));
     }

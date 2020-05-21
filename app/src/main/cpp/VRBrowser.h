@@ -29,9 +29,8 @@ void HandleMoveEnd(jint aWidgetHandle, jfloat aX, jfloat aY, jfloat aZ, jfloat a
 void HandleBack();
 void RegisterExternalContext(jlong aContext);
 void OnEnterWebXR();
-void OnExitWebXR(const std::function<void()>& aCallback);
+void OnExitWebXR();
 void OnDismissWebXRInterstitial();
-void OnWebXRRenderStateChange(const bool aRendering);
 void RenderPointerLayer(jobject aSurface, const std::function<void()>& aFirstCompositeCallback);
 std::string GetStorageAbsolutePath(const std::string& aRelativePath);
 bool isOverrideEnvPathEnabled();
@@ -43,7 +42,6 @@ void HaltActivity(const jint aReason);
 void HandlePoorPerformance();
 void OnAppLink(const std::string& aJSON);
 void DisableLayers();
-void AppendAppNotesToCrashLog(const std::string& aNotes);
 } // namespace VRBrowser;
 
 } // namespace crow

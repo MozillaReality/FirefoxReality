@@ -32,8 +32,8 @@ import java.util.List;
 class SitePermissionsOptionsView extends SettingsView {
 
     private OptionsExceptionsBinding mBinding;
-    protected SitePermissionAdapter mAdapter;
-    protected SitePermissionViewModel mViewModel;
+    private SitePermissionAdapter mAdapter;
+    private SitePermissionViewModel mViewModel;
     private @SitePermission.Category int mCategory;
 
     public SitePermissionsOptionsView(Context aContext, WidgetManagerDelegate aWidgetManager, @SitePermission.Category int category) {
@@ -42,7 +42,9 @@ class SitePermissionsOptionsView extends SettingsView {
         initialize(aContext);
     }
 
-    protected void initialize(Context aContext) {
+    private void initialize(Context aContext) {
+        LayoutInflater inflater = LayoutInflater.from(aContext);
+
         // Preferred languages adapter
         mAdapter = new SitePermissionAdapter(getContext(), mCallback);
 
@@ -93,7 +95,7 @@ class SitePermissionsOptionsView extends SettingsView {
         mBinding.executePendingBindings();
     }
 
-    protected OnClickListener mClearAllListener = (view) -> {
+    private OnClickListener mClearAllListener = (view) -> {
         reset();
     };
 
@@ -156,7 +158,7 @@ class SitePermissionsOptionsView extends SettingsView {
         }
     };
 
-    protected PermissionSiteItemCallback mCallback = new PermissionSiteItemCallback() {
+    private PermissionSiteItemCallback mCallback = new PermissionSiteItemCallback() {
         @Override
         public void onDelete(@NonNull SitePermission item) {
             mViewModel.deleteSite(item);
@@ -164,7 +166,7 @@ class SitePermissionsOptionsView extends SettingsView {
         }
     };
 
-    protected void reloadIfSameDomain(String aHost) {
+    private void reloadIfSameDomain(String aHost) {
         if (mCategory != SitePermission.SITE_PERMISSION_WEBXR) {
             return;
         }

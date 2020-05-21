@@ -189,7 +189,6 @@ struct BrowserWorld::State {
   std::function<void()> frameEndHandler;
   bool wasInGazeMode = false;
   WebXRInterstialState webXRInterstialState;
-  bool wasWebXRRendering = false;
 
   State() : paused(true), glInitialized(false), modelsLoaded(false), env(nullptr), cylinderDensity(0.0f), nearClip(0.1f),
             farClip(300.0f), activity(nullptr), windowsInitialized(false), exitImmersiveRequested(false), loaderDelay(0) {
@@ -250,7 +249,7 @@ BrowserWorld::State::CheckBackButton() {
           VRBrowser::HandleBack();
           webXRInterstialState = WebXRInterstialState::HIDDEN;
       } else if (webXRInterstialState == WebXRInterstialState::ALLOW_DISMISS
-                 && controller.lastButtonState && controller.buttonState == 0) {
+                 && controller.lastButtonState == 0 && controller.buttonState) {
           VRBrowser::OnDismissWebXRInterstitial();
           webXRInterstialState = WebXRInterstialState::HIDDEN;
       }
@@ -261,11 +260,6 @@ BrowserWorld::State::CheckBackButton() {
 bool
 BrowserWorld::State::CheckExitImmersive() {
   if (exitImmersiveRequested && externalVR->IsPresenting()) {
-    webXRInterstialState = WebXRInterstialState::HIDDEN;
-    if (wasWebXRRendering) {
-      VRBrowser::OnWebXRRenderStateChange(false);
-      wasWebXRRendering = false;
-    }
     externalVR->StopPresenting();
     blitter->StopPresenting();
     exitImmersiveRequested = false;
@@ -588,10 +582,6 @@ BrowserWorld::State::ClearWebXRControllerData() {
         };
         controller.immersiveTouchedState = 0;
         controller.immersivePressedState = 0;
-        controller.selectActionStartFrameId = 0;
-        controller.selectActionStopFrameId = 0;
-        controller.squeezeActionStartFrameId = 0;
-        controller.squeezeActionStopFrameId = 0;
         for (int i = 0; i < controller.numAxes; ++i) {
             controller.immersiveAxes[i] = 0;
         }
@@ -959,9 +949,6 @@ BrowserWorld::StartFrame() {
   m.context->Update();
   m.externalVR->PullBrowserState();
   m.externalVR->SetHapticState(m.controllers);
-
-  const uint64_t frameId = m.externalVR->GetFrameId();
-  m.controllers->SetFrameId(frameId);
   m.CheckExitImmersive();
 
   if (m.splashAnimation) {
@@ -1529,11 +1516,6 @@ BrowserWorld::TickImmersive() {
       if (m.webXRInterstialState != WebXRInterstialState::HIDDEN) {
         TickWebXRInterstitial();
       } else {
-        if (!m.wasWebXRRendering) {
-          // Disable Spinner animation in Java to avoid triggering superfluous Android Draw calls.
-          VRBrowser::OnWebXRRenderStateChange(true);
-          m.wasWebXRRendering = true;
-        }
         m.drawHandler = [=](device::Eye aEye) {
             DrawImmersive(aEye);
         };

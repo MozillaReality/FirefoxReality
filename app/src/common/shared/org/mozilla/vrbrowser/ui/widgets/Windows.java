@@ -194,9 +194,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             ArrayList<Session> sessions = SessionStore.get().getSortedSessions(false);
             state.tabs = sessions.stream()
                     .map(Session::getSessionState)
-                    .filter(sessionState -> SAVE_BLACKLIST.stream().noneMatch(uri ->
-                        sessionState.mUri != null && sessionState.mUri.startsWith(uri)
-                    ))
+                    .filter(sessionState -> SAVE_BLACKLIST.stream().noneMatch(uri -> sessionState.mUri.startsWith(uri)))
                     .collect(Collectors.toCollection(ArrayList::new));
             for (WindowWidget window : mRegularWindows) {
                 if (window.getSession() != null) {
@@ -1213,9 +1211,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             Session moveTo = targetWindow.getSession();
             moveFrom.surfaceDestroyed();
             moveTo.surfaceDestroyed();
-            windowToMove.setupListeners(moveTo);
             windowToMove.setSession(moveTo, WindowWidget.SESSION_DO_NOT_RELEASE_DISPLAY);
-            targetWindow.setupListeners(moveFrom);
             targetWindow.setSession(moveFrom, WindowWidget.SESSION_DO_NOT_RELEASE_DISPLAY);
             SessionStore.get().setActiveSession(targetWindow.getSession());
             windowToMove.setActiveWindow(false);
@@ -1224,7 +1220,6 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         } else {
             setFirstPaint(targetWindow, aTab);
             targetWindow.getSession().setActive(false);
-            targetWindow.setupListeners(aTab);
             aTab.setActive(true);
             targetWindow.setSession(aTab);
             SessionStore.get().setActiveSession(aTab);
@@ -1239,7 +1234,6 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         Session session = SessionStore.get().createSuspendedSession(aUri, targetWindow.getSession().isPrivateMode());
         setFirstPaint(targetWindow, session);
         targetWindow.getSession().setActive(false);
-        targetWindow.setupListeners(session);
         session.setActive(true);
         targetWindow.setSession(session);
         if (aUri == null || aUri.isEmpty()) {
@@ -1303,7 +1297,6 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
                 Session tab = available.get(0);
                 if (tab != null) {
                     setFirstPaint(window, tab);
-                    window.setupListeners(tab);
                     tab.setActive(true);
                     window.setSession(tab);
                 }
@@ -1343,7 +1336,6 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             if (i == 0 && !fullscreen) {
                 // Set the first received tab of the list the current one.
                 SessionStore.get().setActiveSession(session);
-                targetWindow.setupListeners(session);
                 targetWindow.getSession().setActive(false);
                 targetWindow.setSession(session);
             }
@@ -1368,7 +1360,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             mNoInternetDialog.setDescriptionVisible(false);
             mNoInternetDialog.setTitle(R.string.no_internet_title);
             mNoInternetDialog.setBody(R.string.no_internet_message);
-            mNoInternetDialog.setButtonsDelegate((index, isChecked) -> {
+            mNoInternetDialog.setButtonsDelegate(index -> {
                 mNoInternetDialog.hide(UIWidget.REMOVE_WIDGET);
                 mNoInternetDialog.releaseWidget();
                 mNoInternetDialog = null;

@@ -492,12 +492,8 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
             case BOOKMARKS:
                 if (mViewModel.getIsHistoryVisible().getValue().get() ||
                         mViewModel.getIsDownloadsVisible().getValue().get()) {
-                    if (isHistoryVisible()) {
-                        hidePanel(Windows.PanelType.HISTORY, false);
-                    }
-                    if (isDownloadsVisible()) {
-                        hidePanel(Windows.PanelType.DOWNLOADS, false);
-                    }
+                    hidePanel(Windows.PanelType.HISTORY, false);
+                    hidePanel(Windows.PanelType.DOWNLOADS, false);
                     showPanel(Windows.PanelType.BOOKMARKS, false);
 
                 } else if (mViewModel.getIsBookmarksVisible().getValue().get()) {
@@ -510,12 +506,8 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
             case HISTORY:
                 if (mViewModel.getIsBookmarksVisible().getValue().get() ||
                         mViewModel.getIsDownloadsVisible().getValue().get()) {
-                    if (isBookmarksVisible()) {
-                        hidePanel(Windows.PanelType.BOOKMARKS, false);
-                    }
-                    if (isDownloadsVisible()) {
-                        hidePanel(Windows.PanelType.DOWNLOADS, false);
-                    }
+                    hidePanel(Windows.PanelType.BOOKMARKS, false);
+                    hidePanel(Windows.PanelType.DOWNLOADS, false);
                     showPanel(Windows.PanelType.HISTORY, false);
 
                 } else if (mViewModel.getIsHistoryVisible().getValue().get()) {
@@ -528,12 +520,8 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
             case DOWNLOADS:
                 if (mViewModel.getIsBookmarksVisible().getValue().get() ||
                         mViewModel.getIsHistoryVisible().getValue().get()) {
-                    if (isBookmarksVisible()) {
-                        hidePanel(Windows.PanelType.BOOKMARKS, false);
-                    }
-                    if (isHistoryVisible()) {
-                        hidePanel(Windows.PanelType.HISTORY, false);
-                    }
+                    hidePanel(Windows.PanelType.BOOKMARKS, false);
+                    hidePanel(Windows.PanelType.HISTORY, false);
                     showPanel(Windows.PanelType.DOWNLOADS, false);
 
                 } else if (mViewModel.getIsDownloadsVisible().getValue().get()) {
@@ -1129,9 +1117,12 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
             } else {
                 onCurrentSessionChange(null, aSession.getGeckoSession());
             }
+            setupListeners(mSession);
             for (WindowListener listener: mListeners) {
                 listener.onSessionChanged(oldSession, aSession);
             }
+
+
         }
         mCaptureOnPageStop = false;
         hideLibraryPanels();
@@ -1158,17 +1149,11 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
 
     @Override
     public void onStackSession(Session aSession) {
-        if (aSession == mSession) {
-            Log.e(LOGTAG, "Attempting to stack same session.");
-            return;
-        }
         // e.g. tab opened via window.open()
         aSession.updateLastUse();
         Session current = mSession;
-        setupListeners(aSession);
         setSession(aSession);
         SessionStore.get().setActiveSession(aSession);
-        aSession.setActive(true);
         current.captureBackgroundBitmap(getWindowWidth(), getWindowHeight()).thenAccept(aVoid -> current.setActive(false));
         mWidgetManager.getWindows().showTabAddedNotification();
 
@@ -1179,7 +1164,6 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     public void onUnstackSession(Session aSession, Session aParent) {
         if (mSession == aSession) {
             aParent.setActive(true);
-            setupListeners(aParent);
             setSession(aParent);
             SessionStore.get().setActiveSession(aParent);
             SessionStore.get().destroySession(aSession);
@@ -1281,10 +1265,10 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         }
         mAlertDialog.setTitle(title);
         mAlertDialog.setBody(msg);
-        mAlertDialog.setButtonsDelegate((index, isChecked) -> {
+        mAlertDialog.setButtonsDelegate(index -> {
             mAlertDialog.hide(REMOVE_WIDGET);
             if (callback != null) {
-                callback.onButtonClicked(index, isChecked);
+                callback.onButtonClicked(index);
             }
             mAlertDialog.releaseWidget();
             mAlertDialog = null;
@@ -1361,10 +1345,10 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         mConfirmDialog.setTitle(title);
         mConfirmDialog.setBody(msg);
         mConfirmDialog.setButtons(btnMsg);
-        mConfirmDialog.setButtonsDelegate((index, isChecked) -> {
+        mConfirmDialog.setButtonsDelegate(index -> {
             mConfirmDialog.hide(REMOVE_WIDGET);
             if (callback != null) {
-                callback.onButtonClicked(index, isChecked);
+                callback.onButtonClicked(index);
             }
             mConfirmDialog.releaseWidget();
             mConfirmDialog = null;
@@ -1387,10 +1371,10 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         mAppDialog.setTitle(title);
         mAppDialog.setBody(description);
         mAppDialog.setButtons(btnMsg);
-        mAppDialog.setButtonsDelegate((index, isChecked) -> {
+        mAppDialog.setButtonsDelegate(index -> {
             mAppDialog.hide(REMOVE_WIDGET);
             if (buttonsCallback != null) {
-                buttonsCallback.onButtonClicked(index, isChecked);
+                buttonsCallback.onButtonClicked(index);
             }
             mAppDialog.releaseWidget();
         });
@@ -1410,12 +1394,12 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         showConfirmPrompt(
                 R.drawable.ic_icon_drm_allowed,
                 getContext().getString(R.string.drm_first_use_title_v1),
-                getContext().getString(R.string.drm_first_use_body_v2, getResources().getString(R.string.sumo_drm_url)),
+                getContext().getString(R.string.drm_first_use_body_v1, getResources().getString(R.string.sumo_drm_url)),
                 new String[]{
                         getContext().getString(R.string.drm_first_use_do_not_allow),
                         getContext().getString(R.string.drm_first_use_allow),
                 },
-                (index, isChecked) -> {
+                index -> {
                     // We remove the prefs listener before the first DRM update to avoid reloading the session
                     mPrefs.unregisterOnSharedPreferenceChangeListener(this);
                     SettingsStore.getInstance(getContext()).setDrmContentPlaybackEnabled(index == PromptDialogWidget.POSITIVE);
@@ -1557,7 +1541,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
                         new String[]{
                                 getResources().getString(R.string.download_confirm_cancel),
                                 getResources().getString(R.string.download_confirm_download)},
-                        (index, isChecked) ->  {
+                        index ->  {
                             if (index == PromptDialogWidget.POSITIVE) {
                                 mDownloadsManager.startDownload(downloadJob);
                             }
@@ -1605,19 +1589,10 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     public void onContextMenu(GeckoSession session, int screenX, int screenY, ContextElement element) {
         hideContextMenus();
 
-        // We don't show the menu for blobs
-        if (UrlUtils.isBlobUri(element.srcUri)) {
-            return;
-        }
-
         mContextMenu = new ContextMenuWidget(getContext());
         mContextMenu.mWidgetPlacement.parentHandle = getHandle();
         mContextMenu.setDismissCallback(this::hideContextMenus);
         mContextMenu.setContextElement(element);
-        if (!mContextMenu.hasActions()) {
-            hideContextMenus();
-            return;
-        }
         mContextMenu.show(REQUEST_FOCUS);
 
         mWidgetPlacement.tintColor = 0x555555FF;
@@ -1669,7 +1644,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
                     new String[]{
                             getResources().getString(R.string.download_open_file_unsupported_cancel),
                             getResources().getString(R.string.download_open_file_unsupported_open)
-                    }, (index, isChecked) -> {
+                    }, index -> {
                         if (index == PromptDialogWidget.POSITIVE) {
                             Uri contentUri = FileProvider.getUriForFile(
                                     getContext(),
@@ -1748,6 +1723,8 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     @Override
     public void onPageStart(@NonNull GeckoSession geckoSession, @NonNull String aUri) {
         mCaptureOnPageStop = true;
+
+        mViewModel.setUrl(aUri);
         mViewModel.setIsLoading(true);
     }
 

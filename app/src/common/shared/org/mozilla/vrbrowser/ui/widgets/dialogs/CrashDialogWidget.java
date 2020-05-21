@@ -48,7 +48,7 @@ public class CrashDialogWidget extends PromptDialogWidget {
                 R.string.do_not_sent_button,
                 R.string.send_data_button
         });
-        setButtonsDelegate((index, isChecked) -> {
+        setButtonsDelegate(index -> {
             if (index == PromptDialogWidget.NEGATIVE) {
                 if (mFiles != null) {
                     SystemUtils.clearCrashFiles(getContext(), mFiles);

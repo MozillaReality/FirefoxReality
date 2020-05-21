@@ -61,8 +61,8 @@ class Services(val context: Context, places: Places): GeckoSession.NavigationDel
         // Make sure we get logs out of our android-components.
         Log.addSink(AndroidLogSink())
 
-        GlobalSyncableStoreProvider.configureStore(SyncEngine.Bookmarks to lazy {places.bookmarks})
-        GlobalSyncableStoreProvider.configureStore(SyncEngine.History to lazy {places.history})
+        GlobalSyncableStoreProvider.configureStore(SyncEngine.Bookmarks to places.bookmarks)
+        GlobalSyncableStoreProvider.configureStore(SyncEngine.History to places.history)
 
         // TODO this really shouldn't be necessary, since WorkManager auto-initializes itself, unless
         // auto-initialization is disabled in the manifest file. We don't disable the initialization,
@@ -81,26 +81,26 @@ class Services(val context: Context, places: Places): GeckoSession.NavigationDel
 
     // Process received device events, only handling received tabs for now.
     // They'll come from other FxA devices (e.g. Firefox Desktop).
-    private val deviceEventObserver = object : AccountEventsObserver {
+    private val deviceEventObserver = object : DeviceEventsObserver {
         private val logTag = "DeviceEventsObserver"
 
-        override fun onEvents(events: List<AccountEvent>) {
+        override fun onEvents(events: List<DeviceEvent>) {
             CoroutineScope(Dispatchers.Main).launch {
                 Logger(logTag).info("Received ${events.size} device event(s)")
-                events
-                        .filterIsInstance<AccountEvent.DeviceCommandIncoming>()
-                        .map { it.command }
-                        .filterIsInstance<DeviceCommandIncoming.TabReceived>()
-                        .forEach { command ->
-                            command.from?.deviceType?.let { GleanMetricsService.FxA.receivedTab(it) }
-                            tabReceivedDelegate?.onTabsReceived(command.entries)
-                        }
+                val filteredEvents = events.filterIsInstance(DeviceEvent.TabReceived::class.java)
+                if (filteredEvents.isNotEmpty()) {
+                    filteredEvents.map { event -> event.from?.deviceType?.let { GleanMetricsService.FxA.receivedTab(it) } }
+                    val tabs = filteredEvents.map {
+                        event -> event.entries
+                    }.flatten()
+                    tabReceivedDelegate?.onTabsReceived(tabs)
+                }
             }
         }
     }
     val accountManager = FxaAccountManager(
         context = context,
-        serverConfig = ServerConfig(Server.RELEASE, CLIENT_ID, REDIRECT_URL),
+        serverConfig = ServerConfig.release(CLIENT_ID, REDIRECT_URL),
         deviceConfig = DeviceConfig(
             // This is a default name, and can be changed once user is logged in.
             // E.g. accountManager.authenticatedAccount()?.deviceConstellation()?.setDeviceNameAsync("new name")
@@ -111,7 +111,7 @@ class Services(val context: Context, places: Places): GeckoSession.NavigationDel
         syncConfig = SyncConfig(setOf(SyncEngine.History, SyncEngine.Bookmarks), syncPeriodInMinutes = 1440L)
 
     ).also {
-        it.registerForAccountEvents(deviceEventObserver, ProcessLifecycleOwner.get(), true)
+        it.registerForDeviceEvents(deviceEventObserver, ProcessLifecycleOwner.get(), true)
     }
 
     init {

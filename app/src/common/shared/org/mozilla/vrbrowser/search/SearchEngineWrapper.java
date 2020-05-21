@@ -12,17 +12,21 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 
 import org.mozilla.vrbrowser.R;
+import org.mozilla.vrbrowser.VRBrowserApplication;
 import org.mozilla.vrbrowser.browser.SettingsStore;
+import org.mozilla.vrbrowser.browser.engine.EngineProvider;
 import org.mozilla.vrbrowser.geolocation.GeolocationData;
-import org.mozilla.vrbrowser.search.suggestions.SearchSuggestionsCLientKt;
+import org.mozilla.vrbrowser.search.suggestions.SuggestionsClient;
 import org.mozilla.vrbrowser.utils.SystemUtils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 import kotlinx.coroutines.Dispatchers;
 import mozilla.components.browser.search.SearchEngine;
@@ -60,14 +64,22 @@ public class SearchEngineWrapper implements SharedPreferences.OnSharedPreference
         return mSearchEngineWrapperInstance;
     }
 
+    public interface SuggestionsDelegate {
+        void OnSuggestions(List<String> aSuggestionsList);
+    }
+
     private Context mContext;
     private SearchEngine mSearchEngine;
+    private SearchLocalizationProvider mLocalizationProvider;
+    private SearchEngineManager mSearchEngineManager;
     private SearchSuggestionClient mSuggestionsClient;
     private SharedPreferences mPrefs;
+    private Executor mUIThreadExecutor;
 
     private SearchEngineWrapper(@NonNull Context aContext) {
         mContext = aContext;
         mPrefs = PreferenceManager.getDefaultSharedPreferences(mContext);
+        mUIThreadExecutor = ((VRBrowserApplication)aContext.getApplicationContext()).getExecutors().mainThread();
 
         setupSearchEngine(aContext, EMPTY);
     }
@@ -99,9 +111,21 @@ public class SearchEngineWrapper implements SharedPreferences.OnSharedPreference
         return mSearchEngine.buildSearchUrl(aQuery);
     }
 
+    private String getSuggestionURL(String aQuery) {
+        return mSearchEngine.buildSuggestionsURL(aQuery);
+    }
+
     public CompletableFuture<List<String>> getSuggestions(String aQuery) {
-        String query = mSearchEngine.buildSuggestionsURL(aQuery);
-        return SearchSuggestionsCLientKt.getSuggestionsAsync(mSuggestionsClient, query != null ? query : "");
+        CompletableFuture<List<String>> future = new CompletableFuture<>();
+        // TODO: Use mSuggestionsClient.getSuggestions when fixed in browser-search.
+        String query = getSuggestionURL(aQuery);
+        mUIThreadExecutor.execute(() ->
+                SuggestionsClient.getSuggestions(
+                        EngineProvider.INSTANCE.getDefaultGeckoWebExecutor(mContext),
+                        mSearchEngine,
+                        query).thenAcceptAsync(future::complete));
+
+        return future;
     }
 
     public String getResourceURL() {
@@ -133,7 +157,6 @@ public class SearchEngineWrapper implements SharedPreferences.OnSharedPreference
         List<SearchEngineFilter> engineFilterList = new ArrayList<>();
 
         GeolocationData data = GeolocationData.parse(SettingsStore.getInstance(aContext).getGeolocationData());
-        SearchLocalizationProvider mLocalizationProvider;
         if (data == null) {
             Log.d(LOGTAG, "Using Locale based search localization provider");
             // If we don't have geolocation data we default to the Locale search localization provider
@@ -158,7 +181,7 @@ public class SearchEngineWrapper implements SharedPreferences.OnSharedPreference
                 engineFilterList,
                 Collections.emptyList());
 
-        SearchEngineManager mSearchEngineManager = new SearchEngineManager(Collections.singletonList(engineProvider), Dispatchers.getDefault());
+        mSearchEngineManager = new SearchEngineManager(Arrays.asList(engineProvider), Dispatchers.getDefault());
 
         // If we don't get any result we use the default configuration.
         if (mSearchEngineManager.getSearchEngines(aContext).size() == 0) {

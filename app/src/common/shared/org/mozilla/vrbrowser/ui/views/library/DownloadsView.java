@@ -82,7 +82,7 @@ public class DownloadsView extends LibraryView implements DownloadsManager.Downl
                 ViewModelProvider.AndroidViewModelFactory.getInstance(((VRBrowserActivity) getContext()).getApplication()))
                 .get(DownloadsViewModel.class);
 
-        mSortingComparator = getSorting(SettingsStore.getInstance(getContext()).getDownloadsSortingOrder());
+        mSortingComparator = mAZFileNameComparator;
 
         updateUI();
     }
@@ -161,9 +161,9 @@ public class DownloadsView extends LibraryView implements DownloadsManager.Downl
                             getContext().getString(R.string.download_delete_confirm_delete)
                     },
                     getContext().getString(R.string.download_delete_file_confirm_checkbox),
-                    (index, isChecked) -> {
+                    index -> {
                         if (index == PromptDialogWidget.POSITIVE) {
-                            mDownloadsManager.removeDownload(item.getId(), isChecked);
+                            mDownloadsManager.removeDownload(item.getId());
                         }
                     }
             );
@@ -207,10 +207,9 @@ public class DownloadsView extends LibraryView implements DownloadsManager.Downl
                             getContext().getString(R.string.download_delete_confirm_delete)
                     },
                     getContext().getString(R.string.download_delete_all_confirm_checkbox),
-                    (index, isChecked) -> {
+                    index -> {
                         if (index == PromptDialogWidget.POSITIVE) {
-                            mViewModel.setIsEmpty(true);
-                            post(() -> mDownloadsManager.removeAllDownloads(isChecked));
+                            mDownloadsManager.clearAllDownloads();
                         }
                     }
             );
@@ -294,9 +293,9 @@ public class DownloadsView extends LibraryView implements DownloadsManager.Downl
                             getContext().getString(R.string.download_delete_confirm_delete)
                     },
                     getContext().getString(R.string.download_delete_file_confirm_checkbox),
-                    (index, isChecked) -> {
+                    index -> {
                         if (index == PromptDialogWidget.POSITIVE) {
-                            mDownloadsManager.removeDownload(item.getDownloadsId(), isChecked);
+                            mDownloadsManager.removeDownload(item.getDownloadsId());
                         }
                     }
             );
@@ -319,9 +318,27 @@ public class DownloadsView extends LibraryView implements DownloadsManager.Downl
 
         SortingContextMenuWidget menu = new SortingContextMenuWidget(getContext());
         menu.setItemDelegate(item -> {
-            mSortingComparator = getSorting(item);
+            switch (item) {
+                case SortingContextMenuWidget.SORT_FILENAME_AZ:
+                    mSortingComparator = mAZFileNameComparator;
+                    break;
+                case SortingContextMenuWidget.SORT_FILENAME_ZA:
+                    mSortingComparator = mZAFilenameComparator;
+                    break;
+                case SortingContextMenuWidget.SORT_DATE_ASC:
+                    mSortingComparator = mDownloadDateAscComparator;
+                    break;
+                case SortingContextMenuWidget.SORT_DATE_DESC:
+                    mSortingComparator = mDownloadDateDescComparator;
+                    break;
+                case SortingContextMenuWidget.SORT_SIZE_ASC:
+                    mSortingComparator = mDownloadSizeAscComparator;
+                    break;
+                case SortingContextMenuWidget.SORT_SIZE_DESC:
+                    mSortingComparator = mDownloadSizeDescComparator;
+                    break;
+            }
             onDownloadsUpdate(mDownloadsManager.getDownloads());
-            mBinding.downloadsList.scrollToPosition(0);
         });
         menu.getPlacement().parentHandle = window.getHandle();
 
@@ -334,67 +351,14 @@ public class DownloadsView extends LibraryView implements DownloadsManager.Downl
         menu.show(UIWidget.REQUEST_FOCUS);
     }
 
-    private Comparator<Download> getSorting(@SortingContextMenuWidget.Order int order) {
-        switch (order) {
-            case SortingContextMenuWidget.SORT_FILENAME_AZ:
-                return mAZFileNameComparator;
-            case SortingContextMenuWidget.SORT_FILENAME_ZA:
-                return mZAFilenameComparator;
-            case SortingContextMenuWidget.SORT_DATE_ASC:
-                return mDownloadDateAscComparator;
-            case SortingContextMenuWidget.SORT_DATE_DESC:
-                return mDownloadDateDescComparator;
-            case SortingContextMenuWidget.SORT_SIZE_ASC:
-                return mDownloadSizeAscComparator;
-            case SortingContextMenuWidget.SORT_SIZE_DESC:
-                return mDownloadSizeDescComparator;
-        }
-
-        return mDownloadIdComparator;
-    }
-
     // DownloadsManager.DownloadsListener
 
-    private Comparator<Download> mDownloadIdComparator = (o1, o2) -> (int)(o1.getId() - o2.getId());
-
-    private Comparator<Download> mAZFileNameComparator = (o1, o2) -> {
-        int nameDiff = o1.getFilename().compareTo(o2.getFilename());
-        if (nameDiff == 0) {
-            return  mDownloadIdComparator.compare(o1, o2);
-
-        } else {
-            return nameDiff;
-        }
-    };
-    private Comparator<Download> mZAFilenameComparator = (o1, o2) -> {
-        int nameDiff = o2.getFilename().compareTo(o1.getFilename());
-        if (nameDiff == 0) {
-            return  mDownloadIdComparator.compare(o1, o2);
-
-        } else {
-            return nameDiff;
-        }
-    };
-    private Comparator<Download> mDownloadDateAscComparator = (o1, o2) -> mDownloadIdComparator.compare(o1, o2);
-    private Comparator<Download> mDownloadDateDescComparator = (o1, o2) -> mDownloadIdComparator.compare(o2, o1);
-    private Comparator<Download> mDownloadSizeAscComparator = (o1, o2) -> {
-        int sizeDiff = (int)(o1.getSizeBytes() - o2.getSizeBytes());
-        if (sizeDiff == 0) {
-            return  mDownloadIdComparator.compare(o1, o2);
-
-        } else {
-            return sizeDiff;
-        }
-    };
-    private Comparator<Download> mDownloadSizeDescComparator = (o1, o2) -> {
-        int sizeDiff = (int)(o2.getSizeBytes() - o1.getSizeBytes());
-        if (sizeDiff == 0) {
-            return mDownloadIdComparator.compare(o1, o2);
-
-        } else {
-            return sizeDiff;
-        }
-    };
+    private Comparator<Download> mAZFileNameComparator = (o1, o2) -> o1.getFilename().compareTo(o2.getFilename());
+    private Comparator<Download> mZAFilenameComparator = (o1, o2) -> o2.getFilename().compareTo(o1.getFilename());
+    private Comparator<Download> mDownloadDateAscComparator = (o1, o2) -> (int)(o1.getLastModified() - o2.getLastModified());
+    private Comparator<Download> mDownloadDateDescComparator = (o1, o2) -> (int)(o2.getLastModified() - o1.getLastModified());
+    private Comparator<Download> mDownloadSizeAscComparator = (o1, o2) -> (int)(o1.getSizeBytes() - o2.getSizeBytes());
+    private Comparator<Download> mDownloadSizeDescComparator = (o1, o2) -> (int)(o2.getSizeBytes() - o1.getSizeBytes());
 
     @Override
     public void onDownloadsUpdate(@NonNull List<Download> downloads) {
@@ -416,7 +380,7 @@ public class DownloadsView extends LibraryView implements DownloadsManager.Downl
     public void onDownloadError(@NonNull String error, @NonNull String filename) {
         Log.e(LOGTAG, error);
         mWidgetManager.getFocusedWindow().showAlert(
-                getContext().getString(R.string.download_error_title),
+                getContext().getString(R.string.download_error_title, filename),
                 error,
                 null
         );

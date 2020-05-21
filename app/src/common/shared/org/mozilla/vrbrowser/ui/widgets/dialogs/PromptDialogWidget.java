@@ -24,7 +24,7 @@ import org.mozilla.vrbrowser.utils.ViewUtils;
 public class PromptDialogWidget extends UIDialog {
 
     public interface Delegate {
-        void onButtonClicked(int index, boolean isChecked);
+        void onButtonClicked(int index);
         default void onDismiss() {}
     }
 
@@ -54,12 +54,12 @@ public class PromptDialogWidget extends UIDialog {
 
         mBinding.leftButton.setOnClickListener(v ->  {
             if (mAppDialogDelegate != null) {
-                mAppDialogDelegate.onButtonClicked(NEGATIVE, isChecked());
+                mAppDialogDelegate.onButtonClicked(NEGATIVE);
             }
         });
         mBinding.rightButton.setOnClickListener(v -> {
             if (mAppDialogDelegate != null) {
-                mAppDialogDelegate.onButtonClicked(POSITIVE, isChecked());
+                mAppDialogDelegate.onButtonClicked(POSITIVE);
             }
         });
     }

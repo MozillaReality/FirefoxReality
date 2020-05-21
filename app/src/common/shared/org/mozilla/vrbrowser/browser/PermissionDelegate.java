@@ -163,12 +163,7 @@ public class PermissionDelegate implements GeckoSession.PermissionDelegate, Widg
             return;
         }
 
-        if (aType == PERMISSION_AUTOPLAY_INAUDIBLE) {
-            // https://hacks.mozilla.org/2019/02/firefox-66-to-block-automatically-playing-audible-video-and-audio/
-            callback.grant();
-            return;
-
-        } else if(aType == PERMISSION_AUTOPLAY_AUDIBLE) {
+        if (aType == PERMISSION_AUTOPLAY_AUDIBLE || aType == PERMISSION_AUTOPLAY_INAUDIBLE) {
             if (SettingsStore.getInstance(mContext).isAutoplayEnabled()) {
                 callback.grant();
             } else {
@@ -299,13 +294,14 @@ public class PermissionDelegate implements GeckoSession.PermissionDelegate, Widg
             }
         }
     }
-    public void addPermissionException(@NonNull String uri, @SitePermission.Category int category) {
+
+    public void addPermissionException(String uri, @SitePermission.Category int category) {
         @Nullable SitePermission site = mSitePermissions.stream()
                 .filter((item) -> item.category == category && item.url.equals(uri))
                 .findFirst().orElse(null);
 
         if (site == null) {
-            site = new SitePermission(uri, "", category);
+            site = new SitePermission(uri, uri, category);
             mSitePermissions.add(site);
         }
         mSitePermissionModel.insertSite(site);

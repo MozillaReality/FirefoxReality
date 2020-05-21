@@ -6,7 +6,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.future.future
 import kotlinx.coroutines.launch
-import mozilla.components.service.location.LocationService
 import mozilla.components.service.location.MozillaLocationService
 import org.mozilla.vrbrowser.browser.engine.EngineProvider
 import org.mozilla.vrbrowser.browser.SettingsStore
@@ -23,12 +22,12 @@ object GeolocationWrapper {
         CoroutineScope(Dispatchers.IO).launch {
             locationService.fetchRegion(true)?.run {
                 val data: GeolocationData = GeolocationData.create(countryCode, countryName)
-                SettingsStore.getInstance(context).geolocationData = data.toString()
+                SettingsStore.getInstance(context).setGeolocationData(data.toString())
             }
         }
     }
 
-    fun get(context: Context): CompletableFuture<LocationService.Region?> =
+    fun get(context: Context): CompletableFuture<MozillaLocationService.Region?> =
         GlobalScope.future {
             val locationService = MozillaLocationService(
                     context,

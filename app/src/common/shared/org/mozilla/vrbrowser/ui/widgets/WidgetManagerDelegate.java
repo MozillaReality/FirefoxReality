@@ -33,7 +33,6 @@ public interface WidgetManagerDelegate {
         void onEnterWebXR();
         void onExitWebXR();
         void onDismissWebXRInterstitial();
-        void onWebXRRenderStateChange(boolean aRendering);
     }
 
     float DEFAULT_DIM_BRIGHTNESS = 0.25f;
@@ -92,7 +91,6 @@ public interface WidgetManagerDelegate {
     void addWebXRListener(WebXRListener aListener);
     void removeWebXRListener(WebXRListener aListener);
     void setWebXRIntersitialState(@WebXRInterstitialState int aState);
-    boolean isWebXRIntersitialHidden();
     boolean isPermissionGranted(@NonNull String permission);
     void requestPermission(String uri, @NonNull String permission, GeckoSession.PermissionDelegate.Callback aCallback);
     boolean canOpenNewWindow();

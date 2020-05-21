@@ -10,7 +10,6 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.net.Uri;
-import android.webkit.URLUtil;
 
 import androidx.annotation.StringRes;
 
@@ -21,10 +20,8 @@ import org.mozilla.vrbrowser.telemetry.GleanMetricsService;
 import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
 import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
 import org.mozilla.vrbrowser.utils.StringUtils;
-import org.mozilla.vrbrowser.utils.UrlUtils;
 
 import java.util.ArrayList;
-import java.util.function.Predicate;
 
 public class ContextMenuWidget extends MenuWidget {
     ArrayList<MenuItem> mItems;
@@ -76,46 +73,38 @@ public class ContextMenuWidget extends MenuWidget {
         }
     }
 
-    public boolean hasActions() {
-        return mItems.stream().anyMatch(menuItem -> menuItem.mCallback != null);
-    }
-
     public void setDismissCallback(Runnable aCallback) {
         mDismissCallback = aCallback;
     }
 
     public void setContextElement(ContextElement aContextElement) {
         mItems = new ArrayList<>();
+        mItems.add(new MenuWidget.MenuItem(aContextElement.linkUri, 0, null));
         final WidgetManagerDelegate widgetManager = mWidgetManager;
-        if (aContextElement.linkUri != null && !aContextElement.linkUri.isEmpty()) {
-            mItems.add(new MenuWidget.MenuItem(aContextElement.linkUri, 0, null));
-            if (mWidgetManager.canOpenNewWindow()) {
-                mItems.add(new MenuWidget.MenuItem(getContext().getString(R.string.context_menu_open_new_window_1), 0, () -> {
-                    if (!StringUtils.isEmpty(aContextElement.linkUri)) {
-                        widgetManager.openNewWindow(aContextElement.linkUri);
-                    }
-                    onDismiss();
-                }));
-            }
-            mItems.add(new MenuWidget.MenuItem(getContext().getString(R.string.context_menu_open_new_tab_1), 0, () -> {
+        if (mWidgetManager.canOpenNewWindow()) {
+            mItems.add(new MenuWidget.MenuItem(getContext().getString(R.string.context_menu_open_new_window_1), 0, () -> {
                 if (!StringUtils.isEmpty(aContextElement.linkUri)) {
-                    widgetManager.openNewTab(aContextElement.linkUri);
-                    GleanMetricsService.Tabs.openedCounter(GleanMetricsService.Tabs.TabSource.CONTEXT_MENU);
+                    widgetManager.openNewWindow(aContextElement.linkUri);
                 }
                 onDismiss();
             }));
-            if (!StringUtils.isEmpty(aContextElement.linkUri)) {
-                mItems.add(new MenuWidget.MenuItem(getContext().getString(R.string.context_menu_download_link), 0, () -> {
-                    DownloadJob job = DownloadJob.fromLink(aContextElement);
-                    widgetManager.getFocusedWindow().startDownload(job, false);
-                    // TODO Add Download from context menu Telemetry
-                    onDismiss();
-                }));
-            }
-        } else {
-            mItems.add(new MenuWidget.MenuItem(aContextElement.srcUri, 0, null));
         }
-        if (URLUtil.isNetworkUrl(aContextElement.srcUri)) {
+        mItems.add(new MenuWidget.MenuItem(getContext().getString(R.string.context_menu_open_new_tab_1), 0, () -> {
+            if (!StringUtils.isEmpty(aContextElement.linkUri)) {
+                widgetManager.openNewTab(aContextElement.linkUri);
+                GleanMetricsService.Tabs.openedCounter(GleanMetricsService.Tabs.TabSource.CONTEXT_MENU);
+            }
+            onDismiss();
+        }));
+        if (!StringUtils.isEmpty(aContextElement.linkUri)) {
+            mItems.add(new MenuWidget.MenuItem(getContext().getString(R.string.context_menu_download_link), 0, () -> {
+                DownloadJob job = DownloadJob.fromLink(aContextElement);
+                widgetManager.getFocusedWindow().startDownload(job, false);
+                // TODO Add Download from context menu Telemetry
+                onDismiss();
+            }));
+        }
+        if (!StringUtils.isEmpty(aContextElement.srcUri)) {
             @StringRes int srcText;
             switch (aContextElement.type) {
                 case ContextElement.TYPE_IMAGE:
@@ -138,35 +127,33 @@ public class ContextMenuWidget extends MenuWidget {
                 onDismiss();
             }));
         }
-        if (URLUtil.isNetworkUrl(aContextElement.linkUri) || URLUtil.isNetworkUrl(aContextElement.srcUri)) {
-            mItems.add(new MenuWidget.MenuItem(getContext().getString(R.string.context_menu_copy_link), 0, () -> {
-                ClipboardManager clipboard = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
-                Uri uri;
-                if (aContextElement.linkUri != null) {
-                    uri = Uri.parse(aContextElement.linkUri);
+        mItems.add(new MenuWidget.MenuItem(getContext().getString(R.string.context_menu_copy_link), 0, () -> {
+            ClipboardManager clipboard = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+            Uri uri;
+            if (aContextElement.linkUri != null) {
+                uri = Uri.parse(aContextElement.linkUri);
 
-                } else {
-                    uri = Uri.parse(aContextElement.srcUri);
+            } else {
+                uri = Uri.parse(aContextElement.srcUri);
+            }
+            if (uri != null) {
+                String label = aContextElement.title;
+                if (StringUtils.isEmpty(label)) {
+                    label = aContextElement.altText;
                 }
-                if (uri != null) {
-                    String label = aContextElement.title;
-                    if (StringUtils.isEmpty(label)) {
-                        label = aContextElement.altText;
-                    }
-                    if (StringUtils.isEmpty(label)) {
-                        label = aContextElement.altText;
-                    }
-                    if (StringUtils.isEmpty(label)) {
-                        label = uri.toString();
-                    }
-                    ClipData clip = ClipData.newRawUri(label, uri);
-                    if (clipboard != null) {
-                        clipboard.setPrimaryClip(clip);
-                    }
+                if (StringUtils.isEmpty(label)) {
+                    label = aContextElement.altText;
                 }
-                onDismiss();
-            }));
-        }
+                if (StringUtils.isEmpty(label)) {
+                    label = uri.toString();
+                }
+                ClipData clip = ClipData.newRawUri(label, uri);
+                if (clipboard != null) {
+                    clipboard.setPrimaryClip(clip);
+                }
+            }
+            onDismiss();
+        }));
         updateMenuItems(mItems);
 
         mWidgetPlacement.height = mItems.size() * WidgetPlacement.dpDimension(getContext(), R.dimen.context_menu_row_height);

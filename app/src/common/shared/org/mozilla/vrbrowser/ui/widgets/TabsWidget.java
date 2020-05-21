@@ -6,7 +6,6 @@ import android.graphics.Rect;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.webkit.URLUtil;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -241,17 +240,13 @@ public class TabsWidget extends UIDialog {
             holder.tabView.setSelected(mSelectedTabs.contains(holder.tabView.getSession()));
             holder.tabView.setActive(SessionStore.get().getActiveSession() == holder.tabView.getSession());
             if (holder.tabView.getSession() != null) {
-                String uri = holder.tabView.getSession().getCurrentUri();
-                holder.tabView.setSendTabEnabled(URLUtil.isHttpUrl(uri) || URLUtil.isHttpsUrl(uri));
-            } else {
-                holder.tabView.setSendTabEnabled(false);
+                holder.tabView.setPrivate(UrlUtils.isPrivateAboutPage(getContext(), holder.tabView.getSession().getCurrentUri()));
             }
             holder.tabView.setDelegate(new TabView.Delegate() {
                 @Override
                 public void onClose(TabView aSender) {
                     if (aSender.getSession() != null) {
-                        String uri = aSender.getSession().getCurrentUri();
-                        aSender.setSendTabEnabled(URLUtil.isHttpUrl(uri) || URLUtil.isHttpsUrl(uri));
+                        holder.tabView.setPrivate(aSender.getSession().isPrivateMode());
                     }
                     if (mTabDelegate != null) {
                         ArrayList<Session> closed = new ArrayList<>();

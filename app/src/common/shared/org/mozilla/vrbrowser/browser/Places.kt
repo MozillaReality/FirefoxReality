@@ -23,7 +23,7 @@ class Places(var context: Context) {
     var history = PlacesHistoryStorage(context)
 
     fun clear() {
-        val files = context.filesDir.listFiles { _, name ->
+        val files = context.filesDir.listFiles { dir, name ->
             name.matches("places\\.sqlite.*".toRegex())
         }
         for (file in files) {

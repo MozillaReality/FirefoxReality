@@ -173,10 +173,7 @@ class YoutubeExtension {
 
     // Get's the preferred video qualities for the current device.
     getPreferredQualities() {
-        // Disable 5k video until issue can be resolved in Gecko Media Process
-        // see https://github.com/MozillaReality/FirefoxReality/issues/3193
-        // let all = ['hd2880', 'hd2160','hd1440', 'hd1080', 'hd720', 'large', 'medium'];
-        let all = ['hd2160','hd1440', 'hd1080', 'hd720', 'large', 'medium'];
+        let all = ['hd2880', 'hd2160','hd1440', 'hd1080', 'hd720', 'large', 'medium'];
         return all;
     }
 

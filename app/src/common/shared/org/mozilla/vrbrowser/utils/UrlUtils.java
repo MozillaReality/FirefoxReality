@@ -15,7 +15,6 @@ import androidx.annotation.Nullable;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.browser.SettingsStore;
 
-import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
@@ -115,10 +114,6 @@ public class UrlUtils {
         return aUri != null && aUri.startsWith("file");
     }
 
-    public static Boolean isBlobUri(@Nullable String aUri) {
-        return aUri != null && aUri.startsWith("blob");
-    }
-
     public static Boolean isBlankUri(@Nullable Context context, @Nullable String aUri) {
         return context != null && aUri != null && aUri.equals(context.getString(R.string.about_blank));
     }
@@ -129,22 +124,16 @@ public class UrlUtils {
         }
 
         if (URLUtil.isValidUrl(aUri)) {
-            if (UrlUtils.isFileUri(aUri)) {
-                File file = new File(aUri);
-                return file.getName();
+            try {
+                URI uri = URI.create(aUri);
+                URL url = new URL(
+                        uri.getScheme() != null ? uri.getScheme() : "",
+                        uri.getAuthority() != null ? uri.getAuthority() : "",
+                        "");
+                return url.toString();
 
-            } else {
-                try {
-                    URI uri = URI.create(aUri);
-                    URL url = new URL(
-                            uri.getScheme() != null ? uri.getScheme() : "",
-                            uri.getAuthority() != null ? uri.getAuthority() : "",
-                            "");
-                    return url.toString();
-
-                } catch (MalformedURLException | IllegalArgumentException e) {
-                    return "";
-                }
+            } catch (MalformedURLException | IllegalArgumentException e) {
+                return "";
             }
 
         } else {

@@ -8,15 +8,14 @@ import org.mozilla.vrbrowser.BuildConfig;
 
 public class DeviceType {
     // These values need to match those in Device.h
-    @IntDef(value = { Unknown, OculusGo, OculusQuest, ViveFocus, ViveFocusPlus, PicoNeo2, PicoG2 })
+    @IntDef(value = { Unknown, OculusGo, OculusQuest, ViveFocusPlus, PicoNeo2, PicoG2 })
     public @interface Type {}
     public static final int Unknown = 0;
     public static final int OculusGo = 1;
     public static final int OculusQuest = 2;
-    public static final int ViveFocus = 3;
-    public static final int ViveFocusPlus = 4;
-    public static final int PicoNeo2 = 6;
-    public static final int PicoG2 = 7;
+    public static final int ViveFocusPlus = 3;
+    public static final int PicoNeo2 = 4;
+    public static final int PicoG2 = 5;
 
     private static @Type int mType = Unknown;
 
@@ -28,9 +27,6 @@ public class DeviceType {
                 break;
             case OculusQuest:
                 name = "Oculus Quest";
-                break;
-            case ViveFocus:
-                name = "Vive Focus";
                 break;
             case ViveFocusPlus:
                 name = "Vive Focus Plus";

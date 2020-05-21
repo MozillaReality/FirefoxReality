@@ -20,7 +20,6 @@ public class SitePermission {
         this.url = url;
         this.principal = principal;
         this.category = category;
-        this.allowed = false;
     }
 
     @PrimaryKey(autoGenerate = true)
@@ -30,11 +29,8 @@ public class SitePermission {
     public String url;
 
     @NonNull
-    @ColumnInfo(name = "principal", defaultValue = "")
+    @ColumnInfo(name = "principal")
     public String principal;
-
-    @ColumnInfo(name = "allowed")
-    public boolean allowed;
 
     @ColumnInfo(name = "category")
     public @Category int category;

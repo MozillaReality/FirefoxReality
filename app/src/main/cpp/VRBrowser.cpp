@@ -10,58 +10,54 @@
 
 namespace {
 
-const char* const kDispatchCreateWidgetName = "dispatchCreateWidget";
-const char* const kDispatchCreateWidgetSignature = "(ILandroid/graphics/SurfaceTexture;II)V";
-const char* const kDispatchCreateWidgetLayerName = "dispatchCreateWidgetLayer";
-const char* const kDispatchCreateWidgetLayerSignature = "(ILandroid/view/Surface;IIJ)V";
-const char* const kHandleMotionEventName = "handleMotionEvent";
-const char* const kHandleMotionEventSignature = "(IIZZFF)V";
-const char* const kHandleScrollEventName = "handleScrollEvent";
-const char* const kHandleScrollEventSignature = "(IIFF)V";
-const char* const kHandleAudioPoseName = "handleAudioPose";
-const char* const kHandleAudioPoseSignature = "(FFFFFFF)V";
-const char* const kHandleGestureName = "handleGesture";
-const char* const kHandleGestureSignature = "(I)V";
-const char* const kHandleResizeName = "handleResize";
-const char* const kHandleResizeSignature = "(IFF)V";
-const char* const kHandleMoveEndName = "handleMoveEnd";
-const char* const kHandleMoveEndSignature = "(IFFFF)V";
-const char* const kHandleBackEventName = "handleBack";
-const char* const kHandleBackEventSignature = "()V";
-const char* const kRegisterExternalContextName = "registerExternalContext";
-const char* const kRegisterExternalContextSignature = "(J)V";
-const char* const kOnEnterWebXRName = "onEnterWebXR";
-const char* const kOnEnterWebXRSignature = "()V";
-const char* const kOnExitWebXRName = "onExitWebXR";
-const char* const kOnExitWebXRSignature = "(J)V";
-const char* const kOnDismissWebXRInterstitialName = "onDismissWebXRInterstitial";
-const char* const kOnDismissWebXRInterstitialSignature = "()V";
-const char* const kOnWebXRRenderStateChangeName = "onWebXRRenderStateChange";
-const char* const kOnWebXRRenderStateChangeSignature = "(Z)V";
-const char* const kRenderPointerLayerName = "renderPointerLayer";
-const char* const kRenderPointerLayerSignature = "(Landroid/view/Surface;J)V";
-const char* const kGetStorageAbsolutePathName = "getStorageAbsolutePath";
-const char* const kGetStorageAbsolutePathSignature = "()Ljava/lang/String;";
-const char* const kIsOverrideEnvPathEnabledName = "isOverrideEnvPathEnabled";
-const char* const kIsOverrideEnvPathEnabledSignature = "()Z";
-const char* const kGetActiveEnvironment = "getActiveEnvironment";
-const char* const kGetActiveEnvironmentSignature = "()Ljava/lang/String;";
-const char* const kGetPointerColor = "getPointerColor";
-const char* const kGetPointerColorSignature = "()I";
-const char* const kAreLayersEnabled = "areLayersEnabled";
-const char* const kAreLayersEnabledSignature = "()Z";
-const char* const kSetDeviceType = "setDeviceType";
-const char* const kSetDeviceTypeSignature = "(I)V";
-const char* const kHaltActivity = "haltActivity";
-const char* const kHaltActivitySignature = "(I)V";
-const char* const kHandlePoorPerformance = "handlePoorPerformance";
-const char* const kHandlePoorPerformanceSignature = "()V";
-const char* const kOnAppLink = "onAppLink";
-const char* const kOnAppLinkSignature = "(Ljava/lang/String;)V";
-const char* const kDisableLayers = "disableLayers";
-const char* const kDisableLayersSignature = "()V";
-const char* const kAppendAppNotesToCrashReport = "appendAppNotesToCrashReport";
-const char* const kAppendAppNotesToCrashReportSignature = "(Ljava/lang/String;)V";
+const char* kDispatchCreateWidgetName = "dispatchCreateWidget";
+const char* kDispatchCreateWidgetSignature = "(ILandroid/graphics/SurfaceTexture;II)V";
+const char* kDispatchCreateWidgetLayerName = "dispatchCreateWidgetLayer";
+const char* kDispatchCreateWidgetLayerSignature = "(ILandroid/view/Surface;IIJ)V";
+const char* kHandleMotionEventName = "handleMotionEvent";
+const char* kHandleMotionEventSignature = "(IIZZFF)V";
+const char* kHandleScrollEventName = "handleScrollEvent";
+const char* kHandleScrollEventSignature = "(IIFF)V";
+const char* kHandleAudioPoseName = "handleAudioPose";
+const char* kHandleAudioPoseSignature = "(FFFFFFF)V";
+const char* kHandleGestureName = "handleGesture";
+const char* kHandleGestureSignature = "(I)V";
+const char* kHandleResizeName = "handleResize";
+const char* kHandleResizeSignature = "(IFF)V";
+const char* kHandleMoveEndName = "handleMoveEnd";
+const char* kHandleMoveEndSignature = "(IFFFF)V";
+const char* kHandleBackEventName = "handleBack";
+const char* kHandleBackEventSignature = "()V";
+const char* kRegisterExternalContextName = "registerExternalContext";
+const char* kRegisterExternalContextSignature = "(J)V";
+const char* kOnEnterWebXRName = "onEnterWebXR";
+const char* kOnEnterWebXRSignature = "()V";
+const char* kOnExitWebXRName = "onExitWebXR";
+const char* kOnExitWebXRSignature = "()V";
+const char* kOnDismissWebXRInterstitialName = "onDismissWebXRInterstitial";
+const char* kOnDismissWebXRInterstitialSignature = "()V";
+const char* kRenderPointerLayerName = "renderPointerLayer";
+const char* kRenderPointerLayerSignature = "(Landroid/view/Surface;J)V";
+const char* kGetStorageAbsolutePathName = "getStorageAbsolutePath";
+const char* kGetStorageAbsolutePathSignature = "()Ljava/lang/String;";
+const char* kIsOverrideEnvPathEnabledName = "isOverrideEnvPathEnabled";
+const char* kIsOverrideEnvPathEnabledSignature = "()Z";
+const char* kGetActiveEnvironment = "getActiveEnvironment";
+const char* kGetActiveEnvironmentSignature = "()Ljava/lang/String;";
+const char* kGetPointerColor = "getPointerColor";
+const char* kGetPointerColorSignature = "()I";
+const char* kAreLayersEnabled = "areLayersEnabled";
+const char* kAreLayersEnabledSignature = "()Z";
+const char* kSetDeviceType = "setDeviceType";
+const char* kSetDeviceTypeSignature = "(I)V";
+const char* kHaltActivity = "haltActivity";
+const char* kHaltActivitySignature = "(I)V";
+const char* kHandlePoorPerformance = "handlePoorPerformance";
+const char* kHandlePoorPerformanceSignature = "()V";
+const char* kOnAppLink = "onAppLink";
+const char* kOnAppLinkSignature = "(Ljava/lang/String;)V";
+const char* kDisableLayers = "disableLayers";
+const char* kDisableLayersSignature = "()V";
 
 JNIEnv* sEnv = nullptr;
 jclass sBrowserClass = nullptr;
@@ -79,7 +75,6 @@ jmethodID sRegisterExternalContext = nullptr;
 jmethodID sOnEnterWebXR = nullptr;
 jmethodID sOnExitWebXR = nullptr;
 jmethodID sOnDismissWebXRInterstitial = nullptr;
-jmethodID sOnWebXRRenderStateChange = nullptr;
 jmethodID sRenderPointerLayer = nullptr;
 jmethodID sGetStorageAbsolutePath = nullptr;
 jmethodID sIsOverrideEnvPathEnabled = nullptr;
@@ -91,7 +86,6 @@ jmethodID sHaltActivity = nullptr;
 jmethodID sHandlePoorPerformance = nullptr;
 jmethodID sOnAppLink = nullptr;
 jmethodID sDisableLayers = nullptr;
-jmethodID sAppendAppNotesToCrashReport = nullptr;
 }
 
 namespace crow {
@@ -124,7 +118,6 @@ VRBrowser::InitializeJava(JNIEnv* aEnv, jobject aActivity) {
   sOnEnterWebXR = FindJNIMethodID(sEnv, sBrowserClass, kOnEnterWebXRName, kOnEnterWebXRSignature);
   sOnExitWebXR = FindJNIMethodID(sEnv, sBrowserClass, kOnExitWebXRName, kOnExitWebXRSignature);
   sOnDismissWebXRInterstitial = FindJNIMethodID(sEnv, sBrowserClass, kOnDismissWebXRInterstitialName, kOnDismissWebXRInterstitialSignature);
-  sOnWebXRRenderStateChange = FindJNIMethodID(sEnv, sBrowserClass, kOnWebXRRenderStateChangeName, kOnWebXRRenderStateChangeSignature);
   sRenderPointerLayer = FindJNIMethodID(sEnv, sBrowserClass, kRenderPointerLayerName, kRenderPointerLayerSignature);
   sGetStorageAbsolutePath = FindJNIMethodID(sEnv, sBrowserClass, kGetStorageAbsolutePathName, kGetStorageAbsolutePathSignature);
   sIsOverrideEnvPathEnabled = FindJNIMethodID(sEnv, sBrowserClass, kIsOverrideEnvPathEnabledName, kIsOverrideEnvPathEnabledSignature);
@@ -136,7 +129,6 @@ VRBrowser::InitializeJava(JNIEnv* aEnv, jobject aActivity) {
   sHandlePoorPerformance = FindJNIMethodID(sEnv, sBrowserClass, kHandlePoorPerformance, kHandlePoorPerformanceSignature);
   sOnAppLink = FindJNIMethodID(sEnv, sBrowserClass, kOnAppLink, kOnAppLinkSignature);
   sDisableLayers = FindJNIMethodID(sEnv, sBrowserClass, kDisableLayers, kDisableLayersSignature);
-  sAppendAppNotesToCrashReport = FindJNIMethodID(sEnv, sBrowserClass, kAppendAppNotesToCrashReport, kAppendAppNotesToCrashReportSignature);
 }
 
 void
@@ -164,7 +156,6 @@ VRBrowser::ShutdownJava() {
   sOnEnterWebXR = nullptr;
   sOnExitWebXR = nullptr;
   sOnDismissWebXRInterstitial = nullptr;
-  sOnWebXRRenderStateChange = nullptr;
   sRenderPointerLayer = nullptr;
   sGetStorageAbsolutePath = nullptr;
   sIsOverrideEnvPathEnabled = nullptr;
@@ -176,7 +167,6 @@ VRBrowser::ShutdownJava() {
   sOnAppLink = nullptr;
   sDisableLayers = nullptr;
   sEnv = nullptr;
-  sAppendAppNotesToCrashReport = nullptr;
 }
 
 void
@@ -263,25 +253,15 @@ VRBrowser::OnEnterWebXR() {
 }
 
 void
-VRBrowser::OnExitWebXR(const std::function<void()>& aCallback) {
+VRBrowser::OnExitWebXR() {
   if (!ValidateMethodID(sEnv, sActivity, sOnExitWebXR, __FUNCTION__)) { return; }
-  jlong callback = 0;
-  if (aCallback) {
-    callback = reinterpret_cast<jlong>(new std::function<void()>(aCallback));
-  }
-  sEnv->CallVoidMethod(sActivity, sOnExitWebXR, callback);
+  sEnv->CallVoidMethod(sActivity, sOnExitWebXR);
   CheckJNIException(sEnv, __FUNCTION__);
 }
 
 void VRBrowser::OnDismissWebXRInterstitial() {
   if (!ValidateMethodID(sEnv, sActivity, sOnDismissWebXRInterstitial, __FUNCTION__)) { return; }
   sEnv->CallVoidMethod(sActivity, sOnDismissWebXRInterstitial);
-  CheckJNIException(sEnv, __FUNCTION__);
-}
-
-void VRBrowser::OnWebXRRenderStateChange(const bool aRendering) {
-  if (!ValidateMethodID(sEnv, sActivity, sOnWebXRRenderStateChange, __FUNCTION__)) { return; }
-  sEnv->CallVoidMethod(sActivity, sOnWebXRRenderStateChange, (jboolean) aRendering);
   CheckJNIException(sEnv, __FUNCTION__);
 }
 
@@ -393,15 +373,6 @@ void
 VRBrowser::DisableLayers() {
   if (!ValidateMethodID(sEnv, sActivity, sDisableLayers, __FUNCTION__)) { return; }
   sEnv->CallVoidMethod(sActivity, sDisableLayers);
-  CheckJNIException(sEnv, __FUNCTION__);
-}
-
-void
-VRBrowser::AppendAppNotesToCrashLog(const std::string& aNotes) {
-  if (!ValidateMethodID(sEnv, sActivity, sAppendAppNotesToCrashReport, __FUNCTION__)) { return; }
-  jstring notes = sEnv->NewStringUTF(aNotes.c_str());
-  sEnv->CallVoidMethod(sActivity, sAppendAppNotesToCrashReport, notes);
-  sEnv->DeleteLocalRef(notes);
   CheckJNIException(sEnv, __FUNCTION__);
 }
 

@@ -61,7 +61,6 @@ public class TrayWidget extends UIWidget implements WidgetManagerDelegate.Update
     private int mMaxPadding;
     private Session mSession;
     private WindowWidget mAttachedWindow;
-    private boolean mIsWindowAttached;
 
     public TrayWidget(Context aContext) {
         super(aContext);
@@ -89,8 +88,6 @@ public class TrayWidget extends UIWidget implements WidgetManagerDelegate.Update
         mTrayViewModel.getIsVisible().observe((VRBrowserActivity) getContext(), mIsVisibleObserver);
 
         updateUI();
-
-        mIsWindowAttached = false;
 
         mTrayListeners = new ArrayList<>();
 
@@ -224,15 +221,11 @@ public class TrayWidget extends UIWidget implements WidgetManagerDelegate.Update
         int ev = motionEvent.getActionMasked();
         switch (ev) {
             case MotionEvent.ACTION_HOVER_ENTER:
-                if (!view.isPressed() && ViewUtils.isInsideView(view, (int)motionEvent.getRawX(), (int)motionEvent.getRawY())) {
-                    animateViewPadding(view, mMaxPadding, mMinPadding, ICON_ANIMATION_DURATION);
-                }
+                animateViewPadding(view, mMaxPadding, mMinPadding, ICON_ANIMATION_DURATION);
                 return false;
 
             case MotionEvent.ACTION_HOVER_EXIT:
-                if (!ViewUtils.isInsideView(view, (int)motionEvent.getRawX(), (int)motionEvent.getRawY())) {
-                    animateViewPadding(view, mMinPadding, mMaxPadding, ICON_ANIMATION_DURATION);
-                }
+                animateViewPadding(view, mMinPadding, mMaxPadding, ICON_ANIMATION_DURATION);
                 return false;
         }
 
@@ -240,11 +233,6 @@ public class TrayWidget extends UIWidget implements WidgetManagerDelegate.Update
     };
 
     private void animateViewPadding(View view, int paddingStart, int paddingEnd, int duration) {
-        if (view.isPressed() || !mIsWindowAttached) {
-            view.setPadding(paddingEnd, paddingEnd, paddingEnd, paddingEnd);
-            return;
-        }
-
         ValueAnimator animation = ValueAnimator.ofInt(paddingStart, paddingEnd);
         animation.setDuration(duration);
         animation.setInterpolator(new AccelerateDecelerateInterpolator());
@@ -396,8 +384,6 @@ public class TrayWidget extends UIWidget implements WidgetManagerDelegate.Update
             mViewModel.getIsDownloadsVisible().removeObserver(mIsDownloadsVisible);
             mViewModel = null;
         }
-
-        mIsWindowAttached = false;
     }
 
     @Override
@@ -422,14 +408,9 @@ public class TrayWidget extends UIWidget implements WidgetManagerDelegate.Update
         mBinding.setViewmodel(mViewModel);
 
         SessionStore.get().getBookmarkStore().addListener(mBookmarksListener);
-
-        mIsWindowAttached = true;
     }
 
     private Observer<ObservableBoolean> mIsBookmarksVisible = aBoolean -> {
-        if (mBinding.bookmarksButton.isHovered()) {
-            return;
-        }
         if (aBoolean.get()) {
             animateViewPadding(mBinding.bookmarksButton, mMaxPadding, mMinPadding, ICON_ANIMATION_DURATION);
         } else {
@@ -438,21 +419,14 @@ public class TrayWidget extends UIWidget implements WidgetManagerDelegate.Update
     };
 
     private Observer<ObservableBoolean> mIsHistoryVisible = aBoolean -> {
-        if (mBinding.historyButton.isHovered()) {
-            return;
-        }
         if (aBoolean.get()) {
             animateViewPadding(mBinding.historyButton, mMaxPadding, mMinPadding, ICON_ANIMATION_DURATION);
-
         } else {
             animateViewPadding(mBinding.historyButton, mMinPadding, mMaxPadding, ICON_ANIMATION_DURATION);
         }
     };
 
     private Observer<ObservableBoolean> mIsDownloadsVisible = aBoolean -> {
-        if (mBinding.downloadsButton.isHovered()) {
-            return;
-        }
         if (aBoolean.get()) {
             animateViewPadding(mBinding.downloadsButton, mMaxPadding, mMinPadding, ICON_ANIMATION_DURATION);
         } else {
@@ -525,15 +499,13 @@ public class TrayWidget extends UIWidget implements WidgetManagerDelegate.Update
     }
 
     private void showNotification(int notificationId, UIButton button, String string) {
-        if (isVisible()) {
-            NotificationManager.Notification notification = new NotificationManager.Builder(this)
-                    .withView(button)
-                    .withDensity(R.dimen.tray_tooltip_density)
-                    .withString(string)
-                    .withPosition(NotificationManager.Notification.TOP)
-                    .withZTranslation(25.0f).build();
-            NotificationManager.show(notificationId, notification);
-        }
+        NotificationManager.Notification notification = new NotificationManager.Builder(this)
+                .withView(button)
+                .withDensity(R.dimen.tray_tooltip_density)
+                .withString(string)
+                .withPosition(NotificationManager.Notification.TOP)
+                .withZTranslation(25.0f).build();
+        NotificationManager.show(notificationId, notification);
     }
 
     private void hideNotifications() {
@@ -556,26 +528,16 @@ public class TrayWidget extends UIWidget implements WidgetManagerDelegate.Update
 
     @Override
     public void onDownloadsUpdate(@NonNull List<Download> downloads) {
-        long inProgressNum = downloads.stream().filter(item ->
-                item.getStatus() == Download.RUNNING ||
-                        item.getStatus() == Download.PAUSED ||
-                        item.getStatus() == Download.PENDING).count();
+        long inProgressNum = downloads.stream().filter(item -> item.getStatus() == Download.RUNNING).count();
         mTrayViewModel.setDownloadsNumber((int)inProgressNum);
         if (inProgressNum == 0) {
             mBinding.downloadsButton.setLevel(0);
 
         } else {
-            long size = downloads.stream()
-                    .filter(item -> item.getStatus() == Download.RUNNING)
-                    .mapToLong(Download::getSizeBytes)
-                    .sum();
-            long downloaded = downloads.stream().filter(item -> item.getStatus() == Download.RUNNING)
-                    .mapToLong(Download::getDownloadedBytes)
-                    .sum();
-            if (size > 0) {
-                long percent = downloaded*100/size;
-                mBinding.downloadsButton.setLevel((int)percent*100);
-            }
+            long size = downloads.stream().filter(item -> item.getStatus() == Download.RUNNING).mapToLong(Download::getSizeBytes).sum();
+            long downloaded = downloads.stream().filter(item -> item.getStatus() == Download.RUNNING).mapToLong(Download::getDownloadedBytes).sum();
+            long percent = downloaded*100/size;
+            mBinding.downloadsButton.setLevel((int)percent*100);
         }
     }
 

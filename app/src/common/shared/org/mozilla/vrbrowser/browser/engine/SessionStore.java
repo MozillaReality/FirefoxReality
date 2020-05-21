@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Executor;
-import java.util.stream.Collectors;
 
 public class SessionStore implements GeckoSession.PermissionDelegate{
     private static final String LOGTAG = SystemUtils.createLogtag(SessionStore.class);
@@ -67,26 +66,18 @@ public class SessionStore implements GeckoSession.PermissionDelegate{
         mTrackingProtectionStore = new TrackingProtectionStore(context, mRuntime);
         mTrackingProtectionStore.addListener(new TrackingProtectionStore.TrackingProtectionListener() {
             @Override
-            public void onExcludedTrackingProtectionChange(@NonNull String url, boolean excluded, boolean isPrivate) {
+            public void onExcludedTrackingProtectionChange(@NonNull String host, boolean excluded) {
                 mSessions.forEach(existingSession -> {
-                    String currentSessionHost = UrlUtils.getHost(existingSession.getCurrentUri());
-                    String sessionHost = UrlUtils.getHost(url);
-                    if (currentSessionHost.equals(sessionHost) && existingSession.isPrivateMode() == isPrivate) {
-                        existingSession.reload(GeckoSession.LOAD_FLAGS_BYPASS_CACHE);
+                    String existingHost = UrlUtils.getHost(existingSession.getCurrentUri());
+                    if (existingHost.equals(host)) {
+                        existingSession.recreateSession();
                     }
                 });
             }
 
             @Override
             public void onTrackingProtectionLevelUpdated(int level) {
-                mSessions.forEach(session -> {
-                    if (session.isActive()) {
-                        session.updateTrackingProtection();
-                        session.reload(GeckoSession.LOAD_FLAGS_BYPASS_CACHE);
-                    } else {
-                        session.suspend();
-                    }
-                });
+                mSessions.forEach(Session::recreateSession);
             }
         });
     }
@@ -171,13 +162,6 @@ public class SessionStore implements GeckoSession.PermissionDelegate{
 
     public @Nullable Session getSession(GeckoSession aGeckoSession) {
         return mSessions.stream().filter(session -> session.getGeckoSession() == aGeckoSession).findFirst().orElse(null);
-    }
-
-    public @NonNull List<Session> getSessionsByHost(@NonNull String aHost, boolean aIsPrivate) {
-        return mSessions.stream()
-                .filter(session -> session.isPrivateMode() == aIsPrivate)
-                .filter(session -> UrlUtils.getHost(session.getCurrentUri()).equals(aHost))
-                .collect(Collectors.toList());
     }
 
     public void setActiveSession(Session aSession) {
@@ -278,7 +262,7 @@ public class SessionStore implements GeckoSession.PermissionDelegate{
             mRuntime.configurationChanged(newConfig);
         }
 
-        mBookmarksStore.onConfigurationChanged();
+        mBookmarksStore.onConfigurationChanged(newConfig);
     }
 
     // Session Settings
@@ -348,13 +332,13 @@ public class SessionStore implements GeckoSession.PermissionDelegate{
         }
     }
 
-    public void addPermissionException(@NonNull String uri, @SitePermission.Category int category) {
+    public void addPermissionException(String uri, @SitePermission.Category int category) {
         if (mPermissionDelegate != null) {
             mPermissionDelegate.addPermissionException(uri, category);
         }
     }
 
-    public void removePermissionException(@NonNull String uri, @SitePermission.Category int category) {
+    public void removePermissionException(String uri, @SitePermission.Category int category) {
         if (mPermissionDelegate != null) {
             mPermissionDelegate.removePermissionException(uri, category);
         }

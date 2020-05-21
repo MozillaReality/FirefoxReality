@@ -41,7 +41,7 @@
                 android:layout_marginStart="2dp"
                 android:addStatesFromChildren="true"
                 android:orientation="horizontal"
-                app:visibleGone="@{!viewmodel.isFocused &amp;&amp; viewmodel.isUrlBarButtonsVisible}">
+                app:visibleGone="@{!viewmodel.isLibraryVisible &amp;&amp; !UrlUtils.isContentFeed(context, viewmodel.url.toString())}">
 
                 <org.mozilla.vrbrowser.ui.views.UIButton
                     android:id="@+id/tracking"
@@ -51,10 +51,9 @@
                     android:paddingTop="6dp"
                     android:paddingBottom="6dp"
                     android:src="@{viewmodel.isTrackingEnabled ? @drawable/ic_icon_tracking_enabled : @drawable/ic_icon_tracking_disabled}"
-                    tools:src="@drawable/ic_icon_tracking_enabled"
                     app:privateMode="@{viewmodel.isPrivateSession}"
                     android:tint="@color/fog"
-                    app:visibleGone="@{!UrlUtils.isPrivateAboutPage(context, viewmodel.url.toString()) &amp;&amp; settingsViewmodel.isTrackingProtectionEnabled &amp;&amp; !UrlUtils.isContentFeed(context, viewmodel.url.toString())}"
+                    app:visibleGone="@{settingsViewmodel.isTrackingProtectionEnabled}"
                     android:tooltipText="@{viewmodel.isTrackingEnabled ? @string/tracking_allowed_tooltip : @string/tracking_disabled_tooltip}" />
 
                 <LinearLayout
@@ -80,7 +79,6 @@
                         android:paddingStart="@{settingsViewmodel.isTrackingProtectionEnabled ? @dimen/navigation_bar_icon_padding_small : @dimen/navigation_bar_icon_padding_big}"
                         android:paddingEnd="2dp"
                         android:src="@{settingsViewmodel.isDrmEnabled ? @drawable/ic_icon_drm_allowed : @drawable/ic_icon_drm_blocked}"
-                        tools:src="@drawable/ic_icon_drm_allowed"
                         android:tint="@color/fog"
                         android:tooltipText="@{settingsViewmodel.isDrmEnabled ? @string/drm_enabled_tooltip : @string/drm_disabled_tooltip}"
                         app:privateMode="@{viewmodel.isPrivateSession}" />
@@ -109,9 +107,8 @@
                         android:paddingStart="@{settingsViewmodel.isTrackingProtectionEnabled || (settingsViewmodel.isDrmEnabled &amp;&amp; viewmodel.isDrmUsed) ? @dimen/navigation_bar_icon_padding_small : @dimen/navigation_bar_icon_padding_big}"
                         android:paddingEnd="2dp"
                         android:src="@{viewmodel.isPopUpBlocked ? @drawable/ic_icon_popup_blocked : @drawable/ic_icon_popup}"
-                        tools:src="@drawable/ic_icon_popup_blocked"
                         android:tint="@color/fog"
-                        android:tooltipText="@{viewmodel.isPopUpBlocked ? @string/popup_blocked_tooltip : @string/popup_tooltip_v1}"
+                        android:tooltipText="@string/popup_tooltip"
                         app:privateMode="@{viewmodel.isPrivateSession}" />
                 </LinearLayout>
 
@@ -138,7 +135,6 @@
                         android:paddingStart="@{settingsViewmodel.isTrackingProtectionEnabled || (settingsViewmodel.isPopUpBlockingEnabled &amp;&amp; viewmodel.isPopUpBlocked) || (settingsViewmodel.isDrmEnabled &amp;&amp; viewmodel.isDrmUsed) ? @dimen/navigation_bar_icon_padding_small : @dimen/navigation_bar_icon_padding_big}"
                         android:paddingEnd="2dp"
                         android:src="@{viewmodel.isWebXRBlocked ? @drawable/ic_icon_webxr_blocked : @drawable/ic_icon_webxr_allowed}"
-                        tools:src="@drawable/ic_icon_webxr_blocked"
                         app:privateMode="@{viewmodel.isPrivateSession}"
                         android:tint="@color/fog"
                         android:tooltipText="@{viewmodel.isWebXRBlocked ? @string/webxr_blocked_tooltip : @string/webxr_allowed_tooltip}" />
@@ -147,7 +143,8 @@
                 <View
                     android:layout_width="4dp"
                     android:layout_height="match_parent"
-                    app:visibleGone="@{!viewmodel.isUrlBarIconsVisible}"/>
+                    app:visibleGone="@{!UrlUtils.isHomeUri(context, viewmodel.url.toString())}"/>
+
             </LinearLayout>
 
             <View
@@ -155,7 +152,7 @@
                 android:layout_width="15dp"
                 android:layout_height="match_parent"
                 android:layout_toEndOf="@id/startButtonsLayout"
-                app:visibleGone="@{!viewmodel.isUrlBarButtonsVisible || viewmodel.isFocused}"/>
+                app:visibleGone="@{(!settingsViewmodel.isTrackingProtectionEnabled &amp;&amp; !viewmodel.isPopUpAvailable &amp;&amp; !viewmodel.isWebXRUsed) || viewmodel.isLibraryVisible || UrlUtils.isHomeUri(context, viewmodel.url.toString())}"/>
 
             <LinearLayout
                 android:id="@+id/icons"
@@ -164,7 +161,7 @@
                 android:orientation="horizontal"
                 android:layout_toEndOf="@id/padding"
                 android:layout_centerVertical="true"
-                app:visibleGone="@{viewmodel.isUrlBarIconsVisible &amp;&amp; !viewmodel.isFocused}">
+                app:visibleGone="@{!viewmodel.isFocused}">
                 <ImageView
                     android:id="@+id/loadingView"
                     android:layout_width="24dp"

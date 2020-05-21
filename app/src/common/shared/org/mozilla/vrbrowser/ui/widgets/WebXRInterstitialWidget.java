@@ -19,8 +19,6 @@ public class WebXRInterstitialWidget extends UIWidget implements WidgetManagerDe
     private ArrayList<WebXRInterstitialController> mControllers = new ArrayList<>();
     private boolean firstEnterXR = true;
     private AnimatedVectorDrawable mSpinnerAnimation;
-    private boolean mWebXRRendering = false;
-    private boolean mInterstitialDismissed = false;
 
     public WebXRInterstitialWidget(Context aContext) {
         super(aContext);
@@ -93,8 +91,6 @@ public class WebXRInterstitialWidget extends UIWidget implements WidgetManagerDe
             addController(DeviceType.PicoNeo2, WebXRInterstitialController.HAND_RIGHT);
         } else if (deviceType == DeviceType.PicoG2) {
             addController(DeviceType.PicoG2, WebXRInterstitialController.HAND_NONE);
-        } else if (deviceType == DeviceType.ViveFocus) {
-            addController(DeviceType.ViveFocus, WebXRInterstitialController.HAND_NONE);
         } else if (deviceType == DeviceType.ViveFocusPlus) {
             addController(DeviceType.ViveFocusPlus, WebXRInterstitialController.HAND_LEFT);
             addController(DeviceType.ViveFocusPlus, WebXRInterstitialController.HAND_RIGHT);
@@ -137,7 +133,7 @@ public class WebXRInterstitialWidget extends UIWidget implements WidgetManagerDe
             showControllers();
             // Add some delay to duplicated input detection conflicts with the EnterVR button.
             postDelayed(() -> {
-                if (mWidgetManager != null && !mWidgetManager.isWebXRIntersitialHidden()) {
+                if (mWidgetManager != null) {
                     mWidgetManager.setWebXRIntersitialState(WidgetManagerDelegate.WEBXR_INTERSTITIAL_ALLOW_DISMISS);
                 }
             }, 50);
@@ -155,22 +151,8 @@ public class WebXRInterstitialWidget extends UIWidget implements WidgetManagerDe
 
     @Override
     public void onDismissWebXRInterstitial() {
-        mInterstitialDismissed = true;
         setHowToVisible(false);
         hideControllers();
-        if (!mWebXRRendering) {
-            stopAnimation();
-        }
         mWidgetManager.updateWidget(this);
-    }
-
-    @Override
-    public void onWebXRRenderStateChange(boolean aRendering) {
-        mWebXRRendering = aRendering;
-        if (aRendering && mInterstitialDismissed) {
-            stopAnimation();
-        } else if (!aRendering) {
-            startAnimation();
-        }
     }
 }

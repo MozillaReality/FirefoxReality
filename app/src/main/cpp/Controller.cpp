@@ -51,7 +51,6 @@ Controller::operator=(const Controller& aController) {
   pointer = aController.pointer;
   transformMatrix = aController.transformMatrix;
   beamTransformMatrix = aController.beamTransformMatrix;
-  immersiveBeamTransform = aController.immersiveBeamTransform;
   immersiveName = aController.immersiveName;
   immersivePressedState = aController.immersivePressedState;
   immersiveTouchedState = aController.immersiveTouchedState;
@@ -66,13 +65,6 @@ Controller::operator=(const Controller& aController) {
   leftHanded = aController.leftHanded;
   inDeadZone = aController.inDeadZone;
   lastHoverEvent = aController.lastHoverEvent;
-  profile = aController.profile;
-  type = aController.type;
-  targetRayMode = aController.targetRayMode;
-  selectActionStartFrameId = aController.selectActionStartFrameId;
-  selectActionStopFrameId = aController.selectActionStopFrameId;
-  squeezeActionStartFrameId = aController.squeezeActionStartFrameId;
-  squeezeActionStopFrameId = aController.squeezeActionStopFrameId;
   return *this;
 }
 
@@ -96,7 +88,6 @@ Controller::Reset() {
   pointer = nullptr;
   transformMatrix = Matrix::Identity();
   beamTransformMatrix = Matrix::Identity();
-  immersiveBeamTransform = Matrix::Identity();
   immersiveName.clear();
   immersivePressedState = 0;
   immersiveTouchedState = 0;
@@ -111,12 +102,6 @@ Controller::Reset() {
   leftHanded = false;
   inDeadZone = true;
   lastHoverEvent = 0.0;
-  type = device::UnknownType;
-  targetRayMode = device::TargetRayMode::TrackedPointer;
-  selectActionStartFrameId = 0;
-  selectActionStopFrameId = 0;
-  squeezeActionStartFrameId = 0;
-  squeezeActionStopFrameId = 0;
 }
 
 vrb::Vector Controller::StartPoint() const {

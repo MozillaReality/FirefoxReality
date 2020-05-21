@@ -90,7 +90,6 @@ struct DeviceDelegateWaveVR::State {
   GestureDelegatePtr gestures;
   std::array<Controller, kMaxControllerCount> controllers;
   ImmersiveDisplayPtr immersiveDisplay;
-  device::DeviceType deviceType;
   bool lastSubmitDiscarded;
   bool recentered;
   vrb::Matrix reorientMatrix;
@@ -111,7 +110,6 @@ struct DeviceDelegateWaveVR::State {
       , renderHeight(0)
       , devicePairs {}
       , controllers {}
-      , deviceType(device::UnknownType)
       , lastSubmitDiscarded(false)
       , recentered(false)
       , ignoreNextRecenter(false)
@@ -133,11 +131,6 @@ struct DeviceDelegateWaveVR::State {
       if (controllers[index].is6DoF) {
         sixDoFControllerCount++;
       }
-    }
-    if (sixDoFControllerCount) {
-      deviceType = device::ViveFocusPlus;
-    } else {
-      deviceType = device::ViveFocus;
     }
     reorientMatrix = vrb::Matrix::Identity();
   }
@@ -252,26 +245,13 @@ struct DeviceDelegateWaveVR::State {
       VRB_ERROR("Failed to create controller. No ControllerDelegate has been set.");
       return;
     }
-    vrb::Matrix beamTransform(vrb::Matrix::Identity());
+    vrb::Matrix transform(vrb::Matrix::Identity());
     if (aController.is6DoF) {
-      beamTransform.TranslateInPlace(vrb::Vector(0.0f, 0.01f, -0.05f));
+      transform.TranslateInPlace(vrb::Vector(0.0f, 0.01f, -0.05f));
     }
-    delegate->CreateController(aController.index, aController.is6DoF ? 1 : 0,
-            aController.is6DoF ? "HTC Vive Focus Plus Controller" : "HTC Vive Focus Controller",
-            beamTransform);
+    delegate->CreateController(aController.index, aController.is6DoF ? 1 : 0, aController.is6DoF ? "HTC Vive Focus Plus Controller" : "HTC Vive Focus Controller", transform);
     delegate->SetLeftHanded(aController.index, aController.hand == ElbowModel::HandEnum::Left);
     delegate->SetHapticCount(aController.index, 1);
-    delegate->SetControllerType(aController.index, aController.is6DoF ? device::ViveFocusPlus :
-                                device::ViveFocus);
-    delegate->SetTargetRayMode(aController.index, device::TargetRayMode::TrackedPointer);
-
-    if (aController.is6DoF) {
-      const vrb::Matrix trans = vrb::Matrix::Position(vrb::Vector(0.0f, -0.021f, -0.03f));
-      vrb::Matrix transform = vrb::Matrix::Rotation(vrb::Vector(1.0f, 0.0f, 0.0f), -0.70f);
-      transform = transform.PostMultiply(trans);
-
-      delegate->SetImmersiveBeamTransform(aController.index, beamTransform.PostMultiply(transform));
-    }
     aController.created = true;
     aController.enabled = false;
   }
@@ -304,11 +284,9 @@ struct DeviceDelegateWaveVR::State {
         }
         continue;
       } else if (!controller.enabled) {
-        device::CapabilityFlags flags = device::Orientation | device::GripSpacePosition;
+        device::CapabilityFlags flags = device::Orientation;
         if (controller.is6DoF) {
           flags |= device::Position;
-        } else {
-          flags |= device::PositionEmulated;
         }
         controller.enabled = true;
         delegate->SetEnabled(controller.index, true);
@@ -318,17 +296,15 @@ struct DeviceDelegateWaveVR::State {
 
       delegate->SetVisible(controller.index, !WVR_IsInputFocusCapturedBySystem());
 
-      const bool bumperPressed = (controller.is6DoF) ? WVR_GetInputButtonState(controller.type, WVR_InputId_Alias1_Trigger)
+      const bool bumperPressed =  (controller.is6DoF) ? WVR_GetInputButtonState(controller.type, WVR_InputId_Alias1_Trigger)
                                   : WVR_GetInputButtonState(controller.type, WVR_InputId_Alias1_Digital_Trigger);
       const bool touchpadPressed = WVR_GetInputButtonState(controller.type, WVR_InputId_Alias1_Touchpad);
       const bool touchpadTouched = WVR_GetInputTouchState(controller.type, WVR_InputId_Alias1_Touchpad);
       const bool menuPressed = WVR_GetInputButtonState(controller.type, WVR_InputId_Alias1_Menu);
 
-      // Although Focus only has two buttons, in order to match WebXR input profile (squeeze placeholder),
-      // we make Focus has three buttons.
-      delegate->SetButtonCount(controller.index, 3);
-      delegate->SetButtonState(controller.index, ControllerDelegate::BUTTON_TOUCHPAD, device::kImmersiveButtonTouchpad, touchpadPressed, touchpadTouched);
-      delegate->SetButtonState(controller.index, ControllerDelegate::BUTTON_TRIGGER, device::kImmersiveButtonTrigger, bumperPressed, bumperPressed);
+      delegate->SetButtonCount(controller.index, controller.is6DoF ? 3 : 2); // For immersive mode
+      delegate->SetButtonState(controller.index, ControllerDelegate::BUTTON_TOUCHPAD, 0, touchpadPressed, touchpadTouched);
+      delegate->SetButtonState(controller.index, ControllerDelegate::BUTTON_TRIGGER, 1, bumperPressed, bumperPressed);
       if (controller.is6DoF) {
         const bool gripPressed = WVR_GetInputButtonState(controller.type, WVR_InputId_Alias1_Grip);
         if (renderMode == device::RenderMode::StandAlone) {
@@ -344,22 +320,12 @@ struct DeviceDelegateWaveVR::State {
             controller.gripPressedCount = -1;
           }
         } else {
-          delegate->SetButtonState(controller.index, ControllerDelegate::BUTTON_SQUEEZE, device::kImmersiveButtonSqueeze,
-                  gripPressed, gripPressed);
+          delegate->SetButtonState(controller.index, ControllerDelegate::BUTTON_OTHERS, 2, gripPressed,
+                                   gripPressed);
           controller.gripPressedCount = 0;
-        }
-        if (gripPressed && renderMode == device::RenderMode::Immersive) {
-          delegate->SetSqueezeActionStart(controller.index);
-        } else {
-          delegate->SetSqueezeActionStop(controller.index);
         }
       }
 
-      if (bumperPressed && renderMode == device::RenderMode::Immersive) {
-        delegate->SetSelectActionStart(controller.index);
-      } else {
-        delegate->SetSelectActionStop(controller.index);
-      }
       delegate->SetButtonState(controller.index, ControllerDelegate::BUTTON_APP, -1, menuPressed, menuPressed);
 
       const int32_t kNumAxes = 2;
@@ -369,8 +335,8 @@ struct DeviceDelegateWaveVR::State {
         WVR_Axis_t axis = WVR_GetInputAnalogAxis(controller.type, WVR_InputId_Alias1_Touchpad);
         // We are matching touch pad range from {-1, 1} to the Oculus {0, 1}.
         delegate->SetTouchPosition(controller.index, (axis.x + 1) * 0.5, (-axis.y + 1) * 0.5);
-        immersiveAxes[device::kImmersiveAxisTouchpadX] = axis.x;
-        immersiveAxes[device::kImmersiveAxisTouchpadY] = -axis.y;
+        immersiveAxes[0] = axis.x;
+        immersiveAxes[1] = -axis.y;
         controller.touched = true;
       } else if (controller.touched) {
         controller.touched = false;
@@ -461,11 +427,6 @@ DeviceDelegateWaveVR::Create(vrb::RenderContextPtr& aContext) {
   return result;
 }
 
-device::DeviceType
-DeviceDelegateWaveVR::GetDeviceType() {
-  return m.deviceType;
-}
-
 void
 DeviceDelegateWaveVR::SetRenderMode(const device::RenderMode aMode) {
   if (aMode == m.renderMode) {
@@ -502,11 +463,11 @@ DeviceDelegateWaveVR::RegisterImmersiveDisplay(ImmersiveDisplayPtr aDisplay) {
   }
 
   m.immersiveDisplay->SetDeviceName("Wave");
-  device::CapabilityFlags flags = device::Orientation | device::Present |
+  device::CapabilityFlags flags = device::Orientation | device::Present | device::StageParameters |
                                   device::InlineSession | device::ImmersiveVRSession;
 
   if (WVR_GetDegreeOfFreedom(WVR_DeviceType_HMD) == WVR_NumDoF_6DoF) {
-    flags |= device::Position | device::StageParameters;
+    flags |= device::Position;
   } else {
     flags |= device::PositionEmulated;
   }
@@ -816,15 +777,6 @@ DeviceDelegateWaveVR::StartFrame(const FramePrediction aPrediction) {
       controller.transform = m.elbow->GetTransform(hand, hmd, controller.transform);
     } else if (m.renderMode == device::RenderMode::StandAlone) {
       controller.transform.TranslateInPlace(kAverageHeight);
-    }
-    if (m.renderMode == device::RenderMode::Immersive && pose.is6DoFPose) {
-      static vrb::Matrix transform(vrb::Matrix::Identity());
-      if (transform.IsIdentity()) {
-        transform = vrb::Matrix::Rotation(vrb::Vector(1.0f, 0.0f, 0.0f), 0.70f);
-        const vrb::Matrix trans = vrb::Matrix::Position(vrb::Vector(0.0f, 0.0f, -0.01f));
-        transform = transform.PostMultiply(trans);
-      }
-      controller.transform = controller.transform.PostMultiply(transform);
     }
     m.delegate->SetTransform(controller.index, controller.transform);
   }

@@ -66,7 +66,6 @@ public:
   void SetSourceBrowser(VRBrowserType aBrowser);
   void OnPause();
   void OnResume();
-  uint64_t GetFrameId() const;
   ExternalVR();
   ~ExternalVR() = default;
 protected:
