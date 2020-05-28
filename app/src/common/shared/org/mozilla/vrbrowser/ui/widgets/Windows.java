@@ -1326,7 +1326,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
 
             if (i == 0 && !fullscreen) {
                 // Set the first received tab of the list the current one.
-                targetWindow.setSession(session, WindowWidget.LEAVE_CURRENT_SESSION_ACTIVE);
+                targetWindow.setSession(session, WindowWidget.DEACTIVATE_CURRENT_SESSION);
             }
         }
 
