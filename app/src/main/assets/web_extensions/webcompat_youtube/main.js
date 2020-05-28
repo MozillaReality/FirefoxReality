@@ -10,7 +10,7 @@ const YT_SELECTORS = {
   thumbnail: '.ytp-cued-thumbnail-overlay-image',
   embedTitle: '.ytp-title-text',
   queueHandle: 'ytd-playlist-panel-video-renderer',
-  playbackControls: '.ytp-chrome-controls',
+  playbackControls: '.ytp-chrome-bottom',
   overlays: '.videowall-endscreen, .ytp-upnext, .ytp-ce-element'
 };
 const ENABLE_LOGS = true;
