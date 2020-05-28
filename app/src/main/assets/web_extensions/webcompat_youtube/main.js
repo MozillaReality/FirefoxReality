@@ -16,6 +16,7 @@ const YT_SELECTORS = {
 const ENABLE_LOGS = true;
 const logDebug = (...args) => ENABLE_LOGS && console.log(LOGTAG, ...args);
 const logError = (...args) => ENABLE_LOGS && console.error(LOGTAG, ...args);
+const CHROME_CONTROLS_MIN_WIDTH = 480;
 
 class YoutubeExtension {
     // We set a custom UA to force Youtube to display the most optimal
@@ -202,12 +203,28 @@ class YoutubeExtension {
         return false;
     }
 
+    playerControlsMarginFix() {
+        if (youtube.isInFullscreen()) {
+            if (window.innerHeight < CHROME_CONTROLS_MIN_WIDTH) {
+              var of = CHROME_CONTROLS_MIN_WIDTH - window.innerHeight;
+              console.log(of)
+              document.querySelector(".ytp-chrome-bottom").style.setProperty("margin-bottom", `${of}px`)
+            } else {
+              document.querySelector(".ytp-chrome-bottom").style.removeProperty("margin-bottom")
+            }
+
+        } else {
+            document.querySelector(".ytp-chrome-bottom").style.removeProperty("margin-bottom")
+        }
+    }
+
     playerFixes() {
         this.overrideVideoProjection();
         this.overrideQualityRetry();
         this.hideOverlaysFix();
         this.queueContextMenuFix();
         this.videoControlsForwardFix();
+        this.playerControlsMarginFix();
     }
 
     // Runs the callback when the video is ready (has loaded the first frame).
@@ -322,6 +339,8 @@ class YoutubeExtension {
         window.history.replaceState({}, document.title, newUrl);
         logDebug(`update URL to ${newUrl}`);
     }
+
+
 }
 
 logDebug(`Initializing youtube extension in frame: ${window.location.href}`);
@@ -337,7 +356,8 @@ window.addEventListener('load', () => {
         youtube.waitForVideoReady(() => youtube.playerFixes());
     }
 });
-
+window.addEventListener("resize", () => youtube.playerControlsMarginFix());
+document.addEventListener("fullscreenchange", () => youtube.playerControlsMarginFix());
 window.addEventListener('pushstate', () => youtube.overrideVideoProjection());
 window.addEventListener('popstate', () => youtube.overrideVideoProjection());
 window.addEventListener('click', event => youtube.overrideClick(event));
