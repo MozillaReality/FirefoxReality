@@ -486,7 +486,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
             exitResizeMode(ResizeAction.RESTORE_SIZE);
         }
         if (mAttachedWindow != null && mAttachedWindow.isFullScreen()) {
-            exitFullScreenMode();
+            mAttachedWindow.setIsFullScreen(false);
         }
 
         if (getSession() != null) {
@@ -570,7 +570,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
     public void onSessionChanged(@NonNull Session aOldSession, @NonNull Session aSession) {
         cleanSession(aOldSession);
         setUpSession(aSession);
-        exitFullScreenMode();
+        mAttachedWindow.setIsFullScreen(false);
     }
 
     @Override
