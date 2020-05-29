@@ -278,3 +278,258 @@ legacy_telemetry:
       - fxr-telemetry@mozilla.com
       - dmu@mozilla.com
     expires: "2020-11-01"
+
+pages:
+  page_load:
+    type: timing_distribution
+    description: >
+      Measuring how long each page takes to load.
+    time_unit: nanosecond
+    bugs:
+      - https://github.com/MozillaReality/FirefoxReality/issues/2279
+    data_reviews:
+      - https://github.com/MozillaReality/FirefoxReality/pull/3430#issuecomment-642823166
+    notification_emails:
+      - fxr-telemetry@mozilla.com
+      - dmu@mozilla.com
+    expires: "2020-11-01"
+
+immersive:
+  duration:
+    type: timing_distribution
+    description: >
+      Measuring if users use WebXR APIs to enter XR immersive mode.
+      How long they stay in this mode. (It starts from users call
+      `navigator.xr.requestSession()` and be ended when the XRSession calls
+      its `end()`.)
+    time_unit: microsecond
+    bugs:
+      - https://github.com/MozillaReality/FirefoxReality/issues/2279
+    data_reviews:
+      - https://github.com/MozillaReality/FirefoxReality/pull/3430#issuecomment-642823166
+    notification_emails:
+      - fxr-telemetry@mozilla.com
+      - dmu@mozilla.com
+    expires: "2020-11-01"
+
+windows:
+  duration:
+    type: timing_distribution
+    description: >
+      Measuring how long windows are kept open.
+    time_unit: millisecond
+    bugs:
+      - https://github.com/MozillaReality/FirefoxReality/issues/2279
+    data_reviews:
+      - https://github.com/MozillaReality/FirefoxReality/pull/3430#issuecomment-642823166
+    notification_emails:
+      - fxr-telemetry@mozilla.com
+      - dmu@mozilla.com
+    expires: "2020-11-01"
+  movement:
+    type: counter
+    description: >
+      Counting how many times of moving a window in a session.
+    send_in_pings:
+      - session-end
+    bugs:
+      - https://github.com/MozillaReality/FirefoxReality/issues/2279
+    data_reviews:
+      - https://github.com/MozillaReality/FirefoxReality/pull/3430#issuecomment-642823166
+    notification_emails:
+      - fxr-telemetry@mozilla.com
+      - dmu@mozilla.com
+    expires: "2020-11-01"
+  resize:
+    type: counter
+    description: >
+      Counting how many times of resizing a window in a session.
+    send_in_pings:
+      - session-end
+    bugs:
+      - https://github.com/MozillaReality/FirefoxReality/issues/2279
+    data_reviews:
+      - https://github.com/MozillaReality/FirefoxReality/pull/3430#issuecomment-642823166
+    notification_emails:
+      - fxr-telemetry@mozilla.com
+      - dmu@mozilla.com
+    expires: "2020-11-01"
+  active_in_left_time:
+    type: timing_distribution
+    description: >
+      In Firefox Reality, we allow maximum three windows be placed at front,
+      left, and right positions simultaneously. Using this metric to measure
+      how long the left side window is active in a session.
+    send_in_pings:
+      - session-end
+    time_unit: microsecond
+    bugs:
+      - https://github.com/MozillaReality/FirefoxReality/issues/2279
+    data_reviews:
+      - https://github.com/MozillaReality/FirefoxReality/pull/3430#issuecomment-642823166
+    notification_emails:
+      - fxr-telemetry@mozilla.com
+      - dmu@mozilla.com
+    expires: "2020-11-01"
+  active_in_right_time:
+    type: timing_distribution
+    description: >
+      In Firefox Reality, we allow maximum three windows be placed at front,
+      left, and right positions simultaneously. Using this metric to measure
+      how long the right side window is active in a session.
+    send_in_pings:
+      - session-end
+    time_unit: microsecond
+    bugs:
+      - https://github.com/MozillaReality/FirefoxReality/issues/2279
+    data_reviews:
+      - https://github.com/MozillaReality/FirefoxReality/pull/3430#issuecomment-642823166
+    notification_emails:
+      - fxr-telemetry@mozilla.com
+      - dmu@mozilla.com
+    expires: "2020-11-01"
+  active_in_front_time:
+    type: timing_distribution
+    description: >
+      In Firefox Reality, we allow maximum three windows be placed at front,
+      left, and right positions simultaneously. Using this metric to measure
+      how long the front side window is active in a session.
+    send_in_pings:
+      - session-end
+    time_unit: microsecond
+    bugs:
+      - https://github.com/MozillaReality/FirefoxReality/issues/2279
+    data_reviews:
+      - https://github.com/MozillaReality/FirefoxReality/pull/3430#issuecomment-642823166
+    notification_emails:
+      - fxr-telemetry@mozilla.com
+      - dmu@mozilla.com
+    expires: "2020-11-01"
+  single_window_opened_time:
+    type: timing_distribution
+    description: >
+      Measuring how long a user uses single window in a session.
+    send_in_pings:
+      - session-end
+    time_unit: microsecond
+    bugs:
+      - https://github.com/MozillaReality/FirefoxReality/issues/2279
+    data_reviews:
+      - https://github.com/MozillaReality/FirefoxReality/pull/3430#issuecomment-642823166
+    notification_emails:
+      - fxr-telemetry@mozilla.com
+      - dmu@mozilla.com
+    expires: "2020-11-01"
+  double_window_opened_time:
+    type: timing_distribution
+    description: >
+      Measuring how long a user uses double windows in a session.
+    send_in_pings:
+      - session-end
+    time_unit: microsecond
+    bugs:
+      - https://github.com/MozillaReality/FirefoxReality/issues/2279
+    data_reviews:
+      - https://github.com/MozillaReality/FirefoxReality/pull/3430#issuecomment-642823166
+    notification_emails:
+      - fxr-telemetry@mozilla.com
+      - dmu@mozilla.com
+    expires: "2020-11-01"
+  triple_window_opened_time:
+    type: timing_distribution
+    description: >
+      Measuring how long a user uses triple windows in a session.
+    send_in_pings:
+      - session-end
+    time_unit: microsecond
+    bugs:
+      - https://github.com/MozillaReality/FirefoxReality/issues/2279
+    data_reviews:
+      - https://github.com/MozillaReality/FirefoxReality/pull/3430#issuecomment-642823166
+    notification_emails:
+      - fxr-telemetry@mozilla.com
+      - dmu@mozilla.com
+    expires: "2020-11-01"
+  single_pri_window_opened_time:
+    type: timing_distribution
+    description: >
+      Measuring how long a user uses single private window in a session.
+    send_in_pings:
+      - session-end
+    time_unit: microsecond
+    bugs:
+      - https://github.com/MozillaReality/FirefoxReality/issues/2279
+    data_reviews:
+      - https://github.com/MozillaReality/FirefoxReality/pull/3430#issuecomment-642823166
+    notification_emails:
+      - fxr-telemetry@mozilla.com
+      - dmu@mozilla.com
+    expires: "2020-11-01"
+  double_pri_window_opened_time:
+    type: timing_distribution
+    description: >
+      Measuring how long a user uses double private windows in a session.
+    send_in_pings:
+      - session-end
+    time_unit: microsecond
+    bugs:
+      - https://github.com/MozillaReality/FirefoxReality/issues/2279
+    data_reviews:
+      - https://github.com/MozillaReality/FirefoxReality/pull/3430#issuecomment-642823166
+    notification_emails:
+      - fxr-telemetry@mozilla.com
+      - dmu@mozilla.com
+    expires: "2020-11-01"
+  triple_pri_window_opened_time:
+    type: timing_distribution
+    description: >
+      Measuring how long a user uses triple private windows in a session.
+    send_in_pings:
+      - session-end
+    time_unit: microsecond
+    bugs:
+      - https://github.com/MozillaReality/FirefoxReality/issues/2279
+    data_reviews:
+      - https://github.com/MozillaReality/FirefoxReality/pull/3430#issuecomment-642823166
+    notification_emails:
+      - fxr-telemetry@mozilla.com
+      - dmu@mozilla.com
+    expires: "2020-11-01"
+  opened_window_count:
+    type: labeled_counter
+    description: >
+      Counting which multiple window mode (single, double, triple)
+      users are using in a session.
+    send_in_pings:
+      - session-end
+    labels:
+      - single
+      - double
+      - triple
+    bugs:
+      - https://github.com/MozillaReality/FirefoxReality/issues/2230
+    data_reviews:
+      - https://github.com/MozillaReality/FirefoxReality/pull/3430#issuecomment-642823166
+    notification_emails:
+      - fxr-telemetry@mozilla.com
+      - dmu@mozilla.com
+    expires: "2020-11-01"
+  opened_pri_window_count:
+    type: labeled_counter
+    description: >
+      Counting which multiple private window mode (single, double, triple)
+      users are using in a session.
+    send_in_pings:
+      - session-end
+    labels:
+      - single
+      - double
+      - triple
+    bugs:
+      - https://github.com/MozillaReality/FirefoxReality/issues/2230
+    data_reviews:
+      - https://github.com/MozillaReality/FirefoxReality/pull/3430#issuecomment-642823166
+    notification_emails:
+      - fxr-telemetry@mozilla.com
+      - dmu@mozilla.com
+    expires: "2020-11-01"
