@@ -16,6 +16,8 @@ import org.mozilla.vrbrowser.GleanMetrics.Pings;
 import org.mozilla.vrbrowser.GleanMetrics.Searches;
 import org.mozilla.vrbrowser.GleanMetrics.Url;
 import org.mozilla.vrbrowser.GleanMetrics.Control;
+import org.mozilla.vrbrowser.GleanMetrics.Pages;
+import org.mozilla.vrbrowser.GleanMetrics.Immersive;
 import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.search.SearchEngineWrapper;
 import org.mozilla.vrbrowser.utils.DeviceType;
@@ -25,11 +27,13 @@ import org.mozilla.vrbrowser.utils.UrlUtils;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.Map;
 import java.util.UUID;
 
 import mozilla.components.service.glean.Glean;
 import mozilla.components.service.glean.config.Configuration;
+import mozilla.telemetry.glean.GleanTimerId;
 
 
 public class GleanMetricsService {
@@ -39,6 +43,8 @@ public class GleanMetricsService {
     private static boolean initialized = false;
     private static Context context = null;
     private static HashSet<String> domainMap = new HashSet<String>();
+    private static Map<String, GleanTimerId> loadingTimerId = new Hashtable<>();
+    private static GleanTimerId immersiveTimerId;
 
     // We should call this at the application initial stage.
     public static void init(Context aContext) {
@@ -73,14 +79,19 @@ public class GleanMetricsService {
         Glean.INSTANCE.setUploadEnabled(false);
     }
 
-    public static void startPageLoadTime() {
-       // TODO: Blocked by Bug 1595914.
-       // pageLoadingTimerId = Pages.INSTANCE.getPageLoad().start();
+    public static void startPageLoadTime(String aUrl) {
+        GleanTimerId pageLoadingTimerId = Pages.INSTANCE.pageLoad().start();
+        loadingTimerId.put(aUrl, pageLoadingTimerId);
     }
 
     public static void stopPageLoadTimeWithURI(String uri) {
-        // TODO: Blocked by Bug 1595914.
-        // Pages.INSTANCE.getPageLoad().stopAndAccumulate(pageLoadingTimerId);
+        if (loadingTimerId.containsKey(uri)) {
+            GleanTimerId pageLoadingTimerId = loadingTimerId.get(uri);
+            Pages.INSTANCE.pageLoad().stopAndAccumulate(pageLoadingTimerId);
+            loadingTimerId.remove(uri);
+        } else {
+            Log.e(LOGTAG, "Can't find page loading url.");
+        }
 
         try {
             URI uriLink = URI.create(uri);
@@ -101,7 +112,10 @@ public class GleanMetricsService {
 
     public static void sessionStop() {
         domainMap.clear();
-        Pings.INSTANCE.sessionEnd().send();
+        loadingTimerId.clear();
+        windowLifeTimerId.clear();
+
+        Pings.INSTANCE.sessionEnd().submit();
     }
 
     @UiThread
@@ -126,13 +140,11 @@ public class GleanMetricsService {
     }
 
     public static void startImmersive() {
-        // TODO: Blocked by Bug 1595914 and 1595723.
-        // immersiveTimerId = Durarion.INSTANCE.getImmersiveMode().start();
+        immersiveTimerId =  Immersive.INSTANCE.duration().start();
     }
 
     public static void stopImmersive() {
-        // TODO: Blocked by Bug 1595914 and 1595723.
-        // Durarion.INSTANCE.getImmersiveMode().stopAndAccumulate(immersiveTimerId);
+        Immersive.INSTANCE.duration().stopAndAccumulate(immersiveTimerId);
     }
 
     // TODO: Confirm if we don't need multiple metrics for tracking window open duration.
