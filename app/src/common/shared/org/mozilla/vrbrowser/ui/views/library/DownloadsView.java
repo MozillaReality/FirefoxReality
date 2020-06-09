@@ -174,6 +174,7 @@ public class DownloadsView extends LibraryView implements DownloadsManager.Downl
             mBinding.downloadsList.requestFocusFromTouch();
 
             int rowPosition = mDownloadsAdapter.getItemPosition(item.getId());
+            Log.w(DownloadsView.class.getName(), "rowPosition = " + rowPosition);
             RecyclerView.ViewHolder row = mBinding.downloadsList.findViewHolderForLayoutPosition(rowPosition);
             boolean isLastVisibleItem = false;
             if (mBinding.downloadsList.getLayoutManager() instanceof LinearLayoutManager) {
@@ -181,7 +182,7 @@ public class DownloadsView extends LibraryView implements DownloadsManager.Downl
                 int lastItem = mDownloadsAdapter.getItemCount();
                 if ((rowPosition == layoutManager.findLastVisibleItemPosition() || rowPosition == layoutManager.findLastCompletelyVisibleItemPosition() ||
                         rowPosition == layoutManager.findLastVisibleItemPosition()-1 || rowPosition == layoutManager.findLastCompletelyVisibleItemPosition()-1)
-                        && rowPosition != lastItem) {
+                          && ((rowPosition == (lastItem-1)) && rowPosition >1)) {
                     isLastVisibleItem = true;
                 }
             }
