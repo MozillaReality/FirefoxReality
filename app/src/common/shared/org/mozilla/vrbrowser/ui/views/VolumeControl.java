@@ -48,9 +48,8 @@ public class VolumeControl extends FrameLayout implements SeekBar.OnSeekBarChang
         mSeekBar.setOnSeekBarChangeListener(this);
         mSeekBar.setOnTouchListener((v, event) -> {
 
-            if ((event.getAction() == MotionEvent.ACTION_UP) ||(event.getAction() == MotionEvent.ACTION_CANCEL)){
-                if((event.getAction() == MotionEvent.ACTION_CANCEL) && (mDelegate !=null))
-                {
+            if ((event.getAction() == MotionEvent.ACTION_UP) || (event.getAction() == MotionEvent.ACTION_CANCEL)) {
+                if ((event.getAction() == MotionEvent.ACTION_CANCEL) && (mDelegate != null)) {
                     mDelegate.onSeekBarActionCancelled();
                 }
 
@@ -107,6 +106,7 @@ public class VolumeControl extends FrameLayout implements SeekBar.OnSeekBarChang
 
     public interface Delegate {
         void onVolumeChange(double aVolume);
+
         void onSeekBarActionCancelled();
     }
 }
