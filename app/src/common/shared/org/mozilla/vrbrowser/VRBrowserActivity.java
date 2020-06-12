@@ -93,11 +93,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 import static org.mozilla.vrbrowser.ui.widgets.UIWidget.REMOVE_WIDGET;
 
