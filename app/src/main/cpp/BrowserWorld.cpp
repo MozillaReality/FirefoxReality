@@ -717,8 +717,8 @@ BrowserWorld::State::SortWidgets() {
     Widget* wa = da->second.first;
     Widget* wb = db->second.first;
 
-    // Parenting sort
-    if (wa && wb && wa->IsVisible() && wb->IsVisible()) {
+    // Parenting sort only in case both elements have the same normalized z value
+    if (wa && wb && wa->IsVisible() && wb->IsVisible() && da->second.second == db->second.second) {
       if (IsParent(*wa, *wb)) {
         return true;
       } else if (IsParent(*wb, *wa)) {
