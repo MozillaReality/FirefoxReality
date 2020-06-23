@@ -394,6 +394,7 @@ public class TrayWidget extends UIWidget implements WidgetManagerDelegate.Update
             mViewModel.getIsBookmarksVisible().removeObserver(mIsBookmarksVisible);
             mViewModel.getIsHistoryVisible().removeObserver(mIsHistoryVisible);
             mViewModel.getIsDownloadsVisible().removeObserver(mIsDownloadsVisible);
+            mViewModel.getIsPrivateSession().removeObserver(mIsPrivateSession);
             mViewModel = null;
         }
 
@@ -418,6 +419,7 @@ public class TrayWidget extends UIWidget implements WidgetManagerDelegate.Update
         mViewModel.getIsBookmarksVisible().observe((VRBrowserActivity)getContext(), mIsBookmarksVisible);
         mViewModel.getIsHistoryVisible().observe((VRBrowserActivity)getContext(), mIsHistoryVisible);
         mViewModel.getIsDownloadsVisible().observe((VRBrowserActivity)getContext(), mIsDownloadsVisible);
+        mViewModel.getIsPrivateSession().observe((VRBrowserActivity)getContext(), mIsPrivateSession);
 
         mBinding.setViewmodel(mViewModel);
 
@@ -457,6 +459,17 @@ public class TrayWidget extends UIWidget implements WidgetManagerDelegate.Update
             animateViewPadding(mBinding.downloadsButton, mMaxPadding, mMinPadding, ICON_ANIMATION_DURATION);
         } else {
             animateViewPadding(mBinding.downloadsButton, mMinPadding, mMaxPadding, ICON_ANIMATION_DURATION);
+        }
+    };
+
+    private Observer<ObservableBoolean> mIsPrivateSession = aBoolean -> {
+        if (mBinding.privateButton.isHovered()) {
+            return;
+        }
+        if (aBoolean.get()) {
+            animateViewPadding(mBinding.privateButton, mMaxPadding, mMinPadding, ICON_ANIMATION_DURATION);
+        } else {
+            animateViewPadding(mBinding.privateButton, mMinPadding, mMaxPadding, ICON_ANIMATION_DURATION);
         }
     };
 
