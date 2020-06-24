@@ -707,6 +707,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         if (mAttachedWindow.isResizing()) {
             return;
         }
+        mAttachedWindow.mWidgetPlacement.tintColor = Windows.GRAY;
         mAttachedWindow.setIsResizing(true);
         mAttachedWindow.saveBeforeResizePlacement();
         startWidgetResize();
@@ -750,6 +751,8 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
             }
         }
 
+        mWidgetManager.updateWidget(mAttachedWindow);
+
         // Update preset styles
     }
 
@@ -764,7 +767,6 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         }
         if (aResizeAction == ResizeAction.RESTORE_SIZE) {
             mAttachedWindow.restoreBeforeResizePlacement();
-            mWidgetManager.updateWidget(mAttachedWindow);
             mWidgetManager.updateVisibleWidgets();
         }
         mAttachedWindow.setIsResizing(false);
@@ -783,6 +785,9 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
             TelemetryWrapper.windowsResizeEvent();
             GleanMetricsService.windowsResizeEvent();
         }
+
+        mAttachedWindow.mWidgetPlacement.tintColor = Windows.WHITE;
+        mWidgetManager.updateWidget(mAttachedWindow);
     }
 
     private void enterVRVideo(@VideoProjectionMenuWidget.VideoProjectionFlags int aProjection) {

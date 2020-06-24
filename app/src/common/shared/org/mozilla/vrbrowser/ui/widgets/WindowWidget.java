@@ -104,7 +104,6 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
     private int mWidth;
     private int mHeight;
     private int mHandle;
-    private WidgetPlacement mWidgetPlacement;
     private TopBarWidget mTopBar;
     private TitleBarWidget mTitleBar;
     private WidgetManagerDelegate mWidgetManager;
@@ -1579,8 +1578,8 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
             mSelectionMenu = null;
         }
 
-        if (mWidgetPlacement.tintColor != 0xFFFFFFFF) {
-            mWidgetPlacement.tintColor = 0xFFFFFFFF;
+        if (mWidgetPlacement.tintColor != Windows.WHITE) {
+            mWidgetPlacement.tintColor = Windows.WHITE;
             mWidgetManager.updateWidget(this);
         }
     }
@@ -1663,7 +1662,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         }
         mContextMenu.show(REQUEST_FOCUS);
 
-        mWidgetPlacement.tintColor = 0x555555FF;
+        mWidgetPlacement.tintColor = Windows.GRAY;
         mWidgetManager.updateWidget(this);
     }
 
