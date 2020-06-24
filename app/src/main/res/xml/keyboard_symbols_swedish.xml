@@ -30,7 +30,7 @@
         <Key android:codes="124" android:keyLabel="|"/>
         <Key android:codes="59" android:keyLabel=";"/>
         <Key android:codes="58" android:keyLabel=":"/>
-        <Key android:codes="34" android:keyLabel="•"/>
+        <Key android:codes="0x2022" android:keyLabel="•"/>
         <Key android:codes="-4" android:keyLabel="@string/keyboard_enter_label" android:keyWidth="@dimen/keyboard_key_enter_width_small"  />
     </Row>
 
