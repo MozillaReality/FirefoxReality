@@ -82,6 +82,7 @@ import org.mozilla.vrbrowser.utils.BitmapCache;
 import org.mozilla.vrbrowser.utils.ConnectivityReceiver;
 import org.mozilla.vrbrowser.utils.ConnectivityReceiver.Delegate;
 import org.mozilla.vrbrowser.utils.DeviceType;
+import org.mozilla.vrbrowser.utils.EnvironmentUtils;
 import org.mozilla.vrbrowser.utils.LocaleUtils;
 import org.mozilla.vrbrowser.utils.ServoUtils;
 import org.mozilla.vrbrowser.utils.StringUtils;
@@ -1140,7 +1141,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     @Keep
     @SuppressWarnings("unused")
     public String getActiveEnvironment() {
-        return SettingsStore.getInstance(this).getEnvironment();
+        return EnvironmentUtils.getEnvPath(this, SettingsStore.getInstance(this).getEnvironment());
     }
 
     @Keep
