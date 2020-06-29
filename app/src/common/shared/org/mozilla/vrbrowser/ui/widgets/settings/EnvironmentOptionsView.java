@@ -5,45 +5,36 @@
 
 package org.mozilla.vrbrowser.ui.widgets.settings;
 
-import android.app.DownloadManager;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
 import android.view.LayoutInflater;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.databinding.DataBindingUtil;
-
-import com.mozilla.speechlibrary.utils.zip.UnzipCallback;
-import com.mozilla.speechlibrary.utils.zip.UnzipTask;
 
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.VRBrowserApplication;
 import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.databinding.OptionsEnvironmentBinding;
-import org.mozilla.vrbrowser.downloads.Download;
-import org.mozilla.vrbrowser.downloads.DownloadJob;
-import org.mozilla.vrbrowser.downloads.DownloadsManager;
 import org.mozilla.vrbrowser.ui.views.settings.ImageRadioGroupSetting;
 import org.mozilla.vrbrowser.ui.views.settings.SwitchSetting;
 import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
 import org.mozilla.vrbrowser.utils.BitmapCache;
 import org.mozilla.vrbrowser.utils.Environment;
 import org.mozilla.vrbrowser.utils.EnvironmentUtils;
+import org.mozilla.vrbrowser.utils.EnvironmentsManager;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Arrays;
 
-class EnvironmentOptionsView extends SettingsView implements DownloadsManager.DownloadsListener{
+class EnvironmentOptionsView extends SettingsView {
 
     private OptionsEnvironmentBinding mBinding;
     private ImageRadioGroupSetting mEnvironmentsRadio;
-    private DownloadsManager mDownloadManager;
+    private EnvironmentsManager mEnvironmentsManager;
 
     public EnvironmentOptionsView(Context aContext, WidgetManagerDelegate aWidgetManager) {
         super(aContext, aWidgetManager);
@@ -60,8 +51,7 @@ class EnvironmentOptionsView extends SettingsView implements DownloadsManager.Do
 
         LayoutInflater inflater = LayoutInflater.from(getContext());
 
-        mDownloadManager = mWidgetManager.getServicesProvider().getDownloadsManager();
-        mDownloadManager.addListener(this);
+        mEnvironmentsManager = mWidgetManager.getServicesProvider().getEnvironmentsManager();
 
         // Inflate this data binding layout
         mBinding = DataBindingUtil.inflate(inflater, R.layout.options_environment, this, true);
@@ -139,36 +129,7 @@ class EnvironmentOptionsView extends SettingsView implements DownloadsManager.Do
         String value = (String) mEnvironmentsRadio.getValueForId(checkedId);
         SettingsStore.getInstance(getContext()).setEnvironment(value);
 
-        if (EnvironmentUtils.isExternalEnvironment(getContext(), value)) {
-            if (EnvironmentUtils.isExternalEnvReady(getContext(), value)) {
-                // If the environment is ready, call native to update
-                mWidgetManager.updateEnvironment();
-
-            } else {
-                final Environment environment = EnvironmentUtils.getExternalEnvironmentById(getContext(), value);
-                if (environment != null) {
-                    // Check if the env is being downloaded
-                    boolean isDownloading = mDownloadManager.getDownloads().stream()
-                            .filter(item ->
-                                    item.getStatus() == DownloadManager.STATUS_RUNNING &&
-                                            item.getStatus() == DownloadManager.STATUS_PAUSED &&
-                                            item.getStatus() == DownloadManager.STATUS_PENDING &&
-                                            item.getUri().equals(environment.getPayload()))
-                            .findFirst().orElse(null) != null;
-
-                    if (!isDownloading) {
-                        // If the env is not being downloaded, start downloading it
-                        DownloadJob job = DownloadJob.create(environment.getPayload());
-                        mDownloadManager.startDownload(job);
-                    }
-                }
-            }
-
-        } else {
-            if (doApply) {
-                mWidgetManager.updateEnvironment();
-            }
-        }
+        mEnvironmentsManager.setOrDownloadEnvironment(value);
     }
 
     @Override
@@ -189,7 +150,7 @@ class EnvironmentOptionsView extends SettingsView implements DownloadsManager.Do
                 mEnvironmentsRadio.addOption(
                         environment.getValue(),
                         environment.getTitle(),
-                        getContext().getDrawable(R.drawable.ic_icon_settings_sign_in));
+                        getContext().getDrawable(R.color.asphalt));
 
                 BitmapCache.getInstance(getContext()).getBitmap(environment.getThumbnail()).thenAccept(bitmap -> {
                     if (bitmap == null) {
@@ -228,50 +189,4 @@ class EnvironmentOptionsView extends SettingsView implements DownloadsManager.Do
         setEnv(mEnvironmentsRadio.getIdForValue(env), false);
     }
 
-    // DownloadsManager
-
-    @Override
-    public void onDownloadCompleted(@NonNull Download download) {
-        Environment env = EnvironmentUtils.getExternalEnvironmentByPayload(getContext(), download.getUri());
-        if (env != null) {
-            // We don't want the download to be left in the downloads list, so we just remove it when the download is done.
-            mDownloadManager.removeDownload(download.getId(), false);
-            UnzipTask unzip = new UnzipTask(getContext());
-            unzip.addListener(new UnzipCallback() {
-                @Override
-                public void onUnzipStart(@NonNull String zipFile) {
-
-                }
-
-                @Override
-                public void onUnzipProgress(@NonNull String zipFile, double progress) {
-
-                }
-
-                @Override
-                public void onUnzipFinish(@NonNull String zipFile, @NonNull String outputPath) {
-                    // Delete the zip file when the unzipping is done.
-                    File file = new File(zipFile);
-                    file.delete();
-
-                    // the environment is ready, call native to update the current env.
-                    mWidgetManager.updateEnvironment();
-                }
-
-                @Override
-                public void onUnzipCancelled(@NonNull String zipFile) {
-
-                }
-
-                @Override
-                public void onUnzipError(@NonNull String zipFile, @Nullable String error) {
-
-                }
-            });
-            String zipOutputPath = EnvironmentUtils.getEnvPath(getContext(), env.getValue());
-            if (zipOutputPath != null) {
-                unzip.start(download.getOutputFilePath(), zipOutputPath);
-            }
-        }
-    }
 }

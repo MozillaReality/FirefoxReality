@@ -832,5 +832,11 @@ public class SettingsStore {
 
         return propertiesMap;
     }
+    
+    public void setRemoteProperties(@Nullable String json) {
+        SharedPreferences.Editor editor = mPrefs.edit();
+        editor.putString(mContext.getString(R.string.settings_key_remote_props), json);
+        editor.commit();
+    }
 
 }
