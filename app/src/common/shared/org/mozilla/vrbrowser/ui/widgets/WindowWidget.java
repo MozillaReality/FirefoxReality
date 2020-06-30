@@ -2031,6 +2031,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         hideContextMenus();
         mSelectionMenu = new SelectionActionWidget(getContext());
         mSelectionMenu.mWidgetPlacement.parentHandle = getHandle();
+        mSelectionMenu.setSelectionText(aSelection.text);
         mSelectionMenu.setActions(aSelection.availableActions);
         Matrix matrix = new Matrix();
         aSession.getClientToSurfaceMatrix(matrix);
@@ -2052,7 +2053,11 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
                 hideContextMenus();
                 if (aSelection.isActionAvailable(action)) {
                     aSelection.execute(action);
+
+                } else {
+                    aSelection.unselect();
                 }
+
                 if (GeckoSession.SelectionActionDelegate.ACTION_COPY.equals(action) &&
                         aSelection.isActionAvailable(GeckoSession.SelectionActionDelegate.ACTION_UNSELECT)) {
                     // Don't keep the text selected after it's copied.
