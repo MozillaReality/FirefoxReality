@@ -875,11 +875,19 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
         cleanComposingText();
 
         mCurrentKeyboard = aKeyboard;
+
+        // For the case when switching from a symbol keyboard to a alphabetic keyboard.
+        float currentHeight = 0.0f;
+        if (mKeyboardView.getKeyboard() == mCurrentKeyboard.getSymbolsKeyboard()) {
+            currentHeight = mCurrentKeyboard.getSymbolKeyboardHeight();
+        } else {
+            currentHeight = mCurrentKeyboard.getAlphabeticKeyboardHeight();
+        }
         final int width = getKeyboardWidth(mCurrentKeyboard.getAlphabeticKeyboardWidth());
-        final int height = getKeyboardHeight(mCurrentKeyboard.getAlphabeticKeyboardHeight());
+        final int height = getKeyboardHeight(currentHeight);
         if (width != mWidgetPlacement.width || height != mWidgetPlacement.height) {
             mWidgetPlacement.width = width;
-            mWidgetPlacement.height = height;
+            mWidgetPlacement.height = getKeyboardHeight(mCurrentKeyboard.getAlphabeticKeyboardHeight());
             mWidgetPlacement.translationY = mCurrentKeyboard.getKeyboardTranslateYInWorld() -
                                             WidgetPlacement.unitFromMeters(getContext(), R.dimen.window_world_y);
             float defaultWorldWidth = mCurrentKeyboard.getKeyboardWorldWidth();
@@ -971,6 +979,18 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
         mKeyboardView.setLayoutParams(mKeyboardView.getLayoutParams());
         if (current == alphabetic) {
             mCurrentKeyboard.getAlphabeticKeyboard().setSpaceKeyLabel("");
+        }
+
+        // Adjust the layout of the keyboard container because it might be changed by alphabetic keyboards
+        // which have various height.
+        if (isAlphabeticMode) {
+            ViewGroup.LayoutParams params = mKeyboardContainer.getLayoutParams();
+            params.height = WidgetPlacement.convertDpToPixel(getContext(), mCurrentKeyboard.getSymbolKeyboardHeight());
+            mKeyboardContainer.setLayoutParams(params);
+        } else {
+            ViewGroup.LayoutParams params = mKeyboardContainer.getLayoutParams();
+            params.height = WidgetPlacement.convertDpToPixel(getContext(), mCurrentKeyboard.getAlphabeticKeyboardHeight());
+            mKeyboardContainer.setLayoutParams(params);
         }
     }
 
