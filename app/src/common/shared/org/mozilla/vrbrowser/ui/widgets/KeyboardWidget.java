@@ -483,6 +483,7 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
         mCurrentKeyboard.clear();
         updateCandidates();
         updateSpecialKeyLabels();
+        handleModeChange();
     }
 
     public void dismiss() {
