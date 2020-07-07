@@ -376,7 +376,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         mTray = new TrayWidget(this);
         mTray.addListeners(mWindows);
         mTray.setAddWindowVisible(mWindows.canOpenNewWindow());
-
+        addConnectivityListener(mTray);
         attachToWindow(mWindows.getFocusedWindow(), null);
 
         addWidgets(Arrays.asList(mRootWidget, mNavigationBar, mKeyboard, mTray, mWebXRInterstitial));
@@ -410,6 +410,11 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         SettingsStore.getInstance(getBaseContext()).setPid(Process.myPid());
         super.onStart();
         mLifeCycle.setCurrentState(Lifecycle.State.STARTED);
+        if (mTray == null) {
+            Log.e(LOGTAG, "Failed to start Tray clock");
+        } else {
+            mTray.start(this);
+        }
     }
 
     @Override
@@ -417,6 +422,9 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         SettingsStore.getInstance(getBaseContext()).setPid(0);
         super.onStop();
         GleanMetricsService.sessionStop();
+        if (mTray != null) {
+            mTray.stop(this);
+        }
     }
 
     public void flushBackHandlers() {
@@ -1241,7 +1249,10 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     private void updateBatterLevels(final int leftLevel, final int rightLevel) {
         BatteryManager bm = (BatteryManager)getSystemService(BATTERY_SERVICE);
         int battery = bm == null ? 100 : bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
-        Log.e(LOGTAG,"battery: " + battery + "% left: " + leftLevel + "% right: " + rightLevel + "%");
+        Intent intent = this.registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+        int plugged = intent == null ? -1 : intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1);
+        boolean isCharging = plugged == BatteryManager.BATTERY_PLUGGED_AC || plugged == BatteryManager.BATTERY_PLUGGED_USB || plugged == BatteryManager.BATTERY_PLUGGED_WIRELESS;
+        mTray.setBatteryLevels(battery, isCharging, leftLevel, rightLevel);
     }
 
     private SurfaceTexture createSurfaceTexture() {
