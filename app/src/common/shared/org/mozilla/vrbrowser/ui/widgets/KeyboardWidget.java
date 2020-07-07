@@ -1049,7 +1049,7 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
             postInputCommand(() -> connection.commitText(text, 1));
         }
 
-        if (!mIsCapsLock && mCurrentKeyboard.getAlphabeticCapKeyboard() == null) {
+        if (!mIsCapsLock) {
             handleShift(false);
         }
 
