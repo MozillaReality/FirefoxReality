@@ -58,11 +58,16 @@ object EngineProvider {
         return runtime!!
     }
 
+    @Synchronized
+    fun isRuntimeCreated(): Boolean {
+        return runtime != null
+    }
+
     private fun createGeckoWebExecutor(context: Context): GeckoWebExecutor {
         return GeckoWebExecutor(getOrCreateRuntime(context))
     }
 
-    fun getDefaultGeckoWebExecutor(context: Context): GeckoWebExecutor {
+     fun getDefaultGeckoWebExecutor(context: Context): GeckoWebExecutor {
         if (executor == null) {
             executor = createGeckoWebExecutor(context)
             client?.let { it.executor = executor }
