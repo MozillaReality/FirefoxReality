@@ -57,6 +57,7 @@ public class VRBrowserApplication extends Application implements AppServicesProv
     }
 
     protected void onActivityCreate(@NonNull Context activityContext) {
+        EngineProvider.INSTANCE.getDefaultGeckoWebExecutor(activityContext);
         mPlaces = new Places(this);
         mServices = new Services(this, mPlaces);
         mAccounts = new Accounts(this);
