@@ -8,6 +8,7 @@ package org.mozilla.vrbrowser;
 import android.app.Application;
 import android.content.Context;
 import android.content.res.Configuration;
+import android.os.Looper;
 
 import androidx.annotation.NonNull;
 
@@ -51,6 +52,12 @@ public class VRBrowserApplication extends Application implements AppServicesProv
             // situation where we create a GeckoRuntime from the Gecko child process.
             return;
         }
+
+        // Fix potential Gecko static initialization order.
+        // GeckoResult.ALLOW and GeckoResult.DENY static initializer might get a null mDispatcher
+        // depending on how JVM classloader does the initialization job.
+        // See https://github.com/MozillaReality/FirefoxReality/issues/3651
+        Looper.getMainLooper().getThread();
 
         TelemetryWrapper.init(this, EngineProvider.INSTANCE.getDefaultClient(this));
         GleanMetricsService.init(this, EngineProvider.INSTANCE.getDefaultClient(this));
