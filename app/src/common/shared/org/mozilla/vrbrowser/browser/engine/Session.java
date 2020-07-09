@@ -91,6 +91,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     private transient byte[] mPrivatePage;
     private transient boolean mFirstContentfulPaint;
     private transient long mKeepAlive;
+    private transient boolean mIsSuspended;
 
     public interface BitmapChangedListener {
         void onBitmapChanged(Session aSession, Bitmap aBitmap);
@@ -107,6 +108,12 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     public interface DrmStateChangedListener {
         void onDrmStateChanged(Session aSession, @SessionState.DrmState int aDrmState);
     }
+
+    @IntDef(value = { CREATE, RECREATE, RECREATE_FROM_SUSPEND})
+    public @interface SessionRecreateMode {}
+    public static final int CREATE = 0;
+    public static final int RECREATE = 1;
+    public static final int RECREATE_FROM_SUSPEND = 2;
 
     @IntDef(value = { SESSION_OPEN, SESSION_DO_NOT_OPEN})
     public @interface SessionOpenModeFlags {}
@@ -154,14 +161,13 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
             sUserAgentOverride = new UserAgentOverride();
             sUserAgentOverride.loadOverridesFromAssets((Activity)mContext, mContext.getString(R.string.user_agent_override_file));
         }
+
+        mIsSuspended = false;
     }
 
     protected void shutdown() {
         if (mState.mSession != null) {
             closeSession(mState);
-            mSessionChangeListeners.forEach(listener -> {
-                listener.onSessionRemoved(mState.mId);
-            });
             mState.mSession = null;
         }
 
@@ -171,6 +177,10 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
                 parent.mSessionChangeListeners.remove(this);
             }
         }
+
+        mSessionChangeListeners.forEach(listener -> {
+            listener.onSessionRemoved(mState.mId);
+        });
 
         mQueuedCalls.clear();
         mNavigationListeners.clear();
@@ -428,6 +438,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         Log.d(LOGTAG, "Suspending Session: " + mState.mId);
         closeSession(mState);
         mState.mSession = null;
+        mIsSuspended = true;
     }
 
     private boolean shouldLoadDefaultPage(@NonNull SessionState aState) {
@@ -453,7 +464,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         }
     }
 
-    private void restore() {
+    private void restore(@SessionRecreateMode int recreateMode) {
         SessionSettings settings = mState.mSettings;
         if (settings == null) {
             settings = new SessionSettings.Builder()
@@ -467,7 +478,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
 
         // We call restore when a session is first activated and when it's recreated.
         // We only need to notify of the session creation if it's not a recreation.
-        if (mState.mSessionState == null) {
+        if (recreateMode == CREATE) {
             mSessionChangeListeners.forEach(listener -> listener.onSessionAdded(this));
         }
 
@@ -535,7 +546,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
 
         mState = mState.recreate();
 
-        restore();
+        restore(RECREATE);
 
         for (SessionChangeListener listener: mSessionChangeListeners) {
             listener.onSessionStateChanged(this, true);
@@ -797,7 +808,8 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
             mState.setActive(aActive);
 
         } else if (aActive) {
-            restore();
+            restore(mIsSuspended ? RECREATE_FROM_SUSPEND : CREATE);
+
         } else {
             Log.e(LOGTAG, "ERROR: Setting null GeckoView to inactive!");
         }
@@ -805,6 +817,8 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         for (SessionChangeListener listener: mSessionChangeListeners) {
             listener.onSessionStateChanged(this, aActive);
         }
+
+        mIsSuspended = false;
     }
 
     public void reload() {
