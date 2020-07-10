@@ -220,11 +220,13 @@
          Below this string appears a list of locales for the user to choose as their preferred languages for web content. -->
     <string name="settings_language_choose_language_content_description">Web pages are sometimes offered in more than one language. Choose the languages you want to display in order of preference to the left side.</string>
 
-    <!-- This string is used to label a radio button in the 'Settings' Voice Search and the Display Language dialogs that, when pressed,
-    changes the app and the language of the speech-recognition-based search to 'English (US)'.
-    The string is also used in the keyboard space bar to show the current keyboard language and in
+    <!-- The string is used in the keyboard space bar to show the current keyboard language and in
     the keyboard languages panel list. -->
-    <string name="settings_language_english">English (US)</string>
+    <string name="settings_language_english">English</string>
+
+    <!-- This string is used to label a radio button in the 'Settings' Voice Search and the Display Language dialogs that, when pressed,
+    changes the app and the language of the speech-recognition-based search to 'English (US)'. -->
+    <string name="settings_language_english_us">English (US)</string>
 
     <!-- This string is used to label a radio button in the 'Settings' Voice Search and the Display Language dialogs that, when pressed,
     changes the app and the language of the speech-recognition-based search to 'English (UK)'. -->
