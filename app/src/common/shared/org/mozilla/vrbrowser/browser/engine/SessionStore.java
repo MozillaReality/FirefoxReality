@@ -2,7 +2,6 @@ package org.mozilla.vrbrowser.browser.engine;
 
 import android.content.Context;
 import android.content.res.Configuration;
-import android.os.Bundle;
 import android.util.Log;
 import android.util.Pair;
 
@@ -149,6 +148,7 @@ public class SessionStore implements
         if (BuildConfig.DEBUG) {
             mStoreSubscription = ComponentsAdapter.get().getStore().observeManually(browserState -> {
                 Log.d(LOGTAG, "Session status BEGIN");
+                Log.d(LOGTAG, "BrowserStore: " + browserState.getTabs().size() + ", SessionStore: " + mSessions.size());
                 for (int i=0; i<browserState.getTabs().size(); i++) {
                     Log.d(LOGTAG, "BrowserStore Session: " + browserState.getTabs().get(i).getId());
                 }
@@ -188,8 +188,8 @@ public class SessionStore implements
     Session createSession(@NonNull SessionSettings aSettings, @Session.SessionOpenModeFlags int aOpenMode) {
         Session session = new Session(mContext, mRuntime, aSettings);
         session.addSessionChangeListener(this);
+        onSessionAdded(session);
         if (aOpenMode == Session.SESSION_OPEN) {
-            onSessionAdded(session);
             session.openSession();
             session.setActive(true);
         }

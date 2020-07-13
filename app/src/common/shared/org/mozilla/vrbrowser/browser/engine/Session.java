@@ -91,7 +91,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     private transient byte[] mPrivatePage;
     private transient boolean mFirstContentfulPaint;
     private transient long mKeepAlive;
-    private transient boolean mSessionRemoved;
+    private transient boolean mSessionAdded;
 
     public interface BitmapChangedListener {
         void onBitmapChanged(Session aSession, Bitmap aBitmap);
@@ -120,6 +120,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         mRuntime = aRuntime;
         initialize();
         mState = createSession(aSettings);
+        mSessionAdded = true;
     }
 
     protected Session(Context aContext, GeckoRuntime aRuntime, @NonNull SessionState aRestoreState) {
@@ -127,6 +128,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         mRuntime = aRuntime;
         initialize();
         mState = aRestoreState;
+        mSessionAdded = false;
     }
 
     private void initialize() {
@@ -170,12 +172,10 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
             }
         }
 
-        if (!mSessionRemoved) {
-            mSessionChangeListeners.forEach(listener -> {
-                listener.onSessionRemoved(mState.mId);
-            });
-            mSessionRemoved = true;
-        }
+        mSessionChangeListeners.forEach(listener -> {
+            listener.onSessionRemoved(mState.mId);
+            mSessionAdded = false;
+        });
 
         mQueuedCalls.clear();
         mNavigationListeners.clear();
@@ -458,7 +458,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         }
     }
 
-    private void restore() {
+    private void restore(boolean addSession) {
         SessionSettings settings = mState.mSettings;
         if (settings == null) {
             settings = new SessionSettings.Builder()
@@ -472,9 +472,9 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
 
         // We call restore when a session is first activated and when it's recreated.
         // We only need to notify of the session creation if it's not a recreation.
-        if (mSessionRemoved) {
+        if (addSession) {
             mSessionChangeListeners.forEach(listener -> listener.onSessionAdded(this));
-            mSessionRemoved = false;
+            mSessionAdded = true;
         }
 
         openSession();
@@ -541,7 +541,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
 
         mState = mState.recreate();
 
-        restore();
+        restore(false);
 
         for (SessionChangeListener listener: mSessionChangeListeners) {
             listener.onSessionStateChanged(this, true);
@@ -803,7 +803,8 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
             mState.setActive(aActive);
 
         } else if (aActive) {
-            restore();
+            restore(!mSessionAdded);
+
         } else {
             Log.e(LOGTAG, "ERROR: Setting null GeckoView to inactive!");
         }
