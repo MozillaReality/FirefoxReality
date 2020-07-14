@@ -91,7 +91,6 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     private transient byte[] mPrivatePage;
     private transient boolean mFirstContentfulPaint;
     private transient long mKeepAlive;
-    private transient boolean mSessionAdded;
 
     public interface BitmapChangedListener {
         void onBitmapChanged(Session aSession, Bitmap aBitmap);
@@ -110,25 +109,43 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     }
 
     @IntDef(value = { SESSION_OPEN, SESSION_DO_NOT_OPEN})
-    public @interface SessionOpenModeFlags {}
-    public static final int SESSION_OPEN = 0;
-    public static final int SESSION_DO_NOT_OPEN = 1;
+    @interface SessionOpenModeFlags {}
+    static final int SESSION_OPEN = 0;
+    static final int SESSION_DO_NOT_OPEN = 1;
 
-    protected Session(Context aContext, GeckoRuntime aRuntime,
-                      @NonNull SessionSettings aSettings) {
+    @NonNull
+    static Session createSession(Context aContext, GeckoRuntime aRuntime, @NonNull SessionSettings aSettings, @Session.SessionOpenModeFlags int aOpenMode, @NonNull SessionChangeListener listener) {
+        Session session = new Session(aContext, aRuntime, aSettings);
+        session.addSessionChangeListener(listener);
+        listener.onSessionAdded(session);
+        if (aOpenMode == Session.SESSION_OPEN) {
+            session.openSession();
+            session.setActive(true);
+        }
+
+        return session;
+    }
+
+    @NonNull
+    static Session createSuspendedSession(Context aContext, GeckoRuntime aRuntime, @NonNull SessionState aRestoreState, @NonNull SessionChangeListener listener) {
+        Session session = new Session(aContext, aRuntime, aRestoreState);
+        session.addSessionChangeListener(listener);
+
+        return session;
+    }
+
+    private Session(Context aContext, GeckoRuntime aRuntime, @NonNull SessionSettings aSettings) {
         mContext = aContext;
         mRuntime = aRuntime;
         initialize();
-        mState = createSession(aSettings);
-        mSessionAdded = true;
+        mState = createSessionState(aSettings);
     }
 
-    protected Session(Context aContext, GeckoRuntime aRuntime, @NonNull SessionState aRestoreState) {
+    private Session(Context aContext, GeckoRuntime aRuntime, @NonNull SessionState aRestoreState) {
         mContext = aContext;
         mRuntime = aRuntime;
         initialize();
         mState = aRestoreState;
-        mSessionAdded = false;
     }
 
     private void initialize() {
@@ -161,8 +178,8 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
 
     protected void shutdown() {
         if (mState.mSession != null) {
-            closeSession(mState);
-            mState.mSession = null;
+            setActive(false);
+            suspend();
         }
 
         if (mState.mParentId != null) {
@@ -171,11 +188,6 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
                 parent.mSessionChangeListeners.remove(this);
             }
         }
-
-        mSessionChangeListeners.forEach(listener -> {
-            listener.onSessionRemoved(mState.mId);
-            mSessionAdded = false;
-        });
 
         mQueuedCalls.clear();
         mNavigationListeners.clear();
@@ -430,6 +442,8 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
             return;
         }
 
+        mSessionChangeListeners.forEach(listener -> listener.onSessionRemoved(mState.mId));
+
         Log.d(LOGTAG, "Suspending Session: " + mState.mId);
         closeSession(mState);
         mState.mSession = null;
@@ -458,7 +472,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         }
     }
 
-    private void restore(boolean addSession) {
+    private void restore() {
         SessionSettings settings = mState.mSettings;
         if (settings == null) {
             settings = new SessionSettings.Builder()
@@ -470,12 +484,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
 
         mState.mSession = createGeckoSession(settings);
 
-        // We call restore when a session is first activated and when it's recreated.
-        // We only need to notify of the session creation if it's not a recreation.
-        if (addSession) {
-            mSessionChangeListeners.forEach(listener -> listener.onSessionAdded(this));
-            mSessionAdded = true;
-        }
+        mSessionChangeListeners.forEach(listener -> listener.onSessionAdded(this));
 
         openSession();
 
@@ -498,7 +507,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     }
 
 
-    private SessionState createSession(@NonNull SessionSettings aSettings) {
+    private SessionState createSessionState(@NonNull SessionSettings aSettings) {
         SessionState state = new SessionState();
         state.mSettings = aSettings;
         state.mSession = createGeckoSession(aSettings);
@@ -541,7 +550,9 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
 
         mState = mState.recreate();
 
-        restore(false);
+        mSessionChangeListeners.forEach(listener -> listener.onSessionRemoved(mState.mId));
+
+        restore();
 
         for (SessionChangeListener listener: mSessionChangeListeners) {
             listener.onSessionStateChanged(this, true);
@@ -563,9 +574,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
             mState.mSession.open(mRuntime);
         }
 
-        mSessionChangeListeners.forEach(listener -> {
-            listener.onSessionOpened(this);
-        });
+        mSessionChangeListeners.forEach(listener -> listener.onSessionOpened(this));
     }
 
     private void closeSession(@NonNull SessionState aState) {
@@ -803,7 +812,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
             mState.setActive(aActive);
 
         } else if (aActive) {
-            restore(!mSessionAdded);
+            restore();
 
         } else {
             Log.e(LOGTAG, "ERROR: Setting null GeckoView to inactive!");
@@ -868,7 +877,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
                 .withServo(!isInstanceOfServoSession(mState.mSession))
                 .build();
 
-        mState = createSession(settings);
+        mState = createSessionState(settings);
         openSession();
         closeSession(previous);
 
