@@ -125,10 +125,10 @@ public class EnvironmentsManager implements DownloadsManager.DownloadsListener, 
                 DownloadJob job = DownloadJob.create(environment.getPayload());
                 @SettingsStore.Storage int storage = SettingsStore.getInstance(mContext).getDownloadsStorage();
                 if (storage == SettingsStore.EXTERNAL &&
-                        !mApplicationDelegate.isPermissionGranted(android.Manifest.permission.READ_EXTERNAL_STORAGE)) {
+                        !mApplicationDelegate.isPermissionGranted(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
                     mApplicationDelegate.requestPermission(
                                 job.getUri(),
-                                android.Manifest.permission.READ_EXTERNAL_STORAGE,
+                                android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
                                 new GeckoSession.PermissionDelegate.Callback() {
                                     @Override
                                     public void grant() {
