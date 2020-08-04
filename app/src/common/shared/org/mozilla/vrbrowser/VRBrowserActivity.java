@@ -20,6 +20,7 @@ import android.media.AudioManager;
 import android.net.Uri;
 import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
+import android.os.BatteryManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -1229,6 +1230,18 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     @SuppressWarnings("unused")
     private void appendAppNotesToCrashReport(String aNotes) {
         runOnUiThread(() -> EngineProvider.INSTANCE.getOrCreateRuntime(VRBrowserActivity.this).appendAppNotesToCrashReport(aNotes));
+    }
+
+    @Keep
+    @SuppressWarnings("unused")
+    private void updateControllerBatteryLevels(final int leftLevel, final int rightLevel) {
+        runOnUiThread(() -> updateBatterLevels(leftLevel, rightLevel));
+    }
+
+    private void updateBatterLevels(final int leftLevel, final int rightLevel) {
+        BatteryManager bm = (BatteryManager)getSystemService(BATTERY_SERVICE);
+        int battery = bm == null ? 100 : bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
+        Log.e(LOGTAG,"battery: " + battery + "% left: " + leftLevel + "% right: " + rightLevel + "%");
     }
 
     private SurfaceTexture createSurfaceTexture() {
