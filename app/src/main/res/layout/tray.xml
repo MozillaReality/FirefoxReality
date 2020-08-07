@@ -53,6 +53,7 @@
                     tool:text="pm"/>
             </LinearLayout>
             <FrameLayout
+                android:id="@+id/wifi"
                 android:layout_width="12dp"
                 android:layout_height="12dp"
                 android:layout_toEndOf="@+id/time"

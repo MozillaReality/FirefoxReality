@@ -1,19 +1,16 @@
 package org.mozilla.vrbrowser.ui.viewmodel;
 
 import android.app.Application;
-import android.util.Log;
-import android.widget.ImageView;
-
-import org.mozilla.vrbrowser.R;
 
 import androidx.annotation.NonNull;
-import androidx.databinding.BindingAdapter;
 import androidx.databinding.ObservableBoolean;
 import androidx.databinding.ObservableInt;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Observer;
+
+import org.mozilla.vrbrowser.R;
 
 public class TrayViewModel extends AndroidViewModel {
 

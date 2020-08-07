@@ -65,6 +65,11 @@ public class TrayWidget extends UIWidget implements WidgetManagerDelegate.Update
     private static final int TAB_SENT_NOTIFICATION_ID = 1;
     private static final int BOOKMARK_ADDED_NOTIFICATION_ID = 2;
     private static final int DOWNLOAD_COMPLETED_NOTIFICATION_ID = 3;
+    private static final int WIFI_NOTIFICATION_ID = 4;
+    private static final int LEFT_CONTROLLER_NOTIFICATION_ID = 5;
+    private static final int RIGHT_CONTROLLER_NOTIFICATION_ID = 6;
+    private static final int HEADSET_NOTIFICATION_ID = 7;
+    private static final int TIME_NOTIFICATION_ID = 8;
 
     private WindowViewModel mViewModel;
     private TrayViewModel mTrayViewModel;
@@ -79,6 +84,10 @@ public class TrayWidget extends UIWidget implements WidgetManagerDelegate.Update
     private boolean mIsWindowAttached;
     private BroadcastReceiver mBroadcastReceiver;
     private int mLastWifiLevel = -1;
+    private String mWifiSSID;
+    private int mHeadsetBatteryLevel;
+    private int mLeftControllerBatteryLevel;
+    private int mRightControllerBatteryLevel;
 
     public TrayWidget(Context aContext) {
         super(aContext);
@@ -119,6 +128,8 @@ public class TrayWidget extends UIWidget implements WidgetManagerDelegate.Update
 
         mWidgetManager.addUpdateListener(this);
         mWidgetManager.getServicesProvider().getDownloadsManager().addListener(this);
+
+        mWifiSSID = getContext().getString(R.string.tray_wifi_no_connection);
 
         updateTime();
 
@@ -202,6 +213,101 @@ public class TrayWidget extends UIWidget implements WidgetManagerDelegate.Update
 
             notifyLibraryClicked();
             view.requestFocusFromTouch();
+        });
+
+        mBinding.wifi.setOnHoverListener((view, motionEvent) -> {
+            if (motionEvent.getAction() == MotionEvent.ACTION_HOVER_ENTER) {
+                NotificationManager.Notification notification = new NotificationManager.Builder(TrayWidget.this)
+                        .withView(mBinding.wifi)
+                        .withDensity(R.dimen.tray_tooltip_density)
+                        .withLayout(R.layout.tooltip)
+                        .withString(mWifiSSID)
+                        .withAutoHide(false)
+                        .withMargin(-20.0f)
+                        .withPosition(NotificationManager.Notification.TOP).build();
+                NotificationManager.show(WIFI_NOTIFICATION_ID, notification);
+
+            } else if (motionEvent.getAction() == MotionEvent.ACTION_HOVER_EXIT) {
+                NotificationManager.hide(WIFI_NOTIFICATION_ID);
+            }
+
+            return false;
+        });
+
+        mBinding.leftController.setOnHoverListener((view, motionEvent) -> {
+            if (motionEvent.getAction() == MotionEvent.ACTION_HOVER_ENTER) {
+                NotificationManager.Notification notification = new NotificationManager.Builder(TrayWidget.this)
+                        .withView(mBinding.leftController)
+                        .withDensity(R.dimen.tray_tooltip_density)
+                        .withLayout(R.layout.tooltip)
+                        .withString(String.format(Locale.getDefault(), "%d%%", mLeftControllerBatteryLevel))
+                        .withAutoHide(false)
+                        .withMargin(-20.0f)
+                        .withPosition(NotificationManager.Notification.TOP).build();
+                NotificationManager.show(LEFT_CONTROLLER_NOTIFICATION_ID, notification);
+
+            } else if (motionEvent.getAction() == MotionEvent.ACTION_HOVER_EXIT) {
+                NotificationManager.hide(LEFT_CONTROLLER_NOTIFICATION_ID);
+            }
+
+            return false;
+        });
+
+        mBinding.rightController.setOnHoverListener((view, motionEvent) -> {
+            if (motionEvent.getAction() == MotionEvent.ACTION_HOVER_ENTER) {
+                NotificationManager.Notification notification = new NotificationManager.Builder(TrayWidget.this)
+                        .withView(mBinding.rightController)
+                        .withDensity(R.dimen.tray_tooltip_density)
+                        .withLayout(R.layout.tooltip)
+                        .withString(String.format(Locale.getDefault(), "%d%%", mRightControllerBatteryLevel))
+                        .withAutoHide(false)
+                        .withMargin(-20.0f)
+                        .withPosition(NotificationManager.Notification.TOP).build();
+                NotificationManager.show(RIGHT_CONTROLLER_NOTIFICATION_ID, notification);
+
+            } else if (motionEvent.getAction() == MotionEvent.ACTION_HOVER_EXIT) {
+                NotificationManager.hide(RIGHT_CONTROLLER_NOTIFICATION_ID);
+            }
+
+            return false;
+        });
+
+        mBinding.headset.setOnHoverListener((view, motionEvent) -> {
+            if (motionEvent.getAction() == MotionEvent.ACTION_HOVER_ENTER) {
+                NotificationManager.Notification notification = new NotificationManager.Builder(TrayWidget.this)
+                        .withView(mBinding.headset)
+                        .withDensity(R.dimen.tray_tooltip_density)
+                        .withLayout(R.layout.tooltip)
+                        .withString(String.format(Locale.getDefault(), "%d%%", mHeadsetBatteryLevel))
+                        .withAutoHide(false)
+                        .withMargin(-20.0f)
+                        .withPosition(NotificationManager.Notification.TOP).build();
+                NotificationManager.show(HEADSET_NOTIFICATION_ID, notification);
+
+            } else if (motionEvent.getAction() == MotionEvent.ACTION_HOVER_EXIT) {
+                NotificationManager.hide(HEADSET_NOTIFICATION_ID);
+            }
+
+            return false;
+        });
+
+        mBinding.time.setOnHoverListener((view, motionEvent) -> {
+            if (motionEvent.getAction() == MotionEvent.ACTION_HOVER_ENTER) {
+                NotificationManager.Notification notification = new NotificationManager.Builder(TrayWidget.this)
+                        .withView(mBinding.time)
+                        .withDensity(R.dimen.tray_tooltip_density)
+                        .withLayout(R.layout.tooltip)
+                        .withString(getFormattedDate())
+                        .withAutoHide(false)
+                        .withMargin(-20.0f)
+                        .withPosition(NotificationManager.Notification.TOP).build();
+                NotificationManager.show(TIME_NOTIFICATION_ID, notification);
+
+            } else if (motionEvent.getAction() == MotionEvent.ACTION_HOVER_EXIT) {
+                NotificationManager.hide(TIME_NOTIFICATION_ID);
+            }
+
+            return false;
         });
     }
 
@@ -624,6 +730,7 @@ public class TrayWidget extends UIWidget implements WidgetManagerDelegate.Update
         mTrayViewModel.setWifiConnected(connected);
         if (!connected) {
             mLastWifiLevel = -1;
+            mWifiSSID = getContext().getString(R.string.tray_wifi_no_connection);
         }
     }
 
@@ -672,6 +779,13 @@ public class TrayWidget extends UIWidget implements WidgetManagerDelegate.Update
                         mLastWifiLevel = level;
                     }
                 }
+                WifiInfo currentWifi = wifiManager.getConnectionInfo();
+                if(currentWifi != null) {
+                    mWifiSSID = currentWifi.getSSID().replaceAll("\"", "");
+
+                } else {
+                    mWifiSSID = getContext().getString(R.string.tray_wifi_no_connection);
+                }
             }
         }
     }
@@ -697,6 +811,11 @@ public class TrayWidget extends UIWidget implements WidgetManagerDelegate.Update
         }
         mTrayViewModel.setHeadsetIcon(isCharging ? R.drawable.ic_icon_statusbar_headset_charging : R.drawable.ic_icon_statusbar_headset_normal);
         mTrayViewModel.setHeadsetBatteryLevel(toBatteryLevel(headset));
+
+        mHeadsetBatteryLevel = headset;
+        mLeftControllerBatteryLevel = leftController;
+        mRightControllerBatteryLevel = rightController;
+
         if (leftController < 0) {
             mBinding.leftController.setVisibility(View.GONE);
         } else {
@@ -709,5 +828,11 @@ public class TrayWidget extends UIWidget implements WidgetManagerDelegate.Update
             mBinding.rightController.setVisibility(View.VISIBLE);
             mTrayViewModel.setRightControllerBatteryLevel(toBatteryLevel(rightController));
         }
+    }
+
+    @NonNull
+    private String getFormattedDate() {
+        SimpleDateFormat format = new SimpleDateFormat("EEEE, dd MMMM yyyy", Locale.getDefault());
+        return format.format(new Date());
     }
 }
