@@ -62,17 +62,17 @@
                     android:id="@+id/wifi_icon_background"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:src="@drawable/ic_icon_statusbar_wifi_list"
+                    android:src="@{traymodel.wifiConnected ? @drawable/ic_icon_statusbar_wifi_list : @drawable/ic_icon_statusbar_nowifi}"
                     android:tint="@color/iron"
-                    android:scaleType="fitCenter"
-                    app:visibleGone="@{traymodel.wifiConnected}"/>
+                    android:scaleType="fitCenter"/>
                 <ImageView
                     android:id="@+id/wifi_icon"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:src="@{traymodel.wifiConnected ? @drawable/ic_icon_statusbar_wifi_list : @drawable/ic_icon_statusbar_nowifi}"
+                    android:src="@drawable/ic_icon_statusbar_wifi_list"
                     android:tint="@color/concrete"
-                    android:scaleType="fitCenter"/>
+                    android:scaleType="fitCenter"
+                    app:visibleGone="@{traymodel.wifiConnected}"/>
             </FrameLayout>
             <LinearLayout
                 android:id="@+id/left_controller"
