@@ -791,7 +791,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         }
         if (mState.mParentId != null) {
             Session parent = SessionStore.get().getSession(mState.mParentId);
-            return  parent != null && !parent.isActive();
+            return  parent != null && parent.mState.mDisplay == null;
         }
         return false;
     }
@@ -803,7 +803,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
             mState.mSession.goBack();
         } else if (mState.mParentId != null) {
           Session parent = SessionStore.get().getSession(mState.mParentId);
-          if (parent != null && !parent.isActive()) {
+          if (parent != null && parent.mState.mDisplay == null) {
               for (SessionChangeListener listener: mSessionChangeListeners) {
                   listener.onUnstackSession(this, parent);
               }
