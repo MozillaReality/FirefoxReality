@@ -61,7 +61,6 @@
                 android:layout_gravity="center_horizontal"
                 android:gravity="center_horizontal"
                 tools:text="Body"
-                android:lineSpacingMultiplier="1.25"
                 android:textColor="@color/fog"
                 android:textSize="@dimen/text_medium_size" />
         </FrameLayout>

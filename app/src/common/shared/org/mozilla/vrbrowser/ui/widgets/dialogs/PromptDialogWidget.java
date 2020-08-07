@@ -7,7 +7,11 @@ package org.mozilla.vrbrowser.ui.widgets.dialogs;
 
 import android.content.Context;
 import android.content.res.Configuration;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 
@@ -17,9 +21,14 @@ import androidx.annotation.StringRes;
 import androidx.databinding.DataBindingUtil;
 
 import org.mozilla.vrbrowser.R;
+import org.mozilla.vrbrowser.VRBrowserApplication;
 import org.mozilla.vrbrowser.databinding.PromptDialogBinding;
 import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
+import org.mozilla.vrbrowser.utils.BitmapCache;
 import org.mozilla.vrbrowser.utils.ViewUtils;
+
+import java.io.IOException;
+import java.net.URL;
 
 public class PromptDialogWidget extends UIDialog {
 
@@ -114,32 +123,85 @@ public class PromptDialogWidget extends UIDialog {
         mBinding.icon.setImageResource(icon);
     }
 
+    public void setIcon(String iconUrl) {
+        BitmapCache.getInstance(getContext()).getBitmap(iconUrl).thenAccept(bitmap -> {
+            if (bitmap == null) {
+                ((VRBrowserApplication) getContext().getApplicationContext()).getExecutors().backgroundThread().post(() -> {
+                    try {
+                        URL url = new URL(iconUrl);
+                        Bitmap icon = BitmapFactory.decodeStream(url.openStream());
+                        ((VRBrowserApplication) getContext().getApplicationContext()).getExecutors().mainThread().execute(() -> {
+                            BitmapDrawable iconDrawable = new BitmapDrawable(getContext().getResources(), icon);
+                            BitmapCache.getInstance(getContext()).addBitmap(iconUrl, icon);
+                            mBinding.icon.setImageDrawable(iconDrawable);
+                        });
+
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                });
+
+            } else {
+                BitmapDrawable iconDrawable = new BitmapDrawable(getContext().getResources(), bitmap);
+                mBinding.icon.setImageDrawable(iconDrawable);
+            }
+        }).exceptionally(throwable -> {
+            throwable.printStackTrace();
+            return null;
+        });
+    }
+
     public void setTitle(@StringRes int title) {
-        mBinding.title.setText(title);
+        if (title != -1) {
+            mBinding.title.setText(title);
+
+        } else {
+            mBinding.title.clearComposingText();
+        }
     }
 
     public void setTitle(String title) {
-        mBinding.title.setText(title);
+        if (title != null) {
+            mBinding.title.setText(title);
+
+        } else {
+            mBinding.title.clearComposingText();
+        }
     }
 
-    public void setBody(@NonNull String body) {
-        ViewUtils.setTextViewHTML(mBinding.body, body, (widget, url) -> {
-            if (mLinkDelegate != null) {
-                mLinkDelegate.onClick(PromptDialogWidget.this, url);
-            }
-        });
+    public void setBody(String body) {
+        if (body != null) {
+            ViewUtils.setTextViewHTML(mBinding.body, body, (widget, url) -> {
+                if (mLinkDelegate != null) {
+                    mLinkDelegate.onClick(PromptDialogWidget.this, url);
+                }
+            });
+
+        } else {
+            mBinding.body.clearComposingText();
+        }
     }
 
     public void setBody(@StringRes int body) {
-        ViewUtils.setTextViewHTML(mBinding.body, getResources().getString(body), (widget, url) -> {
-            if (mLinkDelegate != null) {
-                mLinkDelegate.onClick(PromptDialogWidget.this, url);
-            }
-        });
+        if (body != -1) {
+            ViewUtils.setTextViewHTML(mBinding.body, getResources().getString(body), (widget, url) -> {
+                if (mLinkDelegate != null) {
+                    mLinkDelegate.onClick(PromptDialogWidget.this, url);
+                }
+            });
+
+        } else {
+            mBinding.body.clearComposingText();
+        }
     }
 
-    public void setBody(@NonNull CharSequence body) {
-        mBinding.body.setText(body);
+    public void setBody(CharSequence body) {
+        if (body != null) {
+            mBinding.body.setText(body);
+
+        } else {
+            mBinding.body.clearComposingText();
+        }
     }
 
     public void setCheckboxVisible(boolean visible) {
@@ -200,6 +262,10 @@ public class PromptDialogWidget extends UIDialog {
 
     public boolean isChecked() {
         return mBinding.checkbox.isChecked();
+    }
+
+    public void setBodyGravity(int gravity) {
+        mBinding.body.setGravity(gravity);
     }
 
 }
