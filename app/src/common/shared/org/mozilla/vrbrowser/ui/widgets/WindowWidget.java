@@ -1297,10 +1297,6 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
                     R.string.ok_button
             });
             mConfirmDialog.setCheckboxVisible(false);
-            if (promptData.getCheckboxText() != null) {
-                mConfirmDialog.setCheckboxVisible(true);
-                mConfirmDialog.setCheckboxText(promptData.getCheckboxText());
-            }
             mConfirmDialog.setDescriptionVisible(false);
         }
         mConfirmDialog.setTitle(promptData.getTitle());
@@ -1314,6 +1310,10 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
             mConfirmDialog.releaseWidget();
             mConfirmDialog = null;
         });
+        if (promptData.getCheckboxText() != null) {
+            mConfirmDialog.setCheckboxVisible(true);
+            mConfirmDialog.setCheckboxText(promptData.getCheckboxText());
+        }
         if (promptData.getIconType() == PromptData.RES) {
             mConfirmDialog.setIcon(promptData.getIconRes());
 

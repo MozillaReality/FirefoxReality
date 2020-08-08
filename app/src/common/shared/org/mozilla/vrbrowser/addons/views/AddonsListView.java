@@ -183,12 +183,11 @@ public class AddonsListView extends RecyclerView.ViewHolder implements AddonsMan
                         mContext.getString(R.string.addons_install_dialog_cancel),
                         mContext.getString(R.string.addons_install_dialog_add)
                 })
-                .withCheckboxText(mContext.getString(R.string.addons_download_success_dialog_checkbox))
                 .withCallback((index, isChecked) -> {
                     if (index == PromptDialogWidget.POSITIVE) {
                         mWidgetManager.getServicesProvider().getExecutors().mainThread().execute(() -> {
                             CancellableOperation installTask = mWidgetManager.getServicesProvider().getAddons().getAddonManager().installAddon(addon, addon1 -> {
-                                showDownloadingAddonSuccessDialog(addon);
+                                showDownloadingAddonSuccessDialog(addon1);
                                 updateAddons();
                                 return null;
 
@@ -236,7 +235,10 @@ public class AddonsListView extends RecyclerView.ViewHolder implements AddonsMan
                     mWidgetManager.getServicesProvider().getAddons().getAddonManager().setAddonAllowedInPrivateBrowsing(
                             addon,
                             isChecked,
-                            addon1 -> null,
+                            addon1 -> {
+                                updateAddons();
+                                return null;
+                                },
                             throwable -> {
                                 Log.d(LOGTAG, String.valueOf(throwable.getMessage()));
                                 return null;
