@@ -1113,7 +1113,7 @@
 
     <!-- This string is displayed in the checkbox text of the FxA sign out dialog displayed when the user clicks on the Sign out button.
          When checked the history and Bookmarks will be deleted from gthe device after signing in. -->
-    <string name="fxa_signout_confirmation_checkbox">Clear history and bookmarks from this device</string>
+    <string name="fxa_signout_confirmation_checkbox_v1">Clear history, bookmarks and logins from this device</string>
 
     <!-- This string is displayed in the cancel button of the FxA sign out dialog displayed when the user clicks on the Sign out button.
          If clicked the user will be signed out from their FxA account and the dialog will be dismissed. -->
