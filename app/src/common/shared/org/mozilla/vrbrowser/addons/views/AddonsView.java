@@ -6,7 +6,6 @@ import android.view.LayoutInflater;
 
 import androidx.annotation.NonNull;
 import androidx.databinding.DataBindingUtil;
-import androidx.viewpager2.widget.ViewPager2;
 
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.VRBrowserActivity;
@@ -58,13 +57,6 @@ public class AddonsView extends LibraryView implements AddonsDelegate {
         mAdapter = new AddonsViewAdapter(this);
         mBinding.pager.setAdapter(mAdapter);
         mBinding.pager.setUserInputEnabled(false);
-        mBinding.pager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
-            @Override
-            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-                super.onPageScrolled(position, positionOffset, positionOffsetPixels);
-                mAdapter.notifyDataSetChanged();
-            }
-        });
 
         setView(AddonsViewAdapter.ADDONS_LIST);
 

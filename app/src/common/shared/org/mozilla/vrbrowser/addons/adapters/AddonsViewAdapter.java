@@ -59,6 +59,7 @@ public class AddonsViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
 
     public void setCurrentItem(@AddonsViews int item) {
         mCurrentItem = item;
+        notifyDataSetChanged();
     }
 
     @NonNull
