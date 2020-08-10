@@ -644,7 +644,8 @@ public class TrayWidget extends UIWidget implements WidgetManagerDelegate.Update
                     .withDensity(R.dimen.tray_tooltip_density)
                     .withString(string)
                     .withPosition(NotificationManager.Notification.TOP)
-                    .withZTranslation(25.0f).build();
+                    .withMargin(-75.0f)
+                    .withZTranslation(20.0f).build();
             NotificationManager.show(notificationId, notification);
         }
     }
