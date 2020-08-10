@@ -188,14 +188,13 @@ public class AddonsListView extends RecyclerView.ViewHolder implements AddonsMan
                         mWidgetManager.getServicesProvider().getExecutors().mainThread().execute(() -> {
                             CancellableOperation installTask = mWidgetManager.getServicesProvider().getAddons().getAddonManager().installAddon(addon, addon1 -> {
                                 showDownloadingAddonSuccessDialog(addon1);
-                                updateAddons();
+                                mAdapter.updateAddon(addon1);
                                 return null;
 
                             }, (s, throwable) -> {
                                 Log.d(LOGTAG, s);
                                 if (!(throwable instanceof CancellationException)) {
                                     showDownloadingAddonErrorDialog(addon);
-                                    updateAddons();
                                 }
                                 return null;
                             });
@@ -236,7 +235,7 @@ public class AddonsListView extends RecyclerView.ViewHolder implements AddonsMan
                             addon,
                             isChecked,
                             addon1 -> {
-                                updateAddons();
+                                mAdapter.updateAddon(addon1);
                                 return null;
                                 },
                             throwable -> {
