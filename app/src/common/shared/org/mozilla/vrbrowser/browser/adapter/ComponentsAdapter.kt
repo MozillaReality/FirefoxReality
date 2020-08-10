@@ -6,26 +6,21 @@
 package org.mozilla.vrbrowser.browser.adapter
 
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.map
-import mozilla.components.browser.state.action.ContentAction
 import mozilla.components.browser.state.action.EngineAction
 import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.action.WebExtensionAction
 import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.state.*
 import mozilla.components.browser.state.store.BrowserStore
-import mozilla.components.concept.engine.EngineSession
 import mozilla.components.lib.state.ext.flowScoped
 import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifChanged
 import org.mozilla.vrbrowser.browser.components.GeckoEngineSession
 import org.mozilla.vrbrowser.browser.engine.Session
-import org.mozilla.vrbrowser.browser.engine.SessionStore
 
 class ComponentsAdapter private constructor(
         val store: BrowserStore = BrowserStore()
 ) {
     interface StoreUpdatesListener {
-        fun onPopUpTabAdded(session: Session?) {}
         fun onTabSelected(state: BrowserState, tab: SessionState?) {}
     }
 
@@ -88,36 +83,7 @@ class ComponentsAdapter private constructor(
         ))
     }
 
-    fun updateUrl(sessionId: String, url: String) {
-        store.dispatch(ContentAction.UpdateUrlAction(
-                sessionId, url
-        ))
-    }
-
     init {
-        // This flow calls listeners when a new PopUp session has been added by an Add-On
-        store.flowScoped { flow ->
-            flow.ifChanged { it.extensions }
-                    .map { it.extensions.filterValues { extension -> extension.popupSession != null } }
-                    .ifChanged()
-                    .collect { extensionStates ->
-                        if (extensionStates.values.isNotEmpty()) {
-                            store.state.tabs.firstOrNull { tabState ->
-                                extensionStates.values.any { extState ->
-                                    val popUpGeckoSession = (extState.popupSession as GeckoEngineSession).geckoSession
-                                    val tabGeckoSession = (tabState.engineState.engineSession as GeckoEngineSession).geckoSession
-                                    popUpGeckoSession === tabGeckoSession
-                                }
-
-                            }?.let {
-                                storeUpdatesListeners.forEach { listener ->
-                                    listener.onPopUpTabAdded((it.engineState.engineSession as GeckoEngineSession).session)
-                                }
-                            }
-                        }
-                    }
-        }
-
         // This flow calls listeners when an Add-On request a Session selection
         store.flowScoped { flow ->
             flow.ifChanged { it.selectedTab }

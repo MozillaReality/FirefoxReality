@@ -549,11 +549,4 @@ public class SessionStore implements
     @Override
     public void onTabSelected(@NonNull BrowserState state, @Nullable mozilla.components.browser.state.state.SessionState tab) { }
 
-    @Override
-    public void onPopUpTabAdded(@Nullable Session session) {
-//        if (session != null) {
-//            ((WidgetManagerDelegate)mContext).getWindows().onTabSelect(session);
-//            session.reload();
-//        }
-    }
 }

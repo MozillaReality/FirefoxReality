@@ -304,9 +304,4 @@ public class HamburgerMenuWidget extends UIWidget implements
         updateItems();
     }
 
-    @Override
-    public void onPopUpTabAdded(@Nullable Session session) {
-
-    }
-
 }
