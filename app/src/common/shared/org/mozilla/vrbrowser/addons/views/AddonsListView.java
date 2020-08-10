@@ -166,7 +166,7 @@ public class AddonsListView extends RecyclerView.ViewHolder implements AddonsMan
         String permissionsHtml = addon.translatePermissions().stream()
                 .map(integer -> {
                     @StringRes int stringId = integer;
-                    return "<li>" + mContext.getString(stringId) + "</li>";
+                    return "<li>&nbsp;" + mContext.getString(stringId) + "</li>";
                 })
                 .sorted()
                 .collect(Collectors.joining());

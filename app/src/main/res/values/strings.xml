@@ -1160,7 +1160,7 @@
 
     <!-- This string is displayed in the Addon install dialog body text and it will list the permissions that the addon requires. This dialog is displayed when an addon is installed.
      %1$s will be replaced by the permissions list-->
-    <string name="addons_install_dialog_body"><![CDATA[<p>It requires your permission to:</p><ul>%1$s</ul>]]></string>
+    <string name="addons_install_dialog_body"><![CDATA[<p ALIGN=LEFT>It requires your permission to:<ul>%1$s</ul></p>]]></string>
 
     <!-- This string is displayed in the Addon install dialog "Cancel"" button, when pressed the dialog will be dismissed and the Addon install will be canceled.
     This dialog is displayed when an addon is installed. -->

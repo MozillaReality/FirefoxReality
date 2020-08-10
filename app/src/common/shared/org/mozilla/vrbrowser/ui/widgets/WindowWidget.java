@@ -19,6 +19,7 @@ import android.net.Uri;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.util.Pair;
+import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.Surface;
@@ -1301,6 +1302,9 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         }
         mConfirmDialog.setTitle(promptData.getTitle());
         mConfirmDialog.setBody(promptData.getBody());
+        if (promptData.getBodyGravity() != Gravity.NO_GRAVITY) {
+            mConfirmDialog.setBodyGravity(promptData.getBodyGravity());
+        }
         mConfirmDialog.setButtons(promptData.getBtnMsg());
         mConfirmDialog.setButtonsDelegate((index, isChecked) -> {
             mConfirmDialog.hide(REMOVE_WIDGET);
