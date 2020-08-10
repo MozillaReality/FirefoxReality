@@ -57,6 +57,7 @@ public class AddonsView extends LibraryView implements AddonsDelegate {
         mAdapter = new AddonsViewAdapter(this);
         mBinding.pager.setAdapter(mAdapter);
         mBinding.pager.setUserInputEnabled(false);
+        mBinding.pager.setPageTransformer((page, position) -> post(() -> mAdapter.notifyDataSetChanged()));
 
         setView(AddonsViewAdapter.ADDONS_LIST);
 
