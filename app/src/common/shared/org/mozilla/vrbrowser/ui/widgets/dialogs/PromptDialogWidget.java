@@ -11,7 +11,6 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 
@@ -231,6 +230,7 @@ public class PromptDialogWidget extends UIDialog {
     public void setButtons(@NonNull @StringRes int[] buttons) {
         if (buttons.length > 0) {
             mBinding.leftButton.setText(buttons[NEGATIVE]);
+            mBinding.leftButton.setVisibility(View.VISIBLE);
 
         } else {
             mBinding.leftButton.setVisibility(View.GONE);
@@ -238,6 +238,7 @@ public class PromptDialogWidget extends UIDialog {
 
         if (buttons.length > 1) {
             mBinding.rightButton.setText(buttons[POSITIVE]);
+            mBinding.rightButton.setVisibility(View.VISIBLE);
 
         } else {
             mBinding.rightButton.setVisibility(View.GONE);
@@ -247,6 +248,7 @@ public class PromptDialogWidget extends UIDialog {
     public void setButtons(@NonNull String[] buttons) {
         if (buttons.length > 0) {
             mBinding.leftButton.setText(buttons[NEGATIVE]);
+            mBinding.leftButton.setVisibility(View.VISIBLE);
 
         } else {
             mBinding.leftButton.setVisibility(View.GONE);
@@ -254,6 +256,7 @@ public class PromptDialogWidget extends UIDialog {
 
         if (buttons.length > 1) {
             mBinding.rightButton.setText(buttons[POSITIVE]);
+            mBinding.rightButton.setVisibility(View.VISIBLE);
 
         } else {
             mBinding.rightButton.setVisibility(View.GONE);

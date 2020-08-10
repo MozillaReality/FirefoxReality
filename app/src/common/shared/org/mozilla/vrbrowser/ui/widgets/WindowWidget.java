@@ -1317,6 +1317,9 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
         if (promptData.getCheckboxText() != null) {
             mConfirmDialog.setCheckboxVisible(true);
             mConfirmDialog.setCheckboxText(promptData.getCheckboxText());
+
+        } else {
+            mConfirmDialog.setCheckboxVisible(false);
         }
         if (promptData.getIconType() == PromptData.RES) {
             mConfirmDialog.setIcon(promptData.getIconRes());

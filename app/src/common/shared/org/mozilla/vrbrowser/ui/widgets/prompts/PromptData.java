@@ -31,7 +31,7 @@ public class PromptData {
         return title;
     }
 
-    @NonNull
+    @Nullable
     public String getBody() {
         return body;
     }
