@@ -1266,7 +1266,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         }
     }
 
-    public void selectTab(@NonNull Session aTab) {
+public void selectTab(@NonNull Session aTab) {
         onTabSelect(aTab);
     }
 
@@ -1365,16 +1365,12 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         closeTabs(aTabs, mPrivateMode, true);
     }
 
-    public void closeTab(Session aTab) {
+    public void closeTab(@NonNull Session aTab) {
         if (isSessionFocused(aTab)) {
             closeTabs(Collections.singletonList(aTab), mPrivateMode, true);
         } else {
             closeTabs(Collections.singletonList(aTab), mPrivateMode, false);
         }
-    }
-
-    private void closeTabs(List<Session> aTabs, boolean privateMode) {
-        closeTabs(aTabs, privateMode, true);
     }
 
     private void closeTabs(List<Session> aTabs, boolean privateMode, boolean hidePanel) {
