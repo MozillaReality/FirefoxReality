@@ -38,13 +38,13 @@ public class AddonOptionsView extends RecyclerView.ViewHolder implements AddonOp
         mBinding = binding;
         mDelegate = delegate;
         mWidgetManager = ((VRBrowserActivity)context);
+
+        mBinding.setLifecycleOwner((VRBrowserActivity) mContext);
+        mBinding.setDelegate(this);
     }
 
     public void bind(Addon addon) {
-        mBinding.setLifecycleOwner((VRBrowserActivity) mContext);
         mBinding.setAddon(addon);
-        mBinding.setDelegate(this);
-        mBinding.executePendingBindings();
 
         // Update addon bindings
         if (addon != null) {
@@ -64,6 +64,8 @@ public class AddonOptionsView extends RecyclerView.ViewHolder implements AddonOp
                     addon.getInstalledState() != null &&
                             addon.getInstalledState().getOptionsPageUrl() != null);
         }
+
+        mBinding.executePendingBindings();
     }
 
     private void setAddonEnabled(@NonNull Addon addon, boolean isEnabled) {
