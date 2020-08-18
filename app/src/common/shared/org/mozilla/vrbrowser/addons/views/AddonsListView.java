@@ -232,17 +232,19 @@ public class AddonsListView extends RecyclerView.ViewHolder implements AddonsMan
                 })
                 .withCheckboxText(mContext.getString(R.string.addons_download_success_dialog_checkbox))
                 .withCallback((index, isChecked) -> {
-                    mWidgetManager.getServicesProvider().getAddons().getAddonManager().setAddonAllowedInPrivateBrowsing(
-                            addon,
-                            isChecked,
-                            addon1 -> {
-                                mAdapter.updateAddon(addon1);
-                                return null;
+                    if (isChecked) {
+                        mWidgetManager.getServicesProvider().getAddons().getAddonManager().setAddonAllowedInPrivateBrowsing(
+                                addon,
+                                true,
+                                addon1 -> {
+                                    mAdapter.updateAddon(addon1);
+                                    return null;
                                 },
-                            throwable -> {
-                                Log.d(LOGTAG, String.valueOf(throwable.getMessage()));
-                                return null;
-                            });
+                                throwable -> {
+                                    Log.d(LOGTAG, String.valueOf(throwable.getMessage()));
+                                    return null;
+                                });
+                    }
                 })
                 .build();
         mWidgetManager.getFocusedWindow().showConfirmPrompt(data);
