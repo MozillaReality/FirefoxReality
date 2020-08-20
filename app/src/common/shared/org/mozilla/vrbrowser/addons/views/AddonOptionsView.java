@@ -59,10 +59,7 @@ public class AddonOptionsView extends RecyclerView.ViewHolder implements AddonOp
                 return null;
             }));
 
-
-            mBinding.addonSettings.setEnabled(
-                    addon.getInstalledState() != null &&
-                            addon.getInstalledState().getOptionsPageUrl() != null);
+            setAddonEnabled(addon, addon.isEnabled());
         }
 
         mBinding.executePendingBindings();
@@ -74,7 +71,8 @@ public class AddonOptionsView extends RecyclerView.ViewHolder implements AddonOp
                 mBinding.setAddon(addon1);
                 mBinding.addonPrivateMode.setVisibility(View.VISIBLE);
                 mBinding.addonSettings.setVisibility(View.VISIBLE);
-                mBinding.addonSettings.setEnabled(true);
+                mBinding.addonSettings.setEnabled(addon1.getInstalledState() != null &&
+                        addon1.getInstalledState().getOptionsPageUrl() != null);
                 return null;
 
             }, throwable -> {
