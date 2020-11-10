@@ -23,7 +23,7 @@ distribution:
     data_reviews:
       - https://github.com/MozillaReality/FirefoxReality/pull/1854#issuecomment-546214568
       - https://github.com/MozillaReality/FirefoxReality/pull/3199#issuecomment-617938749
-      - https://github.com/MozillaReality/FirefoxReality/pull/3896
+      - https://github.com/MozillaReality/FirefoxReality/pull/3896#issuecomment-718171759
     notification_emails:
       - fxr-telemetry@mozilla.com
       - dmu@mozilla.com
@@ -41,7 +41,7 @@ url:
     data_reviews:
       - https://github.com/MozillaReality/FirefoxReality/pull/2241#issuecomment-557740258
       - https://github.com/MozillaReality/FirefoxReality/pull/3199#issuecomment-617938749
-      - https://github.com/MozillaReality/FirefoxReality/pull/3896
+      - https://github.com/MozillaReality/FirefoxReality/pull/3896#issuecomment-718171759
     notification_emails:
       - fxr-telemetry@mozilla.com
       - dmu@mozilla.com
@@ -57,7 +57,7 @@ url:
     data_reviews:
       - https://github.com/MozillaReality/FirefoxReality/pull/2241#issuecomment-557740258
       - https://github.com/MozillaReality/FirefoxReality/pull/3199#issuecomment-617938749
-      - https://github.com/MozillaReality/FirefoxReality/pull/3896
+      - https://github.com/MozillaReality/FirefoxReality/pull/3896#issuecomment-718171759
     notification_emails:
       - fxr-telemetry@mozilla.com
       - dmu@mozilla.com
@@ -75,7 +75,7 @@ url:
     data_reviews:
       - https://github.com/MozillaReality/FirefoxReality/pull/2241#issuecomment-557740258
       - https://github.com/MozillaReality/FirefoxReality/pull/3199#issuecomment-617938749
-      - https://github.com/MozillaReality/FirefoxReality/pull/3896
+      - https://github.com/MozillaReality/FirefoxReality/pull/3896#issuecomment-718171759
     notification_emails:
       - fxr-telemetry@mozilla.com
       - dmu@mozilla.com
@@ -92,7 +92,7 @@ searches:
     data_reviews:
       - https://github.com/MozillaReality/FirefoxReality/pull/2241#issuecomment-557740258
       - https://github.com/MozillaReality/FirefoxReality/pull/3199#issuecomment-617938749
-      - https://github.com/MozillaReality/FirefoxReality/pull/3896
+      - https://github.com/MozillaReality/FirefoxReality/pull/3896#issuecomment-718171759
     notification_emails:
       - fxr-telemetry@mozilla.com
       - dmu@mozilla.com
@@ -120,7 +120,7 @@ tabs:
     data_reviews:
       - https://github.com/MozillaReality/FirefoxReality/pull/2327#issuecomment-559103837
       - https://github.com/MozillaReality/FirefoxReality/pull/3199#issuecomment-617938749
-      - https://github.com/MozillaReality/FirefoxReality/pull/3896
+      - https://github.com/MozillaReality/FirefoxReality/pull/3896#issuecomment-718171759
     notification_emails:
       - fxr-telemetry@mozilla.com
       - manmartin@mozilla.com
@@ -136,7 +136,7 @@ tabs:
     data_reviews:
       - https://github.com/MozillaReality/FirefoxReality/pull/2327#issuecomment-559103837
       - https://github.com/MozillaReality/FirefoxReality/pull/3199#issuecomment-617938749
-      - https://github.com/MozillaReality/FirefoxReality/pull/3896
+      - https://github.com/MozillaReality/FirefoxReality/pull/3896#issuecomment-718171759
     notification_emails:
       - fxr-telemetry@mozilla.com
       - manmartin@mozilla.com
@@ -152,7 +152,7 @@ firefox_account:
     data_reviews:
       - https://github.com/MozillaReality/FirefoxReality/pull/2327#issuecomment-559103837
       - https://github.com/MozillaReality/FirefoxReality/pull/3199#issuecomment-617938749
-      - https://github.com/MozillaReality/FirefoxReality/pull/3896
+      - https://github.com/MozillaReality/FirefoxReality/pull/3896#issuecomment-718171759
     notification_emails:
       - fxr-telemetry@mozilla.com
       - manmartin@mozilla.com
@@ -170,7 +170,7 @@ firefox_account:
     data_reviews:
       - https://github.com/MozillaReality/FirefoxReality/pull/2327#issuecomment-559103837
       - https://github.com/MozillaReality/FirefoxReality/pull/3199#issuecomment-617938749
-      - https://github.com/MozillaReality/FirefoxReality/pull/3896
+      - https://github.com/MozillaReality/FirefoxReality/pull/3896#issuecomment-718171759
     notification_emails:
       - fxr-telemetry@mozilla.com
       - manmartin@mozilla.com
@@ -185,7 +185,7 @@ firefox_account:
     data_reviews:
       - https://github.com/MozillaReality/FirefoxReality/pull/2327#issuecomment-559103837
       - https://github.com/MozillaReality/FirefoxReality/pull/3199#issuecomment-617938749
-      - https://github.com/MozillaReality/FirefoxReality/pull/3896
+      - https://github.com/MozillaReality/FirefoxReality/pull/3896#issuecomment-718171759
     notification_emails:
       - fxr-telemetry@mozilla.com
       - manmartin@mozilla.com
@@ -201,7 +201,7 @@ firefox_account:
     data_reviews:
       - https://github.com/MozillaReality/FirefoxReality/pull/2327#issuecomment-559103837
       - https://github.com/MozillaReality/FirefoxReality/pull/3199#issuecomment-617938749
-      - https://github.com/MozillaReality/FirefoxReality/pull/3896
+      - https://github.com/MozillaReality/FirefoxReality/pull/3896#issuecomment-718171759
     notification_emails:
       - fxr-telemetry@mozilla.com
       - manmartin@mozilla.com
@@ -217,7 +217,7 @@ firefox_account:
     data_reviews:
       - https://github.com/MozillaReality/FirefoxReality/pull/2327#issuecomment-559103837
       - https://github.com/MozillaReality/FirefoxReality/pull/3199#issuecomment-617938749
-      - https://github.com/MozillaReality/FirefoxReality/pull/3896
+      - https://github.com/MozillaReality/FirefoxReality/pull/3896#issuecomment-718171759
     notification_emails:
       - fxr-telemetry@mozilla.com
       - manmartin@mozilla.com
@@ -231,7 +231,7 @@ firefox_account:
     data_reviews:
       - https://github.com/MozillaReality/FirefoxReality/pull/2327#issuecomment-559103837
       - https://github.com/MozillaReality/FirefoxReality/pull/3199#issuecomment-617938749
-      - https://github.com/MozillaReality/FirefoxReality/pull/3896
+      - https://github.com/MozillaReality/FirefoxReality/pull/3896#issuecomment-718171759
     notification_emails:
       - fxr-telemetry@mozilla.com
       - manmartin@mozilla.com
@@ -252,7 +252,7 @@ firefox_account:
     data_reviews:
       - https://github.com/MozillaReality/FirefoxReality/pull/2327#issuecomment-559103837
       - https://github.com/MozillaReality/FirefoxReality/pull/3199#issuecomment-617938749
-      - https://github.com/MozillaReality/FirefoxReality/pull/3896
+      - https://github.com/MozillaReality/FirefoxReality/pull/3896#issuecomment-718171759
     notification_emails:
       - fxr-telemetry@mozilla.com
       - manmartin@mozilla.com
@@ -270,7 +270,7 @@ control:
     data_reviews:
       - https://github.com/MozillaReality/FirefoxReality/pull/2348#issuecomment-564736919
       - https://github.com/MozillaReality/FirefoxReality/pull/3199#issuecomment-617938749
-      - https://github.com/MozillaReality/FirefoxReality/pull/3896
+      - https://github.com/MozillaReality/FirefoxReality/pull/3896#issuecomment-718171759
     notification_emails:
       - fxr-telemetry@mozilla.com
       - dmu@mozilla.com
@@ -286,7 +286,7 @@ pages:
       - https://github.com/MozillaReality/FirefoxReality/issues/2279
     data_reviews:
       - https://github.com/MozillaReality/FirefoxReality/pull/3430#issuecomment-642823166
-      - https://github.com/MozillaReality/FirefoxReality/pull/3896
+      - https://github.com/MozillaReality/FirefoxReality/pull/3896#issuecomment-718171759
     notification_emails:
       - fxr-telemetry@mozilla.com
       - dmu@mozilla.com
@@ -305,7 +305,7 @@ immersive:
       - https://github.com/MozillaReality/FirefoxReality/issues/2279
     data_reviews:
       - https://github.com/MozillaReality/FirefoxReality/pull/3430#issuecomment-642823166
-      - https://github.com/MozillaReality/FirefoxReality/pull/3896
+      - https://github.com/MozillaReality/FirefoxReality/pull/3896#issuecomment-718171759
     notification_emails:
       - fxr-telemetry@mozilla.com
       - dmu@mozilla.com
@@ -321,7 +321,7 @@ windows:
       - https://github.com/MozillaReality/FirefoxReality/issues/2279
     data_reviews:
       - https://github.com/MozillaReality/FirefoxReality/pull/3430#issuecomment-642823166
-      - https://github.com/MozillaReality/FirefoxReality/pull/3896
+      - https://github.com/MozillaReality/FirefoxReality/pull/3896#issuecomment-718171759
     notification_emails:
       - fxr-telemetry@mozilla.com
       - dmu@mozilla.com
@@ -336,7 +336,7 @@ windows:
       - https://github.com/MozillaReality/FirefoxReality/issues/2279
     data_reviews:
       - https://github.com/MozillaReality/FirefoxReality/pull/3430#issuecomment-642823166
-      - https://github.com/MozillaReality/FirefoxReality/pull/3896
+      - https://github.com/MozillaReality/FirefoxReality/pull/3896#issuecomment-718171759
     notification_emails:
       - fxr-telemetry@mozilla.com
       - dmu@mozilla.com
@@ -351,7 +351,7 @@ windows:
       - https://github.com/MozillaReality/FirefoxReality/issues/2279
     data_reviews:
       - https://github.com/MozillaReality/FirefoxReality/pull/3430#issuecomment-642823166
-      - https://github.com/MozillaReality/FirefoxReality/pull/3896
+      - https://github.com/MozillaReality/FirefoxReality/pull/3896#issuecomment-718171759
     notification_emails:
       - fxr-telemetry@mozilla.com
       - dmu@mozilla.com
@@ -369,7 +369,7 @@ windows:
       - https://github.com/MozillaReality/FirefoxReality/issues/2279
     data_reviews:
       - https://github.com/MozillaReality/FirefoxReality/pull/3430#issuecomment-642823166
-      - https://github.com/MozillaReality/FirefoxReality/pull/3896
+      - https://github.com/MozillaReality/FirefoxReality/pull/3896#issuecomment-718171759
     notification_emails:
       - fxr-telemetry@mozilla.com
       - dmu@mozilla.com
@@ -387,7 +387,7 @@ windows:
       - https://github.com/MozillaReality/FirefoxReality/issues/2279
     data_reviews:
       - https://github.com/MozillaReality/FirefoxReality/pull/3430#issuecomment-642823166
-      - https://github.com/MozillaReality/FirefoxReality/pull/3896
+      - https://github.com/MozillaReality/FirefoxReality/pull/3896#issuecomment-718171759
     notification_emails:
       - fxr-telemetry@mozilla.com
       - dmu@mozilla.com
@@ -405,7 +405,7 @@ windows:
       - https://github.com/MozillaReality/FirefoxReality/issues/2279
     data_reviews:
       - https://github.com/MozillaReality/FirefoxReality/pull/3430#issuecomment-642823166
-      - https://github.com/MozillaReality/FirefoxReality/pull/3896
+      - https://github.com/MozillaReality/FirefoxReality/pull/3896#issuecomment-718171759
     notification_emails:
       - fxr-telemetry@mozilla.com
       - dmu@mozilla.com
@@ -421,7 +421,7 @@ windows:
       - https://github.com/MozillaReality/FirefoxReality/issues/2279
     data_reviews:
       - https://github.com/MozillaReality/FirefoxReality/pull/3430#issuecomment-642823166
-      - https://github.com/MozillaReality/FirefoxReality/pull/3896
+      - https://github.com/MozillaReality/FirefoxReality/pull/3896#issuecomment-718171759
     notification_emails:
       - fxr-telemetry@mozilla.com
       - dmu@mozilla.com
@@ -437,7 +437,7 @@ windows:
       - https://github.com/MozillaReality/FirefoxReality/issues/2279
     data_reviews:
       - https://github.com/MozillaReality/FirefoxReality/pull/3430#issuecomment-642823166
-      - https://github.com/MozillaReality/FirefoxReality/pull/3896
+      - https://github.com/MozillaReality/FirefoxReality/pull/3896#issuecomment-718171759
     notification_emails:
       - fxr-telemetry@mozilla.com
       - dmu@mozilla.com
@@ -453,7 +453,7 @@ windows:
       - https://github.com/MozillaReality/FirefoxReality/issues/2279
     data_reviews:
       - https://github.com/MozillaReality/FirefoxReality/pull/3430#issuecomment-642823166
-      - https://github.com/MozillaReality/FirefoxReality/pull/3896
+      - https://github.com/MozillaReality/FirefoxReality/pull/3896#issuecomment-718171759
     notification_emails:
       - fxr-telemetry@mozilla.com
       - dmu@mozilla.com
@@ -469,7 +469,7 @@ windows:
       - https://github.com/MozillaReality/FirefoxReality/issues/2279
     data_reviews:
       - https://github.com/MozillaReality/FirefoxReality/pull/3430#issuecomment-642823166
-      - https://github.com/MozillaReality/FirefoxReality/pull/3896
+      - https://github.com/MozillaReality/FirefoxReality/pull/3896#issuecomment-718171759
     notification_emails:
       - fxr-telemetry@mozilla.com
       - dmu@mozilla.com
@@ -485,7 +485,7 @@ windows:
       - https://github.com/MozillaReality/FirefoxReality/issues/2279
     data_reviews:
       - https://github.com/MozillaReality/FirefoxReality/pull/3430#issuecomment-642823166
-      - https://github.com/MozillaReality/FirefoxReality/pull/3896
+      - https://github.com/MozillaReality/FirefoxReality/pull/3896#issuecomment-718171759
     notification_emails:
       - fxr-telemetry@mozilla.com
       - dmu@mozilla.com
@@ -501,7 +501,7 @@ windows:
       - https://github.com/MozillaReality/FirefoxReality/issues/2279
     data_reviews:
       - https://github.com/MozillaReality/FirefoxReality/pull/3430#issuecomment-642823166
-      - https://github.com/MozillaReality/FirefoxReality/pull/3896
+      - https://github.com/MozillaReality/FirefoxReality/pull/3896#issuecomment-718171759
     notification_emails:
       - fxr-telemetry@mozilla.com
       - dmu@mozilla.com
@@ -521,7 +521,7 @@ windows:
       - https://github.com/MozillaReality/FirefoxReality/issues/2230
     data_reviews:
       - https://github.com/MozillaReality/FirefoxReality/pull/3430#issuecomment-642823166
-      - https://github.com/MozillaReality/FirefoxReality/pull/3896
+      - https://github.com/MozillaReality/FirefoxReality/pull/3896#issuecomment-718171759
     notification_emails:
       - fxr-telemetry@mozilla.com
       - dmu@mozilla.com
@@ -541,7 +541,7 @@ windows:
       - https://github.com/MozillaReality/FirefoxReality/issues/2230
     data_reviews:
       - https://github.com/MozillaReality/FirefoxReality/pull/3430#issuecomment-642823166
-      - https://github.com/MozillaReality/FirefoxReality/pull/3896
+      - https://github.com/MozillaReality/FirefoxReality/pull/3896#issuecomment-718171759
     notification_emails:
       - fxr-telemetry@mozilla.com
       - dmu@mozilla.com
