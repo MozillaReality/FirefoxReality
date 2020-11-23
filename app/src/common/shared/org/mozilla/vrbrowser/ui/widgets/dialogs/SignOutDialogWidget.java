@@ -13,10 +13,11 @@ import org.mozilla.vrbrowser.VRBrowserApplication;
 import org.mozilla.vrbrowser.browser.Accounts;
 import org.mozilla.vrbrowser.browser.Places;
 import org.mozilla.vrbrowser.ui.widgets.UIWidget;
-import org.mozilla.vrbrowser.ui.widgets.settings.SettingsWidget;
 
 import java.util.Objects;
 import java.util.concurrent.Executor;
+
+import static org.mozilla.vrbrowser.ui.widgets.settings.SettingsView.SettingViewType.FXA;
 
 public class SignOutDialogWidget extends PromptDialogWidget {
 
@@ -36,12 +37,17 @@ public class SignOutDialogWidget extends PromptDialogWidget {
         mUIThreadExecutor = ((VRBrowserApplication)getContext().getApplicationContext()).getExecutors().mainThread();
         mAccounts = ((VRBrowserApplication)getContext().getApplicationContext()).getAccounts();
         mPlaces = ((VRBrowserApplication)getContext().getApplicationContext()).getPlaces();
+    }
+
+    @Override
+    public void updateUI() {
+        super.updateUI();
 
         setButtons(new int[] {
                 R.string.fxa_signout_confirmation_signout,
                 R.string.fxa_signout_confirmation_cancel
         });
-        setButtonsDelegate(index -> {
+        setButtonsDelegate((index, isChecked) -> {
             if (index == PromptDialogWidget.NEGATIVE) {
                 try {
                     Objects.requireNonNull(mAccounts.logoutAsync()).thenAcceptAsync(unit -> {
@@ -60,16 +66,16 @@ public class SignOutDialogWidget extends PromptDialogWidget {
 
             } else if (index == PromptDialogWidget.POSITIVE) {
                 hide(UIWidget.REMOVE_WIDGET);
-                mWidgetManager.getTray().toggleSettingsDialog(SettingsWidget.SettingDialog.FXA);
+                mWidgetManager.getTray().toggleSettingsDialog(FXA);
             }
         });
-        setDelegate(() -> mWidgetManager.getTray().toggleSettingsDialog(SettingsWidget.SettingDialog.FXA));
+        setDelegate(() -> mWidgetManager.getTray().toggleSettingsDialog(FXA));
 
         setDescriptionVisible(false);
 
         setTitle(R.string.fxa_signout_confirmation_title);
         setBody(R.string.fxa_signout_confirmation_body);
-        setCheckboxText(R.string.fxa_signout_confirmation_checkbox);
+        setCheckboxText(R.string.fxa_signout_confirmation_checkbox_v1);
     }
 
     @Override

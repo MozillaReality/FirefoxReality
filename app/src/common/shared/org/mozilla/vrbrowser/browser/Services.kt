@@ -9,8 +9,6 @@ import android.content.Context
 import android.net.Uri
 import android.os.Build
 import androidx.lifecycle.ProcessLifecycleOwner
-import androidx.work.Configuration
-import androidx.work.WorkManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -29,9 +27,12 @@ import org.mozilla.geckoview.AllowOrDeny
 import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.vrbrowser.R
+import org.mozilla.vrbrowser.VRBrowserActivity
 import org.mozilla.vrbrowser.browser.engine.EngineProvider
-import org.mozilla.vrbrowser.utils.SystemUtils
 import org.mozilla.vrbrowser.telemetry.GleanMetricsService
+import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate
+import org.mozilla.vrbrowser.utils.ConnectivityReceiver
+import org.mozilla.vrbrowser.utils.SystemUtils
 
 
 class Services(val context: Context, places: Places): GeckoSession.NavigationDelegate {
@@ -40,7 +41,7 @@ class Services(val context: Context, places: Places): GeckoSession.NavigationDel
 
     companion object {
         const val CLIENT_ID = "7ad9917f6c55fb77"
-        const val REDIRECT_URL = "https://accounts.firefox.com/oauth/success/$CLIENT_ID"
+        const val REDIRECT_URL = "urn:ietf:wg:oauth:2.0:oob:oauth-redirect-webchannel"
     }
     interface TabReceivedDelegate {
         fun onTabsReceived(uri: List<TabData>)
@@ -61,46 +62,34 @@ class Services(val context: Context, places: Places): GeckoSession.NavigationDel
         // Make sure we get logs out of our android-components.
         Log.addSink(AndroidLogSink())
 
-        GlobalSyncableStoreProvider.configureStore(SyncEngine.Bookmarks to places.bookmarks)
-        GlobalSyncableStoreProvider.configureStore(SyncEngine.History to places.history)
-
-        // TODO this really shouldn't be necessary, since WorkManager auto-initializes itself, unless
-        // auto-initialization is disabled in the manifest file. We don't disable the initialization,
-        // but i'm seeing crashes locally because WorkManager isn't initialized correctly...
-        // Maybe this is a race of sorts? We're trying to access it before it had a chance to auto-initialize?
-        // It's not well-documented _when_ that auto-initialization is supposed to happen.
-
-        // For now, let's just manually initialize it here, and swallow failures (it's already initialized).
-        try {
-            WorkManager.initialize(
-                    context,
-                    Configuration.Builder().setMinimumLoggingLevel(android.util.Log.INFO).build()
-            )
-        } catch (e: IllegalStateException) {}
+        GlobalSyncableStoreProvider.configureStore(SyncEngine.Bookmarks to lazy {places.bookmarks})
+        GlobalSyncableStoreProvider.configureStore(SyncEngine.History to lazy {places.history})
     }
 
     // Process received device events, only handling received tabs for now.
     // They'll come from other FxA devices (e.g. Firefox Desktop).
-    private val deviceEventObserver = object : DeviceEventsObserver {
+    private val deviceEventObserver = object : AccountEventsObserver {
         private val logTag = "DeviceEventsObserver"
 
-        override fun onEvents(events: List<DeviceEvent>) {
+        override fun onEvents(events: List<AccountEvent>) {
             CoroutineScope(Dispatchers.Main).launch {
                 Logger(logTag).info("Received ${events.size} device event(s)")
-                val filteredEvents = events.filterIsInstance(DeviceEvent.TabReceived::class.java)
-                if (filteredEvents.isNotEmpty()) {
-                    filteredEvents.map { event -> event.from?.deviceType?.let { GleanMetricsService.FxA.receivedTab(it) } }
-                    val tabs = filteredEvents.map {
-                        event -> event.entries
-                    }.flatten()
-                    tabReceivedDelegate?.onTabsReceived(tabs)
-                }
+                events
+                        .filterIsInstance<AccountEvent.DeviceCommandIncoming>()
+                        .map { it.command }
+                        .filterIsInstance<DeviceCommandIncoming.TabReceived>()
+                        .forEach { command ->
+                            command.from?.deviceType?.let { GleanMetricsService.FxA.receivedTab(it) }
+                            tabReceivedDelegate?.onTabsReceived(command.entries)
+                        }
             }
         }
     }
+    val serverConfig = ServerConfig(Server.RELEASE, CLIENT_ID, REDIRECT_URL)
+
     val accountManager = FxaAccountManager(
         context = context,
-        serverConfig = ServerConfig.release(CLIENT_ID, REDIRECT_URL),
+        serverConfig = serverConfig,
         deviceConfig = DeviceConfig(
             // This is a default name, and can be changed once user is logged in.
             // E.g. accountManager.authenticatedAccount()?.deviceConstellation()?.setDeviceNameAsync("new name")
@@ -108,13 +97,25 @@ class Services(val context: Context, places: Places): GeckoSession.NavigationDel
             type = DeviceType.VR,
             capabilities = setOf(DeviceCapability.SEND_TAB)
         ),
-        syncConfig = SyncConfig(setOf(SyncEngine.History, SyncEngine.Bookmarks), syncPeriodInMinutes = 1440L)
+        syncConfig = SyncConfig(setOf(SyncEngine.History, SyncEngine.Bookmarks, SyncEngine.Passwords), syncPeriodInMinutes = 1440L)
 
     ).also {
-        it.registerForDeviceEvents(deviceEventObserver, ProcessLifecycleOwner.get(), true)
+        it.registerForAccountEvents(deviceEventObserver, ProcessLifecycleOwner.get(), true)
     }
 
     init {
+        if (ConnectivityReceiver.isNetworkAvailable(context)) {
+            init()
+        }
+
+        (context as WidgetManagerDelegate).servicesProvider.connectivityReceiver.addListener {
+            if (it) {
+                init()
+            }
+        }
+    }
+
+    private fun init() {
         CoroutineScope(Dispatchers.Main).launch {
             accountManager.initAsync().await()
         }
@@ -128,14 +129,27 @@ class Services(val context: Context, places: Places): GeckoSession.NavigationDel
                 val state = parsedUri.getQueryParameter("state") as String
                 val action = parsedUri.getQueryParameter("action") as String
 
-                // Notify the state machine about our success.
-                accountManager.finishAuthenticationAsync(FxaAuthData(action.toAuthType(), code = code, state = state))
+                val geckoResult = GeckoResult<AllowOrDeny>()
 
-                return GeckoResult.ALLOW
+                // Notify the state machine about our success.
+                val result = accountManager.finishAuthenticationAsync(FxaAuthData(action.toAuthType(), code = code, state = state))
+                CoroutineScope(Dispatchers.Main).launch {
+                    if (!result.await()) {
+                        android.util.Log.e(LOGTAG, "Authentication finish error.")
+                        geckoResult.complete(AllowOrDeny.DENY)
+
+                    } else {
+                        android.util.Log.e(LOGTAG, "Authentication successfully completed.")
+                        geckoResult.complete(AllowOrDeny.ALLOW)
+                    }
+                }
+
+                return geckoResult
             }
             return GeckoResult.DENY
         }
 
         return GeckoResult.ALLOW
     }
+
 }

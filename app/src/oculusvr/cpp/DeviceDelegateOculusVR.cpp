@@ -78,27 +78,31 @@ struct DeviceDelegateOculusVR::State {
   bool layersEnabled = true;
   ovrJava java = {};
   ovrMobile* ovr = nullptr;
-  OculusEyeSwapChainPtr eyeSwapChains[VRAPI_EYE_COUNT];
+  OculusSwapChainPtr eyeSwapChains[VRAPI_EYE_COUNT];
   OculusLayerCubePtr cubeLayer;
   OculusLayerEquirectPtr equirectLayer;
   std::vector<OculusLayerPtr> uiLayers;
-  ovrTextureSwapChain* clearColorSwapChain = nullptr;
+  std::vector<OculusLayerProjectionPtr> projectionLayers;
+  OculusSwapChainPtr clearColorSwapChain;
   device::RenderMode renderMode = device::RenderMode::StandAlone;
   vrb::FBOPtr currentFBO;
   vrb::FBOPtr previousFBO;
   vrb::CameraEyePtr cameras[2];
   uint32_t frameIndex = 0;
+  FramePrediction framePrediction = FramePrediction::NO_FRAME_AHEAD;
+  double prevPredictedDisplayTime = 0;
   double predictedDisplayTime = 0;
+  ovrTracking2 prevPredictedTracking = {};
   ovrTracking2 predictedTracking = {};
   ovrTracking2 discardPredictedTracking = {};
   uint32_t discardedFrameIndex = 0;
   int discardCount = 0;
   uint32_t renderWidth = 0;
   uint32_t renderHeight = 0;
-  int32_t standaloneFoveatedLevel = 0;
   vrb::Color clearColor;
   float near = 0.1f;
   float far = 100.f;
+  bool hasEventFocus = true;
   std::vector<ControllerState> controllerStateList;
   crow::ElbowModelPtr elbow;
   ControllerDelegatePtr controller;
@@ -129,7 +133,6 @@ struct DeviceDelegateOculusVR::State {
 
   void Initialize() {
     elbow = ElbowModel::Create();
-    layersEnabled = VRBrowser::AreLayersEnabled();
     vrb::RenderContextPtr localContext = context.lock();
 
     java.Vm = app->activity->vm;
@@ -145,11 +148,18 @@ struct DeviceDelegateOculusVR::State {
       return;
     }
     initialized = true;
+
+    std::string version = vrapi_GetVersionString();
+    std::string notes = "Oculus Driver Version: ";
+    notes += version;
+    VRBrowser::AppendAppNotesToCrashLog(notes);
+
+    layersEnabled = VRBrowser::AreLayersEnabled();
     SetRenderSize(device::RenderMode::StandAlone);
 
+    auto render = context.lock();
     for (int i = 0; i < VRAPI_EYE_COUNT; ++i) {
       cameras[i] = vrb::CameraEye::Create(localContext->GetRenderThreadCreationContext());
-      eyeSwapChains[i] = OculusEyeSwapChain::create();
     }
     UpdatePerspective();
 
@@ -173,9 +183,6 @@ struct DeviceDelegateOculusVR::State {
     } else if ((type >= VRAPI_DEVICE_TYPE_OCULUSQUEST_START) && (type <= VRAPI_DEVICE_TYPE_OCULUSQUEST_END)) {
       VRB_DEBUG("Detected Oculus Quest");
       deviceType = device::OculusQuest;
-    } else if ((type >= VRAPI_DEVICE_TYPE_GEARVR_START) && (type <= VRAPI_DEVICE_TYPE_GEARVR_END)) {
-      VRB_DEBUG("Detected Gear VR");
-      appId = OCULUS_3DOF_APP_ID;
     } else {
       VRB_DEBUG("Detected Unknown Oculus device");
     }
@@ -199,17 +206,22 @@ struct DeviceDelegateOculusVR::State {
     }
   }
 
+  vrb::FBO::Attributes RenderModeAttributes() {
+    vrb::FBO::Attributes attributes;
+    if (renderMode == device::RenderMode::StandAlone) {
+      attributes.depth = true;
+      attributes.samples = 4;
+    } else {
+      attributes.depth = false;
+      attributes.samples = 0;
+    }
+    return attributes;
+  }
+
   void UpdateTrackingMode() {
     if (ovr) {
       vrapi_SetTrackingSpace(ovr, VRAPI_TRACKING_SPACE_LOCAL);
     }
-  }
-
-  void UpdateFoveatedLevel() {
-    if (!ovr) {
-      return;
-    }
-    vrapi_SetPropertyInt(&java, VRAPI_FOVEATION_LEVEL, standaloneFoveatedLevel);
   }
 
   void UpdateClockLevels() {
@@ -235,6 +247,18 @@ struct DeviceDelegateOculusVR::State {
     }
   }
 
+  void UpdateBoundary() {
+    if (!ovr || !Is6DOF()) {
+      return;
+    }
+    ovrPosef pose;
+    ovrVector3f size;
+    vrapi_GetBoundaryOrientedBoundingBox(ovr, &pose, &size);
+    if (immersiveDisplay) {
+      immersiveDisplay->SetStageSize(size.x * 2.0f, size.z * 2.0f);
+    }
+  }
+
   void AddUILayer(const OculusLayerPtr& aLayer, VRLayerSurface::SurfaceType aSurfaceType) {
     if (ovr) {
       vrb::RenderContextPtr ctx = context.lock();
@@ -242,9 +266,9 @@ struct DeviceDelegateOculusVR::State {
     }
     uiLayers.push_back(aLayer);
     if (aSurfaceType == VRLayerSurface::SurfaceType::FBO) {
-      aLayer->SetBindDelegate([=](const vrb::FBOPtr& aFBO, GLenum aTarget, bool bound){
-        if (aFBO) {
-          HandleQuadLayerBind(aFBO, aTarget, bound);
+      aLayer->SetBindDelegate([=](const OculusSwapChainPtr& aSwapChain, GLenum aTarget, bool bound){
+        if (aSwapChain) {
+          HandleLayerBind(aSwapChain, aTarget, bound);
         }
       });
       if (currentFBO) {
@@ -325,6 +349,10 @@ struct DeviceDelegateOculusVR::State {
       controllerState.enabled = false;
     }
 
+    if (!hasEventFocus) {
+      return;
+    }
+
     uint32_t count = 0;
     ovrInputCapabilityHeader capsHeader = {};
     while (vrapi_EnumerateInputDevices(ovr, count++, &capsHeader) >= 0) {
@@ -353,10 +381,10 @@ struct DeviceDelegateOculusVR::State {
         controllerState.enabled = true;
 
         if (!controllerState.created) {
+          vrb::Matrix beamTransform(vrb::Matrix::Identity());
           if (controllerState.capabilities.ControllerCapabilities &
               ovrControllerCaps_ModelOculusTouch) {
             std::string controllerName;
-            vrb::Matrix beamTransform(vrb::Matrix::Identity());
             if (controllerState.hand == ElbowModel::HandEnum::Left) {
               beamTransform.TranslateInPlace(vrb::Vector(-0.011f, -0.007f, 0.0f));
               controllerName = "Oculus Touch (Left)";
@@ -366,15 +394,30 @@ struct DeviceDelegateOculusVR::State {
             }
             controller->CreateController(controllerState.index, int32_t(controllerState.hand),
                                          controllerName, beamTransform);
-            controller->SetButtonCount(controllerState.index, 6);
+            controller->SetButtonCount(controllerState.index, 7);
             controller->SetHapticCount(controllerState.index, 1);
+            controller->SetControllerType(controllerState.index, device::OculusQuest);
+
+            const vrb::Matrix trans = vrb::Matrix::Position(vrb::Vector(0.0f, 0.02f, -0.03f));
+            vrb::Matrix transform = vrb::Matrix::Rotation(vrb::Vector(1.0f, 0.0f, 0.0f), -0.77f);
+            transform = transform.PostMultiply(trans);
+            controller->SetImmersiveBeamTransform(controllerState.index, beamTransform.PostMultiply(transform));
           } else {
             // Oculus Go only has one kind of controller model.
             controller->CreateController(controllerState.index, 0, "Oculus Go Controller");
-            controller->SetButtonCount(controllerState.index, 2);
+            // Although Go only has two buttons, in order to match WebXR input profile (squeeze placeholder),
+            // we make Go has three buttons.
+            controller->SetButtonCount(controllerState.index, 3);
             // Oculus Go has no haptic feedback.
             controller->SetHapticCount(controllerState.index, 0);
+            controller->SetControllerType(controllerState.index, device::OculusGo);
+
+            const vrb::Matrix trans = vrb::Matrix::Position(vrb::Vector(0.0f, 0.028f, -0.072f));
+            vrb::Matrix transform = vrb::Matrix::Rotation(vrb::Vector(1.0f, 0.0f, 0.0f), -0.55f);
+            transform = transform.PostMultiply(trans);
+            controller->SetImmersiveBeamTransform(controllerState.index, beamTransform.PostMultiply(transform));
           }
+          controller->SetTargetRayMode(controllerState.index, device::TargetRayMode::TrackedPointer);
           controllerState.created = true;
         }
       }
@@ -382,7 +425,6 @@ struct DeviceDelegateOculusVR::State {
     for (ControllerState& controllerState: controllerStateList) {
       controller->SetLeftHanded(controllerState.index, controllerState.hand == ElbowModel::HandEnum::Left);
       controller->SetEnabled(controllerState.index, controllerState.enabled);
-      controller->SetVisible(controllerState.index, controllerState.enabled);
     }
   }
 
@@ -392,14 +434,18 @@ struct DeviceDelegateOculusVR::State {
       return;
     }
 
+    if (!hasEventFocus) {
+      return;
+    }
+
     for (ControllerState& controllerState: controllerStateList) {
       if (controllerState.deviceId == ovrDeviceIdType_Invalid) {
-        return;
+        continue;
       }
       ovrTracking tracking = {};
-      if (vrapi_GetInputTrackingState(ovr, controllerState.deviceId, 0, &tracking) != ovrSuccess) {
+      if (vrapi_GetInputTrackingState(ovr, controllerState.deviceId, predictedDisplayTime, &tracking) != ovrSuccess) {
         VRB_LOG("Failed to read controller tracking controllerStateList");
-        return;
+        continue;
       }
 
       device::CapabilityFlags flags = 0;
@@ -420,19 +466,39 @@ struct DeviceDelegateOculusVR::State {
         flags |= device::Position;
       } else {
         controllerState.transform = elbow->GetTransform(controllerState.hand, head, controllerState.transform);
+        flags |= device::PositionEmulated;
       }
 
+      flags |= device::GripSpacePosition;
       controller->SetCapabilityFlags(controllerState.index, flags);
+      if (renderMode == device::RenderMode::Immersive) {
+        static vrb::Matrix transform(vrb::Matrix::Identity());
+        if (transform.IsIdentity()) {
+          if (controllerState.Is6DOF()) {
+            transform = vrb::Matrix::Rotation(vrb::Vector(1.0f, 0.0f, 0.0f), 0.77f);
+            const vrb::Matrix trans = vrb::Matrix::Position(vrb::Vector(0.0f, 0.0f, 0.025f));
+            transform = transform.PostMultiply(trans);
+          } else {
+            transform = vrb::Matrix::Rotation(vrb::Vector(1.0f, 0.0f, 0.0f), 0.60f);
+          }
+        }
+        controllerState.transform = controllerState.transform.PostMultiply(transform);
+      }
       controller->SetTransform(controllerState.index, controllerState.transform);
 
       controllerState.inputState.Header.ControllerType = ovrControllerType_TrackedRemote;
       vrapi_GetCurrentInputState(ovr, controllerState.deviceId, &controllerState.inputState.Header);
 
+      int32_t level = controllerState.inputState.BatteryPercentRemaining;
+      if (!IsOculusGo()) {
+        float value = (float)level / 100.0f;
+        level = (int)std::round((value * value) * 10.0f) * 10;
+      }
+      controller->SetBatteryLevel(controllerState.index,level);
+
       reorientCount = controllerState.inputState.RecenterCount;
-      const int32_t kNumAxes = 2;
       bool triggerPressed = false, triggerTouched = false;
       bool trackpadPressed = false, trackpadTouched = false;
-      float axes[kNumAxes];
       float trackpadX = 0.0f, trackpadY = 0.0f;
       if (controllerState.Is6DOF()) {
         triggerPressed = (controllerState.inputState.Buttons & ovrButton_Trigger) != 0;
@@ -441,13 +507,16 @@ struct DeviceDelegateOculusVR::State {
         trackpadTouched = (controllerState.inputState.Touches & ovrTouch_Joystick) != 0;
         trackpadX = controllerState.inputState.Joystick.x;
         trackpadY = controllerState.inputState.Joystick.y;
-        axes[0] = trackpadX;
-        axes[1] = -trackpadY; // We did y axis intentionally inverted in FF desktop as well.
+        const int32_t kNumAxes = 4;
+        float axes[kNumAxes];
+        axes[device::kImmersiveAxisTouchpadX] = axes[device::kImmersiveAxisTouchpadY] = 0.0f;
+        axes[device::kImmersiveAxisThumbstickX] = trackpadX;
+        axes[device::kImmersiveAxisThumbstickY] = -trackpadY; // We did y axis intentionally inverted in FF desktop as well.
         controller->SetScrolledDelta(controllerState.index, -trackpadX, trackpadY);
 
         const bool gripPressed = (controllerState.inputState.Buttons & ovrButton_GripTrigger) != 0;
-        controller->SetButtonState(controllerState.index, ControllerDelegate::BUTTON_OTHERS, 2, gripPressed, gripPressed,
-                                   controllerState.inputState.GripTrigger);
+        controller->SetButtonState(controllerState.index, ControllerDelegate::BUTTON_SQUEEZE, device::kImmersiveButtonSqueeze,
+                gripPressed, gripPressed, controllerState.inputState.GripTrigger);
         if (controllerState.hand == ElbowModel::HandEnum::Left) {
           const bool xPressed = (controllerState.inputState.Buttons & ovrButton_X) != 0;
           const bool xTouched = (controllerState.inputState.Touches & ovrTouch_X) != 0;
@@ -455,8 +524,8 @@ struct DeviceDelegateOculusVR::State {
           const bool yTouched = (controllerState.inputState.Touches & ovrTouch_Y) != 0;
           const bool menuPressed = (controllerState.inputState.Buttons & ovrButton_Enter) != 0;
 
-          controller->SetButtonState(controllerState.index, ControllerDelegate::BUTTON_X, 3, xPressed, xTouched);
-          controller->SetButtonState(controllerState.index, ControllerDelegate::BUTTON_Y, 4, yPressed, yTouched);
+          controller->SetButtonState(controllerState.index, ControllerDelegate::BUTTON_X, device::kImmersiveButtonA, xPressed, xTouched);
+          controller->SetButtonState(controllerState.index, ControllerDelegate::BUTTON_Y, device::kImmersiveButtonB, yPressed, yTouched);
 
           if (renderMode != device::RenderMode::Immersive) {
             controller->SetButtonState(controllerState.index, ControllerDelegate::BUTTON_APP, -1, yPressed, yTouched);
@@ -469,8 +538,8 @@ struct DeviceDelegateOculusVR::State {
           const bool bPressed = (controllerState.inputState.Buttons & ovrButton_B) != 0;
           const bool bTouched = (controllerState.inputState.Touches & ovrTouch_B) != 0;
 
-          controller->SetButtonState(controllerState.index, ControllerDelegate::BUTTON_A, 3, aPressed, aTouched);
-          controller->SetButtonState(controllerState.index, ControllerDelegate::BUTTON_Y, 4, bPressed, bTouched);
+          controller->SetButtonState(controllerState.index, ControllerDelegate::BUTTON_A, device::kImmersiveButtonA, aPressed, aTouched);
+          controller->SetButtonState(controllerState.index, ControllerDelegate::BUTTON_B, device::kImmersiveButtonB, bPressed, bTouched);
 
           if (renderMode != device::RenderMode::Immersive) {
             controller->SetButtonState(controllerState.index, ControllerDelegate::BUTTON_APP, -1, bPressed, bTouched);
@@ -478,10 +547,18 @@ struct DeviceDelegateOculusVR::State {
         } else {
           VRB_WARN("Undefined hand type in DeviceDelegateOculusVR.");
         }
-
+        controller->SetButtonState(controllerState.index, ControllerDelegate::BUTTON_TOUCHPAD,
+                                   device::kImmersiveButtonThumbstick, trackpadPressed, trackpadTouched);
         // This is always false in Oculus Browser.
         const bool thumbRest = false;
-        controller->SetButtonState(controllerState.index, ControllerDelegate::BUTTON_OTHERS, 5, thumbRest, thumbRest);
+        controller->SetButtonState(controllerState.index, ControllerDelegate::BUTTON_OTHERS, device::kImmersiveButtonThumbrest, thumbRest, thumbRest);
+
+        if (gripPressed && renderMode == device::RenderMode::Immersive) {
+          controller->SetSqueezeActionStart(controllerState.index);
+        } else {
+          controller->SetSqueezeActionStop(controllerState.index);
+        }
+        controller->SetAxes(controllerState.index, axes, kNumAxes);
       } else {
         triggerPressed = (controllerState.inputState.Buttons & ovrButton_A) != 0;
         triggerTouched = triggerPressed;
@@ -497,20 +574,29 @@ struct DeviceDelegateOculusVR::State {
         trackpadX = controllerState.inputState.TrackpadPosition.x / (float)controllerState.capabilities.TrackpadMaxX;
         trackpadY = controllerState.inputState.TrackpadPosition.y / (float)controllerState.capabilities.TrackpadMaxY;
 
+        controller->SetButtonState(controllerState.index, ControllerDelegate::BUTTON_TOUCHPAD,
+                device::kImmersiveButtonTouchpad, trackpadPressed, trackpadTouched);
         if (trackpadTouched && !trackpadPressed) {
           controller->SetTouchPosition(controllerState.index, trackpadX, trackpadY);
         } else {
           controller->SetTouchPosition(controllerState.index, trackpadX, trackpadY);
           controller->EndTouch(controllerState.index);
         }
-        axes[0] = trackpadTouched ? trackpadX * 2.0f - 1.0f : 0.0f;
-        axes[1] = trackpadTouched ? trackpadY * 2.0f - 1.0f : 0.0f;
+        const int32_t kNumAxes = 2;
+        float axes[kNumAxes];
+        axes[device::kImmersiveAxisTouchpadX] = trackpadTouched ? trackpadX * 2.0f - 1.0f : 0.0f;
+        axes[device::kImmersiveAxisTouchpadY] = trackpadTouched ? trackpadY * 2.0f - 1.0f : 0.0f;
+        controller->SetAxes(controllerState.index, axes, kNumAxes);
       }
-      controller->SetButtonState(controllerState.index, ControllerDelegate::BUTTON_TRIGGER, 1, triggerPressed, triggerTouched,
+      controller->SetButtonState(controllerState.index, ControllerDelegate::BUTTON_TRIGGER,
+                                 device::kImmersiveButtonTrigger, triggerPressed, triggerTouched,
                                  controllerState.inputState.IndexTrigger);
-      controller->SetButtonState(controllerState.index, ControllerDelegate::BUTTON_TOUCHPAD, 0, trackpadPressed, trackpadTouched);
 
-      controller->SetAxes(controllerState.index, axes, kNumAxes);
+      if (triggerPressed && renderMode == device::RenderMode::Immersive) {
+        controller->SetSelectActionStart(controllerState.index);
+      } else {
+        controller->SetSelectActionStop(controllerState.index);
+      }
       if (controller->GetHapticCount(controllerState.index)) {
         UpdateHaptics(controllerState);
       }
@@ -566,9 +652,12 @@ struct DeviceDelegateOculusVR::State {
     }
   }
 
-  void HandleQuadLayerBind(const vrb::FBOPtr& aFBO, GLenum aTarget, bool bound) {
+  void HandleLayerBind(const OculusSwapChainPtr& aSwapChain, GLenum aTarget, bool bound) {
+    const int32_t swapChainIndex = frameIndex % aSwapChain->SwapChainLength();
+    vrb::FBOPtr targetFBO = aSwapChain->FBO(swapChainIndex);
+
     if (!bound) {
-      if (currentFBO && currentFBO == aFBO) {
+      if (currentFBO && currentFBO == targetFBO) {
         currentFBO->Unbind();
         currentFBO = nullptr;
       }
@@ -580,7 +669,7 @@ struct DeviceDelegateOculusVR::State {
       return;
     }
 
-    if (currentFBO == aFBO) {
+    if (currentFBO == targetFBO) {
       // Layer already bound
       return;
     }
@@ -589,34 +678,29 @@ struct DeviceDelegateOculusVR::State {
       currentFBO->Unbind();
     }
     previousFBO = currentFBO;
-    aFBO->Bind(aTarget);
-    currentFBO = aFBO;
+    targetFBO->Bind(aTarget);
+    currentFBO = targetFBO;
   }
 
-  ovrTextureSwapChain* CreateClearColorSwapChain(const float aWidth, const float aHeight) {
-    ovrTextureSwapChain* result = vrapi_CreateTextureSwapChain(VRAPI_TEXTURE_TYPE_2D, VRAPI_TEXTURE_FORMAT_8888, aWidth, aHeight, 1, false);
-    vrb::RenderContextPtr ctx = context.lock();
-    vrb::FBOPtr fbo = vrb::FBO::Create(ctx);
-    GLuint texture = vrapi_GetTextureSwapChainHandle(result, 0);
-    VRB_GL_CHECK(glBindTexture(GL_TEXTURE_2D, texture));
-    VRB_GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER_EXT));
-    VRB_GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER_EXT));
-    float border[] = { 0.0f, 0.0f, 0.0f, 0.0f };
-    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR_EXT, border);
-    VRB_GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-    VRB_GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+  OculusSwapChainPtr CreateClearColorSwapChain(const float aWidth, const float aHeight) {
+    vrb::RenderContextPtr render = context.lock();
+
     vrb::FBO::Attributes attributes;
     attributes.depth = false;
     attributes.samples = 0;
-    VRB_GL_CHECK(fbo->SetTextureHandle(texture, aWidth, aHeight, attributes));
-    if (fbo->IsValid()) {
-      fbo->Bind();
-      VRB_GL_CHECK(glClearColor(1.0f, 1.0f, 1.0f, 1.0f));
-      VRB_GL_CHECK(glClear(GL_COLOR_BUFFER_BIT));
-      fbo->Unbind();
-    } else {
-      VRB_WARN("FAILED to make valid FBO for ClearColorSwapChain");
-    }
+
+    vrb::Color clearColor(1.0f, 1.0f, 1.0f, 1.0f);
+
+    OculusSwapChainPtr result = OculusSwapChain::CreateFBO(render, attributes, aWidth, aHeight, false, clearColor);
+
+    // Add a transparent border (required for Oculus Layers)
+    VRB_GL_CHECK(glBindTexture(GL_TEXTURE_2D, result->TextureHandle(0)));
+    VRB_GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER_EXT));
+    VRB_GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER_EXT));
+    float border[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+    VRB_GL_CHECK(glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR_EXT, border));
+    VRB_GL_CHECK(glBindTexture(GL_TEXTURE_2D, 0));
+
     return result;
   }
 };
@@ -644,11 +728,10 @@ DeviceDelegateOculusVR::SetRenderMode(const device::RenderMode aMode) {
   m.SetRenderSize(aMode);
   vrb::RenderContextPtr render = m.context.lock();
   for (int i = 0; i < VRAPI_EYE_COUNT; ++i) {
-    m.eyeSwapChains[i]->Init(render, m.renderMode, m.renderWidth, m.renderHeight);
+    m.eyeSwapChains[i] = OculusSwapChain::CreateFBO(render, m.RenderModeAttributes(), m.renderWidth, m.renderHeight);
   }
 
   m.UpdateTrackingMode();
-  m.UpdateFoveatedLevel();
   m.UpdateDisplayRefreshRate();
   m.UpdateClockLevels();
 
@@ -677,10 +760,17 @@ DeviceDelegateOculusVR::RegisterImmersiveDisplay(ImmersiveDisplayPtr aDisplay) {
   uint32_t width, height;
   m.GetImmersiveRenderSize(width, height);
   m.immersiveDisplay->SetEyeResolution(width, height);
+  // The maxScaleFactor that can be applied to the recommended render size.
+  // Oculus Browser uses a 1.68 maxScale factor.
+  // We didn't find a Oculus API to get the 1.68 ratio without using hardcoded values.
+  // We use the 4K resolution value (4096 pixels wide and 2048 per eye).
+  const float maxScaleFactor = 2048.0f / width;
+  m.immersiveDisplay->SetNativeFramebufferScaleFactor(maxScaleFactor);
   m.immersiveDisplay->SetSittingToStandingTransform(vrb::Matrix::Translation(kAverageOculusHeight));
-  m.immersiveDisplay->CompleteEnumeration();
-
+  m.UpdateBoundary();
   m.UpdatePerspective();
+
+  m.immersiveDisplay->CompleteEnumeration();
 }
 
 void
@@ -697,7 +787,7 @@ DeviceDelegateOculusVR::SetImmersiveSize(const uint32_t aEyeWidth, const uint32_
     m.renderHeight = targetHeight;
     vrb::RenderContextPtr render = m.context.lock();
     for (int i = 0; i < VRAPI_EYE_COUNT; ++i) {
-      m.eyeSwapChains[i]->Init(render, m.renderMode, m.renderWidth, m.renderHeight);
+      m.eyeSwapChains[i] = OculusSwapChain::CreateFBO(render, m.RenderModeAttributes(), m.renderWidth, m.renderHeight);
     }
     VRB_LOG("Resize immersive mode swapChain: %dx%d", targetWidth, targetHeight);
   }
@@ -747,12 +837,6 @@ DeviceDelegateOculusVR::ReleaseControllerDelegate() {
   m.controller = nullptr;
 }
 
-void
-DeviceDelegateOculusVR::SetFoveatedLevel(const int32_t aAppLevel) {
-  m.standaloneFoveatedLevel = aAppLevel;
-  m.UpdateFoveatedLevel();
-}
-
 int32_t
 DeviceDelegateOculusVR::GetControllerModelCount() const {
   if (m.IsOculusQuest()) {
@@ -795,8 +879,34 @@ DeviceDelegateOculusVR::SetCPULevel(const device::CPULevel aLevel) {
 
 void
 DeviceDelegateOculusVR::ProcessEvents() {
-  if (m.applicationEntitled) {
-    return;
+  ovrEventDataBuffer eventDataBuffer = {};
+  ovrEventHeader* eventHeader = (ovrEventHeader*)(&eventDataBuffer);
+  // Poll for VrApi events at regular frequency
+  while (vrapi_PollEvent(eventHeader) == ovrSuccess) {
+
+    switch (eventHeader->EventType) {
+      case VRAPI_EVENT_FOCUS_GAINED:
+        // FOCUS_GAINED is sent when the application is in the foreground and has
+        // input focus. This may be due to a system overlay relinquishing focus
+        // back to the application.
+        m.hasEventFocus = true;
+        if (m.controller) {
+          m.controller->SetVisible(true);
+        }
+        break;
+      case VRAPI_EVENT_FOCUS_LOST:
+        // FOCUS_LOST is sent when the application is no longer in the foreground and
+        // therefore does not have input focus. This may be due to a system overlay taking
+        // focus from the application. The application should take appropriate action when
+        // this occurs.
+        m.hasEventFocus = false;
+        if (m.controller) {
+          m.controller->SetVisible(false);
+        }
+        break;
+      default:
+        break;
+    }
   }
 
   ovrMessageHandle message;
@@ -830,21 +940,46 @@ DeviceDelegateOculusVR::ProcessEvents() {
           m.applicationEntitled = true;
         }
         break;
+      case ovrMessage_Notification_ApplicationLifecycle_LaunchIntentChanged: {
+        ovrLaunchDetailsHandle details = ovr_ApplicationLifecycle_GetLaunchDetails();
+        if (ovr_LaunchDetails_GetLaunchType(details) == ovrLaunchType_Deeplink) {
+          const char* msg = ovr_LaunchDetails_GetDeeplinkMessage(details);
+          if (msg) {
+            // FIXME see https://github.com/MozillaReality/FirefoxReality/issues/3066
+            // Currently handled in VRBrowserActivity.loadFromIntent()
+            // VRBrowser::OnAppLink(msg);
+          }
+        }
+        break;
+      }
       default:
         break;
     }
   }
 }
 
+bool
+DeviceDelegateOculusVR::SupportsFramePrediction(FramePrediction aPrediction) const {
+  return true;
+}
+
 void
-DeviceDelegateOculusVR::StartFrame() {
+DeviceDelegateOculusVR::StartFrame(const FramePrediction aPrediction) {
   if (!m.ovr) {
     VRB_LOG("StartFrame called while not in VR mode");
     return;
   }
 
+  m.framePrediction = aPrediction;
   m.frameIndex++;
-  m.predictedDisplayTime = vrapi_GetPredictedDisplayTime(m.ovr, m.frameIndex);
+  if (aPrediction == FramePrediction::ONE_FRAME_AHEAD) {
+    m.prevPredictedDisplayTime = m.predictedDisplayTime;
+    m.prevPredictedTracking = m.predictedTracking;
+    m.predictedDisplayTime = vrapi_GetPredictedDisplayTime(m.ovr, m.frameIndex + 1);
+  } else {
+    m.predictedDisplayTime = vrapi_GetPredictedDisplayTime(m.ovr, m.frameIndex);
+  }
+
   m.predictedTracking = vrapi_GetPredictedTracking2(m.ovr, m.predictedDisplayTime);
 
   float ipd = vrapi_GetInterpupillaryDistance(&m.predictedTracking);
@@ -859,8 +994,6 @@ DeviceDelegateOculusVR::StartFrame() {
   ovrMatrix4f matrix = vrapi_GetTransformFromPose(&m.predictedTracking.HeadPose.Pose);
   vrb::Matrix head = vrb::Matrix::FromRowMajor(matrix.M[0]);
 
-
-
   if (m.renderMode == device::RenderMode::StandAlone) {
     head.TranslateInPlace(kAverageHeight);
   }
@@ -871,10 +1004,13 @@ DeviceDelegateOculusVR::StartFrame() {
   if (m.immersiveDisplay) {
     m.immersiveDisplay->SetEyeOffset(device::Eye::Left, -ipd * 0.5f, 0.f, 0.f);
     m.immersiveDisplay->SetEyeOffset(device::Eye::Right, ipd * 0.5f, 0.f, 0.f);
-    device::CapabilityFlags caps = device::Orientation | device::Present | device::StageParameters |
+    device::CapabilityFlags caps = device::Orientation | device::Present |
                                    device::InlineSession | device::ImmersiveVRSession;
     if (m.predictedTracking.Status & VRAPI_TRACKING_STATUS_POSITION_TRACKED) {
-      caps |= device::Position;
+      caps |= device::Position | device::StageParameters;
+      auto standing = vrapi_LocateTrackingSpace(m.ovr, VRAPI_TRACKING_SPACE_LOCAL_FLOOR);
+      vrb::Vector translation(-standing.Position.x, -standing.Position.y, -standing.Position.z);
+      m.immersiveDisplay->SetSittingToStandingTransform(vrb::Matrix::Translation(translation));
     } else {
       caps |= device::PositionEmulated;
     }
@@ -908,9 +1044,18 @@ DeviceDelegateOculusVR::BindEye(const device::Eye aWhich) {
     m.currentFBO->Unbind();
   }
 
-  const auto &swapChain = m.eyeSwapChains[index];
-  int swapChainIndex = m.frameIndex % swapChain->swapChainLength;
-  m.currentFBO = swapChain->fbos[swapChainIndex];
+  auto &swapChain = m.eyeSwapChains[index];
+
+  int swapChainIndex = m.frameIndex % swapChain->SwapChainLength();
+  m.currentFBO = swapChain->FBO(swapChainIndex);
+  if (!m.currentFBO || !m.currentFBO->IsValid()) {
+    // See https://github.com/MozillaReality/FirefoxReality/issues/3712
+    // There are some crash reports of invalid eye SwapChain FBOs. Try to recreate it.
+    VRB_LOG("Recreate SwapChain because no valid FBO was found");
+    auto render = m.context.lock();
+    swapChain = OculusSwapChain::CreateFBO(render, m.RenderModeAttributes(), m.renderWidth, m.renderHeight);
+    m.currentFBO = swapChain->FBO(swapChainIndex);
+  }
 
   if (m.currentFBO) {
     m.currentFBO->Bind();
@@ -926,7 +1071,7 @@ DeviceDelegateOculusVR::BindEye(const device::Eye aWhich) {
 }
 
 void
-DeviceDelegateOculusVR::EndFrame(const bool aDiscard) {
+DeviceDelegateOculusVR::EndFrame(const FrameEndMode aEndMode) {
   if (!m.ovr) {
     VRB_LOG("EndFrame called while not in VR mode");
     return;
@@ -936,11 +1081,15 @@ DeviceDelegateOculusVR::EndFrame(const bool aDiscard) {
     m.currentFBO.reset();
   }
 
-  if (aDiscard) {
+  const bool frameAhead = m.framePrediction == FramePrediction::ONE_FRAME_AHEAD;
+  const ovrTracking2& tracking = frameAhead ? m.prevPredictedTracking : m.predictedTracking;
+  const double displayTime = frameAhead ? m.prevPredictedDisplayTime : m.predictedDisplayTime;
+
+  if (aEndMode == FrameEndMode::DISCARD) {
     // Reuse the last frame when a frame is discarded.
     // The last frame is timewarped by the VR compositor.
     if (m.discardCount == 0) {
-      m.discardPredictedTracking = m.predictedTracking;
+      m.discardPredictedTracking = tracking;
       m.discardedFrameIndex = m.frameIndex;
     }
     m.discardCount++;
@@ -954,17 +1103,30 @@ DeviceDelegateOculusVR::EndFrame(const bool aDiscard) {
   const ovrLayerHeader2* layers[ovrMaxLayerCount] = {};
 
   if (m.cubeLayer && m.cubeLayer->IsLoaded() && m.cubeLayer->IsDrawRequested()) {
-    m.cubeLayer->Update(m.predictedTracking, m.clearColorSwapChain);
+    m.cubeLayer->Update(m.frameIndex, tracking, m.clearColorSwapChain->SwapChain());
     layers[layerCount++] = m.cubeLayer->Header();
     m.cubeLayer->ClearRequestDraw();
   }
 
   if (m.equirectLayer && m.equirectLayer->IsDrawRequested()) {
-    m.equirectLayer->Update(m.predictedTracking, m.clearColorSwapChain);
+    m.equirectLayer->Update(m.frameIndex, tracking, m.clearColorSwapChain->SwapChain());
     layers[layerCount++] = m.equirectLayer->Header();
     m.equirectLayer->ClearRequestDraw();
   }
 
+  const float fovX = vrapi_GetSystemPropertyFloat(&m.java, VRAPI_SYS_PROP_SUGGESTED_EYE_FOV_DEGREES_X);
+  const float fovY = vrapi_GetSystemPropertyFloat(&m.java, VRAPI_SYS_PROP_SUGGESTED_EYE_FOV_DEGREES_Y);
+  const ovrMatrix4f projectionMatrix = ovrMatrix4f_CreateProjectionFov(fovX, fovY, 0.0f, 0.0f, VRAPI_ZNEAR, 0.0f);
+
+  // Add projection layers
+  for (const OculusLayerProjectionPtr& layer: m.projectionLayers) {
+    if (layer->IsDrawRequested() && (layerCount < ovrMaxLayerCount - 1)) {
+      layer->SetProjectionMatrix(projectionMatrix);
+      layer->Update(m.frameIndex, tracking, m.clearColorSwapChain->SwapChain());
+      layers[layerCount++] = layer->Header();
+      layer->ClearRequestDraw();
+    }
+  }
   // Sort quad layers by draw priority
   std::sort(m.uiLayers.begin(), m.uiLayers.end(), [](const OculusLayerPtr & a, OculusLayerPtr & b) -> bool {
     return a->GetLayer()->ShouldDrawBefore(*b->GetLayer());
@@ -973,40 +1135,36 @@ DeviceDelegateOculusVR::EndFrame(const bool aDiscard) {
   // Draw back layers
   for (const OculusLayerPtr& layer: m.uiLayers) {
     if (!layer->GetDrawInFront() && layer->IsDrawRequested() && (layerCount < ovrMaxLayerCount - 1)) {
-      layer->Update(m.predictedTracking, m.clearColorSwapChain);
+      layer->Update(m.frameIndex, tracking, m.clearColorSwapChain->SwapChain());
       layers[layerCount++] = layer->Header();
       layer->ClearRequestDraw();
     }
   }
 
   // Add main eye buffer layer
-  const float fovX = vrapi_GetSystemPropertyFloat(&m.java, VRAPI_SYS_PROP_SUGGESTED_EYE_FOV_DEGREES_X);
-  const float fovY = vrapi_GetSystemPropertyFloat(&m.java, VRAPI_SYS_PROP_SUGGESTED_EYE_FOV_DEGREES_Y);
-  const ovrMatrix4f projectionMatrix = ovrMatrix4f_CreateProjectionFov(fovX, fovY, 0.0f, 0.0f, VRAPI_ZNEAR, 0.0f);
-
   ovrLayerProjection2 projection = vrapi_DefaultLayerProjection2();
-  projection.HeadPose = m.predictedTracking.HeadPose;
-  projection.Header.SrcBlend = VRAPI_FRAME_LAYER_BLEND_ONE;
+  projection.HeadPose = tracking.HeadPose;
+  projection.Header.SrcBlend = VRAPI_FRAME_LAYER_BLEND_SRC_ALPHA;
   projection.Header.DstBlend = VRAPI_FRAME_LAYER_BLEND_ONE_MINUS_SRC_ALPHA;
   for (int i = 0; i < VRAPI_FRAME_LAYER_EYE_MAX; ++i) {
     const auto &eyeSwapChain = m.eyeSwapChains[i];
-    const int swapChainIndex = m.frameIndex % eyeSwapChain->swapChainLength;
+    const int swapChainIndex = m.frameIndex % eyeSwapChain->SwapChainLength();
     // Set up OVR layer textures
-    projection.Textures[i].ColorSwapChain = eyeSwapChain->ovrSwapChain;
+    projection.Textures[i].ColorSwapChain = eyeSwapChain->SwapChain();
     projection.Textures[i].SwapChainIndex = swapChainIndex;
-    projection.Textures[i].TexCoordsFromTanAngles = ovrMatrix4f_TanAngleMatrixFromProjection(&projectionMatrix);
+    projection.Textures[i].TexCoordsFromTanAngles = ovrMatrix4f_TanAngleMatrixFromProjection(
+        &projectionMatrix);
   }
   layers[layerCount++] = &projection.Header;
 
   // Draw front layers
   for (const OculusLayerPtr& layer: m.uiLayers) {
     if (layer->GetDrawInFront() && layer->IsDrawRequested() && layerCount < ovrMaxLayerCount) {
-      layer->Update(m.predictedTracking, m.clearColorSwapChain);
+      layer->Update(m.frameIndex, tracking, m.clearColorSwapChain->SwapChain());
       layers[layerCount++] = layer->Header();
       layer->ClearRequestDraw();
     }
   }
-
 
   // Submit all layers to TimeWarp
   ovrSubmitFrameDescription2 frameDesc = {};
@@ -1016,7 +1174,7 @@ DeviceDelegateOculusVR::EndFrame(const bool aDiscard) {
   }
   frameDesc.SwapInterval = 1;
   frameDesc.FrameIndex = m.frameIndex;
-  frameDesc.DisplayTime = m.predictedDisplayTime;
+  frameDesc.DisplayTime = displayTime;
 
   frameDesc.LayerCount = layerCount;
   frameDesc.Layers = layers;
@@ -1031,7 +1189,7 @@ DeviceDelegateOculusVR::CreateLayerQuad(int32_t aWidth, int32_t aHeight,
     return nullptr;
   }
   VRLayerQuadPtr layer = VRLayerQuad::Create(aWidth, aHeight, aSurfaceType);
-  OculusLayerQuadPtr oculusLayer = OculusLayerQuad::Create(layer);
+  OculusLayerQuadPtr oculusLayer = OculusLayerQuad::Create(m.java.Env, layer);
   m.AddUILayer(oculusLayer, aSurfaceType);
   return layer;
 }
@@ -1047,7 +1205,7 @@ DeviceDelegateOculusVR::CreateLayerQuad(const VRLayerSurfacePtr& aMoveLayer) {
 
   for (int i = 0; i < m.uiLayers.size(); ++i) {
     if (m.uiLayers[i]->GetLayer() == aMoveLayer) {
-      oculusLayer = OculusLayerQuad::Create(layer, m.uiLayers[i]);
+      oculusLayer = OculusLayerQuad::Create(m.java.Env, layer, m.uiLayers[i]);
       m.uiLayers.erase(m.uiLayers.begin() + i);
       break;
     }
@@ -1065,7 +1223,7 @@ DeviceDelegateOculusVR::CreateLayerCylinder(int32_t aWidth, int32_t aHeight,
     return nullptr;
   }
   VRLayerCylinderPtr layer = VRLayerCylinder::Create(aWidth, aHeight, aSurfaceType);
-  OculusLayerCylinderPtr oculusLayer = OculusLayerCylinder::Create(layer);
+  OculusLayerCylinderPtr oculusLayer = OculusLayerCylinder::Create(m.java.Env, layer);
   m.AddUILayer(oculusLayer, aSurfaceType);
   return layer;
 }
@@ -1081,7 +1239,7 @@ DeviceDelegateOculusVR::CreateLayerCylinder(const VRLayerSurfacePtr& aMoveLayer)
 
   for (int i = 0; i < m.uiLayers.size(); ++i) {
     if (m.uiLayers[i]->GetLayer() == aMoveLayer) {
-      oculusLayer = OculusLayerCylinder::Create(layer, m.uiLayers[i]);
+      oculusLayer = OculusLayerCylinder::Create(m.java.Env, layer, m.uiLayers[i]);
       m.uiLayers.erase(m.uiLayers.begin() + i);
       break;
     }
@@ -1089,6 +1247,26 @@ DeviceDelegateOculusVR::CreateLayerCylinder(const VRLayerSurfacePtr& aMoveLayer)
   if (oculusLayer) {
     m.AddUILayer(oculusLayer, aMoveLayer->GetSurfaceType());
   }
+  return layer;
+}
+
+VRLayerProjectionPtr
+DeviceDelegateOculusVR::CreateLayerProjection(crow::VRLayerSurface::SurfaceType aSurfaceType) {
+  if (!m.layersEnabled) {
+    return nullptr;
+  }
+  uint32_t width = 0;
+  uint32_t height = 0;
+  m.GetStandaloneRenderSize(width, height);
+  VRLayerProjectionPtr layer = VRLayerProjection::Create(width, height, aSurfaceType);
+  OculusLayerProjectionPtr oculusLayer = OculusLayerProjection::Create(m.java.Env, layer);
+  oculusLayer->SetBindDelegate([=](const OculusSwapChainPtr& aSwapChain, GLenum aTarget, bool bound){
+    if (aSwapChain) {
+      m.HandleLayerBind(aSwapChain, aTarget, bound);
+    }
+  });
+  m.projectionLayers.push_back(oculusLayer);
+
   return layer;
 }
 
@@ -1150,6 +1328,13 @@ DeviceDelegateOculusVR::DeleteLayer(const VRLayerPtr& aLayer) {
       return;
     }
   }
+  for (int i = 0; i < m.projectionLayers.size(); ++i) {
+    if (m.projectionLayers[i]->GetLayer() == aLayer) {
+      m.projectionLayers[i]->Destroy();
+      m.projectionLayers.erase(m.projectionLayers.begin() + i);
+      return;
+    }
+  }
 }
 
 void
@@ -1158,13 +1343,18 @@ DeviceDelegateOculusVR::EnterVR(const crow::BrowserEGLContext& aEGLContext) {
     return;
   }
 
-  m.clearColorSwapChain = m.CreateClearColorSwapChain(800, 450);
+  if (!m.clearColorSwapChain) {
+      m.clearColorSwapChain = m.CreateClearColorSwapChain(800, 450);
+  }
 
   vrb::RenderContextPtr render = m.context.lock();
   for (int i = 0; i < VRAPI_EYE_COUNT; ++i) {
-    m.eyeSwapChains[i]->Init(render, m.renderMode, m.renderWidth, m.renderHeight);
+    m.eyeSwapChains[i] = OculusSwapChain::CreateFBO(render, m.RenderModeAttributes(), m.renderWidth, m.renderHeight);
   }
   vrb::RenderContextPtr context = m.context.lock();
+  for (OculusLayerProjectionPtr& layer: m.projectionLayers) {
+    layer->Init(m.java.Env, context);
+  }
   for (OculusLayerPtr& layer: m.uiLayers) {
     layer->Init(m.java.Env, context);
   }
@@ -1193,7 +1383,7 @@ DeviceDelegateOculusVR::EnterVR(const crow::BrowserEGLContext& aEGLContext) {
     m.UpdateDisplayRefreshRate();
     m.UpdateClockLevels();
     m.UpdateTrackingMode();
-    m.UpdateFoveatedLevel();
+    m.UpdateBoundary();
   }
 
   // Reset reorientation after Enter VR
@@ -1203,7 +1393,20 @@ DeviceDelegateOculusVR::EnterVR(const crow::BrowserEGLContext& aEGLContext) {
 
 void
 DeviceDelegateOculusVR::LeaveVR() {
+  if (m.ovr) {
+    vrapi_LeaveVrMode(m.ovr);
+    m.ovr = nullptr;
+  }
+  m.currentFBO = nullptr;
+  m.previousFBO = nullptr;
+}
+
+void
+DeviceDelegateOculusVR::OnDestroy() {
   for (OculusLayerPtr& layer: m.uiLayers) {
+    layer->Destroy();
+  }
+  for (OculusLayerProjectionPtr& layer: m.projectionLayers) {
     layer->Destroy();
   }
   for (int i = 0; i < VRAPI_EYE_COUNT; ++i) {
@@ -1216,17 +1419,7 @@ DeviceDelegateOculusVR::LeaveVR() {
     m.equirectLayer->Destroy();
   }
 
-  if (m.clearColorSwapChain) {
-    vrapi_DestroyTextureSwapChain(m.clearColorSwapChain);
-    m.clearColorSwapChain = nullptr;
-  }
-  m.currentFBO = nullptr;
-  m.previousFBO = nullptr;
-
-  if (m.ovr) {
-    vrapi_LeaveVrMode(m.ovr);
-    m.ovr = nullptr;
-  }
+  m.clearColorSwapChain = nullptr;
 }
 
 bool

@@ -8,6 +8,7 @@
 
 #include "BrowserWorld.h"
 #include "DeviceDelegatePicoVR.h"
+#include "VRBrowserPico.h"
 #include "vrb/GLError.h"
 #include "vrb/Logger.h"
 #include "vrb/RunnableQueue.h"
@@ -35,6 +36,8 @@ JNI_METHOD(void, nativeOnCreate)
 JNI_METHOD(void, nativeInitialize)
 (JNIEnv* aEnv, jobject aActivity, jint width, jint height, jobject aAssetManager, jint type, jint focusInex) {
   gDestroyed = false;
+  sQueue->AttachToThread();
+  VRBrowserPico::InitializeJava(aEnv, aActivity);
   if (!sDevice) {
     sDevice = crow::DeviceDelegatePicoVR::Create(BrowserWorld::Instance().GetRenderContext());
   }
@@ -55,11 +58,12 @@ JNI_METHOD(void, nativeShutdown)
 JNI_METHOD(void, nativeDestroy)
 (JNIEnv*, jobject) {
   gDestroyed = true;
-  sQueue->ProcessRunnables();
+  sQueue->Clear();
   BrowserWorld::Instance().ShutdownJava();
   BrowserWorld::Instance().RegisterDeviceDelegate(nullptr);
   sDevice = nullptr;
   BrowserWorld::Destroy();
+  VRBrowserPico::ShutdownJava();
 }
 
 JNI_METHOD(void, nativePause)
@@ -109,6 +113,14 @@ JNI_METHOD(void, nativeEndFrame)
   BrowserWorld::Instance().EndFrame();
 }
 
+JNI_METHOD(void, nativeSetFocusedController)
+(JNIEnv*, jobject, jint index) {
+  if (gDestroyed) {
+    return;
+  }
+  sDevice->SetFocused(index);
+}
+
 JNI_METHOD(void, nativeUpdateControllerPose)
 (JNIEnv*, jobject, jint index, jboolean dof6, jfloat px, jfloat py, jfloat pz, jfloat qx, jfloat qy, jfloat qz, jfloat qw) {
   if (gDestroyed) {
@@ -119,12 +131,21 @@ JNI_METHOD(void, nativeUpdateControllerPose)
 }
 
 JNI_METHOD(void, nativeUpdateControllerState)
-(JNIEnv*, jobject, jint index, jboolean connected, jint buttons, jfloat grip, jfloat axisX, jfloat axisY, jboolean touched) {
+(JNIEnv*, jobject, jint index, jboolean connected, jint buttons, jfloat grip, jfloat axisX, jfloat axisY, jboolean touched, jint batteryLevel) {
   if (gDestroyed) {
     return;
   }
   sDevice->UpdateControllerConnected(index, connected);
   sDevice->UpdateControllerButtons(index, buttons, grip, axisX, axisY, touched);
+  sDevice->UpdateControllerBatteryLevel(index, batteryLevel);
+}
+
+JNI_METHOD(void, nativeRecenter)
+(JNIEnv* env, jobject) {
+  if (gDestroyed) {
+    return;
+  }
+  sDevice->Recenter();
 }
 
 JNI_METHOD(void, queueRunnable)

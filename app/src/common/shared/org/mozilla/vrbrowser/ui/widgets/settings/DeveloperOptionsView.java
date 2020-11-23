@@ -55,11 +55,8 @@ class DeveloperOptionsView extends SettingsView {
         mBinding.remoteDebuggingSwitch.setOnCheckedChangeListener(mRemoteDebuggingListener);
         setRemoteDebugging(SettingsStore.getInstance(getContext()).isRemoteDebuggingEnabled(), false);
 
-        mBinding.showConsoleSwitch.setOnCheckedChangeListener(mConsoleLogsListener);
-        setConsoleLogs(SettingsStore.getInstance(getContext()).isConsoleLogsEnabled(), false);
-
-        mBinding.multiprocessSwitch.setOnCheckedChangeListener(mMultiprocessListener);
-        setMultiprocess(SettingsStore.getInstance(getContext()).isMultiprocessEnabled(), false);
+        mBinding.debugLoggingSwitch.setOnCheckedChangeListener(mDebugLogginListener);
+        setDebugLogging(SettingsStore.getInstance(getContext()).isDebugLoggingEnabled(), false);
 
         mBinding.performanceMonitorSwitch.setOnCheckedChangeListener(mPerformanceListener);
         setPerformance(SettingsStore.getInstance(getContext()).isPerformanceMonitorEnabled(), false);
@@ -69,10 +66,14 @@ class DeveloperOptionsView extends SettingsView {
         mBinding.hardwareAccelerationSwitch.setOnCheckedChangeListener(mUIHardwareAccelerationListener);
         setUIHardwareAcceleration(SettingsStore.getInstance(getContext()).isUIHardwareAccelerationEnabled(), false);
 
+        mBinding.bypassCacheOnReloadSwitch.setOnCheckedChangeListener(mBypassCacheOnReloadListener);
+        setBypassCacheOnReload(SettingsStore.getInstance(getContext()).isBypassCacheOnReloadEnabled(), false);
+
         if (BuildConfig.DEBUG) {
-            mBinding.debugLoggingSwitch.setVisibility(View.GONE);
+            mBinding.webglOutOfProcessSwitch.setOnCheckedChangeListener(mWebGLOutOfProcessListener);
+            setWebGLOutOfProcess(SettingsStore.getInstance(getContext()).isWebGLOutOfProcess(), false);
         } else {
-            setDebugLogging(SettingsStore.getInstance(getContext()).isDebugLoggingEnabled(), false);
+            mBinding.webglOutOfProcessSwitch.setVisibility(View.GONE);
         }
 
         if (!isServoAvailable()) {
@@ -88,14 +89,6 @@ class DeveloperOptionsView extends SettingsView {
         setRemoteDebugging(value, doApply);
     };
 
-    private SwitchSetting.OnCheckedChangeListener mConsoleLogsListener = (compoundButton, value, doApply) -> {
-        setConsoleLogs(value, doApply);
-    };
-
-    private SwitchSetting.OnCheckedChangeListener mMultiprocessListener = (compoundButton, value, doApply) -> {
-        setMultiprocess(value, doApply);
-    };
-
     private SwitchSetting.OnCheckedChangeListener mPerformanceListener = (compoundButton, value, doApply) -> {
         setPerformance(value, doApply);
     };
@@ -108,6 +101,14 @@ class DeveloperOptionsView extends SettingsView {
         setUIHardwareAcceleration(value, doApply);
     };
 
+    private SwitchSetting.OnCheckedChangeListener mBypassCacheOnReloadListener = (compundButton, value, doApply) -> {
+        setBypassCacheOnReload(value, doApply);
+    };
+
+    private SwitchSetting.OnCheckedChangeListener mWebGLOutOfProcessListener = (compundButton, value, doApply) -> {
+        setWebGLOutOfProcess(value, doApply);
+    };
+
     private SwitchSetting.OnCheckedChangeListener mServoListener = (compoundButton, b, doApply) -> {
         setServo(b, true);
     };
@@ -118,12 +119,6 @@ class DeveloperOptionsView extends SettingsView {
             setRemoteDebugging(SettingsStore.REMOTE_DEBUGGING_DEFAULT, true);
         }
 
-        if (mBinding.showConsoleSwitch.isChecked() != SettingsStore.CONSOLE_LOGS_DEFAULT) {
-            setConsoleLogs(SettingsStore.CONSOLE_LOGS_DEFAULT, true);
-        }
-        if (mBinding.multiprocessSwitch.isChecked() != SettingsStore.MULTIPROCESS_DEFAULT) {
-            setMultiprocess(SettingsStore.MULTIPROCESS_DEFAULT, true);
-        }
         if (mBinding.servoSwitch.isChecked() != SettingsStore.SERVO_DEFAULT) {
             setServo(SettingsStore.SERVO_DEFAULT, true);
         }
@@ -142,6 +137,15 @@ class DeveloperOptionsView extends SettingsView {
             restart = true;
         }
 
+        if (mBinding.bypassCacheOnReloadSwitch.isChecked() != SettingsStore.BYPASS_CACHE_ON_RELOAD) {
+            setBypassCacheOnReload(SettingsStore.BYPASS_CACHE_ON_RELOAD, true);
+        }
+
+        if (BuildConfig.DEBUG && mBinding.webglOutOfProcessSwitch.isChecked() != SettingsStore.WEBGL_OUT_OF_PROCESS) {
+            setWebGLOutOfProcess(SettingsStore.WEBGL_OUT_OF_PROCESS, true);
+            restart = true;
+        }
+
         if (restart) {
             showRestartDialog();
         }
@@ -156,30 +160,6 @@ class DeveloperOptionsView extends SettingsView {
 
         if (doApply) {
             SessionStore.get().setRemoteDebugging(value);
-        }
-    }
-
-    private void setConsoleLogs(boolean value, boolean doApply) {
-        mBinding.showConsoleSwitch.setOnCheckedChangeListener(null);
-        mBinding.showConsoleSwitch.setValue(value, doApply);
-        mBinding.showConsoleSwitch.setOnCheckedChangeListener(mConsoleLogsListener);
-
-        SettingsStore.getInstance(getContext()).setConsoleLogsEnabled(value);
-
-        if (doApply) {
-            SessionStore.get().setConsoleOutputEnabled(value);
-        }
-    }
-
-    private void setMultiprocess(boolean value, boolean doApply) {
-        mBinding.multiprocessSwitch.setOnCheckedChangeListener(null);
-        mBinding.multiprocessSwitch.setValue(value, false);
-        mBinding.multiprocessSwitch.setOnCheckedChangeListener(mMultiprocessListener);
-
-        SettingsStore.getInstance(getContext()).setMultiprocessEnabled(value);
-
-        if (doApply) {
-            SessionStore.get().resetMultiprocess();
         }
     }
 
@@ -215,6 +195,27 @@ class DeveloperOptionsView extends SettingsView {
         }
     }
 
+    private void setBypassCacheOnReload(boolean value, boolean doApply) {
+        mBinding.bypassCacheOnReloadSwitch.setOnCheckedChangeListener(null);
+        mBinding.bypassCacheOnReloadSwitch.setValue(value, false);
+        mBinding.bypassCacheOnReloadSwitch.setOnCheckedChangeListener(mBypassCacheOnReloadListener);
+
+        if (doApply) {
+            SettingsStore.getInstance(getContext()).setBypassCacheOnReload(value);
+        }
+    }
+
+    private void setWebGLOutOfProcess(boolean value, boolean doApply) {
+        mBinding.webglOutOfProcessSwitch.setOnCheckedChangeListener(null);
+        mBinding.webglOutOfProcessSwitch.setValue(value, false);
+        mBinding.webglOutOfProcessSwitch.setOnCheckedChangeListener(mWebGLOutOfProcessListener);
+
+        if (doApply) {
+            SettingsStore.getInstance(getContext()).setWebGLOutOfProcess(value);
+            showRestartDialog();
+        }
+    }
+
     private void setServo(boolean value, boolean doApply) {
         mBinding.servoSwitch.setOnCheckedChangeListener(null);
         mBinding.servoSwitch.setValue(value, false);
@@ -225,6 +226,11 @@ class DeveloperOptionsView extends SettingsView {
         if (doApply) {
             SessionStore.get().setServo(value);
         }
+    }
+
+    @Override
+    protected SettingViewType getType() {
+        return SettingViewType.LANGUAGE_VOICE;
     }
 
 }

@@ -62,10 +62,11 @@ WidgetPlacement::FromJava(JNIEnv* aEnv, jobject& aObject) {
   GET_FLOAT_FIELD(density, "density");
   GET_FLOAT_FIELD(worldWidth, "worldWidth");
   GET_BOOLEAN_FIELD(visible);
-  GET_BOOLEAN_FIELD(opaque);
+  GET_INT_FIELD(scene);
   GET_BOOLEAN_FIELD(showPointer);
   GET_BOOLEAN_FIELD(composited);
   GET_BOOLEAN_FIELD(layer);
+  GET_INT_FIELD(layerPriority);
   GET_BOOLEAN_FIELD(proxifyLayer);
   GET_FLOAT_FIELD(textureScale, "textureScale");
   GET_BOOLEAN_FIELD(cylinder);
@@ -96,6 +97,18 @@ WidgetPlacement::GetTextureHeight() const {
 vrb::Color
 WidgetPlacement::GetClearColor() const {
   return vrb::Color(clearColor);
+}
+
+WidgetPlacement::Scene
+WidgetPlacement::GetScene() const {
+  switch (scene) {
+      case 1:
+        return Scene::ROOT_OPAQUE;
+      case 2:
+        return Scene::WEBXR_INTERSTITIAL;
+    default:
+        return Scene::ROOT_TRANSPARENT;
+  }
 }
 
 vrb::Color

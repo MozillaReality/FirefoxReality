@@ -9,10 +9,13 @@
 
 #include "vrb/ConcreteClass.h"
 #include "vrb/Color.h"
+#include "vrb/CreationContext.h"
 #include "vrb/Geometry.h"
 #include "vrb/Group.h"
 #include "vrb/Matrix.h"
 #include "vrb/ModelLoaderAndroid.h"
+#include "vrb/Program.h"
+#include "vrb/ProgramFactory.h"
 #include "vrb/RenderState.h"
 #include "vrb/Toggle.h"
 #include "vrb/Transform.h"
@@ -32,12 +35,17 @@ struct ControllerContainer::State {
   GeometryPtr beamModel;
   bool visible = false;
   vrb::Color pointerColor;
+  int gazeIndex = -1;
+  uint64_t immersiveFrameId;
+  uint64_t lastImmersiveFrameId;
 
   void Initialize(vrb::CreationContextPtr& aContext) {
     context = aContext;
     root = Toggle::Create(aContext);
     visible = true;
     pointerColor = vrb::Color(1.0f, 1.0f, 1.0f, 1.0f);
+    immersiveFrameId = 0;
+    lastImmersiveFrameId = 0;
   }
 
   bool Contains(const int32_t aControllerIndex) {
@@ -63,6 +71,16 @@ struct ControllerContainer::State {
     }
     if (aController.pointer) {
       aController.pointer->SetPointerColor(pointerColor);
+    }
+  }
+
+  void
+  SetVisible(Controller& controller, const bool aVisible) {
+    if (controller.transform && visible) {
+      root->ToggleChild(*controller.transform, aVisible);
+    }
+    if (controller.pointer && !aVisible) {
+      controller.pointer->SetVisible(false);
     }
   }
 };
@@ -93,7 +111,7 @@ ControllerContainer::InitializeBeam() {
   CreationContextPtr create = m.context.lock();
   VertexArrayPtr array = VertexArray::Create(create);
   const float kLength = -1.0f;
-  const float kHeight = 0.004f;
+  const float kHeight = 0.002f;
 
   array->AppendVertex(Vector(-kHeight, -kHeight, 0.0f)); // Bottom left
   array->AppendVertex(Vector(kHeight, -kHeight, 0.0f)); // Bottom right
@@ -107,8 +125,9 @@ ControllerContainer::InitializeBeam() {
   array->AppendNormal(Vector(-1.0f, 1.0f, 0.0f).Normalize()); // Top left
   array->AppendNormal(Vector(0.0f, 0.0f, -1.0f).Normalize()); // in to the screen
 
-
+  ProgramPtr program = create->GetProgramFactory()->CreateProgram(create, 0);
   RenderStatePtr state = RenderState::Create(create);
+  state->SetProgram(program);
   state->SetMaterial(Color(1.0f, 1.0f, 1.0f), Color(1.0f, 1.0f, 1.0f), Color(0.0f, 0.0f, 0.0f), 0.0f);
   state->SetLightsEnabled(false);
   GeometryPtr geometry = Geometry::Create(create);
@@ -189,6 +208,7 @@ ControllerContainer::CreateController(const int32_t aControllerIndex, const int3
   controller.index = aControllerIndex;
   controller.immersiveName = aImmersiveName;
   controller.beamTransformMatrix = aBeamTransform;
+  controller.immersiveBeamTransform = aBeamTransform;
   if (aModelIndex < 0) {
     return;
   }
@@ -196,33 +216,46 @@ ControllerContainer::CreateController(const int32_t aControllerIndex, const int3
   CreationContextPtr create = m.context.lock();
   controller.transform = Transform::Create(create);
   controller.pointer = Pointer::Create(create);
-  if ((m.models.size() >= aModelIndex) && m.models[aModelIndex]) {
-    controller.transform->AddNode(m.models[aModelIndex]);
-    controller.beamToggle = vrb::Toggle::Create(create);
-    if (aBeamTransform.IsIdentity()) {
-      controller.beamParent = controller.beamToggle;
+  controller.pointer->SetVisible(true);
+  if (aControllerIndex != m.gazeIndex) {
+    if ((m.models.size() >= aModelIndex) && m.models[aModelIndex]) {
+      controller.transform->AddNode(m.models[aModelIndex]);
+      controller.beamToggle = vrb::Toggle::Create(create);
+      controller.beamToggle->ToggleAll(true);
+      if (aBeamTransform.IsIdentity()) {
+        controller.beamParent = controller.beamToggle;
+      } else {
+        vrb::TransformPtr beamTransform = Transform::Create(create);
+        beamTransform->SetTransform(aBeamTransform);
+        controller.beamParent = beamTransform;
+        controller.beamToggle->AddNode(beamTransform);
+      }
+      controller.transform->AddNode(controller.beamToggle);
+      if (m.beamModel && controller.beamParent) {
+        controller.beamParent->AddNode(m.beamModel);
+      }
     } else {
-      vrb::TransformPtr beamTransform = Transform::Create(create);
-      beamTransform->SetTransform(aBeamTransform);
-      controller.beamParent = beamTransform;
-      controller.beamToggle->AddNode(beamTransform);
+      VRB_ERROR("Failed to add controller model");
     }
-    controller.transform->AddNode(controller.beamToggle);
-    controller.beamToggle->ToggleAll(false);
-    if (m.beamModel && controller.beamParent) {
-      controller.beamParent->AddNode(m.beamModel);
-    }
-    if (m.root) {
-      m.root->AddNode(controller.transform);
-      m.root->ToggleChild(*controller.transform, false);
-    }
-    if (m.pointerContainer) {
-      m.pointerContainer->AddNode(controller.pointer->GetRoot());
-    }
-    m.updatePointerColor(controller);
-  } else {
-    VRB_ERROR("Failed to add controller model");
   }
+
+  if (m.root) {
+    m.root->AddNode(controller.transform);
+    m.root->ToggleChild(*controller.transform, false);
+  }
+  if (m.pointerContainer) {
+    m.pointerContainer->AddNode(controller.pointer->GetRoot());
+  }
+  m.updatePointerColor(controller);
+}
+
+void
+ControllerContainer::SetImmersiveBeamTransform(const int32_t aControllerIndex,
+        const vrb::Matrix& aImmersiveBeamTransform) {
+  if (!m.Contains(aControllerIndex)) {
+    return;
+  }
+  m.list[aControllerIndex].immersiveBeamTransform = aImmersiveBeamTransform;
 }
 
 void
@@ -231,20 +264,7 @@ ControllerContainer::SetFocused(const int32_t aControllerIndex) {
     return;
   }
   for (Controller& controller: m.list) {
-    bool show = false;
-    if (controller.index == aControllerIndex) {
-      controller.focused = true;
-      show = true;
-    } else  {
-      controller.focused = false;
-    }
-
-    if (controller.beamToggle) {
-      controller.beamToggle->ToggleAll(show);
-    }
-    if (controller.pointer) {
-      controller.pointer->SetVisible(show);
-    }
+    controller.focused = controller.index == aControllerIndex;
   }
 }
 
@@ -273,22 +293,27 @@ ControllerContainer::SetEnabled(const int32_t aControllerIndex, const bool aEnab
   m.list[aControllerIndex].enabled = aEnabled;
   if (!aEnabled) {
     m.list[aControllerIndex].focused = false;
-    SetVisible(aControllerIndex, false);
   }
+  m.SetVisible(m.list[aControllerIndex], aEnabled);
 }
 
+
 void
-ControllerContainer::SetVisible(const int32_t aControllerIndex, const bool aVisible) {
+ControllerContainer::SetControllerType(const int32_t aControllerIndex, device::DeviceType aType) {
   if (!m.Contains(aControllerIndex)) {
     return;
   }
   Controller& controller = m.list[aControllerIndex];
-  if (controller.transform && m.visible) {
-    m.root->ToggleChild(*controller.transform, aVisible);
+  controller.type = aType;
+}
+
+void
+ControllerContainer::SetTargetRayMode(const int32_t aControllerIndex, device::TargetRayMode aMode) {
+  if (!m.Contains(aControllerIndex)) {
+    return;
   }
-  if (controller.pointer && !aVisible) {
-    controller.pointer->SetVisible(false);
-  }
+  Controller& controller = m.list[aControllerIndex];
+  controller.targetRayMode = aMode;
 }
 
 void
@@ -404,6 +429,54 @@ ControllerContainer::GetHapticFeedback(const int32_t aControllerIndex, uint64_t 
 }
 
 void
+ControllerContainer::SetSelectActionStart(const int32_t aControllerIndex) {
+  if (!m.Contains(aControllerIndex) || !m.immersiveFrameId) {
+    return;
+  }
+
+  if (m.list[aControllerIndex].selectActionStopFrameId >=
+      m.list[aControllerIndex].selectActionStartFrameId) {
+    m.list[aControllerIndex].selectActionStartFrameId = m.immersiveFrameId;
+  }
+}
+
+void
+ControllerContainer::SetSelectActionStop(const int32_t aControllerIndex) {
+  if (!m.Contains(aControllerIndex) || !m.lastImmersiveFrameId) {
+    return;
+  }
+
+  if (m.list[aControllerIndex].selectActionStartFrameId >
+      m.list[aControllerIndex].selectActionStopFrameId) {
+    m.list[aControllerIndex].selectActionStopFrameId = m.lastImmersiveFrameId;
+  }
+}
+
+void
+ControllerContainer::SetSqueezeActionStart(const int32_t aControllerIndex) {
+  if (!m.Contains(aControllerIndex) || !m.immersiveFrameId) {
+    return;
+  }
+
+  if (m.list[aControllerIndex].squeezeActionStopFrameId >=
+      m.list[aControllerIndex].squeezeActionStartFrameId) {
+    m.list[aControllerIndex].squeezeActionStartFrameId = m.immersiveFrameId;
+  }
+}
+
+void
+ControllerContainer::SetSqueezeActionStop(const int32_t aControllerIndex) {
+  if (!m.Contains(aControllerIndex) || !m.lastImmersiveFrameId) {
+    return;
+  }
+
+  if (m.list[aControllerIndex].squeezeActionStartFrameId >
+      m.list[aControllerIndex].squeezeActionStopFrameId) {
+    m.list[aControllerIndex].squeezeActionStopFrameId = m.lastImmersiveFrameId;
+  }
+}
+
+void
 ControllerContainer::SetLeftHanded(const int32_t aControllerIndex, const bool aLeftHanded) {
   if (!m.Contains(aControllerIndex)) {
     return;
@@ -441,6 +514,13 @@ ControllerContainer::SetScrolledDelta(const int32_t aControllerIndex, const floa
   controller.scrollDeltaY = aScrollDeltaY;
 }
 
+void
+ControllerContainer::SetBatteryLevel(const int32_t aControllerIndex, const int32_t aBatteryLevel) {
+  if (!m.Contains(aControllerIndex)) {
+    return;
+  }
+  m.list[aControllerIndex].batteryLevel = aBatteryLevel;
+}
 void ControllerContainer::SetPointerColor(const vrb::Color& aColor) const {
   m.pointerColor = aColor;
   for (Controller& controller: m.list) {
@@ -448,8 +528,14 @@ void ControllerContainer::SetPointerColor(const vrb::Color& aColor) const {
   }
 }
 
+bool
+ControllerContainer::IsVisible() const {
+  return m.visible;
+}
+
 void
 ControllerContainer::SetVisible(const bool aVisible) {
+  VRB_LOG("[ControllerContainer] SetVisible %d", aVisible)
   if (m.visible == aVisible) {
     return;
   }
@@ -463,6 +549,25 @@ ControllerContainer::SetVisible(const bool aVisible) {
   } else {
     m.root->ToggleAll(false);
   }
+}
+
+void
+ControllerContainer::SetGazeModeIndex(const int32_t aControllerIndex) {
+  m.gazeIndex = aControllerIndex;
+}
+
+void
+ControllerContainer::SetFrameId(const uint64_t aFrameId) {
+  if (m.immersiveFrameId) {
+    m.lastImmersiveFrameId = aFrameId ? aFrameId : m.immersiveFrameId;
+  } else {
+    m.lastImmersiveFrameId = 0;
+    for (Controller& controller: m.list) {
+      controller.selectActionStartFrameId = controller.selectActionStopFrameId = 0;
+      controller.squeezeActionStartFrameId = controller.squeezeActionStopFrameId = 0;
+    }
+  }
+  m.immersiveFrameId = aFrameId;
 }
 
 ControllerContainer::ControllerContainer(State& aState, vrb::CreationContextPtr& aContext) : m(aState) {

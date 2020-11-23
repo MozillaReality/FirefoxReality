@@ -14,10 +14,10 @@
 #include <android_native_app_glue.h>
 #include <cstdlib>
 #include <vrb/RunnableQueue.h>
-#if defined(OCULUSVR)
+#if defined(OPENXR)
+#include "DeviceDelegateOpenXR.h"
+#elif defined(OCULUSVR)
 #include "DeviceDelegateOculusVR.h"
-#elif defined(SNAPDRAGONVR)
-#include "DeviceDelegateSVR.h"
 #endif
 
 #include <android/looper.h>
@@ -30,12 +30,12 @@
 
 using namespace crow;
 
-#if defined(OCULUSVR)
+#if defined(OPENXR)
+typedef DeviceDelegateOpenXR PlatformDeviceDelegate;
+typedef DeviceDelegateOpenXRPtr PlatformDeviceDelegatePtr;
+#elif defined(OCULUSVR)
 typedef DeviceDelegateOculusVR PlatformDeviceDelegate;
 typedef DeviceDelegateOculusVRPtr PlatformDeviceDelegatePtr;
-#elif defined(SNAPDRAGONVR)
-typedef DeviceDelegateSVR PlatformDeviceDelegate;
-typedef DeviceDelegateSVRPtr PlatformDeviceDelegatePtr;
 #endif
 
 namespace {
@@ -130,63 +130,6 @@ CommandCallback(android_app *aApp, int32_t aCmd) {
   }
 }
 
-#if defined(SNAPDRAGONVR)
-int32_t
-InputCallback(struct android_app *aApp, AInputEvent *aEvent) {
-  AppContext *ctx = (AppContext *) aApp->userData;
-  if (!ctx->mDevice) {
-    return 0;
-  }
-	const int type = AInputEvent_getType(aEvent);
-
-	if (type == AINPUT_EVENT_TYPE_KEY) {
-		const int keyCode = AKeyEvent_getKeyCode(aEvent);
-		const int action = AKeyEvent_getAction(aEvent);
-		if (action == AKEY_EVENT_ACTION_MULTIPLE) {
-		  return 0;
-		}
-
-		if (action == AKEY_EVENT_ACTION_UP && (keyCode == AKEYCODE_DPAD_CENTER  || keyCode == AKEYCODE_ENTER)) {
-      ctx->mDevice->UpdateButtonState(ControllerDelegate::BUTTON_TRIGGER, false);
-      return 1;
-		}
-    else if (action == AKEY_EVENT_ACTION_DOWN && (keyCode == AKEYCODE_DPAD_CENTER  || keyCode == AKEYCODE_ENTER)) {
-      ctx->mDevice->UpdateButtonState(ControllerDelegate::BUTTON_TRIGGER, true);
-      return 1;
-    }
-		else if (action == AKEY_EVENT_ACTION_UP && keyCode == AKEYCODE_MENU) {
-      ctx->mDevice->UpdateButtonState(ControllerDelegate::BUTTON_APP, false);
-      return 1;
-		}
-    else if (action == AKEY_EVENT_ACTION_DOWN && keyCode == AKEYCODE_MENU) {
-      ctx->mDevice->UpdateButtonState(ControllerDelegate::BUTTON_APP,  true);
-      return 1;
-    }
-		else if (keyCode == AKEYCODE_DPAD_LEFT) {
-		  // Wheel moved: simulate scroll
-		  ctx->mDevice->WheelScroll(-2.0);
-		  return 1;
-		}
-		else if (keyCode == AKEYCODE_DPAD_RIGHT) {
-		  // Wheel moved: simulate scroll
-		  ctx->mDevice->WheelScroll(2.0);
-		  return 1;
-		}
-	}
-	else if (type == AINPUT_EVENT_TYPE_MOTION) {
-	  const int source = AInputEvent_getSource(aEvent);
-    // Disable trackball scroll for now because the scroll it's not very stable
-	  /*if (source == AINPUT_SOURCE_TRACKBALL) {
-	    const float x = AMotionEvent_getX(aEvent, 0);
-	    const float y = AMotionEvent_getY(aEvent, 0);
-	    ctx->mDevice->UpdateTrackpad(x, y);
-	  }*/
-	}
-
-	return 0;
-}
-#endif // defined(SNAPDRAGONVR)
-
 extern "C" {
 
 void
@@ -199,7 +142,7 @@ android_main(android_app *aAppState) {
   // Attach JNI thread
   JNIEnv *jniEnv;
   (*aAppState->activity->vm).AttachCurrentThread(&jniEnv, nullptr);
-  sAppContext->mQueue->InitializeJava(jniEnv);
+  sAppContext->mQueue->AttachToThread();
 
   // Create Browser context
   crow::VRBrowser::InitializeJava(jniEnv, aAppState->activity->clazz);
@@ -217,9 +160,6 @@ android_main(android_app *aAppState) {
   // Set up activity & SurfaceView life cycle callbacks
   aAppState->userData = sAppContext.get();
   aAppState->onAppCmd = CommandCallback;
-#if defined(SNAPDRAGONVR)
-  aAppState->onInputEvent = InputCallback;
-#endif
 
   // Main render loop
   while (true) {
@@ -237,12 +177,11 @@ android_main(android_app *aAppState) {
         pSource->process(aAppState, pSource);
       }
 
-
-
       // Check if we are exiting.
       if (aAppState->destroyRequested != 0) {
         sAppContext->mEgl->MakeCurrent();
         sAppContext->mQueue->ProcessRunnables();
+        sAppContext->mDevice->OnDestroy();
         BrowserWorld::Instance().ShutdownGL();
         BrowserWorld::Instance().ShutdownJava();
         BrowserWorld::Destroy();
@@ -257,10 +196,17 @@ android_main(android_app *aAppState) {
       sAppContext->mEgl->MakeCurrent();
     }
     sAppContext->mQueue->ProcessRunnables();
+
     if (!BrowserWorld::Instance().IsPaused() && sAppContext->mDevice->IsInVRMode()) {
-      VRB_GL_CHECK(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
       BrowserWorld::Instance().Draw();
     }
+#if defined(OPENXR)
+    else {
+      // OpenXR requires to wait for the XR_SESSION_STATE_READY to start presenting
+      // We need to call ProcessEvents to make sure we receive the event.
+      sAppContext->mDevice->ProcessEvents();
+    }
+#endif
   }
 }
 

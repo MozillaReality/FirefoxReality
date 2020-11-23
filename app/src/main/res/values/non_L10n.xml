@@ -11,28 +11,25 @@
     <string name="settings_key_remote_debugging" translatable="false">settings_remote_debugging</string>
     <string name="settings_key_console_logs" translatable="false">settings_console_logs</string>
     <string name="settings_key_environment_override" translatable="false">settings_environment_override</string>
-    <string name="settings_key_multiprocess_e10s" translatable="false">settings_environment_multiprocess_e10s_v2</string>
     <string name="settings_key_performance_monitor" translatable="false">settings_performance_monitor</string>
     <string name="settings_key_servo" translatable="false">settings_environment_servo</string>
     <string name="settings_key_drm_playback" translatable="false">settings_key_drm_playback</string>
-    <string name="settings_key_tracking_protection" translatable="false">settings_tracking_protection</string>
+    <string name="settings_key_tracking_protection_level" translatable="false">settings_tracking_protection_level</string>
     <string name="settings_key_speech_data_collection" translatable="false">settings_key_speech_data_collection</string>
     <string name="settings_key_speech_data_collection_reviewed" translatable="false">settings_key_speech_data_collection_accept</string>
-    <string name="settings_key_user_agent_version" translatable="false">settings_user_agent_version</string>
+    <string name="settings_key_user_agent_version" translatable="false">settings_user_agent_version_v2</string>
     <string name="settings_key_input_mode" translatable="false">settings_touch_mode</string>
     <string name="settings_key_display_density" translatable="false">settings_display_density</string>
     <string name="settings_key_display_dpi" translatable="false">settings_display_dpi</string>>
     <string name="settings_key_env" translatable="false">settings_env</string>
     <string name="settings_key_pointer_color" translatable="false">settings_pointer_color</string>
     <string name="settings_key_scroll_direction" translatable="false">settings_scroll_direction</string>
-    <string name="settings_key_msaa" translatable="false">settings_gfx_msaa</string>
+    <string name="settings_key_msaa" translatable="false">settings_gfx_msaa_v2</string>
     <string name="settings_key_audio" translatable="false">settings_audio</string>
     <string name="settings_key_voice_search_language" translatable="false">settings_voice_search_language</string>
     <string name="settings_key_display_language" translatable="false">settings_display_language</string>
     <string name="settings_key_content_languages" translatable="false">settings_content_languages</string>
     <string name="settings_key_cylinder_density" translatable="false">settings_cylinder_density</string>
-    <string name="settings_key_foveated_app" translatable="false">settings_foveated_in_app</string>
-    <string name="settings_key_foveated_webvr" translatable="false">settings_foveated_webvr</string>
     <string name="settings_key_keyboard_locale" translatable="false">settings_key_keyboard_locale</string>
     <string name="settings_key_crash_restart_count" translatable="false">settings_key_crash_restart_count</string>
     <string name="settings_key_crash_restart_count_timestamp" translatable="false">settings_key_crash_restart_count_timestamp</string>
@@ -45,20 +42,39 @@
     <string name="settings_key_autoplay" translatable="false">settings_key_autoplay</string>
     <string name="settings_key_pid" translatable="false">settings_key_pid</string>
     <string name="settings_key_pop_up_blocking" translatable="false">settings_key_pop_up_blocking</string>
+    <string name="settings_key_webxr" translatable="false">settings_key_webxr</string>
     <string name="settings_key_telemetry_status_update_sent" translatable="false">settings_key_telemetry_status_update_sent</string>
     <string name="settings_key_bookmarks_sync" translatable="false">settings_key_bookmarks_sync</string>
     <string name="settings_key_history_sync" translatable="false">settings_key_history_sync</string>
     <string name="settings_key_whats_new_displayed" translatable="false">settings_key_whats_new_displayed</string>
-    <string name="settings_key_ui_hardware_acceleration" translatable="false">settings_key_ui_hardware_acceleration_v2</string>
+    <string name="settings_key_ui_hardware_acceleration" translatable="false">settings_key_ui_hardware_acceleration_v3</string>
     <string name="settings_key_fxa_last_sync" translatable="false">settings_key_fxa_last_sync</string>
     <string name="settings_key_restore_tabs" translatable="false">settings_key_restore_tabs</string>
+    <string name="settings_key_bypass_cache_on_reload" translatable="false">settings_key_bypass_cache_on_reload</string>
+    <string name="settings_key_multi_e10s" translatable="false">settings_key_multi_e10s</string>
+    <string name="settings_key_downloads_external" translatable="false">settings_key_downloads_external</string>
+    <string name="settings_key_downloads_sorting_order" translatable="false">settings_key_downloads_sorting_order</string>
+    <string name="settings_key_remote_props_version_name" translatable="false">settings_key_remote_props_version_name</string>
+    <string name="settings_key_remote_props" translatable="false">settings_key_remote_props</string>
+    <string name="settings_key_autocomplete" translatable="false">settings_key_autocomplete</string>
+    <string name="settings_key_webgl_out_of_process" translatable="false">settings_key_webgl_out_of_processe</string>
+    <string name="settings_key_prefs_last_reset_version_code" translatable="false">settings_key_prefs_last_reset_version_code</string>
+    <string name="enable_webgl_out_of_process_switch" translatable="false">Out of Process WebGL</string>
+    <string name="settings_key_passwords_encryption_key_generated" translatable="false">settings_key_passwords_encryption_key_generated</string>
+    <string name="settings_key_autofill_enabled" translatable="false">settings_key_autofill_enabled</string>
+    <string name="settings_key_login_autocomplete_enabled" translatable="false">settings_key_login_autocomplete_enabled</string>
+    <string name="settings_key_login_sync_enabled" translatable="false">settings_key_login_sync_enabled</string>
     <string name="environment_override_help_url" translatable="false">https://github.com/MozillaReality/FirefoxReality/wiki/Environments</string>
-    <string name="private_policy_url" translatable="false">https://www.mozilla.org/privacy/firefox/</string>
+    <string name="private_policy_url" translatable="false">https://www.mozilla.org/privacy/firefox-reality/</string>
     <string name="private_report_url" translatable="false">https://mixedreality.mozilla.org/fxr/report?src=browser-fxr&amp;label=browser-firefox-reality&amp;url=%1$s</string>
     <string name="help_url" translatable="false">https://support.mozilla.org/products/firefox-reality</string>
-    <string name="sumo_language_voice_url" translatable="false">https://support.mozilla.org/en-US/kb/using-voice-search-firefox-reality</string>
-    <string name="sumo_language_display_url" translatable="false">https://support.mozilla.org/en-US/kb/use-firefox-another-language?as=u&amp;utm_source=inproduct</string>
-    <string name="sumo_language_content_url" translatable="false">https://support.mozilla.org/en-US/kb/choose-display-languages-multilingual-web-pages?as=u&amp;utm_source=inproduct</string>
+    <string name="sumo_language_voice_url" translatable="false">https://support.mozilla.org/kb/using-voice-search-firefox-reality</string>
+    <string name="sumo_language_display_url" translatable="false">https://support.mozilla.org/kb/use-firefox-another-language?as=u&amp;utm_source=inproduct</string>
+    <string name="sumo_language_content_url" translatable="false">https://support.mozilla.org/kb/choose-display-languages-multilingual-web-pages?as=u&amp;utm_source=inproduct</string>
+    <string name="sumo_etp_url" translatable="false">https://support.mozilla.org/kb/enhanced-tracking-protection-firefox-desktop</string>
+    <string name="sumo_drm_url" translatable="false">https://support.mozilla.org/kb/enable-drm</string>
+    <string name="sumo_webxr_url" translatable="false">https://support.mozilla.org/en-US/kb/webxr-permission-info-page</string>
+    <string name="sumo_addons_permissions" translatable="false">https://support.mozilla.org/kb/permission-request-messages-firefox-extensions</string>
     <string name="list_item_view_tag" translatable="false">view</string>
     <string name="position_tag" translatable="false">position</string>
     <string name="view_id_tag" translatable="false">view_id</string>
@@ -76,20 +92,25 @@
     <string name="voice_app_id" translatable="false">fxr</string>
     <string name="keyboard_mode_change" translatable="false">ABC</string>
     <string name="keyboard_symbol" translatable="false">%&amp;=</string>
+    <string name="ellipsis" translatable="false">…</string>
+    <string name="release_notes_url" translatable="false">https://github.com/MozillaReality/FirefoxReality/wiki/Release-notes-for-version-%1$s</string>
 
     <string name="pinyin_spacebar_selection" translatable="false">选定</string>
     <string name="pinyin_spacebar_space" translatable="false">空格</string>
     <string name="pinyin_enter_completion" translatable="false">确认</string>
+    <string name="pinyin_keyboard_mode_change" translatable="false">拼音</string>
 
     <string name="zhuyin_spacebar_selection" translatable="false">一聲</string>
     <string name="zhuyin_spacebar_space" translatable="false">空格</string>
     <string name="zhuyin_enter_completion" translatable="false">選定</string>
-    <string name="zhuyin_keyboard_mode_change" translatable="false">ㄅㄆㄇ</string>
+    <string name="zhuyin_keyboard_mode_change" translatable="false">注音</string>
 
     <string name="japanese_spacebar_selection" translatable="false">次変換</string>
     <string name="japanese_spacebar_space" translatable="false">空白</string>
     <string name="japanese_enter_completion" translatable="false">確定</string>
     <string name="japanese_keyboard_mode_change" translatable="false">かな</string>
+
+    <string name="thai_keyboard_mode_change" translatable="false">กขค</string>
 
     <!-- Keyboard -->
     <string name="keyboard_popup_a" translatable="false">aáàäãåâąæā</string>
@@ -181,23 +202,6 @@
     <string name="keyboard_nl_NL_popup_o" translatable="false">oöôòõœøōóő</string>
     <string name="keyboard_nl_NL_popup_u" translatable="false">uúüûùūůų</string>
     <string name="keyboard_nl_NL_popup_i" translatable="false">ìíiïîįī</string>
-
-    <!-- SEARCH ENGINES -->
-    <string name="geolocation_api_url" translatable="false">https://location.services.mozilla.com/v1/country</string>
-    <!-- Google -->
-    <string name="search_google_params" translatable="false">q=%1$s&amp;client=firefox-b-o</string>
-    <string name="search_google_us_params" translatable="false">q=%1$s&amp;client=firefox-b-1-o</string>
-    <string name="search_google" translatable="false">https://www.google.com/search</string>
-    <string name="search_google_us" translatable="false">https://www.google.com/search</string>
-    <!-- Baidu -->
-    <string name="search_baidu_params" translatable="false">wd=%1$s&amp;tn=monline_dg&amp;ie=utf-8</string>
-    <string name="search_baidu_cn" translatable="false">https://www.baidu.com/baidu</string>
-    <!-- Yandex -->
-    <string name="search_yandex_params" translatable="false">searchbar=2186618&amp;keyword=2186621&amp;contextmenu=2186623&amp;homepage=2186617&amp;newtab=2186620&amp;text=%1$s</string>
-    <string name="search_yandex_ru" translatable="false">https://yandex.ru/search</string>
-    <string name="search_yandex_by" translatable="false">https://yandex.by/search</string>
-    <string name="search_yandex_tr" translatable="false">https://yandex.com.tr/search</string>
-    <string name="search_yandex_kz" translatable="false">https://yandex.kz/search</string>
 
     <!-- Settings Survey link -->
     <string name="survey_link" translatable="false">https://qsurvey.mozilla.com/s3/FxR</string>

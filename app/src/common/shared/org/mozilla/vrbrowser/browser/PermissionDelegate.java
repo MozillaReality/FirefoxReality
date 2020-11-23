@@ -2,22 +2,32 @@ package org.mozilla.vrbrowser.browser;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.Application;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.lifecycle.Observer;
 
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.PlatformActivity;
 import org.mozilla.vrbrowser.R;
+import org.mozilla.vrbrowser.browser.engine.Session;
+import org.mozilla.vrbrowser.browser.engine.SessionState;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
+import org.mozilla.vrbrowser.db.SitePermission;
+import org.mozilla.vrbrowser.ui.viewmodel.SitePermissionViewModel;
 import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
+import org.mozilla.vrbrowser.ui.widgets.WindowWidget;
 import org.mozilla.vrbrowser.ui.widgets.dialogs.PermissionWidget;
 import org.mozilla.vrbrowser.utils.SystemUtils;
+import org.mozilla.vrbrowser.utils.UrlUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class PermissionDelegate implements GeckoSession.PermissionDelegate, WidgetManagerDelegate.PermissionListener {
 
@@ -29,12 +39,16 @@ public class PermissionDelegate implements GeckoSession.PermissionDelegate, Widg
     private WidgetManagerDelegate mWidgetManager;
     private GeckoSession.PermissionDelegate.Callback mCallback;
     private PermissionWidget mPermissionWidget;
+    private SitePermissionViewModel mSitePermissionModel;
+    private List<SitePermission> mSitePermissions;
 
     public PermissionDelegate(Context aContext, WidgetManagerDelegate aWidgetManager) {
         mContext = aContext;
         mWidgetManager = aWidgetManager;
         mWidgetManager.addPermissionListener(this);
         SessionStore.get().setPermissionDelegate(this);
+        mSitePermissionModel = new SitePermissionViewModel((Application)aContext.getApplicationContext());
+        mSitePermissionModel.getAll().observeForever(mSitePermissionObserver);
     }
 
     public void setParentWidgetHandle(int aHandle) {
@@ -71,7 +85,37 @@ public class PermissionDelegate implements GeckoSession.PermissionDelegate, Widg
         mPermissionWidget.showPrompt(aUri, aType, aCallback);
     }
 
+    private Observer<List<SitePermission>> mSitePermissionObserver = sites -> {
+        mSitePermissions = sites;
+    };
+
+    void handleWebXRPermission(GeckoSession aGeckoSession, final String aUri, final Callback aCallback) {
+        Session session = SessionStore.get().getSession(aGeckoSession);
+        if (session == null || !SettingsStore.getInstance(mContext).isWebXREnabled()) {
+            aCallback.reject();
+            return;
+        }
+        final String domain = UrlUtils.getHost(aUri);
+
+        @Nullable SitePermission site = null;
+        if (mSitePermissions != null) {
+            site = mSitePermissions.stream()
+                    .filter(sitePermission -> sitePermission.category == SitePermission.SITE_PERMISSION_WEBXR &&
+                            sitePermission.url.equalsIgnoreCase(domain))
+                    .findFirst().orElse(null);
+        }
+
+        if (site == null) {
+            aCallback.grant();
+            session.setWebXRState(SessionState.WEBXR_ALLOWED);
+        } else {
+            aCallback.reject();
+            session.setWebXRState(SessionState.WEBXR_BLOCKED);
+        }
+    }
+
     public void release() {
+        mSitePermissionModel.getAll().removeObserver(mSitePermissionObserver);
         mWidgetManager.removePermissionListener(this);
         SessionStore.get().setPermissionDelegate(null);
         mCallback = null;
@@ -83,11 +127,11 @@ public class PermissionDelegate implements GeckoSession.PermissionDelegate, Widg
     public void onAndroidPermissionsRequest(GeckoSession aSession, String[] permissions, Callback aCallback) {
         Log.d(LOGTAG, "onAndroidPermissionsRequest: " + Arrays.toString(permissions));
         ArrayList<String> missingPermissions = new ArrayList<>();
-        ArrayList<String> filteredPemissions = new ArrayList<>();
+        ArrayList<String> filteredPermissions = new ArrayList<>();
         for (String permission: permissions) {
             if (PlatformActivity.filterPermission(permission)) {
                 Log.d(LOGTAG, "Skipping permission: " + permission);
-                filteredPemissions.add(permission);
+                filteredPermissions.add(permission);
                 continue;
             }
             Log.d(LOGTAG, "permission = " + permission);
@@ -97,7 +141,7 @@ public class PermissionDelegate implements GeckoSession.PermissionDelegate, Widg
         }
 
         if (missingPermissions.size() == 0) {
-            if (filteredPemissions.size() == 0) {
+            if (filteredPermissions.size() == 0) {
                 Log.d(LOGTAG, "Android permissions granted");
                 aCallback.grant();
             } else {
@@ -115,11 +159,16 @@ public class PermissionDelegate implements GeckoSession.PermissionDelegate, Widg
     public void onContentPermissionRequest(GeckoSession aSession, String aUri, int aType, Callback callback) {
         Log.d(LOGTAG, "onContentPermissionRequest: " + aUri + " " + aType);
         if (aType == PERMISSION_XR) {
-            callback.grant();
+            handleWebXRPermission(aSession, aUri, callback);
             return;
         }
 
-        if (aType == PERMISSION_AUTOPLAY_AUDIBLE || aType == PERMISSION_AUTOPLAY_INAUDIBLE) {
+        if (aType == PERMISSION_AUTOPLAY_INAUDIBLE) {
+            // https://hacks.mozilla.org/2019/02/firefox-66-to-block-automatically-playing-audible-video-and-audio/
+            callback.grant();
+            return;
+
+        } else if(aType == PERMISSION_AUTOPLAY_AUDIBLE) {
             if (SettingsStore.getInstance(mContext).isAutoplayEnabled()) {
                 callback.grant();
             } else {
@@ -133,6 +182,30 @@ public class PermissionDelegate implements GeckoSession.PermissionDelegate, Widg
             type = PermissionWidget.PermissionType.Notification;
         } else if (aType == PERMISSION_GEOLOCATION) {
             type = PermissionWidget.PermissionType.Location;
+        } else if (aType == PERMISSION_MEDIA_KEY_SYSTEM_ACCESS) {
+            WindowWidget windowWidget = mWidgetManager.getFocusedWindow();
+            Runnable enableDrm = () -> {
+                Session session = SessionStore.get().getSession(aSession);
+                if (SettingsStore.getInstance(mContext).isDrmContentPlaybackEnabled()) {
+                    if (session != null) {
+                        session.setDrmState(SessionState.DRM_ALLOWED);
+                    }
+                    callback.grant();
+                } else {
+                    if (session != null) {
+                        session.setDrmState(SessionState.DRM_BLOCKED);
+                    }
+                    callback.reject();
+                }
+            };
+            if (SettingsStore.getInstance(mContext).isDrmContentPlaybackSet()) {
+                enableDrm.run();
+
+            } else {
+                windowWidget.showFirstTimeDrmDialog(enableDrm);
+            }
+            windowWidget.setDrmUsed(true);
+            return;
         } else {
             Log.e(LOGTAG, "onContentPermissionRequest unknown permission: " + aType);
             callback.reject();
@@ -171,6 +244,13 @@ public class PermissionDelegate implements GeckoSession.PermissionDelegate, Widg
                 aMediaCallback.reject();
             }
         };
+
+        // Temporary fix for https://bugzilla.mozilla.org/show_bug.cgi?id=1621380
+        if ((type == PermissionWidget.PermissionType.Camera ||
+                type == PermissionWidget.PermissionType.CameraAndMicrophone)) {
+            callback.reject();
+            return;
+        }
 
         handlePermission(aUri, type, callback);
     }
@@ -219,8 +299,44 @@ public class PermissionDelegate implements GeckoSession.PermissionDelegate, Widg
             }
         }
     }
+    public void addPermissionException(@NonNull String uri, @SitePermission.Category int category) {
+        @Nullable SitePermission site = mSitePermissions.stream()
+                .filter((item) -> item.category == category && item.url.equals(uri))
+                .findFirst().orElse(null);
 
-    public boolean isPermissionDialogVisible() {
-        return mPermissionWidget != null && mPermissionWidget.isVisible();
+        if (site == null) {
+            site = new SitePermission(uri, "", category);
+            mSitePermissions.add(site);
+        }
+        mSitePermissionModel.insertSite(site);
+
+        // Reload URIs with the same domain
+        for (WindowWidget window: mWidgetManager.getWindows().getCurrentWindows()) {
+            Session session = window.getSession();
+            if (uri.equalsIgnoreCase(UrlUtils.getHost(session.getCurrentUri()))) {
+                session.reload(GeckoSession.LOAD_FLAGS_BYPASS_CACHE);
+            }
+        }
+
+    }
+
+    public void removePermissionException(String uri, @SitePermission.Category int category) {
+        @Nullable SitePermission site = mSitePermissions.stream()
+                .filter((item) -> item.category == category && item.url.equals(uri))
+                .findFirst().orElse(null);
+
+        mSitePermissions.removeIf(sitePermission -> sitePermission.url.equals(uri));
+        if (site != null) {
+            mSitePermissionModel.deleteSite(site);
+        }
+
+        // Reload URIs with the same domain
+        for (WindowWidget window: mWidgetManager.getWindows().getCurrentWindows()) {
+            Session session = window.getSession();
+            if (uri.equalsIgnoreCase(UrlUtils.getHost(session.getCurrentUri()))) {
+                session.reload(GeckoSession.LOAD_FLAGS_BYPASS_CACHE);
+            }
+        }
+
     }
 }

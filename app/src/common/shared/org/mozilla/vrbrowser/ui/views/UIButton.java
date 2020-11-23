@@ -5,25 +5,31 @@
 
 package org.mozilla.vrbrowser.ui.views;
 
+import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.content.res.TypedArray;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
 import android.graphics.Rect;
+import android.graphics.drawable.ClipDrawable;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.LayerDrawable;
 import android.os.Build;
 import android.util.AttributeSet;
 import android.util.TypedValue;
 import android.view.MotionEvent;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 
 import androidx.annotation.Dimension;
 import androidx.annotation.IdRes;
 import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.widget.AppCompatImageButton;
 
-import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.ui.widgets.TooltipWidget;
 import org.mozilla.vrbrowser.ui.widgets.UIWidget;
@@ -40,34 +46,38 @@ public class UIButton extends AppCompatImageButton implements CustomUIButton {
     private @IdRes int mPrivateModeTintColorListRes;
     private @IdRes int mActiveModeTintColorListRes;
     private @IdRes int mNotificationModeTintColorListRes;
+    private @IdRes int mPrivateNotificationModeTintColorListRes;
     private TooltipWidget mTooltipView;
     private String mTooltipText;
     private int mTooltipDelay;
     private float mTooltipDensity;
     private @LayoutRes int mTooltipLayout;
-    private boolean mCurvedTooltip = true;
+    private boolean mCurvedTooltip;
+    private boolean mCurvedTooltipOverridden;
     private ViewUtils.TooltipPosition mTooltipPosition;
     private boolean mIsPrivate;
     private boolean mIsActive;
     private boolean mIsNotification;
+    private ClipDrawable mClipDrawable;
+    private int mClipColor;
 
     public UIButton(Context context, AttributeSet attrs) {
         this(context, attrs, R.attr.imageButtonStyle);
     }
 
+    @SuppressLint("ResourceType")
     public UIButton(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
 
         TypedArray attributes = context.obtainStyledAttributes(attrs, R.styleable.UIButton, defStyleAttr, 0);
         mTintColorListRes = attributes.getResourceId(R.styleable.UIButton_tintColorList, 0);
-        if (mTintColorListRes != 0) {
-            setTintColorList(mTintColorListRes);
-        }
+        mBackground = attributes.getDrawable(R.styleable.UIButton_regularModeBackground);
         mPrivateModeBackground = attributes.getDrawable(R.styleable.UIButton_privateModeBackground);
         mActiveModeBackground = attributes.getDrawable(R.styleable.UIButton_activeModeBackground);
         mPrivateModeTintColorListRes = attributes.getResourceId(R.styleable.UIButton_privateModeTintColorList, 0);
         mActiveModeTintColorListRes = attributes.getResourceId(R.styleable.UIButton_activeModeTintColorList, 0);
         mNotificationModeTintColorListRes = attributes.getResourceId(R.styleable.UIButton_notificationModeTintColorList, 0);
+        mPrivateNotificationModeTintColorListRes = attributes.getResourceId(R.styleable.UIButton_privateNotificationModeTintColorList, 0);
         mTooltipDelay = attributes.getInt(R.styleable.UIButton_tooltipDelay, getResources().getInteger(R.integer.tooltip_delay));
         mTooltipPosition = ViewUtils.TooltipPosition.fromId(attributes.getInt(R.styleable.UIButton_tooltipPosition, ViewUtils.TooltipPosition.BOTTOM.ordinal()));
         TypedValue densityValue = new TypedValue();
@@ -78,53 +88,86 @@ public class UIButton extends AppCompatImageButton implements CustomUIButton {
             mTooltipText = arr.getString(0);
         }
         mTooltipLayout = attributes.getResourceId(R.styleable.UIButton_tooltipLayout, R.layout.tooltip);
+        mCurvedTooltip = attributes.getBoolean(R.styleable.UIButton_tooltipCurved, false);
+        mCurvedTooltipOverridden = attributes.hasValue(R.styleable.UIButton_tooltipCurved);
+        mClipDrawable = (ClipDrawable)attributes.getDrawable(R.styleable.UIButton_clipDrawable);
+        mClipColor = attributes.getColor(R.styleable.UIButton_clipColor, 0);
         attributes.recycle();
 
-        mBackground = getBackground();
+        if (mBackground == null) {
+            mBackground = getBackground();
+        }
+
+        if (mClipDrawable != null) {
+            Drawable[] layers = new Drawable[] { getDrawable(), mClipDrawable };
+            setImageDrawable(new LayerDrawable(layers));
+        }
+
+        if (mTintColorListRes != 0) {
+            setTintColorList(mTintColorListRes);
+        }
+
+        // Android >8 doesn't perform a click when long clicking in ImageViews even if long click is disabled
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            setLongClickable(false);
+            setOnTouchListener((v, event) -> {
+                if (event.getAction() == MotionEvent.ACTION_UP) {
+                    long time = event.getEventTime() - event.getDownTime();
+                    if (!v.isLongClickable() && time > ViewConfiguration.getLongPressTimeout()) {
+                        performClick();
+                    }
+                }
+
+                return false;
+            });
+        }
     }
 
-    @TargetApi(Build.VERSION_CODES.O)
-    public String getTooltip() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+    @Nullable
+    @Override
+    public CharSequence getTooltipText() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            return getTooltipTextInternal();
+
+        } else {
             return mTooltipText;
-        } else {
-            return getTooltipText() == null ? null : getTooltipText().toString();
         }
     }
 
     @TargetApi(Build.VERSION_CODES.O)
-    public void setTooltip(String text) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-            mTooltipText = text;
-        } else {
-            setTooltipText(text);
+    private CharSequence getTooltipTextInternal() {
+        return super.getTooltipText();
+    }
+
+    @Override
+    public void setTooltipText(@Nullable CharSequence tooltipText) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            setTooltipTextInternal(tooltipText);
         }
 
-        if (mTooltipView != null && mTooltipView.isVisible()) {
-            mTooltipView.setText(text);
+        if (tooltipText != null) {
+            mTooltipText = tooltipText.toString();
+
+            if (mTooltipView != null && mTooltipView.isVisible()) {
+                mTooltipView.setText(tooltipText.toString());
+            }
         }
     }
 
-    public void setCurvedTooltip(boolean aEnabled) {
-        mCurvedTooltip = aEnabled;
-        if (mTooltipView != null) {
-            mTooltipView.setCurvedMode(aEnabled);
-        }
-    }
-
-    public void setTooltipText(@NonNull String text) {
-        mTooltipText = text;
+    @TargetApi(Build.VERSION_CODES.O)
+    private void setTooltipTextInternal(@Nullable CharSequence tooltipText) {
+        super.setTooltipText(tooltipText);
     }
 
     @Override
     public boolean onHoverEvent(MotionEvent event) {
-        if (getTooltip() != null) {
+        if (getTooltipText() != null) {
             if (event.getAction() == MotionEvent.ACTION_HOVER_ENTER) {
-                ThreadUtils.postDelayedToUiThread(mShowTooltipRunnable, mTooltipDelay);
+                postDelayed(mShowTooltipRunnable, mTooltipDelay);
 
             } else if (event.getAction() == MotionEvent.ACTION_HOVER_EXIT) {
-                ThreadUtils.removeCallbacksFromUiThread(mShowTooltipRunnable);
-                ThreadUtils.postToUiThread(mHideTooltipRunnable);
+                removeCallbacks(mShowTooltipRunnable);
+                post(mHideTooltipRunnable);
             }
         }
 
@@ -132,13 +175,13 @@ public class UIButton extends AppCompatImageButton implements CustomUIButton {
     }
 
     public void setTintColorList(int aColorListId) {
+        if (getDrawable() == null) {
+            return;
+        }
         mTintColorList = getContext().getResources().getColorStateList(
                 aColorListId,
                 getContext().getTheme());
-        if (mTintColorList != null) {
-            int color = mTintColorList.getColorForState(getDrawableState(), 0);
-            setColorFilter(color);
-        }
+        refreshDrawableState();
     }
 
     @Override
@@ -146,7 +189,12 @@ public class UIButton extends AppCompatImageButton implements CustomUIButton {
         super.drawableStateChanged();
         if (mTintColorList != null && mTintColorList.isStateful()) {
             int color = mTintColorList.getColorForState(getDrawableState(), 0);
-            setColorFilter(color);
+            getDrawable().setColorFilter(new PorterDuffColorFilter(color, PorterDuff.Mode.MULTIPLY));
+            if (mClipDrawable != null) {
+                mClipDrawable.setColorFilter(new PorterDuffColorFilter(mClipColor, PorterDuff.Mode.MULTIPLY));
+            } else {
+                setColorFilter(color);
+            }
         }
     }
 
@@ -217,7 +265,10 @@ public class UIButton extends AppCompatImageButton implements CustomUIButton {
     }
 
     private void setNotification() {
-        if (mActiveModeTintColorListRes != 0) {
+        if (mIsPrivate && mPrivateNotificationModeTintColorListRes != 0) {
+            setTintColorList(mPrivateNotificationModeTintColorListRes);
+
+        } else if (mNotificationModeTintColorListRes != 0) {
             setTintColorList(mNotificationModeTintColorListRes);
         }
     }
@@ -226,6 +277,21 @@ public class UIButton extends AppCompatImageButton implements CustomUIButton {
         mBackground = getContext().getDrawable(aBackgroundRes);
         mPrivateModeBackground = getContext().getDrawable(aPrivateModeRes);
         mActiveModeBackground = getContext().getDrawable(aActiveModeRes);
+        updateButtonColor();
+    }
+
+    public void setRegularModeBackground(Drawable background) {
+        mBackground = background;
+        updateButtonColor();
+    }
+
+    public void setPrivateModeBackground(Drawable background) {
+        mPrivateModeBackground = background;
+        updateButtonColor();
+    }
+
+    public void setActiveModeBackground(Drawable background) {
+        mActiveModeBackground = background;
         updateButtonColor();
     }
 
@@ -239,13 +305,21 @@ public class UIButton extends AppCompatImageButton implements CustomUIButton {
             if (mTooltipView == null) {
                 mTooltipView = new TooltipWidget(getContext(), mTooltipLayout);
             }
-            mTooltipView.setCurvedMode(mCurvedTooltip);
-            mTooltipView.setText(getTooltip());
+            if (getTooltipText() != null) {
+                mTooltipView.setText(getTooltipText().toString());
+            }
 
             Rect offsetViewBounds = new Rect();
             getDrawingRect(offsetViewBounds);
             UIWidget parent = ViewUtils.getParentWidget(UIButton.this);
+            assert parent != null;
             parent.offsetDescendantRectToMyCoords(UIButton.this, offsetViewBounds);
+
+            // Use parent curved mode unless it has been overridden in the tooltip XML properties
+            mTooltipView.setCurvedMode(parent.getPlacement().cylinder);
+            if (mCurvedTooltipOverridden) {
+                mTooltipView.setCurvedMode(mCurvedTooltip);
+            }
 
             float ratio = WidgetPlacement.viewToWidgetRatio(getContext(), parent);
 
@@ -256,16 +330,13 @@ public class UIButton extends AppCompatImageButton implements CustomUIButton {
                 mTooltipView.getPlacement().anchorY = 1.0f;
                 mTooltipView.getPlacement().parentAnchorY = 0.0f;
                 mTooltipView.getPlacement().translationX = (offsetViewBounds.left + UIButton.this.getWidth() / 2.0f) * ratio;
-                mTooltipView.getPlacement().translationY = -offsetViewBounds.top * ratio;
 
             } else {
                 mTooltipView.getPlacement().anchorY = 0.0f;
                 mTooltipView.getPlacement().parentAnchorY = 1.0f;
                 mTooltipView.getPlacement().translationX = (offsetViewBounds.left + UIButton.this.getHeight() / 2.0f) * ratio;
-                mTooltipView.getPlacement().translationY = offsetViewBounds.top * ratio;
             }
 
-            mTooltipView.setCurvedMode(false);
             mTooltipView.show(UIWidget.CLEAR_FOCUS);
         }
     };
@@ -285,4 +356,27 @@ public class UIButton extends AppCompatImageButton implements CustomUIButton {
         setLayoutParams(params);
     }
 
+    @Override
+    public void setEnabled(boolean enabled) {
+        super.setEnabled(enabled);
+
+        setHovered(false);
+    }
+
+    @Override
+    public void setImageDrawable(@Nullable Drawable drawable) {
+        Drawable image = drawable;
+        if (mClipDrawable != null) {
+            Drawable[] layers = new Drawable[] { drawable, mClipDrawable };
+            image = new LayerDrawable(layers);
+            mClipDrawable.setLevel(0);
+            mClipDrawable.setTint(getResources().getColor(R.color.azure, getContext().getTheme()));
+        }
+        super.setImageDrawable(image);
+        updateButtonColor();
+    }
+
+    public boolean setLevel(int level) {
+        return mClipDrawable.setLevel(level);
+    }
 }

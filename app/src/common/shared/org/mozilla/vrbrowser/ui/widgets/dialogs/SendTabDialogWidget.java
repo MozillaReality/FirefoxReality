@@ -40,13 +40,23 @@ public class SendTabDialogWidget extends SettingDialogWidget implements
         DeviceConstellationObserver,
         AccountObserver {
 
+    private static SendTabDialogWidget mSendTabDialog;
+
     private SendTabsDisplayBinding mSendTabsDialogBinding;
     private Accounts mAccounts;
     private List<Device> mDevicesList = new ArrayList<>();
     private WhatsNewWidget mWhatsNew;
     private String mSessionId;
 
-    public SendTabDialogWidget(@NonNull Context aContext) {
+    public static SendTabDialogWidget getInstance(@NonNull Context context) {
+        if (mSendTabDialog == null) {
+            mSendTabDialog = new SendTabDialogWidget(context);
+        }
+
+        return mSendTabDialog;
+    }
+
+    private SendTabDialogWidget(@NonNull Context aContext) {
         super(aContext);
     }
 
@@ -54,9 +64,14 @@ public class SendTabDialogWidget extends SettingDialogWidget implements
     protected void initialize(@NonNull Context aContext) {
         super.initialize(aContext);
 
-        updateUI();
-
         mAccounts = ((VRBrowserApplication)getContext().getApplicationContext()).getAccounts();
+    }
+
+    @Override
+    public void releaseWidget() {
+        super.releaseWidget();
+
+        mSendTabDialog = null;
     }
 
     @Override
@@ -74,6 +89,10 @@ public class SendTabDialogWidget extends SettingDialogWidget implements
         mBinding.headerLayout.setDescription(R.string.send_tab_dialog_description);
         mBinding.footerLayout.setFooterButtonText(R.string.send_tab_dialog_button);
         mBinding.footerLayout.setFooterButtonClickListener(this::sendTabButtonClick);
+
+        if (isVisible()) {
+            mAccounts.refreshDevicesAsync();
+        }
     }
 
     @Override
@@ -143,13 +162,12 @@ public class SendTabDialogWidget extends SettingDialogWidget implements
 
             List<Device> list = constellationState.getOtherDevices().stream()
                     .filter(device -> device.getCapabilities().contains(DeviceCapability.SEND_TAB)).collect(Collectors.toList());
-            if (!mDevicesList.equals(list)) {
-                mDevicesList = list;
+            mDevicesList = list;
 
-                List<String> devicesNamesList = new ArrayList<>();
-                mDevicesList.forEach((device) -> devicesNamesList.add(device.getDisplayName()));
-                mSendTabsDialogBinding.devicesList.setOptions(devicesNamesList.toArray(new String[]{}));
-            }
+            List<String> devicesNamesList = new ArrayList<>();
+            mDevicesList.forEach((device) -> devicesNamesList.add(device.getDisplayName()));
+            mSendTabsDialogBinding.devicesList.setOptions(devicesNamesList.toArray(new String[]{}));
+
 
             if (!mDevicesList.isEmpty()) {
                 mBinding.footerLayout.setFooterButtonVisibility(View.VISIBLE);

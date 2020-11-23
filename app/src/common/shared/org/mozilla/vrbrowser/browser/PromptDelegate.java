@@ -2,38 +2,45 @@ package org.mozilla.vrbrowser.browser;
 
 import android.app.Application;
 import android.content.Context;
-import android.util.Pair;
-import android.util.SparseArray;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.Observer;
 
 import org.mozilla.geckoview.AllowOrDeny;
+import org.mozilla.geckoview.Autocomplete;
 import org.mozilla.geckoview.GeckoResult;
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.geckoview.SlowScriptResponse;
-import org.mozilla.vrbrowser.AppExecutors;
 import org.mozilla.vrbrowser.R;
-import org.mozilla.vrbrowser.VRBrowserApplication;
+import org.mozilla.vrbrowser.browser.components.GeckoLoginDelegateWrapper;
 import org.mozilla.vrbrowser.browser.engine.Session;
-import org.mozilla.vrbrowser.db.PopUpSite;
-import org.mozilla.vrbrowser.ui.viewmodel.PopUpsViewModel;
+import org.mozilla.vrbrowser.browser.engine.SessionState;
+import org.mozilla.vrbrowser.browser.engine.SessionStore;
+import org.mozilla.vrbrowser.db.SitePermission;
+import org.mozilla.vrbrowser.ui.viewmodel.SitePermissionViewModel;
 import org.mozilla.vrbrowser.ui.widgets.UIWidget;
+import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
 import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
 import org.mozilla.vrbrowser.ui.widgets.WindowWidget;
-import org.mozilla.vrbrowser.ui.widgets.dialogs.PopUpBlockDialogWidget;
 import org.mozilla.vrbrowser.ui.widgets.prompts.AlertPromptWidget;
 import org.mozilla.vrbrowser.ui.widgets.prompts.AuthPromptWidget;
 import org.mozilla.vrbrowser.ui.widgets.prompts.ChoicePromptWidget;
 import org.mozilla.vrbrowser.ui.widgets.prompts.ConfirmPromptWidget;
 import org.mozilla.vrbrowser.ui.widgets.prompts.PromptWidget;
+import org.mozilla.vrbrowser.ui.widgets.prompts.SaveLoginPromptWidget;
+import org.mozilla.vrbrowser.ui.widgets.prompts.SelectLoginPromptWidget;
 import org.mozilla.vrbrowser.ui.widgets.prompts.TextPromptWidget;
+import org.mozilla.vrbrowser.ui.widgets.settings.SettingsView;
+import org.mozilla.vrbrowser.utils.StringUtils;
+import org.mozilla.vrbrowser.utils.UrlUtils;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.Collectors;
+
+import mozilla.components.concept.storage.Login;
 
 public class PromptDelegate implements
         GeckoSession.PromptDelegate,
@@ -41,26 +48,25 @@ public class PromptDelegate implements
         GeckoSession.NavigationDelegate,
         GeckoSession.ContentDelegate {
 
-    public interface PopUpDelegate {
-        void onPopUpAvailable();
-        void onPopUpsCleared();
-    }
-
     private PromptWidget mPrompt;
-    private PopUpBlockDialogWidget mPopUpPrompt;
     private ConfirmPromptWidget mSlowScriptPrompt;
     private Context mContext;
     private WindowWidget mAttachedWindow;
-    private List<PopUpSite> mAllowedPopUpSites;
-    private PopUpsViewModel mViewModel;
-    private AppExecutors mExecutors;
-    private PopUpDelegate mPopupDelegate;
+    private List<SitePermission> mAllowedPopUpSites;
+    private List<SitePermission> mSavedLoginBlockedSites;
+    private SitePermissionViewModel mViewModel;
+    private WidgetManagerDelegate mWidgetManager;
+    private SaveLoginPromptWidget mSaveLoginPrompt;
+    private SelectLoginPromptWidget mSelectLoginPrompt;
 
     public PromptDelegate(@NonNull Context context) {
         mContext = context;
-        mExecutors = ((VRBrowserApplication)context.getApplicationContext()).getExecutors();
-        mViewModel = new PopUpsViewModel(((Application)context.getApplicationContext()));
+        mWidgetManager = (WidgetManagerDelegate) mContext;
+        mViewModel = new SitePermissionViewModel(((Application)context.getApplicationContext()));
         mAllowedPopUpSites = new ArrayList<>();
+        mSavedLoginBlockedSites = new ArrayList<>();
+        mSaveLoginPrompt = null;
+        mSelectLoginPrompt = null;
     }
 
     public void attachToWindow(@NonNull WindowWidget window) {
@@ -71,7 +77,8 @@ public class PromptDelegate implements
 
         mAttachedWindow = window;
         mAttachedWindow.addWindowListener(this);
-        mViewModel.getAll().observeForever(mObserver);
+        mViewModel.getAll(SitePermission.SITE_PERMISSION_POPUP).observeForever(mPopUpSiteObserver);
+        mViewModel.getAll(SitePermission.SITE_PERMISSION_AUTOFILL).observeForever(mSavedLoginExceptionsObserver);
 
         if (getSession() != null) {
             setUpSession(getSession());
@@ -87,9 +94,8 @@ public class PromptDelegate implements
             mAttachedWindow.removeWindowListener(this);
             mAttachedWindow = null;
         }
-        mViewModel.getAll().removeObserver(mObserver);
-
-        clearPopUps();
+        mViewModel.getAll(SitePermission.SITE_PERMISSION_POPUP).removeObserver(mPopUpSiteObserver);
+        mViewModel.getAll(SitePermission.SITE_PERMISSION_AUTOFILL).removeObserver(mSavedLoginExceptionsObserver);
     }
 
     private Session getSession() {
@@ -109,19 +115,6 @@ public class PromptDelegate implements
         aSession.setPromptDelegate(null);
         aSession.removeNavigationListener(this);
         aSession.removeContentListener(this);
-        mPopUpRequests.remove(aSession.hashCode());
-    }
-
-    public void setPopupDelegate(@Nullable PopUpDelegate delegate) {
-        mPopupDelegate = delegate;
-    }
-
-    public void clearPopUps() {
-        mPopUpRequests.clear();
-
-        if (mPopupDelegate != null) {
-            mPopupDelegate.onPopUpsCleared();
-        }
     }
 
     @Nullable
@@ -136,7 +129,7 @@ public class PromptDelegate implements
         mPrompt.setTitle(alertPrompt.title);
         mPrompt.setMessage(alertPrompt.message);
         mPrompt.setPromptDelegate(() -> result.complete(alertPrompt.dismiss()));
-        mPrompt.show(UIWidget.REQUEST_FOCUS);
+        mPrompt.show(UIWidget.REQUEST_FOCUS, true);
 
         return result;
     }
@@ -167,7 +160,7 @@ public class PromptDelegate implements
                 result.complete(buttonPrompt.dismiss());
             }
         });
-        mPrompt.show(UIWidget.REQUEST_FOCUS);
+        mPrompt.show(UIWidget.REQUEST_FOCUS, true);
 
         return result;
     }
@@ -195,7 +188,7 @@ public class PromptDelegate implements
                 result.complete(textPrompt.dismiss());
             }
         });
-        mPrompt.show(UIWidget.REQUEST_FOCUS);
+        mPrompt.show(UIWidget.REQUEST_FOCUS, true);
 
         return result;
     }
@@ -228,7 +221,7 @@ public class PromptDelegate implements
                 result.complete(authPrompt.confirm(username, password));
             }
         });
-        mPrompt.show(UIWidget.REQUEST_FOCUS);
+        mPrompt.show(UIWidget.REQUEST_FOCUS, true);
 
         return result;
     }
@@ -257,13 +250,17 @@ public class PromptDelegate implements
                 result.complete(choicePrompt.dismiss());
             }
         });
-        mPrompt.show(UIWidget.REQUEST_FOCUS);
+        mPrompt.show(UIWidget.REQUEST_FOCUS, true);
 
         return result;
     }
 
-    private Observer<List<PopUpSite>> mObserver = popUpSites -> {
-        mAllowedPopUpSites = popUpSites;
+    private Observer<List<SitePermission>> mPopUpSiteObserver = sites -> {
+        mAllowedPopUpSites = sites;
+    };
+
+    private Observer<List<SitePermission>> mSavedLoginExceptionsObserver = sites -> {
+        mSavedLoginBlockedSites = sites;
     };
 
     @Nullable
@@ -275,133 +272,103 @@ public class PromptDelegate implements
             result.complete(popupPrompt.confirm(AllowOrDeny.ALLOW));
 
         } else {
-            final int sessionId = geckoSession.hashCode();
-            final String uri = mAttachedWindow.getSession().getCurrentUri();
-
-            Optional<PopUpSite> site = mAllowedPopUpSites.stream().filter((item) -> item.url.equals(uri)).findFirst();
-            if (site.isPresent()) {
-                mAttachedWindow.postDelayed(() -> {
-                    if (site.get().allowed) {
-                        result.complete(popupPrompt.confirm(AllowOrDeny.ALLOW));
-
-                    } else {
-                        result.complete(popupPrompt.dismiss());
-                    }
-                }, 500);
+            Session session = mAttachedWindow.getSession();
+            if (session != null) {
+                final String uri = UrlUtils.getHost(session.getCurrentUri());
+                SitePermission site = mAllowedPopUpSites.stream().filter((item) -> UrlUtils.getHost(item.url).equals(uri)).findFirst().orElse(null);
+                if (site != null) {
+                    result.complete(popupPrompt.confirm(AllowOrDeny.ALLOW));
+                    session.setPopUpState(SessionState.POPUP_ALLOWED);
+                } else {
+                    result.complete(popupPrompt.confirm(AllowOrDeny.DENY));
+                    session.setPopUpState(SessionState.POPUP_BLOCKED);
+                }
 
             } else {
-                PopUpRequest request = PopUpRequest.newRequest(popupPrompt, result, sessionId);
-                Pair<String, LinkedList<PopUpRequest>> domainRequestList = mPopUpRequests.get(sessionId);
-                if (domainRequestList == null) {
-                    LinkedList<PopUpRequest> requestList = new LinkedList<>();
-                    domainRequestList = new Pair<>(uri, requestList);
-                    mPopUpRequests.put(sessionId, domainRequestList);
-                }
-                domainRequestList.second.add(request);
-
-                if (mPopupDelegate != null) {
-                    mPopupDelegate.onPopUpAvailable();
-                }
+                result.complete(popupPrompt.confirm(AllowOrDeny.DENY));
             }
         }
 
         return result;
     }
 
-    static class PopUpRequest {
+    @Nullable
+    @Override
+    public GeckoResult<PromptResponse> onLoginSave(@NonNull GeckoSession geckoSession, final @NonNull AutocompleteRequest<Autocomplete.LoginSaveOption> autocompleteRequest) {
+        final GeckoResult<PromptResponse> result = new GeckoResult<>();
 
-        public static PopUpRequest newRequest(@NonNull PopupPrompt prompt, @NonNull GeckoResult<PromptResponse> response, int sessionId) {
-            PopUpRequest request = new PopUpRequest();
-            request.prompt = prompt;
-            request.response = response;
-            request.sessionId = sessionId;
+        // We always get at least one item, at the moment only one item is support.
+        if (autocompleteRequest.options.length > 0 && SettingsStore.getInstance(mContext).isLoginAutocompleteEnabled()) {
+            Autocomplete.LoginSaveOption saveOption = autocompleteRequest.options[0];
+            boolean originHasException = mSavedLoginBlockedSites.stream().anyMatch(site -> site.url.equals(saveOption.value.origin));
+            if (originHasException || !SettingsStore.getInstance(mContext).isLoginAutocompleteEnabled()) {
+                result.complete(autocompleteRequest.dismiss());
 
-            return request;
-        }
+            } else {
+                if (mSaveLoginPrompt == null) {
+                    mSaveLoginPrompt = new SaveLoginPromptWidget(mContext);
+                }
+                mSaveLoginPrompt.setPromptDelegate(new SaveLoginPromptWidget.Delegate() {
+                    @Override
+                    public void dismiss(@NonNull Login login) {
+                        result.complete(autocompleteRequest.dismiss());
+                        SessionStore.get().addPermissionException(login.getOrigin(), SitePermission.SITE_PERMISSION_AUTOFILL);
+                    }
 
-        PopupPrompt prompt;
-        GeckoResult<PromptResponse> response;
-        int sessionId;
-    }
-
-    private SparseArray<Pair<String, LinkedList<PopUpRequest>>> mPopUpRequests = new SparseArray<>();
-
-    public void showPopUps(GeckoSession session) {
-        if (session == null) {
-            return;
-        }
-        Pair<String, LinkedList<PopUpRequest>> requests = mPopUpRequests.get(session.hashCode());
-        if (requests != null && !requests.second.isEmpty()) {
-            showPopUp(session.hashCode(), requests);
-        }
-    }
-
-    public boolean hasPendingPopUps(GeckoSession session) {
-        if (session != null) {
-            Pair<String, LinkedList<PopUpRequest>> requests = mPopUpRequests.get(session.hashCode());
-            if (requests != null) {
-                return !requests.second.isEmpty();
+                    @Override
+                    public void confirm(@NonNull Login login) {
+                        result.complete(autocompleteRequest.confirm(new Autocomplete.LoginSelectOption(GeckoLoginDelegateWrapper.toLoginEntry(login))));
+                    }
+                });
+                mSaveLoginPrompt.setDelegate(() -> result.complete(autocompleteRequest.dismiss()));
+                mSaveLoginPrompt.getPlacement().parentHandle = mAttachedWindow.getHandle();
+                mSaveLoginPrompt.getPlacement().parentAnchorY = 0.0f;
+                mSaveLoginPrompt.getPlacement().translationY = WidgetPlacement.unitFromMeters(mContext, R.dimen.js_prompt_y_distance);
+                mSaveLoginPrompt.setLogin(GeckoLoginDelegateWrapper.toLogin(saveOption.value));
+                mSaveLoginPrompt.show(UIWidget.REQUEST_FOCUS, true);
             }
-        }
-
-        return false;
-    }
-
-    private void showPopUp(int sessionId, @NonNull Pair<String, LinkedList<PopUpRequest>> requests) {
-        String uri = requests.first;
-        Optional<PopUpSite> site = mAllowedPopUpSites.stream().filter((item) -> item.url.equals(uri)).findFirst();
-        if (!site.isPresent()) {
-            mPopUpPrompt = new PopUpBlockDialogWidget(mContext);
-            mPopUpPrompt.setButtonsDelegate(index -> {
-                boolean allowed = index != PopUpBlockDialogWidget.NEGATIVE;
-                boolean askAgain = mPopUpPrompt.askAgain();
-                if (allowed && !askAgain) {
-                    mAllowedPopUpSites.add(new PopUpSite(uri, allowed));
-                    mViewModel.insertSite(uri, allowed);
-                }
-
-                if (allowed) {
-                    requests.second.forEach((request) -> {
-                        request.response.complete(request.prompt.confirm(AllowOrDeny.ALLOW));
-                    });
-
-                    mPopUpRequests.remove(sessionId);
-
-                    mExecutors.mainThread().execute(() -> {
-                        if (mPopupDelegate != null) {
-                            mPopupDelegate.onPopUpsCleared();
-                        }
-                    });
-
-                } else {
-                    mExecutors.mainThread().execute(() -> {
-                        if (mPopupDelegate != null) {
-                            mPopupDelegate.onPopUpAvailable();
-                        }
-                    });
-                }
-
-                mPopUpPrompt.hide(UIWidget.REMOVE_WIDGET);
-                mPopUpPrompt.releaseWidget();
-                mPopUpPrompt = null;
-            });
-            mPopUpPrompt.setDelegate(() -> mExecutors.mainThread().execute(() -> {
-                if (mPopupDelegate != null) {
-                    mPopupDelegate.onPopUpAvailable();
-                }
-            }));
-            mPopUpPrompt.show(UIWidget.REQUEST_FOCUS);
 
         } else {
-            requests.second.forEach((request) -> {
-                if (site.get().allowed) {
-                    request.response.complete(request.prompt.confirm(AllowOrDeny.ALLOW));
+            result.complete(autocompleteRequest.dismiss());
+        }
 
-                } else {
-                    request.response.complete(request.prompt.dismiss());
+        return result;
+    }
+
+    @Nullable
+    @Override
+    public GeckoResult<PromptResponse> onLoginSelect(@NonNull GeckoSession geckoSession, final @NonNull AutocompleteRequest<Autocomplete.LoginSelectOption> autocompleteRequest) {
+        final GeckoResult<PromptResponse> result = new GeckoResult<>();
+
+        if (autocompleteRequest.options.length > 1 && SettingsStore.getInstance(mContext).isAutoFillEnabled()) {
+            List<Login> logins = Arrays.stream(autocompleteRequest.options).map(item -> GeckoLoginDelegateWrapper.toLogin(item.value)).collect(Collectors.toList());
+            if (mSelectLoginPrompt == null) {
+                mSelectLoginPrompt = new SelectLoginPromptWidget(mContext);
+            }
+            mSelectLoginPrompt.setPromptDelegate(new SelectLoginPromptWidget.Delegate() {
+                @Override
+                public void onLoginSelected(@NonNull Login login) {
+                    result.complete(autocompleteRequest.confirm(new Autocomplete.LoginSelectOption(GeckoLoginDelegateWrapper.toLoginEntry(login))));
+                }
+
+                @Override
+                public void onSettingsClicked() {
+                    result.complete(autocompleteRequest.dismiss());
+                    mWidgetManager.getTray().toggleSettingsDialog(SettingsView.SettingViewType.LOGINS_AND_PASSWORDS);
                 }
             });
+            mSelectLoginPrompt.setItems(logins);
+            mSelectLoginPrompt.setDelegate(() -> result.complete(autocompleteRequest.dismiss()));
+            mSelectLoginPrompt.getPlacement().parentHandle = mAttachedWindow.getHandle();
+            mSelectLoginPrompt.getPlacement().parentAnchorY = 0.0f;
+            mSelectLoginPrompt.getPlacement().translationY = WidgetPlacement.unitFromMeters(mContext, R.dimen.js_prompt_y_distance);
+            mSelectLoginPrompt.show(UIWidget.KEEP_FOCUS, true);
+
+        } else {
+            result.complete(autocompleteRequest.dismiss());
         }
+
+        return result;
     }
 
     @Nullable
@@ -429,7 +396,7 @@ public class PromptDelegate implements
                     result.complete(SlowScriptResponse.CONTINUE);
                 }
             });
-            mSlowScriptPrompt.show(UIWidget.REQUEST_FOCUS);
+            mSlowScriptPrompt.show(UIWidget.REQUEST_FOCUS, true);
         }
 
         return result.then(value -> {
@@ -441,18 +408,61 @@ public class PromptDelegate implements
         });
     }
 
+    @Nullable
+    @Override
+    public GeckoResult<PromptResponse> onBeforeUnloadPrompt(@NonNull GeckoSession session, @NonNull BeforeUnloadPrompt prompt) {
+        final GeckoResult<PromptResponse> result = new GeckoResult<>();
+
+        mPrompt = new ConfirmPromptWidget(mContext);
+        mPrompt.getPlacement().parentHandle = mAttachedWindow.getHandle();
+        mPrompt.getPlacement().parentAnchorY = 0.0f;
+        mPrompt.getPlacement().translationY = WidgetPlacement.unitFromMeters(mContext, R.dimen.js_prompt_y_distance);
+        String message = mContext.getString(R.string.before_unload_prompt_message);
+        if (!StringUtils.isEmpty(prompt.title)) {
+            message = prompt.title;
+        }
+        mPrompt.setTitle(mContext.getString(R.string.before_unload_prompt_title));
+        mPrompt.setMessage(message);
+        ((ConfirmPromptWidget)mPrompt).setButtons(new String[] {
+                mContext.getResources().getText(R.string.before_unload_prompt_leave).toString(),
+                mContext.getResources().getText(R.string.before_unload_prompt_stay).toString()
+        });
+        mPrompt.setPromptDelegate(new ConfirmPromptWidget.ConfirmPromptDelegate() {
+            @Override
+            public void confirm(int index) {
+                result.complete(prompt.confirm(index == 0 ? AllowOrDeny.ALLOW : AllowOrDeny.DENY));
+            }
+
+            @Override
+            public void dismiss() {
+                result.complete(prompt.dismiss());
+            }
+        });
+        mPrompt.show(UIWidget.REQUEST_FOCUS, true);
+
+        return result;
+    }
+
+    public void hideAllPrompts() {
+        if (mPrompt != null) {
+            mPrompt.hide(UIWidget.REMOVE_WIDGET);
+        }
+        if (mSlowScriptPrompt != null) {
+            mSlowScriptPrompt.hide(UIWidget.REMOVE_WIDGET);
+        }
+        if (mSaveLoginPrompt != null) {
+            mSaveLoginPrompt.hide(UIWidget.REMOVE_WIDGET);
+        }
+        if (mSelectLoginPrompt != null) {
+            mSelectLoginPrompt.hide(UIWidget.REMOVE_WIDGET);
+        }
+    }
+
     // WindowWidget.WindowListener
 
     @Override
     public void onSessionChanged(@NonNull Session aOldSession, @NonNull Session aSession) {
         cleanSession(aOldSession);
         setUpSession(aSession);
-    }
-
-    // NavigationDelegate
-
-    @Override
-    public void onLocationChange(@NonNull GeckoSession geckoSession, @Nullable String s) {
-        clearPopUps();
     }
 }

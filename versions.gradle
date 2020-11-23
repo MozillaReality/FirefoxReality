@@ -24,21 +24,22 @@ ext.deps = [:]
 def versions = [:]
 // GeckoView versions can be found here:
 // https://maven.mozilla.org/?prefix=maven2/org/mozilla/geckoview/
-versions.gecko_view = "74.0.20200107215758"
-versions.android_components = "28.0.1"
+versions.gecko_view_nightly = "81.0.20200804091327"
+versions.gecko_view_beta = "79.0.20200630191632"
+versions.gecko_view_release = "78.0.20200630195452"
+versions.android_components = "51.0.0"
 // Note that android-components also depends on application-services,
 // and in fact is our main source of appservices-related functionality.
 // The version number below tracks the application-services version
-// that we depend on directly for the fenix-megazord (and for it's
-// forUnitTest variant), and it's important that it be kept in
-// sync with the version used by android-components above.
-versions.mozilla_appservices = "0.48.2"
-versions.mozilla_speech = "1.0.9"
+// that we depend on directly for its rustlog package, and it's important
+// that it be kept insync with the version used by android-components above.
+versions.mozilla_appservices = "0.58.2"
+versions.mozilla_speech = "2.0.4"
 versions.openwnn = "1.3.7"
-versions.google_vr = "1.190.0"
 versions.room = "2.2.0"
 versions.lifecycle = "2.0.0"
-versions.support = "1.0.0"
+versions.support = "1.1.0"
+versions.cardview = "1.0.0"
 versions.recyclerview = "1.1.0"
 versions.constraint_layout = "2.0.0-beta2"
 versions.testing = "1.2.1-alpha02"
@@ -54,15 +55,17 @@ versions.snakeyaml = "1.24"
 versions.gson = "2.8.5"
 versions.robolectric = "4.2.1"
 versions.work = "2.2.0"
-versions.telemetry = "24.1.0"
 ext.versions = versions
 
 def deps = [:]
 
 def gecko_view = [:]
-gecko_view.nightly_armv7a = "org.mozilla.geckoview:geckoview-nightly-armeabi-v7a:$versions.gecko_view"
-gecko_view.nightly_arm64 = "org.mozilla.geckoview:geckoview-nightly-arm64-v8a:$versions.gecko_view"
-gecko_view.nightly_x86_64 = "org.mozilla.geckoview:geckoview-nightly-x86_64:$versions.gecko_view"
+gecko_view.nightly_arm64 = "org.mozilla.geckoview:geckoview-nightly-arm64-v8a:$versions.gecko_view_nightly"
+gecko_view.nightly_x86_64 = "org.mozilla.geckoview:geckoview-nightly-x86_64:$versions.gecko_view_nightly"
+gecko_view.beta_arm64 = "org.mozilla.geckoview:geckoview-beta-arm64-v8a:$versions.gecko_view_beta"
+gecko_view.beta_x86_64 = "org.mozilla.geckoview:geckoview-beta-x86_64:$versions.gecko_view_beta"
+gecko_view.release_arm64 = "org.mozilla.geckoview:geckoview-arm64-v8a:$versions.gecko_view_release"
+gecko_view.release_x86_64 = "org.mozilla.geckoview:geckoview-x86_64:$versions.gecko_view_release"
 deps.gecko_view = gecko_view
 
 def android_components = [:]
@@ -70,46 +73,52 @@ android_components.telemetry = "org.mozilla.components:service-telemetry:$versio
 android_components.glean = "org.mozilla.components:service-glean:$versions.android_components"
 android_components.browser_errorpages = "org.mozilla.components:browser-errorpages:$versions.android_components"
 android_components.browser_search = "org.mozilla.components:browser-search:$versions.android_components"
+android_components.browser_state = "org.mozilla.components:browser-state:$versions.android_components"
 android_components.browser_storage = "org.mozilla.components:browser-storage-sync:$versions.android_components"
 android_components.browser_domains = "org.mozilla.components:browser-domains:$versions.android_components"
 android_components.service_accounts = "org.mozilla.components:service-firefox-accounts:$versions.android_components"
+android_components.service_sync_logins = "org.mozilla.components:service-sync-logins:$versions.android_components"
+android_components.mozilla_service_location = "org.mozilla.components:service-location:${versions.android_components}"
 android_components.ui_autocomplete = "org.mozilla.components:ui-autocomplete:$versions.android_components"
+android_components.concept_engine = "org.mozilla.components:concept-engine:$versions.android_components"
 android_components.concept_fetch = "org.mozilla.components:concept-fetch:$versions.android_components"
 android_components.lib_fetch = "org.mozilla.components:lib-fetch-httpurlconnection:$versions.android_components"
+android_components.lib_dataprotect = "org.mozilla.components:lib-dataprotect:$versions.android_components"
 android_components.support_rustlog = "org.mozilla.components:support-rustlog:$versions.android_components"
 android_components.support_rusthttp = "org.mozilla.components:support-rusthttp:$versions.android_components"
+android_components.support_webextensions = "org.mozilla.components:support-webextensions:$versions.android_components"
+android_components.support_ktx = "org.mozilla.components:support-ktx:$versions.android_components"
+android_components.feature_accounts = "org.mozilla.components:feature-accounts:$versions.android_components"
+android_components.feature_webcompat = "org.mozilla.components:feature-webcompat:$versions.android_components"
+android_components.feature_webcompat_reporter = "org.mozilla.components:feature-webcompat-reporter:$versions.android_components"
+android_components.feature_addons = "org.mozilla.components:feature-addons:$versions.android_components"
 android_components.support_test = "org.mozilla.components:support-test:$versions.android_components"
+android_components.support_test_appservices = "org.mozilla.components:support-test-appservices:$versions.android_components"
 deps.android_components = android_components
 
 def app_services = [:]
-app_services.megazord = "org.mozilla.appservices:fenix-megazord:${versions.mozilla_appservices}"
-app_services.megazord_forUnitTests = "org.mozilla.appservices:fenix-megazord-forUnitTests:${versions.mozilla_appservices}"
 app_services.rustlog = "org.mozilla.appservices:rustlog:${versions.mozilla_appservices}"
 deps.app_services = app_services
 
-deps.mozilla_speech = "com.github.mozilla:mozillaspeechlibrary:$versions.mozilla_speech"
+def mozilla_speech = [:]
+mozilla_speech.library = "com.github.mozilla:mozillaspeechlibrary:$versions.mozilla_speech"
+mozilla_speech.utils = "com.github.mozilla:mozillaspeechutils:$versions.mozilla_speech"
+deps.mozilla_speech = mozilla_speech
 
 deps.openwnn = "jp.co.omronsoft.openwnn:openwnn:$versions.openwnn"
-
-def google_vr = [:]
-google_vr.sdk_base = "com.google.vr:sdk-base:$versions.google_vr"
-google_vr.sdk_audio = "com.google.vr:sdk-audio:$versions.google_vr"
-deps.google_vr = google_vr
 
 def support = [:]
 support.annotations = "androidx.annotation:annotation:$versions.support"
 support.app_compat = "androidx.appcompat:appcompat:$versions.support"
 support.recyclerview = "androidx.recyclerview:recyclerview:$versions.recyclerview"
-support.cardview = "androidx.cardview:cardview:$versions.support"
+support.cardview = "androidx.cardview:cardview:$versions.cardview"
 support.design = "com.google.android.material:material:$versions.support"
 support.v4 = "androidx.legacy:legacy-support-v4:$versions.support"
 support.core_utils = "androidx.legacy:legacy-support-core-utils:$versions.support"
 support.vector_drawable = "androidx.vectordrawable:vectordrawable:$versions.support"
 deps.support = support
 
-// TODO this should not be necessary at all, see Services.kt
 def work = [:]
-work.runtime = "androidx.work:work-runtime-ktx:$versions.work"
 work.testing = "androidx.work:work-testing:$versions.work"
 deps.work = work
 
@@ -121,7 +130,7 @@ deps.room = room
 
 def lifecycle = [:]
 lifecycle.runtime = "androidx.lifecycle:lifecycle-runtime:$versions.lifecycle"
-lifecycle.extensions = "androidx.lifecycle:lifecycle-extensions:$versions.lifecycle"
+lifecycle.viewmodel = "androidx.lifecycle:lifecycle-viewmodel:$versions.lifecycle"
 lifecycle.java8 = "androidx.lifecycle:lifecycle-common-java8:$versions.lifecycle"
 lifecycle.compiler = "androidx.lifecycle:lifecycle-compiler:$versions.lifecycle"
 deps.lifecycle = lifecycle
@@ -163,7 +172,6 @@ kotlin.coroutines_jdk8 = "org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:$version
 deps.kotlin = kotlin
 
 def telemetry = [:]
-telemetry.glean_unittests = "org.mozilla.telemetry:glean-forUnitTests:$versions.telemetry"
 deps.telemetry = telemetry
 
 deps.constraint_layout = "androidx.constraintlayout:constraintlayout:$versions.constraint_layout"
@@ -185,8 +193,8 @@ ext.deps = deps
 def build_versions = [:]
 build_versions.min_sdk = 24
 build_versions.min_sdk_wave = 25
-build_versions.target_sdk = 28
-build_versions.build_tools = "28.0.3"
+build_versions.target_sdk = 29
+build_versions.build_tools = "29.0.2"
 ext.build_versions = build_versions
 
 ext.deps = deps

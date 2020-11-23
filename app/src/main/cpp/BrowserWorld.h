@@ -48,7 +48,6 @@ public:
   void EndFrame();
   void SetTemporaryFilePath(const std::string& aPath);
   void UpdateEnvironment();
-  void UpdateFoveatedLevel(const int aAppLevel);
   void UpdatePointerColor();
   void SetSurfaceTexture(const std::string& aName, jobject& aSurface);
   void AddWidget(int32_t aHandle, const WidgetPlacementPtr& placement);
@@ -66,8 +65,11 @@ public:
   void ShowVRVideo(const int aWindowHandle, const int aVideoProjection);
   void HideVRVideo();
   void SetControllersVisible(const bool aVisible);
-  void ResetUIYaw();
+  enum class YawTarget { ALL, WIDGETS };
+  void RecenterUIYaw(const YawTarget aTarget);
   void SetCylinderDensity(const float aDensity);
+  enum class WebXRInterstialState { FORCED, ALLOW_DISMISS, HIDDEN };
+  void SetWebXRInterstitalState(const WebXRInterstialState aState);
   void SetIsServo(const bool aIsServo);
   void SetCPULevel(const device::CPULevel aLevel);
   JNIEnv* GetJNIEnv() const;
@@ -79,12 +81,13 @@ protected:
   void TickWorld();
   void TickImmersive();
   void TickSplashAnimation();
-  void TickLoadingAnimation();
+  void TickWebXRInterstitial();
   void DrawWorld(device::Eye aEye);
   void DrawImmersive(device::Eye aEye);
-  void DrawLoadingAnimation(device::Eye aEye);
+  void DrawWebXRInterstitial(device::Eye aEye);
   void DrawSplashAnimation(device::Eye aEye);
   void CreateSkyBox(const std::string& aBasePath, const std::string& aExtension);
+  void CreateEnvironment();
 private:
   State& m;
   BrowserWorld() = delete;

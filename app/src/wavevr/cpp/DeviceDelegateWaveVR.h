@@ -14,7 +14,9 @@ typedef std::shared_ptr<DeviceDelegateWaveVR> DeviceDelegateWaveVRPtr;
 class DeviceDelegateWaveVR : public DeviceDelegate {
 public:
   static DeviceDelegateWaveVRPtr Create(vrb::RenderContextPtr& aContext);
+  void InitializeRender();
   // DeviceDelegate interface
+  device::DeviceType GetDeviceType() override;
   void SetRenderMode(const device::RenderMode aMode) override;
   device::RenderMode GetRenderMode() override;
   void RegisterImmersiveDisplay(ImmersiveDisplayPtr aDisplay) override;
@@ -26,15 +28,14 @@ public:
   void SetReorientTransform(const vrb::Matrix& aMatrix) override;
   void SetClearColor(const vrb::Color& aColor) override;
   void SetClipPlanes(const float aNear, const float aFar) override;
-  void SetFoveatedLevel(const int32_t aAppLevel) override;
   void SetControllerDelegate(ControllerDelegatePtr& aController) override;
   void ReleaseControllerDelegate() override;
   int32_t GetControllerModelCount() const override;
   const std::string GetControllerModelName(const int32_t aModelIndex) const override;
   void ProcessEvents() override;
-  void StartFrame() override;
+  void StartFrame(const FramePrediction aPrediction) override;
   void BindEye(const device::Eye aWhich) override;
-  void EndFrame(const bool aDiscard) override;
+  void EndFrame(const FrameEndMode aMode) override;
   // DeviceDelegateWaveVR interface
   bool IsRunning();
 protected:

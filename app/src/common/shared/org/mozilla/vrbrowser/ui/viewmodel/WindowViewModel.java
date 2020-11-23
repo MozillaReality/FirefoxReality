@@ -6,31 +6,28 @@ import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.style.ForegroundColorSpan;
 import android.util.TypedValue;
+import android.webkit.URLUtil;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.databinding.ObservableBoolean;
+import androidx.databinding.ObservableInt;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Observer;
 
+import org.mozilla.geckoview.ContentBlocking;
 import org.mozilla.vrbrowser.R;
-import org.mozilla.vrbrowser.VRBrowserApplication;
 import org.mozilla.vrbrowser.browser.SettingsStore;
-import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.ui.widgets.Windows;
 import org.mozilla.vrbrowser.utils.ServoUtils;
-import org.mozilla.vrbrowser.utils.StringUtils;
 import org.mozilla.vrbrowser.utils.UrlUtils;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
-import java.util.concurrent.Executor;
 
 public class WindowViewModel extends AndroidViewModel {
-
-    private Executor mUIThreadExecutor;
 
     private int mURLProtocolColor;
     private int mURLWebsiteColor;
@@ -48,15 +45,14 @@ public class WindowViewModel extends AndroidViewModel {
     private MutableLiveData<ObservableBoolean> isInsecure;
     private MutableLiveData<ObservableBoolean> isActiveWindow;
     private MediatorLiveData<ObservableBoolean> isTitleBarVisible;
-    private MutableLiveData<ObservableBoolean> isBookmarksVisible;
-    private MutableLiveData<ObservableBoolean> isHistoryVisible;
-    private MediatorLiveData<ObservableBoolean> isLibraryVisible;
+    private MutableLiveData<ObservableBoolean> isLibraryVisible;
     private MutableLiveData<ObservableBoolean> isLoading;
     private MutableLiveData<ObservableBoolean> isMicrophoneEnabled;
     private MutableLiveData<ObservableBoolean> isBookmarked;
     private MutableLiveData<ObservableBoolean> isFocused;
     private MutableLiveData<ObservableBoolean> isUrlEmpty;
     private MutableLiveData<ObservableBoolean> isPopUpAvailable;
+    private MutableLiveData<ObservableBoolean> isPopUpBlocked;
     private MutableLiveData<ObservableBoolean> canGoForward;
     private MutableLiveData<ObservableBoolean> canGoBack;
     private MutableLiveData<ObservableBoolean> isInVRVideo;
@@ -67,12 +63,17 @@ public class WindowViewModel extends AndroidViewModel {
     private MutableLiveData<ObservableBoolean> isMediaAvailable;
     private MutableLiveData<ObservableBoolean> isMediaPlaying;
     private MediatorLiveData<String> navigationBarUrl;
-
+    private MutableLiveData<ObservableBoolean> isWebXRUsed;
+    private MutableLiveData<ObservableBoolean> isWebXRBlocked;
+    private MutableLiveData<ObservableBoolean> isTrackingEnabled;
+    private MutableLiveData<ObservableBoolean> isDrmUsed;
+    private MediatorLiveData<ObservableBoolean> isUrlBarButtonsVisible;
+    private MediatorLiveData<ObservableBoolean> isUrlBarIconsVisible;
+    private MutableLiveData<ObservableInt> mWidth;
+    private MutableLiveData<ObservableInt> mHeight;
 
     public WindowViewModel(Application application) {
         super(application);
-
-        mUIThreadExecutor = ((VRBrowserApplication)application).getExecutors().mainThread();
 
         TypedValue typedValue = new TypedValue();
         Resources.Theme theme = application.getTheme();
@@ -96,7 +97,7 @@ public class WindowViewModel extends AndroidViewModel {
         isTopBarVisible.addSource(isResizeMode, mIsTopBarVisibleObserver);
         isTopBarVisible.addSource(isPrivateSession, mIsTopBarVisibleObserver);
         isTopBarVisible.addSource(isWindowVisible, mIsTopBarVisibleObserver);
-        isTopBarVisible.setValue(new ObservableBoolean(false));
+        isTopBarVisible.setValue(new ObservableBoolean(true));
 
         showClearButton = new MediatorLiveData<>();
         showClearButton.addSource(isOnlyWindow, mShowClearButtonObserver);
@@ -115,22 +116,17 @@ public class WindowViewModel extends AndroidViewModel {
         isTitleBarVisible.addSource(isActiveWindow, mIsTitleBarVisibleObserver);
         isTitleBarVisible.addSource(isWindowVisible, mIsTitleBarVisibleObserver);
         isTitleBarVisible.addSource(isOnlyWindow, mIsTitleBarVisibleObserver);
-        isTitleBarVisible.setValue(new ObservableBoolean(false));
+        isTitleBarVisible.setValue(new ObservableBoolean(true));
 
-        isBookmarksVisible = new MutableLiveData<>(new ObservableBoolean(false));
-        isHistoryVisible = new MutableLiveData<>(new ObservableBoolean(false));
-
-        isLibraryVisible = new MediatorLiveData<>();
-        isLibraryVisible.addSource(isBookmarksVisible, mIsLibraryVisibleObserver);
-        isLibraryVisible.addSource(isHistoryVisible, mIsLibraryVisibleObserver);
-        isLibraryVisible.setValue(new ObservableBoolean(false));
+        isLibraryVisible = new MutableLiveData<>(new ObservableBoolean(false));
 
         isLoading = new MutableLiveData<>(new ObservableBoolean(false));
         isMicrophoneEnabled = new MutableLiveData<>(new ObservableBoolean(true));
         isBookmarked = new MutableLiveData<>(new ObservableBoolean(false));
         isFocused = new MutableLiveData<>(new ObservableBoolean(false));
-        isUrlEmpty = new MutableLiveData<>(new ObservableBoolean(false));
+        isUrlEmpty = new MutableLiveData<>(new ObservableBoolean(true));
         isPopUpAvailable = new MutableLiveData<>(new ObservableBoolean(false));
+        isPopUpBlocked = new MutableLiveData<>(new ObservableBoolean(false));
         canGoForward = new MutableLiveData<>(new ObservableBoolean(false));
         canGoBack = new MutableLiveData<>(new ObservableBoolean(false));
         isInVRVideo = new MutableLiveData<>(new ObservableBoolean(false));
@@ -156,20 +152,43 @@ public class WindowViewModel extends AndroidViewModel {
         navigationBarUrl = new MediatorLiveData<>();
         navigationBarUrl.addSource(url, mNavigationBarUrlObserver);
         navigationBarUrl.setValue("");
+
+        isWebXRUsed = new MutableLiveData<>(new ObservableBoolean(false));
+        isWebXRBlocked = new MutableLiveData<>(new ObservableBoolean(false));
+
+        isTrackingEnabled = new MutableLiveData<>(new ObservableBoolean(true));
+        isDrmUsed = new MutableLiveData<>(new ObservableBoolean(false));
+
+        isUrlBarButtonsVisible = new MediatorLiveData<>();
+        isUrlBarButtonsVisible.addSource(isTrackingEnabled, mIsUrlBarButtonsVisibleObserver);
+        isUrlBarButtonsVisible.addSource(isDrmUsed, mIsUrlBarButtonsVisibleObserver);
+        isUrlBarButtonsVisible.addSource(isPopUpAvailable, mIsUrlBarButtonsVisibleObserver);
+        isUrlBarButtonsVisible.addSource(isWebXRUsed, mIsUrlBarButtonsVisibleObserver);
+        isUrlBarButtonsVisible.addSource(isLibraryVisible, mIsUrlBarButtonsVisibleObserver);
+        isUrlBarButtonsVisible.addSource(isFocused, mIsUrlBarButtonsVisibleObserver);
+        isUrlBarButtonsVisible.setValue(new ObservableBoolean(false));
+
+        isUrlBarIconsVisible = new MediatorLiveData<>();
+        isUrlBarIconsVisible.addSource(isLoading, mIsUrlBarIconsVisibleObserver);
+        isUrlBarIconsVisible.addSource(isInsecureVisible, mIsUrlBarIconsVisibleObserver);
+        isUrlBarIconsVisible.setValue(new ObservableBoolean(false));
+
+        mWidth = new MutableLiveData<>(new ObservableInt());
+        mHeight = new MutableLiveData<>(new ObservableInt());
     }
 
     private Observer<ObservableBoolean> mIsTopBarVisibleObserver = new Observer<ObservableBoolean>() {
         @Override
         public void onChanged(ObservableBoolean o) {
             if (isFullscreen.getValue().get() || isResizeMode.getValue().get() || !isWindowVisible.getValue().get()) {
-                isTopBarVisible.setValue(new ObservableBoolean(false));
+                isTopBarVisible.postValue(new ObservableBoolean(false));
 
             } else {
                 if (isOnlyWindow.getValue().get()) {
-                    isTopBarVisible.setValue(new ObservableBoolean(isPrivateSession.getValue().get()));
+                    isTopBarVisible.postValue(new ObservableBoolean(isPrivateSession.getValue().get()));
 
                 } else {
-                    isTopBarVisible.setValue(new ObservableBoolean(true));
+                    isTopBarVisible.postValue(new ObservableBoolean(true));
                 }
             }
         }
@@ -178,7 +197,7 @@ public class WindowViewModel extends AndroidViewModel {
     private Observer<ObservableBoolean> mShowClearButtonObserver = new Observer<ObservableBoolean>() {
         @Override
         public void onChanged(ObservableBoolean o) {
-            showClearButton.setValue(new ObservableBoolean(isWindowVisible.getValue().get() &&
+            showClearButton.postValue(new ObservableBoolean(isWindowVisible.getValue().get() &&
                     isPrivateSession.getValue().get() && isOnlyWindow.getValue().get() &&
                     !isResizeMode.getValue().get() && !isFullscreen.getValue().get()));
         }
@@ -188,21 +207,11 @@ public class WindowViewModel extends AndroidViewModel {
         @Override
         public void onChanged(ObservableBoolean o) {
             if (isFullscreen.getValue().get() || isResizeMode.getValue().get() || isActiveWindow.getValue().get()) {
-                isTitleBarVisible.setValue(new ObservableBoolean(false));
+                isTitleBarVisible.postValue(new ObservableBoolean(false));
 
             } else {
-                isTitleBarVisible.setValue(new ObservableBoolean(isWindowVisible.getValue().get() && !isOnlyWindow.getValue().get()));
+                isTitleBarVisible.postValue(new ObservableBoolean(isWindowVisible.getValue().get() && !isOnlyWindow.getValue().get()));
             }
-        }
-    };
-
-    private Observer<ObservableBoolean> mIsLibraryVisibleObserver = new Observer<ObservableBoolean>() {
-        @Override
-        public void onChanged(ObservableBoolean o) {
-            isLibraryVisible.setValue(new ObservableBoolean(isBookmarksVisible.getValue().get() || isHistoryVisible.getValue().get()));
-
-            // We use this to force dispatch a title bar and navigation bar URL refresh when library is opened
-            url.setValue(url.getValue());
         }
     };
 
@@ -210,8 +219,8 @@ public class WindowViewModel extends AndroidViewModel {
         @Override
         public void onChanged(Spannable url) {
             boolean isPrefEnabled = SettingsStore.getInstance(getApplication()).isServoEnabled();
-            boolean isUrlWhiteListed = ServoUtils.isUrlInServoWhiteList(getApplication(), url.toString());
-            isServoAvailable.postValue(new ObservableBoolean(isPrefEnabled && isUrlWhiteListed));
+            boolean isUrlAllowListed = ServoUtils.isUrlInServoAllowList(getApplication(), url.toString());
+            isServoAvailable.postValue(new ObservableBoolean(isPrefEnabled && isUrlAllowListed));
         }
     };
 
@@ -219,11 +228,8 @@ public class WindowViewModel extends AndroidViewModel {
         @Override
         public void onChanged(Spannable aUrl) {
             String url = aUrl.toString();
-            if (isBookmarksVisible.getValue().get()) {
-                url = getApplication().getString(R.string.url_bookmarks_title);
-
-            } else if (isHistoryVisible.getValue().get()) {
-                url = getApplication().getString(R.string.url_history_title);
+            if (isLibraryVisible.getValue().get()) {
+                url = getApplication().getString(R.string.url_library_title);
 
             } else {
                 if (UrlUtils.isPrivateAboutPage(getApplication(), url) ||
@@ -233,12 +239,15 @@ public class WindowViewModel extends AndroidViewModel {
                 } else if (UrlUtils.isHomeUri(getApplication(), aUrl.toString())) {
                     url = getApplication().getString(R.string.url_home_title, getApplication().getString(R.string.app_name));
 
+                } else if (UrlUtils.isWebExtensionUrl(aUrl.toString())) {
+                    url = getApplication().getString(R.string.web_extensions_title);
+
                 } else if (UrlUtils.isBlankUri(getApplication(), aUrl.toString())) {
                     url = "";
                 }
             }
 
-            titleBarUrl.setValue(UrlUtils.titleBarUrl(url));
+            titleBarUrl.postValue(UrlUtils.titleBarUrl(url));
         }
     };
 
@@ -249,17 +258,18 @@ public class WindowViewModel extends AndroidViewModel {
             if (isInsecure.getValue().get()) {
                 if (UrlUtils.isPrivateAboutPage(getApplication(), aUrl) ||
                         (UrlUtils.isDataUri(aUrl) && isPrivateSession.getValue().get()) ||
+                        UrlUtils.isFileUri(aUrl) ||
                         UrlUtils.isHomeUri(getApplication(), aUrl) ||
                         isLibraryVisible.getValue().get() ||
                         UrlUtils.isBlankUri(getApplication(), aUrl)) {
-                    isInsecureVisible.setValue(new ObservableBoolean(false));
+                    isInsecureVisible.postValue(new ObservableBoolean(false));
 
                 } else {
-                    isInsecureVisible.setValue(new ObservableBoolean(true));
+                    isInsecureVisible.postValue(new ObservableBoolean(true));
                 }
 
             } else {
-                isInsecureVisible.setValue(new ObservableBoolean(false));
+                isInsecureVisible.postValue(new ObservableBoolean(false));
             }
         }
     };
@@ -273,30 +283,52 @@ public class WindowViewModel extends AndroidViewModel {
                     UrlUtils.isHomeUri(getApplication(), aUrl.toString()) ||
                     isLibraryVisible.getValue().get() ||
                     UrlUtils.isBlankUri(getApplication(), aUrl.toString())) {
-                navigationBarUrl.setValue("");
+                navigationBarUrl.postValue("");
 
             } else {
-                navigationBarUrl.setValue(url);
+                navigationBarUrl.postValue(url);
             }
+        }
+    };
 
-            if (isBookmarksVisible.getValue().get()) {
-                hint.setValue(getApplication().getString(R.string.url_bookmarks_title));
+    private Observer<ObservableBoolean> mIsUrlBarButtonsVisibleObserver = new Observer<ObservableBoolean>() {
+        @Override
+        public void onChanged(ObservableBoolean o) {
+            String aUrl = url.getValue().toString();
+            isUrlBarButtonsVisible.postValue(new ObservableBoolean(
+                    !isFocused.getValue().get() &&
+                            !isLibraryVisible.getValue().get() &&
+                            !UrlUtils.isContentFeed(getApplication(), aUrl) &&
+                            !UrlUtils.isPrivateAboutPage(getApplication(), aUrl) &&
+                            (URLUtil.isHttpUrl(aUrl) || URLUtil.isHttpsUrl(aUrl)) &&
+                            (
+                                    (SettingsStore.getInstance(getApplication()).getTrackingProtectionLevel() != ContentBlocking.EtpLevel.NONE) ||
+                                    isPopUpAvailable.getValue().get() ||
+                                    isDrmUsed.getValue().get() ||
+                                    isWebXRUsed.getValue().get()
+                            )
+            ));
+            hint.postValue(getHintValue());
+        }
+    };
 
-            } else if (isHistoryVisible.getValue().get()) {
-                hint.setValue(getApplication().getString(R.string.url_history_title));
-
-            } else {
-                hint.setValue(getApplication().getString(R.string.search_placeholder));
-            }
+    private Observer<ObservableBoolean> mIsUrlBarIconsVisibleObserver = new Observer<ObservableBoolean>() {
+        @Override
+        public void onChanged(ObservableBoolean o) {
+            isUrlBarIconsVisible.postValue(new ObservableBoolean(
+                    !isLibraryVisible.getValue().get() &&
+                            (isLoading.getValue().get() ||
+                                    isInsecureVisible.getValue().get())
+            ));
         }
     };
 
     public void refresh() {
         url.postValue(url.getValue());
+        hint.postValue(getHintValue());
         isWindowVisible.postValue(isWindowVisible.getValue());
         placement.postValue(placement.getValue());
         isOnlyWindow.postValue(isOnlyWindow.getValue());
-        isFullscreen.postValue(isFullscreen.getValue());
         isResizeMode.postValue(isResizeMode.getValue());
         isPrivateSession.postValue(isPrivateSession.getValue());
         isInsecure.postValue(isInsecure.getValue());
@@ -306,12 +338,20 @@ public class WindowViewModel extends AndroidViewModel {
         isFocused.postValue(isFocused.getValue());
         isUrlEmpty.postValue(isUrlEmpty.getValue());
         isPopUpAvailable.postValue(isPopUpAvailable.getValue());
+        isPopUpBlocked.postValue(isPopUpBlocked.getValue());
         canGoForward.postValue(canGoForward.getValue());
         canGoBack.postValue(canGoBack.getValue());
         isInVRVideo.postValue(isInVRVideo.getValue());
         autoEnteredVRVideo.postValue(autoEnteredVRVideo.getValue());
+        titleBarUrl.setValue(titleBarUrl.getValue());
         isMediaAvailable.postValue(isMediaAvailable.getValue());
         isMediaPlaying.postValue(isMediaPlaying.getValue());
+        isWebXRUsed.postValue(isWebXRUsed.getValue());
+        isWebXRBlocked.postValue(isWebXRBlocked.getValue());
+        isTrackingEnabled.postValue(isTrackingEnabled.getValue());
+        isDrmUsed.postValue(isDrmUsed.getValue());
+        mWidth.postValue(mWidth.getValue());
+        mHeight.postValue(mHeight.getValue());
     }
 
     @NonNull
@@ -323,9 +363,10 @@ public class WindowViewModel extends AndroidViewModel {
     }
 
     public void setUrl(@Nullable String url) {
-        if (url != null) {
-            this.url.setValue(new SpannableString(url));
+        if (url == null) {
+            return;
         }
+        setUrl(new SpannableString(url));
     }
 
     public void setUrl(@Nullable Spannable url) {
@@ -334,20 +375,6 @@ public class WindowViewModel extends AndroidViewModel {
         }
 
         String aURL = url.toString();
-
-        if (isLibraryVisible.getValue().get()) {
-            return;
-        }
-
-        if (StringUtils.isEmpty(aURL)) {
-            setIsBookmarked(false);
-
-        } else {
-            SessionStore.get().getBookmarkStore().isBookmarked(aURL).thenAcceptAsync(this::setIsBookmarked, mUIThreadExecutor).exceptionally(throwable -> {
-                throwable.printStackTrace();
-                return null;
-            });
-        }
 
         int index = -1;
         try {
@@ -376,29 +403,35 @@ public class WindowViewModel extends AndroidViewModel {
         // Update the URL bar only if the URL is different than the current one and
         // the URL bar is not focused to avoid override user input
         if (!getUrl().getValue().toString().equalsIgnoreCase(aURL) && !getIsFocused().getValue().get()) {
-            this.url.setValue(new SpannableString(aURL));
+            this.url.postValue(new SpannableString(aURL));
             if (index > 0) {
                 SpannableString spannable = new SpannableString(aURL);
                 ForegroundColorSpan color1 = new ForegroundColorSpan(mURLProtocolColor);
                 ForegroundColorSpan color2 = new ForegroundColorSpan(mURLWebsiteColor);
                 spannable.setSpan(color1, 0, index + 3, 0);
                 spannable.setSpan(color2, index + 3, aURL.length(), 0);
-                this.url.setValue(url);
+                this.url.postValue(url);
 
             } else {
-                this.url.setValue(url);
+                this.url.postValue(url);
             }
         }
 
-        this.url.setValue(url);
+        this.url.postValue(url);
     }
 
     @NonNull
     public MutableLiveData<String> getHint() {
-        if (hint == null) {
-            hint = new MutableLiveData<>("");
-        }
         return hint;
+    }
+
+    private String getHintValue() {
+        if (isLibraryVisible.getValue().get()) {
+            return getApplication().getString(R.string.url_library_title);
+
+        } else {
+            return getApplication().getString(R.string.search_placeholder);
+        }
     }
 
     @NonNull
@@ -493,25 +526,16 @@ public class WindowViewModel extends AndroidViewModel {
     }
 
     public void setIsActiveWindow(boolean isActiveWindow) {
-        this.isActiveWindow.postValue(new ObservableBoolean(isActiveWindow));
+        this.isActiveWindow.setValue(new ObservableBoolean(isActiveWindow));
     }
 
-    @NonNull
-    public MutableLiveData<ObservableBoolean> getIsBookmraksVisible() {
-        return isBookmarksVisible;
+    public void setIsLibraryVisible(boolean isLibraryVisible) {
+        this.isLibraryVisible.postValue(new ObservableBoolean(isLibraryVisible));
+        this.url.postValue(this.getUrl().getValue());
     }
 
-    public void setIsBookmarksVisible(boolean isBookmarksVisible) {
-        this.isBookmarksVisible.postValue(new ObservableBoolean(isBookmarksVisible));
-    }
-
-    @NonNull
-    public MutableLiveData<ObservableBoolean> getIsHistoryVisible() {
-        return isHistoryVisible;
-    }
-
-    public void setIsHistoryVisible(boolean isHistoryVisible) {
-        this.isHistoryVisible.postValue(new ObservableBoolean(isHistoryVisible));
+    public void setIsPanelVisible(boolean isVisible) {
+        setIsLibraryVisible(isVisible);
     }
 
     @NonNull
@@ -543,7 +567,7 @@ public class WindowViewModel extends AndroidViewModel {
     }
 
     public void setIsBookmarked(boolean isBookmarked) {
-        this.isBookmarked.setValue(new ObservableBoolean(isBookmarked));
+        this.isBookmarked.postValue(new ObservableBoolean(isBookmarked));
     }
 
     @NonNull
@@ -565,12 +589,21 @@ public class WindowViewModel extends AndroidViewModel {
     }
 
     @NonNull
-    public MutableLiveData<ObservableBoolean> getIsPopUpAvailable() {
-        return isPopUpAvailable;
+    public MutableLiveData<ObservableBoolean> getIsWebXRUsed() {
+        return isWebXRUsed;
     }
 
-    public void setIsPopUpAvailable(boolean isPopUpAvailable) {
-        this.isPopUpAvailable.postValue(new ObservableBoolean(isPopUpAvailable));
+    public void setIsWebXRUsed(boolean used) {
+        this.isWebXRUsed.postValue(new ObservableBoolean(used));
+    }
+
+    @NonNull
+    public MutableLiveData<ObservableBoolean> getIsWebXRBlocked() {
+        return isWebXRBlocked;
+    }
+
+    public void setIsWebXRBlocked(boolean blocked) {
+        this.isWebXRBlocked.postValue(new ObservableBoolean(blocked));
     }
 
     @NonNull
@@ -645,5 +678,69 @@ public class WindowViewModel extends AndroidViewModel {
     @NonNull
     public MutableLiveData<String> getNavigationBarUrl() {
         return navigationBarUrl;
+    }
+
+    @NonNull
+    public MutableLiveData<ObservableBoolean> getIsPopUpAvailable() {
+        return isPopUpAvailable;
+    }
+
+    public void setIsPopUpAvailable(boolean isPopUpAvailable) {
+        this.isPopUpAvailable.postValue(new ObservableBoolean(isPopUpAvailable));
+    }
+
+    @NonNull
+    public MutableLiveData<ObservableBoolean> getIsPopUpBlocked() {
+        return isPopUpBlocked;
+    }
+
+    public void setIsPopUpBlocked(boolean isPopUpBlocked) {
+        this.isPopUpBlocked.postValue(new ObservableBoolean(isPopUpBlocked));
+    }
+
+    @NonNull
+    public MutableLiveData<ObservableBoolean> getIsTrackingEnabled() {
+        return isTrackingEnabled;
+    }
+
+    public void setIsTrackingEnabled(boolean isTrackingEnabled) {
+        this.isTrackingEnabled.postValue(new ObservableBoolean(isTrackingEnabled));
+    }
+
+    @NonNull
+    public MutableLiveData<ObservableBoolean> getIsDrmUsed() {
+        return isDrmUsed;
+    }
+
+    public void setIsDrmUsed(boolean isEnabled) {
+        this.isDrmUsed.postValue(new ObservableBoolean(isEnabled));
+    }
+
+    @NonNull
+    public MutableLiveData<ObservableBoolean> getIsUrlBarButtonsVisible() {
+        return isUrlBarButtonsVisible;
+    }
+
+    @NonNull
+    public MutableLiveData<ObservableBoolean> getIsUrlBarIconsVisible() {
+        return isUrlBarIconsVisible;
+    }
+
+    @NonNull
+    public MutableLiveData<ObservableInt> getWidth() {
+        return mWidth;
+    }
+
+    public void setWidth(int width) {
+        this.mWidth.setValue(new ObservableInt(width));
+    }
+
+    @NonNull
+    public MutableLiveData<ObservableInt> getHeight() {
+        return mHeight;
+    }
+
+    public void setHeight(int height) {
+        this.mHeight.setValue(new ObservableInt(height));
     }
 }

@@ -185,6 +185,7 @@ DeviceDelegateNoAPI::SetControllerDelegate(ControllerDelegatePtr& aController) {
   m.controller->SetEnabled(kControllerIndex, true);
   m.controller->SetCapabilityFlags(kControllerIndex, device::Orientation | device::Position);
   m.controller->SetButtonCount(kControllerIndex, 5);
+  m.controller->SetTargetRayMode(kControllerIndex, device::TargetRayMode::TrackedPointer);
   static const float data[2] = {0.0f, 0.0f};
   m.controller->SetAxes(kControllerIndex, data, 2);
 }
@@ -211,12 +212,19 @@ DeviceDelegateNoAPI::ProcessEvents() {
 }
 
 void
-DeviceDelegateNoAPI::StartFrame() {
+DeviceDelegateNoAPI::StartFrame(const FramePrediction aPrediction) {
   VRB_GL_CHECK(glClearColor(m.clearColor.Red(), m.clearColor.Green(), m.clearColor.Blue(), m.clearColor.Alpha()));
   VRB_GL_CHECK(glEnable(GL_DEPTH_TEST));
   VRB_GL_CHECK(glEnable(GL_CULL_FACE));
   VRB_GL_CHECK(glEnable(GL_BLEND));
   VRB_GL_CHECK(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+  if (m.controller) {
+    vrb::RenderContextPtr context = m.context.lock();
+    if (context) {
+      float level = 100.0 - std::fmod(context->GetTimestamp(), 100.0);
+      m.controller->SetBatteryLevel(kControllerIndex, (int32_t)level);
+    }
+  }
 }
 
 void
@@ -240,7 +248,7 @@ DeviceDelegateNoAPI::BindEye(const device::Eye aEye) {
 }
 
 void
-DeviceDelegateNoAPI::EndFrame(const bool aDiscard) {
+DeviceDelegateNoAPI::EndFrame(const FrameEndMode aMode) {
   // noop
 }
 
@@ -384,7 +392,13 @@ DeviceDelegateNoAPI::ControllerButtonPressed(const bool aDown) {
     return;
   }
 
-  m.controller->SetButtonState(kControllerIndex, ControllerDelegate::BUTTON_TOUCHPAD, 1, aDown, aDown);
+  m.controller->SetButtonState(kControllerIndex, ControllerDelegate::BUTTON_TRIGGER, device::kImmersiveButtonTrigger, aDown, aDown);
+  if (aDown && m.renderMode == device::RenderMode::Immersive) {
+    m.controller->SetSelectActionStart(kControllerIndex);
+  } else {
+    m.controller->SetSelectActionStop(kControllerIndex);
+  }
+
 }
 
 DeviceDelegateNoAPI::DeviceDelegateNoAPI(State& aState) : m(aState) {}

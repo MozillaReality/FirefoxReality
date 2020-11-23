@@ -22,6 +22,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.UiThread;
 
 import org.mozilla.geckoview.AllowOrDeny;
+import org.mozilla.geckoview.Autocomplete;
 import org.mozilla.geckoview.ContentBlocking;
 import org.mozilla.geckoview.GeckoDisplay;
 import org.mozilla.geckoview.GeckoResult;
@@ -37,9 +38,10 @@ import org.mozilla.vrbrowser.browser.SessionChangeListener;
 import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.browser.UserAgentOverride;
 import org.mozilla.vrbrowser.browser.VideoAvailabilityListener;
+import org.mozilla.vrbrowser.browser.content.TrackingProtectionPolicy;
+import org.mozilla.vrbrowser.browser.content.TrackingProtectionStore;
 import org.mozilla.vrbrowser.geolocation.GeolocationData;
 import org.mozilla.vrbrowser.telemetry.GleanMetricsService;
-import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
 import org.mozilla.vrbrowser.utils.BitmapCache;
 import org.mozilla.vrbrowser.utils.InternalPages;
 import org.mozilla.vrbrowser.utils.SystemUtils;
@@ -47,6 +49,8 @@ import org.mozilla.vrbrowser.utils.UrlUtils;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -74,6 +78,9 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     private transient CopyOnWriteArrayList<VideoAvailabilityListener> mVideoAvailabilityListeners;
     private transient CopyOnWriteArrayList<BitmapChangedListener> mBitmapChangedListeners;
     private transient CopyOnWriteArrayList<GeckoSession.SelectionActionDelegate> mSelectionActionListeners;
+    private transient CopyOnWriteArrayList<WebXRStateChangedListener> mWebXRStateListeners;
+    private transient CopyOnWriteArrayList<PopUpStateChangedListener> mPopUpStateStateListeners;
+    private transient CopyOnWriteArrayList<DrmStateChangedListener> mDrmStateStateListeners;
 
     private SessionState mState;
     private transient CopyOnWriteArrayList<Runnable> mQueuedCalls = new CopyOnWriteArrayList<>();
@@ -87,25 +94,72 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     private transient boolean mFirstContentfulPaint;
     private transient long mKeepAlive;
 
+    private static final List<String> FORCE_MOBILE_VIEWPORT = Collections.singletonList(".youtube.com");
+
     public interface BitmapChangedListener {
         void onBitmapChanged(Session aSession, Bitmap aBitmap);
     }
 
-    @IntDef(value = { SESSION_OPEN, SESSION_DO_NOT_OPEN})
-    public @interface SessionOpenModeFlags {}
-    public static final int SESSION_OPEN = 0;
-    public static final int SESSION_DO_NOT_OPEN = 1;
+    public interface WebXRStateChangedListener {
+        void onWebXRStateChanged(Session aSession, @SessionState.WebXRState int aWebXRState);
+    }
 
-    protected Session(Context aContext, GeckoRuntime aRuntime,
-                      @NonNull SessionSettings aSettings, @SessionOpenModeFlags int aOpenMode) {
+    public interface PopUpStateChangedListener {
+        void onPopUpStateChanged(Session aSession, @SessionState.PopupState int aPopUpState);
+    }
+
+    public interface DrmStateChangedListener {
+        void onDrmStateChanged(Session aSession, @SessionState.DrmState int aDrmState);
+    }
+
+    @IntDef(value = { SESSION_OPEN, SESSION_DO_NOT_OPEN})
+    @interface SessionOpenModeFlags {}
+    static final int SESSION_OPEN = 0;
+    static final int SESSION_DO_NOT_OPEN = 1;
+
+    @NonNull
+    static Session createWebExtensionSession(Context aContext, GeckoRuntime aRuntime, @NonNull SessionSettings aSettings, @Session.SessionOpenModeFlags int aOpenMode, @NonNull SessionChangeListener listener) {
+        Session session = new Session(aContext, aRuntime, aSettings);
+        session.mState.mIsWebExtensionSession = true;
+        session.addSessionChangeListener(listener);
+        listener.onSessionAdded(session);
+        if (aOpenMode == Session.SESSION_OPEN) {
+            session.openSession();
+            session.setActive(true);
+        }
+
+        return session;
+    }
+
+    @NonNull
+    static Session createSession(Context aContext, GeckoRuntime aRuntime, @NonNull SessionSettings aSettings, @Session.SessionOpenModeFlags int aOpenMode, @NonNull SessionChangeListener listener) {
+        Session session = new Session(aContext, aRuntime, aSettings);
+        session.addSessionChangeListener(listener);
+        listener.onSessionAdded(session);
+        if (aOpenMode == Session.SESSION_OPEN) {
+            session.openSession();
+            session.setActive(true);
+        }
+
+        return session;
+    }
+
+    @NonNull
+    static Session createSuspendedSession(Context aContext, GeckoRuntime aRuntime, @NonNull SessionState aRestoreState, @NonNull SessionChangeListener listener) {
+        Session session = new Session(aContext, aRuntime, aRestoreState);
+        session.addSessionChangeListener(listener);
+
+        return session;
+    }
+
+    private Session(Context aContext, GeckoRuntime aRuntime, @NonNull SessionSettings aSettings) {
         mContext = aContext;
         mRuntime = aRuntime;
         initialize();
-        mState = createSession(aSettings, aOpenMode);
-        mState.setActive(true);
+        mState = createSessionState(aSettings);
     }
 
-    protected Session(Context aContext, GeckoRuntime aRuntime, @NonNull SessionState aRestoreState) {
+    private Session(Context aContext, GeckoRuntime aRuntime, @NonNull SessionState aRestoreState) {
         mContext = aContext;
         mRuntime = aRuntime;
         initialize();
@@ -121,6 +175,9 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         mVideoAvailabilityListeners = new CopyOnWriteArrayList<>();
         mSelectionActionListeners = new CopyOnWriteArrayList<>();
         mBitmapChangedListeners = new CopyOnWriteArrayList<>();
+        mWebXRStateListeners = new CopyOnWriteArrayList<>();
+        mPopUpStateStateListeners = new CopyOnWriteArrayList<>();
+        mDrmStateStateListeners = new CopyOnWriteArrayList<>();
 
         if (mPrefs != null) {
             mPrefs.registerOnSharedPreferenceChangeListener(this);
@@ -139,16 +196,10 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
 
     protected void shutdown() {
         if (mState.mSession != null) {
-            if (mState.mSession.isOpen()) {
-                mState.mSession.close();
-            }
-            mState.mDisplay = null;
-            mState.mSession = null;
+            setActive(false);
+            suspend();
         }
 
-        for (SessionChangeListener listener : mSessionChangeListeners) {
-            listener.onRemoveSession(this);
-        }
         if (mState.mParentId != null) {
             Session parent = SessionStore.get().getSession(mState.mParentId);
             if (parent != null) {
@@ -165,6 +216,9 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         mVideoAvailabilityListeners.clear();
         mSelectionActionListeners.clear();
         mBitmapChangedListeners.clear();
+        mWebXRStateListeners.clear();
+        mPopUpStateStateListeners.clear();
+        mDrmStateStateListeners.clear();
 
         if (mPrefs != null) {
             mPrefs.unregisterOnSharedPreferenceChangeListener(this);
@@ -183,6 +237,18 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         }
 
         for (VideoAvailabilityListener listener: mVideoAvailabilityListeners) {
+            dumpState(listener);
+        }
+
+        for (WebXRStateChangedListener listener: mWebXRStateListeners) {
+            dumpState(listener);
+        }
+
+        for (PopUpStateChangedListener listener: mPopUpStateStateListeners) {
+            dumpState(listener);
+        }
+
+        for (DrmStateChangedListener listener: mDrmStateStateListeners) {
             dumpState(listener);
         }
     }
@@ -212,7 +278,21 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     }
 
     private void dumpState(VideoAvailabilityListener aListener) {
-        aListener.onVideoAvailabilityChanged(mState.mMediaElements != null && mState.mMediaElements.size() > 0);
+        mState.mMediaElements.forEach(element -> {
+            aListener.onVideoAvailabilityChanged(element,true);
+        });
+    }
+
+    private void dumpState(WebXRStateChangedListener aListener) {
+        aListener.onWebXRStateChanged(this, mState.mWebXRState);
+    }
+
+    private void dumpState(PopUpStateChangedListener aListener) {
+        aListener.onPopUpStateChanged(this, mState.mPopUpState);
+    }
+
+    private void dumpState(DrmStateChangedListener aListener) {
+        aListener.onDrmStateChanged(this, mState.mDrmState);
     }
 
     private void flushQueuedEvents() {
@@ -235,7 +315,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     }
 
     public void addNavigationListener(GeckoSession.NavigationDelegate aListener) {
-        mNavigationListeners.add(aListener);
+        mNavigationListeners.addIfAbsent(aListener);
         dumpState(aListener);
     }
 
@@ -244,7 +324,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     }
 
     public void addProgressListener(GeckoSession.ProgressDelegate aListener) {
-        mProgressListeners.add(aListener);
+        mProgressListeners.addIfAbsent(aListener);
         dumpState(aListener);
     }
 
@@ -253,7 +333,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     }
 
     public void addContentListener(GeckoSession.ContentDelegate aListener) {
-        mContentListeners.add(aListener);
+        mContentListeners.addIfAbsent(aListener);
         dumpState(aListener);
     }
 
@@ -262,7 +342,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     }
 
     public void addSessionChangeListener(SessionChangeListener aListener) {
-        mSessionChangeListeners.add(aListener);
+        mSessionChangeListeners.addIfAbsent(aListener);
     }
 
     public void removeSessionChangeListener(SessionChangeListener aListener) {
@@ -270,7 +350,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     }
 
     public void addTextInputListener(GeckoSession.TextInputDelegate aListener) {
-        mTextInputListeners.add(aListener);
+        mTextInputListeners.addIfAbsent(aListener);
     }
 
     public void removeTextInputListener(GeckoSession.TextInputDelegate aListener) {
@@ -278,7 +358,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     }
 
     public void addVideoAvailabilityListener(VideoAvailabilityListener aListener) {
-        mVideoAvailabilityListeners.add(aListener);
+        mVideoAvailabilityListeners.addIfAbsent(aListener);
         dumpState(aListener);
     }
 
@@ -287,7 +367,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     }
 
     public void addSelectionActionListener(GeckoSession.SelectionActionDelegate aListener) {
-        mSelectionActionListeners.add(aListener);
+        mSelectionActionListeners.addIfAbsent(aListener);
     }
 
     public void removeSelectionActionListener(GeckoSession.ContentDelegate aListener) {
@@ -295,11 +375,38 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     }
 
     public void addBitmapChangedListener(BitmapChangedListener aListener) {
-        mBitmapChangedListeners.add(aListener);
+        mBitmapChangedListeners.addIfAbsent(aListener);
     }
 
     public void removeBitmapChangedListener(BitmapChangedListener aListener) {
         mBitmapChangedListeners.remove(aListener);
+    }
+
+    public void addWebXRStateChangedListener(WebXRStateChangedListener aListener) {
+        mWebXRStateListeners.addIfAbsent(aListener);
+        dumpState(aListener);
+    }
+
+    public void removeWebXRStateChangedListener(WebXRStateChangedListener aListener) {
+        mWebXRStateListeners.remove(aListener);
+    }
+
+    public void addPopUpStateChangedListener(PopUpStateChangedListener aListener) {
+        mPopUpStateStateListeners.addIfAbsent(aListener);
+        dumpState(aListener);
+    }
+
+    public void removePopUpStateChangedListener(PopUpStateChangedListener aListener) {
+        mPopUpStateStateListeners.remove(aListener);
+    }
+
+    public void addDrmStateChangedListener(DrmStateChangedListener aListener) {
+        mDrmStateStateListeners.addIfAbsent(aListener);
+        dumpState(aListener);
+    }
+
+    public void removeDrmStateChangedListener(DrmStateChangedListener aListener) {
+        mDrmStateStateListeners.remove(aListener);
     }
 
     private void setupSessionListeners(GeckoSession aSession) {
@@ -313,6 +420,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         aSession.setMediaDelegate(this);
         aSession.setHistoryDelegate(this);
         aSession.setSelectionActionDelegate(this);
+        aSession.setContentBlockingDelegate(this);
     }
 
     private void cleanSessionListeners(GeckoSession aSession) {
@@ -326,6 +434,17 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         aSession.setMediaDelegate(null);
         aSession.setHistoryDelegate(null);
         aSession.setSelectionActionDelegate(null);
+        aSession.setContentBlockingDelegate(null);
+    }
+
+    public void updateTrackingProtection() {
+        if ((mState != null) && (mState.mSettings != null)) {
+            TrackingProtectionPolicy policy = TrackingProtectionStore.getTrackingProtectionPolicy(mContext);
+            mState.mSettings.setTrackingProtectionEnabled(mState.mSettings.isPrivateBrowsingEnabled() || policy.shouldBlockContent());
+            if (mState.mSession != null) {
+                mState.mSession.getSettings().setUseTrackingProtection(mState.mSettings.isTrackingProtectionEnabled());
+            }
+        }
     }
 
     public void suspend() {
@@ -344,9 +463,16 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         Log.d(LOGTAG, "Suspending Session: " + mState.mId);
         closeSession(mState);
         mState.mSession = null;
+
+        mSessionChangeListeners.forEach(listener -> listener.onSessionRemoved(mState.mId));
     }
 
     private boolean shouldLoadDefaultPage(@NonNull SessionState aState) {
+        // data:text URLs can not be restored.
+        if (mState.mSessionState != null && ((mState.mUri == null) || mState.mUri.startsWith("data:text"))) {
+            return true;
+        }
+
         if (aState.mUri != null && aState.mUri.length() != 0 && !aState.mUri.equals(mContext.getString(R.string.about_blank))) {
             return false;
         }
@@ -370,18 +496,15 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
             settings = new SessionSettings.Builder()
                     .withDefaultSettings(mContext)
                     .build();
+        } else {
+            updateTrackingProtection();
         }
 
         mState.mSession = createGeckoSession(settings);
-        if (!mState.mSession.isOpen()) {
-            mState.mSession.open(mRuntime);
-        }
 
-        // data:text URLs can not be restored.
-        if (mState.mSessionState != null && ((mState.mUri == null) || mState.mUri.startsWith("data:text"))) {
-            mState.mSessionState = null;
-            mState.mUri = null;
-        }
+        mSessionChangeListeners.forEach(listener -> listener.onSessionAdded(this));
+
+        openSession();
 
         if (shouldLoadDefaultPage(mState)) {
             loadDefaultPage();
@@ -397,25 +520,25 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         }
 
         dumpAllState();
+
         mState.setActive(true);
+
+        if (!mState.mIsWebExtensionSession) {
+            mRuntime.getWebExtensionController().setTabActive(mState.mSession, true);
+        }
     }
 
 
-    private SessionState createSession(@NonNull SessionSettings aSettings, @SessionOpenModeFlags int aOpenMode) {
+    private SessionState createSessionState(@NonNull SessionSettings aSettings) {
         SessionState state = new SessionState();
         state.mSettings = aSettings;
         state.mSession = createGeckoSession(aSettings);
-
-        if (aOpenMode == SESSION_OPEN && !state.mSession.isOpen()) {
-            state.mSession.open(mRuntime);
-        }
 
         return state;
     }
 
     private GeckoSession createGeckoSession(@NonNull SessionSettings aSettings) {
         GeckoSessionSettings geckoSettings = new GeckoSessionSettings.Builder()
-                .useMultiprocess(SettingsStore.getInstance(mContext).isMultiprocessEnabled())
                 .usePrivateMode(aSettings.isPrivateBrowsingEnabled())
                 .useTrackingProtection(aSettings.isTrackingProtectionEnabled())
                 .userAgentMode(aSettings.getUserAgentMode())
@@ -430,30 +553,54 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
             session = new GeckoSession(geckoSettings);
         }
 
-        session.getSettings().setUserAgentOverride(aSettings.getUserAgentOverride());
+        if (session != null) {
+            session.getSettings().setUserAgentOverride(aSettings.getUserAgentOverride());
+        }
         setupSessionListeners(session);
 
         return session;
     }
 
-    public void recreateSession() {
-        SessionState previous = mState;
-        mState = mState.recreate();
-        restore();
+    void recreateSession() {
+        boolean wasFullScreen = mState.mFullScreen;
 
         GeckoSession previousGeckoSession = null;
-        if (previous.mSession != null) {
-            previousGeckoSession = previous.mSession;
-            closeSession(previous);
+        if (mState.mSession != null) {
+            previousGeckoSession = mState.mSession;
+            closeSession(mState);
+        }
+
+        mState = mState.recreate();
+
+        mSessionChangeListeners.forEach(listener -> listener.onSessionRemoved(mState.mId));
+
+        restore();
+
+        for (SessionChangeListener listener: mSessionChangeListeners) {
+            listener.onSessionStateChanged(this, true);
         }
 
         for (SessionChangeListener listener : mSessionChangeListeners) {
             listener.onCurrentSessionChange(previousGeckoSession, mState.mSession);
         }
+
+        if (wasFullScreen != mState.mFullScreen) {
+            for (GeckoSession.ContentDelegate listener : mContentListeners) {
+                listener.onFullScreen(mState.mSession, mState.mFullScreen);
+            }
+        }
+    }
+
+    void openSession() {
+        if (!mState.mSession.isOpen()) {
+            mState.mSession.open(mRuntime);
+        }
+
+        mSessionChangeListeners.forEach(listener -> listener.onSessionOpened(this));
     }
 
     private void closeSession(@NonNull SessionState aState) {
-        if (aState.mSession == null) {
+        if (aState.mSession == null || !aState.mSession.isOpen()) {
             return;
         }
         cleanSessionListeners(aState.mSession);
@@ -467,6 +614,8 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         aState.mSession.close();
         aState.setActive(false);
         mFirstContentfulPaint = false;
+
+        mSessionChangeListeners.forEach(listener -> listener.onSessionClosed(this));
     }
 
     public void captureBitmap() {
@@ -509,7 +658,9 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
 
         Runnable cleanResources = () -> {
             display.surfaceDestroyed();
-            mState.mSession.releaseDisplay(display);
+            if (mState.mSession != null) {
+                mState.mSession.releaseDisplay(display);
+            }
             BitmapCache.getInstance(mContext).releaseCaptureSurface();
         };
 
@@ -543,6 +694,10 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
 
     public boolean hasCapturedBitmap() {
         return BitmapCache.getInstance(mContext).hasBitmap(mState.mId);
+    }
+
+    public boolean hasDisplay() {
+        return mState != null && mState.mDisplay != null;
     }
 
     public void purgeHistory() {
@@ -599,6 +754,11 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         return mFirstContentfulPaint;
     }
 
+    public boolean isWebExtensionSession() {
+        return mState.mIsWebExtensionSession;
+    }
+
+    @Nullable
     public Media getFullScreenVideo() {
         for (Media media: mState.mMediaElements) {
             if (media.isFullscreen()) {
@@ -612,6 +772,19 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         return null;
     }
 
+    @Nullable
+    public Media getActiveVideo() {
+        for (Media media: mState.mMediaElements) {
+            if (media.isFullscreen()) {
+                return media;
+            }
+        }
+        return mState.mMediaElements.stream()
+                .sorted((o1, o2) -> (int)o2.getLastStateUpdate() - (int)o1.getLastStateUpdate())
+                .filter(Media::isPlayed)
+                .findFirst().orElse(null);
+    }
+
     public boolean isInputActive() {
         return mState.mIsInputActive;
     }
@@ -622,7 +795,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         }
         if (mState.mParentId != null) {
             Session parent = SessionStore.get().getSession(mState.mParentId);
-            return  parent != null && !parent.isActive();
+            return  parent != null && parent.mState.mDisplay == null;
         }
         return false;
     }
@@ -634,7 +807,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
             mState.mSession.goBack();
         } else if (mState.mParentId != null) {
           Session parent = SessionStore.get().getSession(mState.mParentId);
-          if (parent != null && !parent.isActive()) {
+          if (parent != null && parent.mState.mDisplay == null) {
               for (SessionChangeListener listener: mSessionChangeListeners) {
                   listener.onUnstackSession(this, parent);
               }
@@ -649,30 +822,43 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     }
 
     public void setActive(boolean aActive) {
+        if (!aActive && mState.mSession != null && !mState.isActive()) {
+            // Prevent duplicated setActive(false) calls. There is a GV
+            // bug that makes the session not to be resumed correctly.
+            // See https://github.com/MozillaReality/FirefoxReality/issues/3375.
+            return;
+        }
         // Flush the events queued while the session was inactive
         if (mState.mSession != null && !mState.isActive() && aActive) {
             flushQueuedEvents();
         }
 
         if (mState.mSession != null) {
-            if (mState.isActive() != aActive) {
-                mState.mSession.setActive(aActive);
-            }
+            mState.mSession.setActive(aActive);
             mState.setActive(aActive);
+            if (!mState.mIsWebExtensionSession) {
+                mRuntime.getWebExtensionController().setTabActive(mState.mSession, aActive);
+            }
+
         } else if (aActive) {
             restore();
+
         } else {
             Log.e(LOGTAG, "ERROR: Setting null GeckoView to inactive!");
         }
 
         for (SessionChangeListener listener: mSessionChangeListeners) {
-            listener.onActiveStateChange(this, aActive);
+            listener.onSessionStateChanged(this, aActive);
         }
     }
 
     public void reload() {
+        reload(GeckoSession.LOAD_FLAGS_NONE);
+    }
+
+    public void reload(final int flags) {
         if (mState.mSession != null) {
-            mState.mSession.reload();
+            mState.mSession.reload(flags);
         }
     }
 
@@ -683,12 +869,16 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     }
 
     public void loadUri(String aUri) {
+        loadUri(aUri, GeckoSession.LOAD_FLAGS_NONE);
+    }
+
+    public void loadUri(String aUri, int flags) {
         if (aUri == null) {
             aUri = getHomeUri();
         }
         if (mState.mSession != null) {
             Log.d(LOGTAG, "Loading URI: " + aUri);
-            mState.mSession.loadUri(aUri);
+            mState.mSession.loadUri(aUri, flags);
         }
     }
 
@@ -716,9 +906,15 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
                 .withServo(!isInstanceOfServoSession(mState.mSession))
                 .build();
 
-        mState = createSession(settings, SESSION_OPEN);
+        mState = createSessionState(settings);
+        openSession();
         closeSession(previous);
+
         mState.setActive(true);
+        for (SessionChangeListener listener: mSessionChangeListeners) {
+            listener.onSessionStateChanged(this, true);
+        }
+
         loadUri(uri);
     }
 
@@ -740,7 +936,6 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         return mState.mId;
     }
 
-
     public boolean isPrivateMode() {
         if (mState.mSession != null) {
             return mState.mSession.getSettings().getUsePrivateMode();
@@ -748,6 +943,41 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
             return mState.mSettings.isPrivateBrowsingEnabled();
         }
         return false;
+    }
+
+    public void setWebXRState(@SessionState.WebXRState int aWebXRState) {
+        if (aWebXRState != mState.mWebXRState) {
+            mState.mWebXRState = aWebXRState;
+            for (WebXRStateChangedListener listener: mWebXRStateListeners) {
+                dumpState(listener);
+            }
+        }
+    }
+
+    public @SessionState.WebXRState int getWebXRState() {
+        return mState.mWebXRState;
+    }
+
+    public void setPopUpState(@SessionState.PopupState int aPopUpstate) {
+        mState.mPopUpState = aPopUpstate;
+        for (PopUpStateChangedListener listener: mPopUpStateStateListeners) {
+            dumpState(listener);
+        }
+    }
+
+    public @SessionState.PopupState int getPopUpState() {
+        return mState.mPopUpState;
+    }
+
+    public void setDrmState(@SessionState.DrmState int aDrmState) {
+        mState.mDrmState = aDrmState;
+        for (DrmStateChangedListener listener: mDrmStateStateListeners) {
+            dumpState(listener);
+        }
+    }
+
+    public @SessionState.DrmState int getDrmState() {
+        return mState.mDrmState;
     }
 
     // Session Settings
@@ -818,19 +1048,10 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
             mState.mSettings.setViewportMode(GeckoSessionSettings.VIEWPORT_MODE_MOBILE);
         }
         mState.mSession.getSettings().setViewportMode(mState.mSettings.getViewportMode());
-        mState.mSession.loadUri(overrideUri != null ? overrideUri : mState.mUri, GeckoSession.LOAD_FLAGS_BYPASS_CACHE | GeckoSession.LOAD_FLAGS_REPLACE_HISTORY);
-    }
-
-    protected void resetMultiprocess() {
-        recreateSession();
-    }
-
-    protected void setTrackingProtection(final boolean aEnabled) {
-        if (mState.mSettings.isTrackingProtectionEnabled() != aEnabled) {
-            mState.mSettings.setTrackingProtectionEnabled(aEnabled);
-            if (mState.mSession != null) {
-                mState.mSession.getSettings().setUseTrackingProtection(aEnabled);
-            }
+        if (overrideUri != null) {
+            mState.mSession.loadUri(overrideUri, GeckoSession.LOAD_FLAGS_BYPASS_CACHE | GeckoSession.LOAD_FLAGS_REPLACE_HISTORY);
+        } else {
+            mState.mSession.reload(GeckoSession.LOAD_FLAGS_BYPASS_CACHE);
         }
     }
 
@@ -846,6 +1067,10 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         return mState;
     }
 
+    public void setParentSession(@NonNull Session parentSession) {
+        mState.mParentId = parentSession.getId();
+    }
+
     // NavigationDelegate
 
     @Override
@@ -854,8 +1079,20 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
             return;
         }
 
+        setPopUpState(SessionState.POPUP_UNUSED);
+        setDrmState(SessionState.DRM_UNUSED);
+
+        mState.mIsWebExtensionSession = aUri.startsWith(UrlUtils.WEB_EXTENSION_URL);
+
         mState.mPreviousUri = mState.mUri;
         mState.mUri = aUri;
+
+        boolean forceMobileViewport = FORCE_MOBILE_VIEWPORT.stream().anyMatch(aUri::contains);
+        if (forceMobileViewport) {
+            mState.mSession.getSettings().setViewportMode(GeckoSessionSettings.VIEWPORT_MODE_MOBILE);
+        } else {
+            mState.mSession.getSettings().setViewportMode(mState.mSettings.getViewportMode());
+        }
 
         for (GeckoSession.NavigationDelegate listener : mNavigationListeners) {
             listener.onLocationChange(aSession, aUri);
@@ -919,15 +1156,16 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
 
         final GeckoResult<AllowOrDeny> result = new GeckoResult<>();
         AtomicInteger count = new AtomicInteger(0);
-        AtomicBoolean allowed = new AtomicBoolean(false);
+        AtomicBoolean allowed = new AtomicBoolean(true);
+        final int listenerCount = mNavigationListeners.size() - 1;
         for (GeckoSession.NavigationDelegate listener: mNavigationListeners) {
             GeckoResult<AllowOrDeny> listenerResult = listener.onLoadRequest(aSession, aRequest);
             if (listenerResult != null) {
                 listenerResult.then(value -> {
-                    if (AllowOrDeny.ALLOW.equals(value)) {
-                        allowed.set(true);
+                    if (AllowOrDeny.DENY.equals(value)) {
+                        allowed.set(false);
                     }
-                    if (count.getAndIncrement() == mNavigationListeners.size() - 1) {
+                    if (count.getAndIncrement() == listenerCount) {
                         result.complete(allowed.get() ? AllowOrDeny.ALLOW : AllowOrDeny.DENY);
                     }
 
@@ -936,10 +1174,14 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
 
             } else {
                 allowed.set(true);
-                if (count.getAndIncrement() == mNavigationListeners.size() - 1) {
+                if (count.getAndIncrement() == listenerCount) {
                     result.complete(allowed.get() ? AllowOrDeny.ALLOW : AllowOrDeny.DENY);
                 }
             }
+        }
+
+        if (UrlUtils.isAboutPage(aRequest.uri)) {
+            return GeckoResult.DENY;
         }
 
         return result;
@@ -961,7 +1203,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     }
 
     @Override
-    public GeckoResult<String> onLoadError(@NonNull GeckoSession session, String uri,  @NonNull WebRequestError error) {
+    public GeckoResult<String> onLoadError(@NonNull GeckoSession session, @Nullable String uri,  @NonNull WebRequestError error) {
         Log.d(LOGTAG, "Session onLoadError: " + uri);
 
         return GeckoResult.fromValue(InternalPages.createErrorPageDataURI(mContext, uri, error.code));
@@ -976,9 +1218,9 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         }
         Log.d(LOGTAG, "Session onPageStart");
         mState.mIsLoading = true;
-        TelemetryWrapper.startPageLoadTime();
-        GleanMetricsService.startPageLoadTime();
+        GleanMetricsService.startPageLoadTime(aUri);
 
+        setWebXRState(SessionState.WEBXR_UNUSED);
         for (GeckoSession.ProgressDelegate listener : mProgressListeners) {
             listener.onPageStart(aSession, aUri);
         }
@@ -992,7 +1234,6 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         Log.d(LOGTAG, "Session onPageStop");
         mState.mIsLoading = false;
         if (!SessionUtils.isLocalizedContent(mState.mUri)) {
-            TelemetryWrapper.uploadPageLoadToHistogram(mState.mUri);
             GleanMetricsService.stopPageLoadTimeWithURI(mState.mUri);
         }
 
@@ -1039,7 +1280,9 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
 
     @Override
     public void onCloseRequest(@NonNull GeckoSession aSession) {
-
+        for (GeckoSession.ContentDelegate listener : mContentListeners) {
+            listener.onCloseRequest(aSession);
+        }
     }
 
     @Override
@@ -1066,9 +1309,14 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
 
     @Override
     public void onCrash(@NonNull GeckoSession session) {
-        Log.e(LOGTAG,"Child crashed. Creating new session");
+        Log.e(LOGTAG,"Child crashed. Recreating session");
         recreateSession();
-        loadUri(getHomeUri());
+    }
+
+    @Override
+    public void onKill(@NonNull GeckoSession session) {
+        Log.e(LOGTAG,"Child killed. Recreating session");
+        recreateSession();
     }
 
     @Override
@@ -1110,6 +1358,13 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
             }
         }
         return null;
+    }
+
+    @Override
+    public void onExternalResponse(@NonNull GeckoSession geckoSession, @NonNull GeckoSession.WebResponseInfo webResponseInfo) {
+        for (GeckoSession.ContentDelegate listener : mContentListeners) {
+            listener.onExternalResponse(geckoSession, webResponseInfo);
+        }
     }
 
     // TextInput Delegate
@@ -1173,19 +1428,38 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     @Override
     public void onContentBlocked(@NonNull final GeckoSession session, @NonNull final ContentBlocking.BlockEvent event) {
         if ((event.getAntiTrackingCategory() & ContentBlocking.AntiTracking.AD) != 0) {
-          Log.i(LOGTAG, "Blocking Ad: " + event.uri);
+            Log.d(LOGTAG, "Blocking Ad: " + event.uri);
         }
 
         if ((event.getAntiTrackingCategory() & ContentBlocking.AntiTracking.ANALYTIC) != 0) {
-            Log.i(LOGTAG, "Blocking Analytic: " + event.uri);
+            Log.d(LOGTAG, "Blocking Analytic: " + event.uri);
         }
 
         if ((event.getAntiTrackingCategory() & ContentBlocking.AntiTracking.CONTENT) != 0) {
-            Log.i(LOGTAG, "Blocking Content: " + event.uri);
+            Log.d(LOGTAG, "Blocking Content: " + event.uri);
         }
 
         if ((event.getAntiTrackingCategory() & ContentBlocking.AntiTracking.SOCIAL) != 0) {
-            Log.i(LOGTAG, "Blocking Social: " + event.uri);
+            Log.d(LOGTAG, "Blocking Social: " + event.uri);
+        }
+    }
+
+    @Override
+    public void onContentLoaded(@NonNull GeckoSession geckoSession, @NonNull ContentBlocking.BlockEvent event) {
+        if ((event.getAntiTrackingCategory() & ContentBlocking.AntiTracking.AD) != 0) {
+            Log.d(LOGTAG, "Loading Ad: " + event.uri);
+        }
+
+        if ((event.getAntiTrackingCategory() & ContentBlocking.AntiTracking.ANALYTIC) != 0) {
+            Log.d(LOGTAG, "Loading Analytic: " + event.uri);
+        }
+
+        if ((event.getAntiTrackingCategory() & ContentBlocking.AntiTracking.CONTENT) != 0) {
+            Log.d(LOGTAG, "Loading Content: " + event.uri);
+        }
+
+        if ((event.getAntiTrackingCategory() & ContentBlocking.AntiTracking.SOCIAL) != 0) {
+            Log.d(LOGTAG, "Loading Social: " + event.uri);
         }
     }
 
@@ -1272,6 +1546,33 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         return GeckoResult.fromValue(filePrompt.dismiss());
     }
 
+    @Nullable
+    @Override
+    public GeckoResult<PromptResponse> onBeforeUnloadPrompt(@NonNull GeckoSession aSession, @NonNull BeforeUnloadPrompt prompt) {
+        if (mPromptDelegate != null) {
+            return mPromptDelegate.onBeforeUnloadPrompt(aSession, prompt);
+        }
+        return GeckoResult.fromValue(prompt.dismiss());
+    }
+
+    @Nullable
+    @Override
+    public GeckoResult<PromptResponse> onLoginSelect(@NonNull GeckoSession geckoSession, @NonNull AutocompleteRequest<Autocomplete.LoginSelectOption> autocompleteRequest) {
+        if (mPromptDelegate != null) {
+            return mPromptDelegate.onLoginSelect(geckoSession, autocompleteRequest);
+        }
+        return GeckoResult.fromValue(autocompleteRequest.dismiss());
+    }
+
+    @Nullable
+    @Override
+    public GeckoResult<PromptResponse> onLoginSave(@NonNull GeckoSession geckoSession, @NonNull AutocompleteRequest<Autocomplete.LoginSaveOption> autocompleteRequest) {
+        if (mPromptDelegate != null) {
+            return mPromptDelegate.onLoginSave(geckoSession, autocompleteRequest);
+        }
+        return GeckoResult.fromValue(autocompleteRequest.dismiss());
+    }
+
     // MediaDelegate
 
     @Override
@@ -1283,7 +1584,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         mState.mMediaElements.add(media);
 
         for (VideoAvailabilityListener listener: mVideoAvailabilityListeners) {
-            listener.onVideoAvailabilityChanged(true);
+            listener.onVideoAvailabilityChanged(media, true);
         }
     }
 
@@ -1297,10 +1598,8 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
             if (media.getMediaElement() == element) {
                 media.unload();
                 mState.mMediaElements.remove(i);
-                if (mState.mMediaElements.size() == 0) {
-                    for (VideoAvailabilityListener listener: mVideoAvailabilityListeners) {
-                        listener.onVideoAvailabilityChanged(false);
-                    }
+                for (VideoAvailabilityListener listener: mVideoAvailabilityListeners) {
+                    listener.onVideoAvailabilityChanged(media, false);
                 }
                 return;
             }
@@ -1422,7 +1721,9 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         if (mContext != null) {
             if (key.equals(mContext.getString(R.string.settings_key_geolocation_data))) {
                 GeolocationData data = GeolocationData.parse(sharedPreferences.getString(key, null));
-                setRegion(data.getCountryCode());
+                if (data != null) {
+                    setRegion(data.getCountryCode());
+                }
             }
         }
     }
@@ -1450,7 +1751,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     // SessionChangeListener
 
     @Override
-    public void onRemoveSession(Session aParent) {
+    public void onSessionRemoved(String aId) {
         if (mState.mParentId != null) {
             mState.mParentId = null;
             // Parent stack session closed. Notify canGoBack state changed
@@ -1461,7 +1762,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
     }
 
     @Override
-    public void onActiveStateChange(Session aSession, boolean aActive) {
+    public void onSessionStateChanged(Session aSession, boolean aActive) {
         if (mState.mParentId != null) {
             // Parent stack session has been attached/detached. Notify canGoBack state changed
             for (GeckoSession.NavigationDelegate listener : mNavigationListeners) {
@@ -1496,5 +1797,21 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
             mState.mDisplay = mState.mSession.acquireDisplay();
         }
         mState.mDisplay.surfaceChanged(surface, left, top, width, height);
+    }
+
+    public void logState() {
+        if (mState == null) {
+            Log.d(LOGTAG, "Session state is null");
+            return;
+        }
+        Log.d(LOGTAG, "Session: " + (mState.mSession != null ? mState.mSession.hashCode() : "null"));
+        Log.d(LOGTAG, "\tActive: " + mState.isActive());
+        Log.d(LOGTAG, "\tUri: " + (mState.mUri != null ? mState.mUri : "null"));
+        Log.d(LOGTAG, "\tFullscreen: " + mState.mFullScreen);
+        Log.d(LOGTAG, "\tCan go back: " + mState.mCanGoBack);
+        Log.d(LOGTAG, "\tCan go forward: " + mState.mCanGoForward);
+        if (mState.mSettings != null) {
+            Log.d(LOGTAG, "\tPrivate Browsing: " + mState.mSettings.isPrivateBrowsingEnabled());
+        }
     }
 }

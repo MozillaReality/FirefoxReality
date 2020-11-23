@@ -52,6 +52,7 @@
                 android:layout_centerVertical="true"
                 android:layout_toStartOf="@id/time_buttons"
                 android:gravity="center_vertical"
+                android:addStatesFromChildren="true"
                 android:orientation="@{isNarrow ? LinearLayout.VERTICAL : LinearLayout.HORIZONTAL}">
 
                 <TextView
@@ -59,7 +60,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:ellipsize="end"
+                    android:ellipsize="middle"
                     android:paddingEnd="20dp"
                     android:scrollHorizontally="true"
                     android:singleLine="true"
@@ -74,7 +75,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:ellipsize="end"
+                    android:ellipsize="middle"
                     android:paddingEnd="20dp"
                     android:scrollHorizontally="true"
                     android:singleLine="true"

@@ -44,18 +44,6 @@
                     app:description="@string/developer_options_remote_debugging" />
 
                 <org.mozilla.vrbrowser.ui.views.settings.SwitchSetting
-                    android:id="@+id/show_console_switch"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    app:description="@string/developer_options_show_console" />
-
-                <org.mozilla.vrbrowser.ui.views.settings.SwitchSetting
-                    android:id="@+id/multiprocess_switch"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    app:description="@string/developer_options_multiprocess" />
-
-                <org.mozilla.vrbrowser.ui.views.settings.SwitchSetting
                     android:id="@+id/performance_monitor_switch"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -72,6 +60,18 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:description="@string/hardware_acceleration_switch" />
+
+                <org.mozilla.vrbrowser.ui.views.settings.SwitchSetting
+                    android:id="@+id/bypass_cache_on_reload_switch"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:description="@string/bypass_cache_on_reload_switch" />
+
+                <org.mozilla.vrbrowser.ui.views.settings.SwitchSetting
+                    android:id="@+id/webgl_out_of_process_switch"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:description="@string/enable_webgl_out_of_process_switch" />
 
                 <org.mozilla.vrbrowser.ui.views.settings.SwitchSetting
                     android:id="@+id/servo_switch"

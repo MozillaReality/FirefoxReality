@@ -122,13 +122,13 @@ struct Widget::State {
       if (quad) {
         quad->SetTexture(surface, aTextureWidth, aTextureHeight);
         quad->SetMaterial(vrb::Color(0.4f, 0.4f, 0.4f), vrb::Color(1.0f, 1.0f, 1.0f), vrb::Color(0.0f, 0.0f, 0.0f), 0.0f);
-        quad->GetRenderState()->SetCustomFragmentShader(customFragment);
         quad->GetRenderState()->SetTintColor(tintColor);
+        quad->UpdateProgram(customFragment);
       } else if (cylinder) {
         cylinder->SetTexture(surface, aTextureWidth, aTextureHeight);
         cylinder->SetMaterial(vrb::Color(0.4f, 0.4f, 0.4f), vrb::Color(1.0f, 1.0f, 1.0f), vrb::Color(0.0f, 0.0f, 0.0f), 0.0f);
-        cylinder->GetRenderState()->SetCustomFragmentShader(customFragment);
         cylinder->GetRenderState()->SetTintColor(tintColor);
+        cylinder->UpdateProgram(customFragment);
       }
     }
   }
@@ -195,6 +195,7 @@ struct Widget::State {
       resizer->GetRoot()->RemoveFromParents();
       resizer = nullptr;
     }
+    resizing = false;
   }
 
   void RemoveBorder() {
@@ -329,7 +330,7 @@ Widget::TestControllerIntersection(const vrb::Vector& aStartPoint, const vrb::Ve
   } else {
     result = m.cylinder->TestIntersection(aStartPoint, aDirection, aResult, aNormal, aClamp, aIsInWidget, aDistance);
   }
-  if (result && m.resizing && !aIsInWidget) {
+  if (result && m.resizing && m.resizer && !aIsInWidget) {
     // Handle extra intersections while resizing
     aIsInWidget = m.resizer->TestIntersection(aResult);
   }
@@ -338,12 +339,12 @@ Widget::TestControllerIntersection(const vrb::Vector& aStartPoint, const vrb::Ve
 }
 
 void
-Widget::ConvertToWidgetCoordinates(const vrb::Vector& point, float& aX, float& aY) const {
+Widget::ConvertToWidgetCoordinates(const vrb::Vector& point, float& aX, float& aY, bool aClamp) const {
   bool clamp = !m.resizing;
   if (m.quad) {
-    m.quad->ConvertToQuadCoordinates(point, aX, aY, clamp);
+    m.quad->ConvertToQuadCoordinates(point, aX, aY, clamp && aClamp);
   } else {
-    m.cylinder->ConvertToQuadCoordinates(point, aX, aY, clamp);
+    m.cylinder->ConvertToQuadCoordinates(point, aX, aY, clamp && aClamp);
   }
 }
 
@@ -507,7 +508,9 @@ Widget::FinishResize() {
     return;
   }
   m.resizing = false;
-  m.resizer->ToggleVisible(false);
+  if (m.resizer) {
+    m.resizer->ToggleVisible(false);
+  }
   if (m.quad) {
     m.quad->SetScaleMode(Quad::ScaleMode::Fill);
     m.quad->SetBackgroundColor(vrb::Color(0.0f, 0.0f, 0.0f, 0.0f));
@@ -521,11 +524,14 @@ Widget::IsResizing() const {
 
 bool
 Widget::IsResizingActive() const {
-  return m.resizing && m.resizer->IsActive();
+  return m.resizing && m.resizer && m.resizer->IsActive();
 }
 
 void
 Widget::HandleResize(const vrb::Vector& aPoint, bool aPressed, bool& aResized, bool &aResizeEnded) {
+  if (!m.resizing || !m.resizer) {
+    return;
+  }
   m.resizer->HandleResizeGestures(aPoint, aPressed, aResized, aResizeEnded);
   if (aResized || aResizeEnded) {
     m.min = m.resizer->GetResizeMin();
@@ -541,7 +547,7 @@ Widget::HandleResize(const vrb::Vector& aPoint, bool aPressed, bool& aResized, b
 
 void
 Widget::HoverExitResize() {
-  if (m.resizing) {
+  if (m.resizing && m.resizer) {
     m.resizer->HoverExitResize();
   }
 }
@@ -617,10 +623,12 @@ Widget::SetProxifyLayer(const bool aValue) {
       proxy->SetCylinderTheta(m.cylinder->GetCylinderTheta());
       proxy->SetTexture(proxySurface, textureWidth, textureHeight);
       proxy->SetTransform(m.cylinder->GetTransformNode()->GetTransform());
+      proxy->UpdateProgram("");
       m.layerProxy->AddNode(proxy->GetRoot());
     } else {
       QuadPtr proxy = Quad::Create(create, *m.quad);
       proxy->SetTexture(proxySurface, textureWidth, textureHeight);
+      proxy->UpdateProgram("");
       m.layerProxy->AddNode(proxy->GetRoot());
     }
   }

@@ -6,6 +6,8 @@ import androidx.annotation.NonNull;
 
 import org.mozilla.geckoview.GeckoSessionSettings;
 import org.mozilla.vrbrowser.browser.SettingsStore;
+import org.mozilla.vrbrowser.browser.content.TrackingProtectionStore;
+import org.mozilla.vrbrowser.browser.content.TrackingProtectionPolicy;
 
 class SessionSettings {
 
@@ -87,11 +89,13 @@ class SessionSettings {
 
         public Builder withPrivateBrowsing(boolean enabled) {
             isPrivateBrowsingEnabled = enabled;
+            isTrackingProtectionEnabled = isPrivateBrowsingEnabled || isTrackingProtectionEnabled;
+
             return this;
         }
 
-        public Builder withTrackingProteccion(boolean isTrackingProtectionEnabled){
-            this.isTrackingProtectionEnabled = isTrackingProtectionEnabled;
+        public Builder withTrackingProtection(boolean isTrackingProtectionEnabled){
+            this.isTrackingProtectionEnabled = isPrivateBrowsingEnabled || isTrackingProtectionEnabled;
             return this;
         }
 
@@ -125,9 +129,10 @@ class SessionSettings {
             int viewport = ua == GeckoSessionSettings.USER_AGENT_MODE_DESKTOP ?
                     GeckoSessionSettings.VIEWPORT_MODE_DESKTOP : GeckoSessionSettings.VIEWPORT_MODE_MOBILE;
 
+            TrackingProtectionPolicy policy = TrackingProtectionStore.getTrackingProtectionPolicy(context);
             return new SessionSettings.Builder()
                     .withPrivateBrowsing(false)
-                    .withTrackingProteccion(SettingsStore.getInstance(context).isTrackingProtectionEnabled())
+                    .withTrackingProtection(policy.shouldBlockContent())
                     .withSuspendMediaWhenInactive(true)
                     .withUserAgent(ua)
                     .withViewport(viewport)

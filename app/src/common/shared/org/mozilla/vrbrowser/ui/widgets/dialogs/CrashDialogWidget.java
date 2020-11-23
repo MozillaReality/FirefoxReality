@@ -6,12 +6,14 @@
 package org.mozilla.vrbrowser.ui.widgets.dialogs;
 
 import android.content.Context;
+import android.view.View;
 
 import androidx.annotation.NonNull;
 
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.utils.SystemUtils;
+import org.mozilla.vrbrowser.utils.ViewUtils;
 
 import java.util.ArrayList;
 
@@ -39,19 +41,19 @@ public class CrashDialogWidget extends PromptDialogWidget {
     }
 
     @Override
-    protected void initialize(Context aContext) {
-        super.initialize(aContext);
+    public void updateUI() {
+        super.updateUI();
 
         setButtons(new int[] {
                 R.string.do_not_sent_button,
                 R.string.send_data_button
         });
-        setButtonsDelegate(index -> {
+        setButtonsDelegate((index, isChecked) -> {
             if (index == PromptDialogWidget.NEGATIVE) {
                 if (mFiles != null) {
                     SystemUtils.clearCrashFiles(getContext(), mFiles);
                 }
-                 onDismiss();
+                onDismiss();
 
             } else if (index == PromptDialogWidget.POSITIVE) {
                 if (mFiles != null) {
@@ -73,7 +75,7 @@ public class CrashDialogWidget extends PromptDialogWidget {
         setTitle(R.string.crash_dialog_heading);
         setBody(getContext().getString(R.string.crash_dialog_message, getContext().getString(R.string.app_name)));
         setCheckboxText(R.string.crash_dialog_send_data);
-        setLinkDelegate(() -> {
+        setLinkDelegate((widget, url) -> {
             mWidgetManager.openNewTabForeground(getContext().getString(R.string.crash_dialog_learn_more_url));
             onDismiss();
         });

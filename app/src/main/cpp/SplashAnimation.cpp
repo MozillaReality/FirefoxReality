@@ -62,10 +62,8 @@ struct SplashAnimation::State {
       return;
     }
 
-    read->Bind(GL_READ_FRAMEBUFFER);
     layer->Bind(GL_DRAW_FRAMEBUFFER);
-    VRB_GL_CHECK(glClearColor(0.0, 0.0f, 0.0f, 0.0f));
-    VRB_GL_CHECK(glClear(GL_COLOR_BUFFER_BIT));
+    read->Bind(GL_READ_FRAMEBUFFER);
     VRB_GL_CHECK(glBlitFramebuffer(0, 0, aTexture->GetWidth(), aTexture->GetHeight(),
                                    0, 0, aTexture->GetWidth(), aTexture->GetHeight(),
                                    GL_COLOR_BUFFER_BIT, GL_LINEAR));
@@ -109,6 +107,7 @@ SplashAnimation::Load(vrb::RenderContextPtr& aContext, const DeviceDelegatePtr& 
   m.logo = Quad::Create(create, w, w / aspect, m.layer);
   if (!m.layer) {
     m.logo->SetTexture(texture, texture->GetWidth(), texture->GetHeight());
+    m.logo->UpdateProgram("");
   }
   m.root->AddNode(m.logo->GetRoot());
 }

@@ -3,8 +3,8 @@ package org.mozilla.vrbrowser.utils;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.res.Configuration;
-import android.content.res.Resources;
 import android.os.Build;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 
@@ -16,18 +16,13 @@ import java.util.GregorianCalendar;
 import java.util.Locale;
 
 public class StringUtils {
+    static final String LOGTAG = SystemUtils.createLogtag(StringUtils.class);
+
     @NonNull
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR1)
     public static String getStringByLocale(Context context, int id, Locale locale) {
         Configuration configuration = new Configuration(context.getResources().getConfiguration());
-        // This looks like an Android bug, when trying to get the localized string for the system locale
-        // it returns the locale for the current context one.
-        Locale deviceLocale = Resources.getSystem().getConfiguration().getLocales().get(0);
-        if (deviceLocale.equals(locale)) {
-            configuration.setLocale(deviceLocale);
-        } else {
-            configuration.setLocale(locale);
-        }
+        configuration.setLocale(locale);
         return context.createConfigurationContext(configuration).getResources().getString(id);
     }
 
@@ -81,6 +76,10 @@ public class StringUtils {
         return false;
     }
 
+    public static long charCount(@NonNull String aString, char target) {
+        return aString.chars().filter(ch -> ch == target).count();
+    }
+
     /**
      * The version code is composed like: yDDDHHmm
      *  * y   = Double digit year, with 16 substracted: 2017 -> 17 -> 1
@@ -97,7 +96,7 @@ public class StringUtils {
      * @return String The converted date in the format yyyy-MM-dd
      */
     public static String versionCodeToDate(final @NonNull Context context, final int aVersionCode) {
-        String versionCode = Integer.toString(aVersionCode);
+        String versionCode = Integer.toString(aVersionCode - 100000000);
 
         String formatted;
         try {
@@ -111,7 +110,7 @@ public class StringUtils {
             SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
             formatted = format.format(cal.getTime());
 
-        } catch (StringIndexOutOfBoundsException e) {
+        } catch (StringIndexOutOfBoundsException | NumberFormatException e) {
             formatted = context.getString(R.string.settings_version_developer);
         }
 
@@ -120,6 +119,11 @@ public class StringUtils {
 
     @NonNull
     public static String capitalize(@NonNull String input) {
-        return input.substring(0, 1).toUpperCase() + input.substring(1);
+        try {
+            return input.substring(0, 1).toUpperCase() + input.substring(1);
+        } catch (StringIndexOutOfBoundsException e) {
+            Log.e(LOGTAG, "String index is out of bound at capitalize(). " + e);
+            return input;
+        }
     }
 }

@@ -15,14 +15,17 @@
     </data>
 
     <LinearLayout
+        android:id="@+id/layout"
         android:layout_width="match_parent"
         android:layout_height="@dimen/library_item_row_height"
         android:orientation="vertical"
         android:gravity="center_vertical"
+        app:startMargin="@{item.level*100}"
         android:layout_marginEnd="20dp"
-        app:leftMargin="@{item.level*100}"
         android:paddingStart="10dp"
         android:background="@drawable/library_item_background_color"
+        android:clickable="true"
+        android:focusable="true"
         android:onClick="@{(view) -> callback.onClick(view, item)}">
 
         <TextView
