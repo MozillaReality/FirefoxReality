@@ -2,8 +2,10 @@ package org.mozilla.vrbrowser
 
 import androidx.test.core.app.ApplicationProvider
 import mozilla.components.concept.sync.DeviceType
+import mozilla.components.lib.fetch.httpurlconnection.HttpURLConnectionClient
 import mozilla.components.service.glean.testing.GleanTestRule
 import org.junit.Assert.*
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -14,11 +16,20 @@ import org.robolectric.annotation.Config
 
 
 @RunWith(RobolectricTestRunner::class)
-@Config(manifest = Config.NONE)
+@Config(manifest = Config.NONE, application = TestApplication::class)
 class GleanMetricsServiceTest {
 
     @get:Rule
     val gleanRule = GleanTestRule(ApplicationProvider.getApplicationContext())
+
+    @Before
+    fun setup() {
+        val app = ApplicationProvider.getApplicationContext<TestApplication>()
+        // We use the HttpURLConnectionClient for tests as the GeckoWebExecutor based client needs
+        // full GeckoRuntime initialization and it crashes in the test environment.
+        val client = HttpURLConnectionClient()
+        GleanMetricsService.init(app, client)
+    }
 
     @Test
     fun testURLTelemetry() {
@@ -51,7 +62,16 @@ class GleanMetricsServiceTest {
         assertFalse(Distribution.channelName.testHasValue())
         GleanMetricsService.testSetStartupMetrics()
         assertTrue(Distribution.channelName.testHasValue())
-        assertEquals(Distribution.channelName.testGetValue(), BuildConfig.FLAVOR_platform)
+        assertEquals(Distribution.channelName.testGetValue(),
+                org.mozilla.vrbrowser.utils.DeviceType.getDeviceTypeId());
+
+        // Make sure the distribution channel name is set after
+        // the telemetry system is switch off/on.
+        GleanMetricsService.stop();
+        GleanMetricsService.start();
+        assertTrue(Distribution.channelName.testHasValue())
+        assertEquals(Distribution.channelName.testGetValue(),
+                org.mozilla.vrbrowser.utils.DeviceType.getDeviceTypeId());
     }
 
     @Test
@@ -114,22 +134,132 @@ class GleanMetricsServiceTest {
         assertTrue(FirefoxAccount.tabSent.testHasValue())
         assertEquals(FirefoxAccount.tabSent.testGetValue(), 1)
 
-        assertFalse(FirefoxAccount.receivedTab[DeviceType.MOBILE.name].testHasValue())
+        assertFalse(FirefoxAccount.receivedTab[DeviceType.MOBILE.name.toLowerCase()].testHasValue())
         GleanMetricsService.FxA.receivedTab(DeviceType.MOBILE)
-        assertTrue(FirefoxAccount.receivedTab[DeviceType.MOBILE.name].testHasValue())
-        assertEquals(FirefoxAccount.receivedTab[DeviceType.MOBILE.name].testGetValue(), 1)
+        assertTrue(FirefoxAccount.receivedTab[DeviceType.MOBILE.name.toLowerCase()].testHasValue())
+        assertEquals(FirefoxAccount.receivedTab[DeviceType.MOBILE.name.toLowerCase()].testGetValue(), 1)
     }
 
     @Test
     fun testTabTelemetry() {
-        assertFalse(Tabs.opened[GleanMetricsService.Tabs.TabSource.BOOKMARKS.name].testHasValue())
+        assertFalse(Tabs.opened[GleanMetricsService.Tabs.TabSource.BOOKMARKS.name.toLowerCase()].testHasValue())
         GleanMetricsService.Tabs.openedCounter(GleanMetricsService.Tabs.TabSource.BOOKMARKS)
-        assertTrue(Tabs.opened[GleanMetricsService.Tabs.TabSource.BOOKMARKS.name].testHasValue())
-        assertEquals(Tabs.opened[GleanMetricsService.Tabs.TabSource.BOOKMARKS.name].testGetValue(), 1)
+        assertTrue(Tabs.opened[GleanMetricsService.Tabs.TabSource.BOOKMARKS.name.toLowerCase()].testHasValue())
+        assertEquals(Tabs.opened[GleanMetricsService.Tabs.TabSource.BOOKMARKS.name.toLowerCase()].testGetValue(), 1)
 
         assertFalse(Tabs.activated.testHasValue())
         GleanMetricsService.Tabs.activatedEvent()
         assertTrue(Tabs.activated.testHasValue())
         assertEquals(Tabs.activated.testGetValue(), 1)
+    }
+
+    fun testPages() {
+        assertFalse(Pages.pageLoad.testHasValue())
+        GleanMetricsService.startPageLoadTime("www.example.com")
+        assertFalse(Pages.pageLoad.testHasValue())
+        GleanMetricsService.stopPageLoadTimeWithURI("www.example.com")
+        assertTrue(Pages.pageLoad.testHasValue())
+    }
+
+    @Test
+    fun testImmersive() {
+        assertFalse(Immersive.duration.testHasValue())
+        GleanMetricsService.startImmersive()
+        assertFalse(Immersive.duration.testHasValue())
+        GleanMetricsService.stopImmersive()
+        assertTrue(Immersive.duration.testHasValue())
+    }
+
+    @Test
+    fun testMultiWindow() {
+        assertFalse(Windows.duration.testHasValue())
+        GleanMetricsService.openWindowEvent(1)
+        assertFalse(Windows.duration.testHasValue())
+        GleanMetricsService.closeWindowEvent(1)
+        assertTrue(Windows.duration.testHasValue())
+
+        assertFalse(Windows.movement.testHasValue())
+        GleanMetricsService.windowsMoveEvent()
+        assertTrue(Windows.movement.testHasValue())
+        assertEquals(Windows.movement.testGetValue(), 1)
+
+        assertFalse(Windows.resize.testHasValue())
+        GleanMetricsService.windowsResizeEvent()
+        assertTrue(Windows.resize.testHasValue())
+        assertEquals(Windows.resize.testGetValue(), 1)
+
+        assertFalse(Windows.activeInFrontTime.testHasValue())
+        GleanMetricsService.activePlacementEvent(0, true)
+        assertFalse(Windows.activeInFrontTime.testHasValue())
+        GleanMetricsService.activePlacementEvent(0, false)
+        assertTrue(Windows.activeInFrontTime.testHasValue())
+
+        assertFalse(Windows.activeInLeftTime.testHasValue())
+        GleanMetricsService.activePlacementEvent(1, true)
+        assertFalse(Windows.activeInLeftTime.testHasValue())
+        GleanMetricsService.activePlacementEvent(1, false)
+        assertTrue(Windows.activeInLeftTime.testHasValue())
+
+        assertFalse(Windows.activeInRightTime.testHasValue())
+        GleanMetricsService.activePlacementEvent(2, true)
+        assertFalse(Windows.activeInRightTime.testHasValue())
+        GleanMetricsService.activePlacementEvent(2, false)
+        assertTrue(Windows.activeInRightTime.testHasValue())
+
+        assertFalse(Windows.openedWindowCount["single"].testHasValue())
+        assertFalse(Windows.singleWindowOpenedTime.testHasValue())
+        GleanMetricsService.openWindowsEvent(0, 1,false)
+        assertTrue(Windows.openedWindowCount["single"].testHasValue())
+        assertEquals(Windows.openedWindowCount["single"].testGetValue(), 1)
+        assertFalse(Windows.singleWindowOpenedTime.testHasValue())
+        assertFalse(Windows.doubleWindowOpenedTime.testHasValue())
+        assertFalse(Windows.openedWindowCount["double"].testHasValue())
+        GleanMetricsService.openWindowsEvent(1, 2, false)
+        assertTrue(Windows.openedWindowCount["double"].testHasValue())
+        assertEquals(Windows.openedWindowCount["double"].testGetValue(), 1)
+        assertTrue(Windows.singleWindowOpenedTime.testHasValue())
+        assertFalse(Windows.doubleWindowOpenedTime.testHasValue())
+        assertFalse(Windows.tripleWindowOpenedTime.testHasValue())
+        assertFalse(Windows.openedWindowCount["triple"].testHasValue())
+        GleanMetricsService.openWindowsEvent(2, 3, false)
+        assertTrue(Windows.openedWindowCount["triple"].testHasValue())
+        assertEquals(Windows.openedWindowCount["triple"].testGetValue(), 1)
+        assertTrue(Windows.doubleWindowOpenedTime.testHasValue())
+        assertFalse(Windows.tripleWindowOpenedTime.testHasValue())
+        GleanMetricsService.openWindowsEvent(3, 2, false)
+        assertEquals(Windows.openedWindowCount["double"].testGetValue(), 2)
+        assertTrue(Windows.tripleWindowOpenedTime.testHasValue())
+        Pings.sessionEnd.submit();
+        // Windows.openedWindowCount will reset when a session is ended.
+        GleanMetricsService.resetOpenedWindowsCount(2, false)
+        assertEquals(Windows.openedWindowCount["double"].testGetValue(), 1)
+
+        assertFalse(Windows.openedPriWindowCount["single"].testHasValue())
+        assertFalse(Windows.singlePriWindowOpenedTime.testHasValue())
+        GleanMetricsService.openWindowsEvent(0, 1,true)
+        assertTrue(Windows.openedPriWindowCount["single"].testHasValue())
+        assertEquals(Windows.openedPriWindowCount["single"].testGetValue(), 1)
+        assertFalse(Windows.singlePriWindowOpenedTime.testHasValue())
+        assertFalse(Windows.doublePriWindowOpenedTime.testHasValue())
+        assertFalse(Windows.openedPriWindowCount["double"].testHasValue())
+        GleanMetricsService.openWindowsEvent(1, 2, true)
+        assertTrue(Windows.openedPriWindowCount["double"].testHasValue())
+        assertEquals(Windows.openedPriWindowCount["double"].testGetValue(), 1)
+        assertTrue(Windows.singlePriWindowOpenedTime.testHasValue())
+        assertFalse(Windows.doublePriWindowOpenedTime.testHasValue())
+        assertFalse(Windows.triplePriWindowOpenedTime.testHasValue())
+        assertFalse(Windows.openedPriWindowCount["triple"].testHasValue())
+        GleanMetricsService.openWindowsEvent(2, 3, true)
+        assertTrue(Windows.openedPriWindowCount["triple"].testHasValue())
+        assertEquals(Windows.openedPriWindowCount["triple"].testGetValue(), 1)
+        assertTrue(Windows.doublePriWindowOpenedTime.testHasValue())
+        assertFalse(Windows.triplePriWindowOpenedTime.testHasValue())
+        GleanMetricsService.openWindowsEvent(3, 2, true)
+        assertEquals(Windows.openedPriWindowCount["double"].testGetValue(), 2)
+        assertTrue(Windows.triplePriWindowOpenedTime.testHasValue())
+        Pings.sessionEnd.submit();
+        // Windows.openedPriWindowCount will reset when a session is ended.
+        GleanMetricsService.resetOpenedWindowsCount(2, true)
+        assertEquals(Windows.openedPriWindowCount["double"].testGetValue(), 1)
     }
 }

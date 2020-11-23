@@ -37,26 +37,28 @@ public:
   void SetClipPlanes(const float aNear, const float aFar) override;
   void SetControllerDelegate(ControllerDelegatePtr& aController) override;
   void ReleaseControllerDelegate() override;
-  void SetFoveatedLevel(const int32_t aAppLevel) override;
   int32_t GetControllerModelCount() const override;
   const std::string GetControllerModelName(const int32_t aModelIndex) const override;
   void SetCPULevel(const device::CPULevel aLevel) override;
   void ProcessEvents() override;
-  void StartFrame() override;
+  bool SupportsFramePrediction(FramePrediction aPrediction) const override;
+  void StartFrame(const FramePrediction aPrediction) override;
   void BindEye(const device::Eye aWhich) override;
-  void EndFrame(const bool aDiscard) override;
+  void EndFrame(const FrameEndMode aMode) override;
   VRLayerQuadPtr CreateLayerQuad(int32_t aWidth, int32_t aHeight,
                                  VRLayerSurface::SurfaceType aSurfaceType) override;
   VRLayerQuadPtr CreateLayerQuad(const VRLayerSurfacePtr& aMoveLayer) override;
   VRLayerCylinderPtr CreateLayerCylinder(int32_t aWidth, int32_t aHeight,
                                          VRLayerSurface::SurfaceType aSurfaceType) override;
   VRLayerCylinderPtr CreateLayerCylinder(const VRLayerSurfacePtr& aMoveLayer) override;
+  VRLayerProjectionPtr CreateLayerProjection(VRLayerSurface::SurfaceType aSurfaceType) override;
   VRLayerCubePtr CreateLayerCube(int32_t aWidth, int32_t aHeight, GLint aInternalFormat) override;
   VRLayerEquirectPtr CreateLayerEquirect(const VRLayerPtr &aSource) override;
   void DeleteLayer(const VRLayerPtr& aLayer) override;
   // Custom methods for NativeActivity render loop based devices.
   void EnterVR(const crow::BrowserEGLContext& aEGLContext);
   void LeaveVR();
+  void OnDestroy();
   bool IsInVRMode() const;
   bool ExitApp();
 protected:

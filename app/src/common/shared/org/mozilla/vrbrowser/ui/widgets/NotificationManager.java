@@ -4,13 +4,14 @@ import android.graphics.Rect;
 import android.view.View;
 
 import androidx.annotation.DimenRes;
+import androidx.annotation.IntDef;
 import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.StringRes;
 
-import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.ui.views.UIButton;
+import org.mozilla.vrbrowser.ui.widgets.NotificationManager.Notification.NotificationPosition;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -38,6 +39,8 @@ public class NotificationManager {
 
     public static class Notification {
 
+        @IntDef(value = { MIDDLE, TOP, BOTTOM, LEFT, RIGHT})
+        public @interface NotificationPosition {}
         public static final int MIDDLE = 0;
         public static final int TOP = 1;
         public static final int BOTTOM = 2;
@@ -49,11 +52,12 @@ public class NotificationManager {
         private String mString;
         private float mMargin;
         private float mZTranslation;
-        private int mPositionFlags;
+        private @NotificationPosition int mPositionFlags;
         private @DimenRes int mDensity;
         private @LayoutRes int mLayoutRes;
         private int mDuration;
         private boolean mCurved;
+        private boolean mAutoHide;
 
         public Notification(@NonNull Builder builder) {
             mParent = builder.parent;
@@ -66,6 +70,7 @@ public class NotificationManager {
             mLayoutRes = builder.layoutRes;
             mDuration = builder.duration;
             mCurved = builder.curved;
+            mAutoHide = builder.autoHide;
         }
     }
 
@@ -76,14 +81,16 @@ public class NotificationManager {
         private String string;
         private float margin = 0.0f;
         private float zTranslation = 0.0f;
-        private int positionFlags = Notification.MIDDLE;
+        private @NotificationPosition int positionFlags = Notification.MIDDLE;
         private @DimenRes int density;
         private @LayoutRes int layoutRes = R.layout.library_notification;
         private int duration = DEFAULT_DURATION;
         private boolean curved = false;
+        private boolean autoHide = true;
 
         public Builder(@NonNull UIWidget parent) {
             this.parent = parent;
+            this.view = parent;
             this.density = R.dimen.tooltip_default_density;
         }
 
@@ -107,7 +114,7 @@ public class NotificationManager {
             return this;
         }
 
-        public Builder withPosition(int positionFlags) {
+        public Builder withPosition(@NotificationPosition int positionFlags) {
             this.positionFlags = positionFlags;
             return this;
         }
@@ -132,6 +139,11 @@ public class NotificationManager {
             return this;
         }
 
+        public Builder withAutoHide(boolean hide) {
+            this.autoHide = hide;
+            return this;
+        }
+
         public Builder withCurved(boolean curved) {
             this.curved = curved;
             return this;
@@ -149,22 +161,24 @@ public class NotificationManager {
         }
 
         TooltipWidget notificationView = new TooltipWidget(notification.mParent.getContext(), notification.mLayoutRes);
-
-        notification.mParent.requestFocus();
-        notification.mParent.requestFocusFromTouch();
+        notificationView.setDelegate(() -> hide(notificationId));
 
         setPlacement(notificationView, notification);
 
         notificationView.setText(notification.mString);
         notificationView.setCurvedMode(false);
-        notificationView.show(UIWidget.CLEAR_FOCUS);
+        notificationView.show(UIWidget.KEEP_FOCUS);
 
         if (notification.mView instanceof UIButton) {
             ((UIButton)notification.mView).setNotificationMode(true);
         }
 
         Runnable hideTask = () -> hide(notificationId);
-        ThreadUtils.postDelayedToUiThread(hideTask, notification.mDuration);
+        if (notification.mAutoHide) {
+            if (notification.mView != null) {
+                notification.mView.postDelayed(hideTask, notification.mDuration);
+            }
+        }
 
         mData.put(notificationId, new NotificationData(notificationView, notification, hideTask));
     }
@@ -176,14 +190,7 @@ public class NotificationManager {
 
         NotificationData data = mData.get(notificationId);
         if (data != null && data.mNotificationView.isVisible()) {
-            ThreadUtils.removeCallbacksFromUiThread(data.mHideTask);
-
-            data.mNotificationView.hide(UIWidget.REMOVE_WIDGET);
-
-            if (data.mNotification.mView instanceof UIButton) {
-                ((UIButton)data.mNotification.mView).setNotificationMode(false);
-            }
-
+            hideNotification(data);
             mData.remove(notificationId);
         }
     }
@@ -191,7 +198,18 @@ public class NotificationManager {
     public static void hideAll() {
         Iterator<Map.Entry<Integer, NotificationData>> it = mData.entrySet().iterator();
         while (it.hasNext()) {
-            hide(it.next().getKey());
+            hideNotification(it.next().getValue());
+            it.remove();
+        }
+    }
+
+    private static void hideNotification(@NonNull NotificationData data) {
+        data.mNotificationView.removeCallbacks(data.mHideTask);
+
+        data.mNotificationView.hide(UIWidget.REMOVE_WIDGET);
+
+        if (data.mNotification.mView instanceof UIButton) {
+            ((UIButton)data.mNotification.mView).setNotificationMode(false);
         }
     }
 

@@ -7,13 +7,36 @@ import android.widget.FrameLayout;
 import android.widget.ScrollView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.ui.views.CustomScrollView;
 import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
 import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
 
-abstract class SettingsView extends FrameLayout {
+public abstract class SettingsView extends FrameLayout {
+
+    public enum SettingViewType {
+        MAIN,
+        LANGUAGE,
+        LANGUAGE_DISPLAY,
+        LANGUAGE_CONTENT,
+        LANGUAGE_VOICE,
+        DISPLAY,
+        PRIVACY,
+        POPUP_EXCEPTIONS,
+        WEBXR_EXCEPTIONS,
+        DEVELOPER,
+        FXA,
+        ENVIRONMENT,
+        CONTROLLER,
+        TRACKING_EXCEPTION,
+        LOGINS_AND_PASSWORDS,
+        SAVED_LOGINS,
+        LOGIN_EXCEPTIONS,
+        LOGIN_EDIT
+    }
+
     protected Delegate mDelegate;
     protected WidgetManagerDelegate mWidgetManager;
     protected CustomScrollView mScrollbar;
@@ -23,7 +46,8 @@ abstract class SettingsView extends FrameLayout {
         void exitWholeSettings();
         void showRestartDialog();
         void showAlert(String aTitle, String aMessage);
-        void showView(SettingsView view);
+        void showView(SettingsView.SettingViewType type);
+        void showView(SettingsView.SettingViewType type, @Nullable Object extras);
     }
 
     public SettingsView(@NonNull Context context, WidgetManagerDelegate aWidgetManager) {
@@ -67,6 +91,7 @@ abstract class SettingsView extends FrameLayout {
         if (mScrollbar != null) {
             mScrollbar.fullScroll(ScrollView.FOCUS_UP);
             mScrollbar.setSmoothScrollingEnabled(true);
+            mScrollbar.smoothScrollTo(0,0);
         }
 
         setFocusableInTouchMode(true);
@@ -95,5 +120,7 @@ abstract class SettingsView extends FrameLayout {
     protected void updateUI() {
         removeAllViews();
     }
+
+    protected abstract SettingViewType getType();
 
 }

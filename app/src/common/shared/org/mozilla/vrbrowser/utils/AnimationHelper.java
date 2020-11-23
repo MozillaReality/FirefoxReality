@@ -3,17 +3,15 @@ package org.mozilla.vrbrowser.utils;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
-import android.util.Log;
 import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.AccelerateInterpolator;
 import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.view.animation.DecelerateInterpolator;
 
 import androidx.annotation.NonNull;
-
-import org.mozilla.gecko.util.ThreadUtils;
 
 public class AnimationHelper {
     public static final long FADE_ANIMATION_DURATION = 150;
@@ -40,9 +38,11 @@ public class AnimationHelper {
             }
         });
         if (delay > 0) {
-            animation.setStartOffset(delay);
+            animation.setStartTime(AnimationUtils.currentAnimationTimeMillis() + delay);
+            aView.setAnimation(animation);
+        } else {
+            aView.startAnimation(animation);
         }
-        aView.setAnimation(animation);
     }
 
     public static void fadeOut(final View aView, long delay, final Runnable aCallback) {
@@ -50,9 +50,6 @@ public class AnimationHelper {
         Animation animation = new AlphaAnimation(1, 0);
         animation.setInterpolator(new AccelerateInterpolator());
         animation.setDuration(FADE_ANIMATION_DURATION);
-        if (delay > 0) {
-            animation.setStartOffset(delay);
-        }
         animation.setAnimationListener(new Animation.AnimationListener() {
             @Override
             public void onAnimationStart(Animation animation) {
@@ -70,8 +67,12 @@ public class AnimationHelper {
             public void onAnimationRepeat(Animation animation) {
             }
         });
-
-        aView.setAnimation(animation);
+        if (delay > 0) {
+            animation.setStartTime(AnimationUtils.currentAnimationTimeMillis() + delay);
+            aView.setAnimation(animation);
+        } else {
+            aView.startAnimation(animation);
+        }
     }
 
     public static void animateViewPadding(View view, int paddingStart, int paddingEnd, int duration) {
@@ -124,7 +125,7 @@ public class AnimationHelper {
             public void onAnimationEnd(Animator animation) {
                 super.onAnimationEnd(animation);
                 if (aCallback != null)
-                    ThreadUtils.postToUiThread(aCallback);
+                    aView.post(aCallback);
             }
         }).setUpdateListener(animation -> aView.invalidate());
     }
@@ -137,7 +138,7 @@ public class AnimationHelper {
             public void onAnimationEnd(Animator animation) {
                 super.onAnimationEnd(animation);
                 if (aCallback != null)
-                    ThreadUtils.postToUiThread(aCallback);
+                    aView.post(aCallback);
             }
         }).setUpdateListener(animation -> aView.invalidate());
     }
@@ -145,7 +146,7 @@ public class AnimationHelper {
     public static void scaleTo(@NonNull View aView, float scaleX, float scaleY, long duration, long delay, final Runnable aCallback) {
         if (aView.getScaleX() == scaleX && aView.getScaleY() == scaleY) {
             if (aCallback != null) {
-                ThreadUtils.postToUiThread(aCallback);
+                aView.post(aCallback);
             }
             return;
         }
@@ -154,7 +155,7 @@ public class AnimationHelper {
             public void onAnimationEnd(Animator animation) {
                 super.onAnimationEnd(animation);
                 if (aCallback != null) {
-                    ThreadUtils.postToUiThread(aCallback);
+                    aView.post(aCallback);
                 }
             }
         }).setUpdateListener(animation -> aView.invalidate());

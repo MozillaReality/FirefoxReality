@@ -16,6 +16,7 @@
 #include "vrb/Matrix.h"
 #include "vrb/RenderContext.h"
 #include "vrb/Vector.h"
+#include "../../main/cpp/DeviceDelegate.h"
 
 #include <array>
 #include <vector>
@@ -27,6 +28,7 @@
 #include <wvr/wvr_overlay.h>
 #include <wvr/wvr_system.h>
 #include <wvr/wvr_events.h>
+#include <wvr/wvr_arena.h>
 
 namespace crow {
 
@@ -81,7 +83,6 @@ struct DeviceDelegateWaveVR::State {
   vrb::CameraEyePtr cameras[2];
   uint32_t renderWidth;
   uint32_t renderHeight;
-  uint32_t standaloneFoveatedLevel;
 
   WVR_DevicePosePair_t devicePairs[WVR_DEVICE_COUNT_LEVEL_1];
   ElbowModelPtr elbow;
@@ -89,6 +90,7 @@ struct DeviceDelegateWaveVR::State {
   GestureDelegatePtr gestures;
   std::array<Controller, kMaxControllerCount> controllers;
   ImmersiveDisplayPtr immersiveDisplay;
+  device::DeviceType deviceType;
   bool lastSubmitDiscarded;
   bool recentered;
   vrb::Matrix reorientMatrix;
@@ -107,9 +109,9 @@ struct DeviceDelegateWaveVR::State {
       , rightTextureQueue(nullptr)
       , renderWidth(0)
       , renderHeight(0)
-      , standaloneFoveatedLevel(0)
       , devicePairs {}
       , controllers {}
+      , deviceType(device::UnknownType)
       , lastSubmitDiscarded(false)
       , recentered(false)
       , ignoreNextRecenter(false)
@@ -131,6 +133,11 @@ struct DeviceDelegateWaveVR::State {
       if (controllers[index].is6DoF) {
         sixDoFControllerCount++;
       }
+    }
+    if (sixDoFControllerCount) {
+      deviceType = device::ViveFocusPlus;
+    } else {
+      deviceType = device::ViveFocus;
     }
     reorientMatrix = vrb::Matrix::Identity();
   }
@@ -187,6 +194,11 @@ struct DeviceDelegateWaveVR::State {
     cameras[device::EyeIndex(device::Eye::Left)] = vrb::CameraEye::Create(create);
     cameras[device::EyeIndex(device::Eye::Right)] = vrb::CameraEye::Create(create);
     InitializeCameras();
+
+    elbow = ElbowModel::Create();
+  }
+
+  void InitializeRender() {
     WVR_GetRenderTargetSize(&renderWidth, &renderHeight);
     VRB_GL_CHECK(glViewport(0, 0, renderWidth, renderHeight));
     VRB_DEBUG("Recommended size is %ux%u", renderWidth, renderHeight);
@@ -194,8 +206,10 @@ struct DeviceDelegateWaveVR::State {
       VRB_ERROR("Please check Wave server configuration");
       return;
     }
+    if (immersiveDisplay) {
+      immersiveDisplay->SetEyeResolution(renderWidth, renderHeight);
+    }
     InitializeTextureQueues();
-    elbow = ElbowModel::Create();
   }
 
   void InitializeTextureQueues() {
@@ -224,34 +238,20 @@ struct DeviceDelegateWaveVR::State {
     ReleaseTextureQueues();
   }
 
-  void UpdateFoveatedLevel() {
-    if (!WVR_IsRenderFoveationSupport()) {
-      VRB_LOG("This Wave device doesn't support Foveation Render.");
+  void UpdateStandingMatrix() {
+    if (!immersiveDisplay) {
       return;
     }
-
-    if (!leftFBOIndex || !rightFBOIndex) {
+    WVR_PoseState_t head;
+    WVR_PoseState_t ground;
+    WVR_GetPoseState(WVR_DeviceType_HMD, WVR_PoseOriginModel_OriginOnHead, 0, &head);
+    WVR_GetPoseState(WVR_DeviceType_HMD, WVR_PoseOriginModel_OriginOnGround, 0, &ground);
+    if (!head.isValidPose || !ground.isValidPose) {
+      immersiveDisplay->SetSittingToStandingTransform(vrb::Matrix::Translation(kAverageHeight));
       return;
     }
-
-    if (standaloneFoveatedLevel == 0) {
-      // This is not working, we have to restart the app to reset.
-      WVR_RenderFoveation(false);
-    } else {
-      WVR_RenderFoveation(true);
-      // Mapping foveated level (1~3) to WVR_PeripheralQuality (high~low).
-      WVR_PeripheralQuality peripheralQuality =
-              static_cast<WVR_PeripheralQuality>(WVR_PeripheralQuality_High-(standaloneFoveatedLevel - 1));
-
-      WVR_RenderFoveationParams_t foveated;
-      foveated.focalX = foveated.focalY = 0.0f;
-      foveated.fovealFov = foveatedFov;
-      foveated.periQuality = peripheralQuality;
-      WVR_TextureParams_t eyeTexture = WVR_GetTexture(leftTextureQueue, leftFBOIndex);
-      WVR_PreRenderEye(WVR_Eye_Left, &eyeTexture, &foveated);
-      eyeTexture = WVR_GetTexture(rightTextureQueue, rightFBOIndex);
-      WVR_PreRenderEye(WVR_Eye_Right, &eyeTexture, &foveated);
-    }
+    const float delta = ground.poseMatrix.m[1][3] - head.poseMatrix.m[1][3];
+    immersiveDisplay->SetSittingToStandingTransform(vrb::Matrix::Translation(vrb::Vector(0.0f, delta, 0.0f)));
   }
 
   void CreateController(Controller& aController) {
@@ -259,19 +259,42 @@ struct DeviceDelegateWaveVR::State {
       VRB_ERROR("Failed to create controller. No ControllerDelegate has been set.");
       return;
     }
-    vrb::Matrix transform(vrb::Matrix::Identity());
+    vrb::Matrix beamTransform(vrb::Matrix::Identity());
     if (aController.is6DoF) {
-      transform.TranslateInPlace(vrb::Vector(0.0f, 0.01f, -0.05f));
+      beamTransform.TranslateInPlace(vrb::Vector(0.0f, 0.01f, -0.05f));
     }
-    delegate->CreateController(aController.index, aController.is6DoF ? 1 : 0, aController.is6DoF ? "HTC Vive Focus Plus Controller" : "HTC Vive Focus Controller", transform);
+    delegate->CreateController(aController.index, aController.is6DoF ? 1 : 0,
+            aController.is6DoF ? "HTC Vive Focus Plus Controller" : "HTC Vive Focus Controller",
+            beamTransform);
     delegate->SetLeftHanded(aController.index, aController.hand == ElbowModel::HandEnum::Left);
     delegate->SetHapticCount(aController.index, 1);
+    delegate->SetControllerType(aController.index, aController.is6DoF ? device::ViveFocusPlus :
+                                device::ViveFocus);
+    delegate->SetTargetRayMode(aController.index, device::TargetRayMode::TrackedPointer);
+
+    if (aController.is6DoF) {
+      const vrb::Matrix trans = vrb::Matrix::Position(vrb::Vector(0.0f, -0.021f, -0.03f));
+      vrb::Matrix transform = vrb::Matrix::Rotation(vrb::Vector(1.0f, 0.0f, 0.0f), -0.70f);
+      transform = transform.PostMultiply(trans);
+
+      delegate->SetImmersiveBeamTransform(aController.index, beamTransform.PostMultiply(transform));
+    }
     aController.created = true;
     aController.enabled = false;
   }
 
   void UpdateControllers() {
     if (!delegate) {
+      return;
+    }
+
+    if (WVR_IsInputFocusCapturedBySystem()) {
+      for (Controller& controller: controllers) {
+        if (controller.enabled) {
+          delegate->SetEnabled(controller.index, false);
+          controller.enabled = false;
+        }
+      }
       return;
     }
 
@@ -298,27 +321,28 @@ struct DeviceDelegateWaveVR::State {
         }
         continue;
       } else if (!controller.enabled) {
-        device::CapabilityFlags flags = device::Orientation;
+        device::CapabilityFlags flags = device::Orientation | device::GripSpacePosition;
         if (controller.is6DoF) {
           flags |= device::Position;
+        } else {
+          flags |= device::PositionEmulated;
         }
         controller.enabled = true;
         delegate->SetEnabled(controller.index, true);
-        delegate->SetVisible(controller.index, true);
         delegate->SetCapabilityFlags(controller.index, flags);
       }
 
-      delegate->SetVisible(controller.index, !WVR_IsInputFocusCapturedBySystem());
-
-      const bool bumperPressed =  (controller.is6DoF) ? WVR_GetInputButtonState(controller.type, WVR_InputId_Alias1_Trigger)
+      const bool bumperPressed = (controller.is6DoF) ? WVR_GetInputButtonState(controller.type, WVR_InputId_Alias1_Trigger)
                                   : WVR_GetInputButtonState(controller.type, WVR_InputId_Alias1_Digital_Trigger);
       const bool touchpadPressed = WVR_GetInputButtonState(controller.type, WVR_InputId_Alias1_Touchpad);
       const bool touchpadTouched = WVR_GetInputTouchState(controller.type, WVR_InputId_Alias1_Touchpad);
       const bool menuPressed = WVR_GetInputButtonState(controller.type, WVR_InputId_Alias1_Menu);
 
-      delegate->SetButtonCount(controller.index, controller.is6DoF ? 3 : 2); // For immersive mode
-      delegate->SetButtonState(controller.index, ControllerDelegate::BUTTON_TOUCHPAD, 0, touchpadPressed, touchpadTouched);
-      delegate->SetButtonState(controller.index, ControllerDelegate::BUTTON_TRIGGER, 1, bumperPressed, bumperPressed);
+      // Although Focus only has two buttons, in order to match WebXR input profile (squeeze placeholder),
+      // we make Focus has three buttons.
+      delegate->SetButtonCount(controller.index, 3);
+      delegate->SetButtonState(controller.index, ControllerDelegate::BUTTON_TOUCHPAD, device::kImmersiveButtonTouchpad, touchpadPressed, touchpadTouched);
+      delegate->SetButtonState(controller.index, ControllerDelegate::BUTTON_TRIGGER, device::kImmersiveButtonTrigger, bumperPressed, bumperPressed);
       if (controller.is6DoF) {
         const bool gripPressed = WVR_GetInputButtonState(controller.type, WVR_InputId_Alias1_Grip);
         if (renderMode == device::RenderMode::StandAlone) {
@@ -334,12 +358,22 @@ struct DeviceDelegateWaveVR::State {
             controller.gripPressedCount = -1;
           }
         } else {
-          delegate->SetButtonState(controller.index, ControllerDelegate::BUTTON_OTHERS, 2, gripPressed,
-                                   gripPressed);
+          delegate->SetButtonState(controller.index, ControllerDelegate::BUTTON_SQUEEZE, device::kImmersiveButtonSqueeze,
+                  gripPressed, gripPressed);
           controller.gripPressedCount = 0;
+        }
+        if (gripPressed && renderMode == device::RenderMode::Immersive) {
+          delegate->SetSqueezeActionStart(controller.index);
+        } else {
+          delegate->SetSqueezeActionStop(controller.index);
         }
       }
 
+      if (bumperPressed && renderMode == device::RenderMode::Immersive) {
+        delegate->SetSelectActionStart(controller.index);
+      } else {
+        delegate->SetSelectActionStop(controller.index);
+      }
       delegate->SetButtonState(controller.index, ControllerDelegate::BUTTON_APP, -1, menuPressed, menuPressed);
 
       const int32_t kNumAxes = 2;
@@ -349,8 +383,8 @@ struct DeviceDelegateWaveVR::State {
         WVR_Axis_t axis = WVR_GetInputAnalogAxis(controller.type, WVR_InputId_Alias1_Touchpad);
         // We are matching touch pad range from {-1, 1} to the Oculus {0, 1}.
         delegate->SetTouchPosition(controller.index, (axis.x + 1) * 0.5, (-axis.y + 1) * 0.5);
-        immersiveAxes[0] = axis.x;
-        immersiveAxes[1] = -axis.y;
+        immersiveAxes[device::kImmersiveAxisTouchpadX] = axis.x;
+        immersiveAxes[device::kImmersiveAxisTouchpadY] = -axis.y;
         controller.touched = true;
       } else if (controller.touched) {
         controller.touched = false;
@@ -359,6 +393,22 @@ struct DeviceDelegateWaveVR::State {
       delegate->SetAxes(controller.index, immersiveAxes, kNumAxes);
 
       UpdateHaptics(controller);
+    }
+  }
+
+  void UpdateBoundary() {
+    if (!immersiveDisplay) {
+      return;
+    }
+    WVR_Arena_t arena = WVR_GetArena();
+    if (arena.shape == WVR_ArenaShape_Rectangle &&
+        arena.area.rectangle.width > 0 &&
+        arena.area.rectangle.length > 0) {
+      immersiveDisplay->SetStageSize(arena.area.rectangle.width, arena.area.rectangle.length);
+    } else if (arena.shape == WVR_ArenaShape_Round && arena.area.round.diameter > 0) {
+      immersiveDisplay->SetStageSize(arena.area.round.diameter, arena.area.round.diameter);
+    } else {
+      immersiveDisplay->SetStageSize(0.0f, 0.0f);
     }
   }
 
@@ -425,6 +475,15 @@ DeviceDelegateWaveVR::Create(vrb::RenderContextPtr& aContext) {
   return result;
 }
 
+void DeviceDelegateWaveVR::InitializeRender() {
+  m.InitializeRender();
+}
+
+device::DeviceType
+DeviceDelegateWaveVR::GetDeviceType() {
+  return m.deviceType;
+}
+
 void
 DeviceDelegateWaveVR::SetRenderMode(const device::RenderMode aMode) {
   if (aMode == m.renderMode) {
@@ -461,20 +520,21 @@ DeviceDelegateWaveVR::RegisterImmersiveDisplay(ImmersiveDisplayPtr aDisplay) {
   }
 
   m.immersiveDisplay->SetDeviceName("Wave");
-  device::CapabilityFlags flags = device::Orientation | device::Present | device::StageParameters |
+  device::CapabilityFlags flags = device::Orientation | device::Present |
                                   device::InlineSession | device::ImmersiveVRSession;
 
   if (WVR_GetDegreeOfFreedom(WVR_DeviceType_HMD) == WVR_NumDoF_6DoF) {
-    flags |= device::Position;
+    flags |= device::Position | device::StageParameters;
   } else {
     flags |= device::PositionEmulated;
   }
 
   m.immersiveDisplay->SetCapabilityFlags(flags);
   m.immersiveDisplay->SetEyeResolution(m.renderWidth, m.renderHeight);
-  m.immersiveDisplay->SetSittingToStandingTransform(vrb::Matrix::Translation(kAverageHeight));
-  m.immersiveDisplay->CompleteEnumeration();
+  m.UpdateStandingMatrix();
+  m.UpdateBoundary();
   m.InitializeCameras();
+  m.immersiveDisplay->CompleteEnumeration();
 }
 
 void
@@ -530,11 +590,6 @@ DeviceDelegateWaveVR::SetClipPlanes(const float aNear, const float aFar) {
   m.near = aNear;
   m.far = aFar;
   m.InitializeCameras();
-}
-
-void
-DeviceDelegateWaveVR::SetFoveatedLevel(const int32_t aAppLevel) {
-  m.standaloneFoveatedLevel = aAppLevel;
 }
 
 void
@@ -626,6 +681,7 @@ DeviceDelegateWaveVR::ProcessEvents() {
       case WVR_EventType_DeviceResume: {
         VRB_WAVE_EVENT_LOG("WVR_EventType_DeviceResume");
         m.reorientMatrix = vrb::Matrix::Identity();
+        m.UpdateBoundary();
       }
         break;
       case WVR_EventType_DeviceRoleChanged: {
@@ -653,6 +709,7 @@ DeviceDelegateWaveVR::ProcessEvents() {
         WVR_InAppRecenter(WVR_RecenterType_YawAndPosition);
         m.recentered = !m.ignoreNextRecenter;
         m.ignoreNextRecenter = false;
+        m.UpdateStandingMatrix();
       }
         break;
       case WVR_EventType_RecenterFail: {
@@ -730,12 +787,11 @@ HandToString(ElbowModel::HandEnum hand) {
 }
 
 void
-DeviceDelegateWaveVR::StartFrame() {
+DeviceDelegateWaveVR::StartFrame(const FramePrediction aPrediction) {
   VRB_GL_CHECK(glClearColor(m.clearColor.Red(), m.clearColor.Green(), m.clearColor.Blue(), m.clearColor.Alpha()));
   if (!m.lastSubmitDiscarded) {
     m.leftFBOIndex = WVR_GetAvailableTextureIndex(m.leftTextureQueue);
     m.rightFBOIndex = WVR_GetAvailableTextureIndex(m.rightTextureQueue);
-    m.UpdateFoveatedLevel();
   }
   // Update cameras
   WVR_GetSyncPose(WVR_PoseOriginModel_OriginOnHead, m.devicePairs, WVR_DEVICE_COUNT_LEVEL_1);
@@ -765,6 +821,8 @@ DeviceDelegateWaveVR::StartFrame() {
     if (!controller.enabled) {
       continue;
     }
+    float level = WVR_GetDeviceBatteryPercentage(controller.type);
+    m.delegate->SetBatteryLevel(controller.index, (int)(level * 100.0f));
     const WVR_PoseState_t &pose = m.devicePairs[id].pose;
     if (!pose.isValidPose) {
       continue;
@@ -778,6 +836,15 @@ DeviceDelegateWaveVR::StartFrame() {
       controller.transform = m.elbow->GetTransform(hand, hmd, controller.transform);
     } else if (m.renderMode == device::RenderMode::StandAlone) {
       controller.transform.TranslateInPlace(kAverageHeight);
+    }
+    if (m.renderMode == device::RenderMode::Immersive && pose.is6DoFPose) {
+      static vrb::Matrix transform(vrb::Matrix::Identity());
+      if (transform.IsIdentity()) {
+        transform = vrb::Matrix::Rotation(vrb::Vector(1.0f, 0.0f, 0.0f), 0.70f);
+        const vrb::Matrix trans = vrb::Matrix::Position(vrb::Vector(0.0f, 0.0f, -0.01f));
+        transform = transform.PostMultiply(trans);
+      }
+      controller.transform = controller.transform.PostMultiply(transform);
     }
     m.delegate->SetTransform(controller.index, controller.transform);
   }
@@ -839,14 +906,14 @@ DeviceDelegateWaveVR::BindEye(const device::Eye aWhich) {
 }
 
 void
-DeviceDelegateWaveVR::EndFrame(const bool aDiscard) {
+DeviceDelegateWaveVR::EndFrame(const FrameEndMode aMode) {
   if (m.currentFBO) {
     m.currentFBO->Unbind();
     m.currentFBO = nullptr;
   }
 
-  m.lastSubmitDiscarded = aDiscard;
-  if (aDiscard) {
+  m.lastSubmitDiscarded = aMode == DeviceDelegate::FrameEndMode::DISCARD;
+  if (m.lastSubmitDiscarded) {
     return;
   }
   // Left eye

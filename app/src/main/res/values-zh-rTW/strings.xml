@@ -100,7 +100,7 @@
 
     <!-- This string is used to label a button in the 'Settings' dialog window that, when pressed,
          opens a dialog box that contains privacy and security related settings. -->
-    <string name="settings_privacy_security">隱私與安全</string>
+    <string name="settings_privacy_security">隱私權與安全性</string>
 
     <!-- This string is used to label a button that, when pressed, loads a website that
          describes Mozilla's Privacy Policy. -->
@@ -108,11 +108,37 @@
 
     <!-- This string is used as the title of the pop-ups dialog used to remove sites from the currently
          allowed pop-up sites. -->
-    <string name="settings_privacy_policy_popups_title">彈出視窗權限</string>
+    <string name="settings_privacy_policy_popups_title_v1">彈出型視窗的例外規則</string>
 
     <!-- This string is displayed under the title the pop-ups dialog used to remove sites from the currently
          allowed pop-up sites. -->
     <string name="settings_privacy_policy_popups_description">您可以指定要允許哪些網站開啟彈出視窗</string>
+
+    <!-- This string is used as the title of the WebXR dialog used to do not allow websites to access WebXR devices. -->
+    <string name="settings_privacy_policy_webxr_title">虛擬實境權限</string>
+
+    <!-- This string is displayed under the title the  WebXR dialog used to do not allow websites to access WebXR devices. -->
+    <string name="settings_privacy_policy_webxr_description">已封鎖下列網站透過 WebXR API 存取您的 VR 裝置。</string>
+
+    <!-- This string is displayed in the first line of a text that's displayed in the middle of allowed pop-ups panel instead of the exceptions list
+     when there are no exceptions. -->
+    <string name="settings_privacy_policy_webxr_empty_description">當您開啟使用 WebXR 的網站時，可以開啟對該網站封鎖 WebXR 的對話框。</string>
+
+    <!-- This string labels the Reset button that removes all the sites not allowed to access WebXR -->
+    <string name="settings_privacy_policy_webxr_reset">重設不允許使用虛擬實境裝置的網站。</string>
+
+    <!-- This string is used as the title of the Tracking dialog used to do not allow websites to bypass tracking protection. -->
+    <string name="settings_privacy_policy_tracking_title">加強型追蹤保護的例外</string>
+
+    <!-- This string is displayed under the title the  Tracking dialog used to do not allow websites to bypass tracking protection. -->
+    <string name="settings_privacy_policy_tracking_description">您已針對下列網站關閉保護。</string>
+
+    <!-- This string is displayed in the first line of a text that's displayed in the middle of the etp exceptions instead of the exceptions list
+     when there are no exceptions. -->
+    <string name="settings_privacy_policy_tracking_empty_description">當您允許網站追蹤您的線上活動後，會顯示在此處。</string>
+
+    <!-- This string labels the Reset button that removes all the sites not allowed to access WebXR -->
+    <string name="settings_privacy_policy_tracking_reset">重設對加強型追蹤保護的例外。</string>
 
     <!-- This string is displayed in the switch of each item of the the pop-up blocking list when the site is allowed. -->
     <string name="pop_up_site_switch_allow">允許</string>
@@ -140,6 +166,10 @@
     <!-- This string is used to label a button in the 'Settings' dialog window that, when pressed,
          opens a dialog box that contains language-related settings. -->
     <string name="settings_language">語言</string>
+
+    <!-- This string is used to label the first string in the language list for voice and display languages.
+         If chosen the device will use the system language as the main language. -->
+    <string name="settings_language_follow_device">依照裝置語言顯示</string>
 
     <!-- This string is used to label a text label for selecting the language in the 'Language' dialog window
          (accessible from the browser's Settings' dialog window). Below this string appears
@@ -194,69 +224,121 @@
          Below this string appears a list of locales for the user to choose as their preferred languages for web content. -->
     <string name="settings_language_choose_language_content_description">一張網頁有時候會有不同語言的版本，請將要顯示的語言版本順序放到左方。</string>
 
-    <!-- This string is used to label a radio button in the 'Settings' Language dialog that, when pressed,
-         changes the app and the language of the speech-recognition-based search to 'English (US)'. -->
+    <!-- The string is used in the keyboard space bar to show the current keyboard language and in
+    the keyboard languages panel list. -->
     <string name="settings_language_english">英語（美國）</string>
 
-    <!-- This string is used to label a radio button in the settings language dialog that, when pressed,
-         changes the app and the language of the speech-recognition-based search to 'Chinese (Traditional/Zhuyin)'. -->
+    <!-- This string is used to label a radio button in the 'Settings' Voice Search and the Display Language dialogs that, when pressed,
+    changes the app and the language of the speech-recognition-based search to 'English (US)'. -->
+    <string name="settings_language_english_us">英語（美國）</string>
+
+    <!-- This string is used to label a radio button in the 'Settings' Voice Search and the Display Language dialogs that, when pressed,
+    changes the app and the language of the speech-recognition-based search to 'English (UK)'. -->
+    <string name="settings_language_english_uk">英語（英國）</string>
+
+    <!-- This string is used to label a radio button in the 'Settings' Voice Search and the Display Language dialogs that, when pressed,
+    changes the app and the language of the speech-recognition-based search to 'Chinese (Traditional/Zhuyin)'.
+    The string is also used in the keyboard space bar to show the current keyboard language and in
+    the keyboard languages panel list. -->
     <string name="settings_language_traditional_chinese">中文（正體／注音）</string>
 
-    <!-- This string is used to label a radio button in the settings language dialog that, when pressed,
-         changes the app and the language of the speech-recognition-based search to 'Chinese (Simplified/Pinyin)'. -->
+    <!-- This string is used to label a radio button in the 'Settings' Voice Search and the Display Language dialogs that, when pressed,
+    changes the app and the language of the speech-recognition-based search to 'Chinese (Simplified/Pinyin)'.
+    The string is also used in the keyboard space bar to show the current keyboard language and in
+    the keyboard languages panel list. -->
     <string name="settings_language_simplified_chinese">中文（簡體／拼音）</string>
 
-    <!-- This string is used to label a radio button in the settings language dialog that, when pressed,
-         changes the app and the language of the speech-recognition-based search to 'Japanese'. -->
+    <!-- This string is used to label a radio button in the 'Settings' Voice Search and the Display Language dialogs that, when pressed,
+    changes the app and the language of the speech-recognition-based search to 'Japanese'.
+    The string is also used in the keyboard space bar to show the current keyboard language and in
+    the keyboard languages panel list. -->
     <string name="settings_language_japanese">日語</string>
 
-    <!-- This string is used to label a radio button in the settings language dialog that, when pressed,
-         changes the app and the language of the speech-recognition-based search to 'French'. -->
+    <!-- This string is used to label a radio button in the 'Settings' Voice Search and the Display Language dialogs that, when pressed,
+    changes the app and the language of the speech-recognition-based search to 'French'.
+    The string is also used in the keyboard space bar to show the current keyboard language and in
+    the keyboard languages panel list. -->
     <string name="settings_language_french">法語</string>
 
-    <!-- This string is used to label a radio button in the settings language dialog that, when pressed,
-         changes the app and the language of the speech-recognition-based search to 'German'. -->
+    <!-- This string is used to label a radio button in the 'Settings' Voice Search and the Display Language dialogs that, when pressed,
+    changes the app and the language of the speech-recognition-based search to 'German'.
+    The string is also used in the keyboard space bar to show the current keyboard language and in
+    the keyboard languages panel list. -->
     <string name="settings_language_german">德語</string>
 
-    <!-- This string is used to label a radio button in the settings language dialog that, when pressed,
-         changes the app and the language of the speech-recognition-based search to 'Spanish'. -->
+    <!-- This string is used to label a radio button in the 'Settings' Voice Search and the Display Language dialogs that, when pressed,
+    changes the app and the language of the speech-recognition-based search to 'Spanish'.
+    The string is also used in the keyboard space bar to show the current keyboard language and in
+    the keyboard languages panel list. -->
     <string name="settings_language_spanish">西班牙語</string>
 
-    <!-- This string is used to label a radio button in the settings language dialog that, when pressed,
-         changes the app and the language of the speech-recognition-based search to 'Korean'. -->
+    <!-- This string is used to label a radio button in the 'Settings' Voice Search and the Display Language dialogs that, when pressed,
+    changes the app and the language of the speech-recognition-based search to 'Spanish (Spain)'. -->
+    <string name="settings_language_spanish_spain">西班牙語（西班牙）</string>
+
+    <!-- This string is used to label a radio button in the 'Settings' Voice Search and the Display Language dialogs that, when pressed,
+    changes the app and the language of the speech-recognition-based search to 'Korean'.
+    The string is also used in the keyboard space bar to show the current keyboard language and in
+    the keyboard languages panel list. -->
     <string name="settings_language_korean">韓語</string>
 
-    <!-- This string is used to label a radio button in the settings language dialog that, when pressed,
-         changes the app and the language of the speech-recognition-based search to 'Italian'. -->
+    <!-- This string is used to label a radio button in the 'Settings' Voice Search and the Display Language dialogs that, when pressed,
+    changes the app and the language of the speech-recognition-based search to 'Italian'.
+    The string is also used in the keyboard space bar to show the current keyboard language and in
+    the keyboard languages panel list. -->
     <string name="settings_language_italian">義大利語</string>
 
-    <!-- This string is used to label a radio button in the settings language dialog that, when pressed,
-     changes the app and the language of the speech-recognition-based search to 'Russian'. -->
+    <!-- This string is used to label a radio button in the 'Settings' Voice Search and the Display Language dialogs that, when pressed,
+    changes the app and the language of the speech-recognition-based search to 'Russian'.
+    The string is also used in the keyboard space bar to show the current keyboard language and in
+    the keyboard languages panel list. -->
     <string name="settings_language_russian">俄語</string>
 
-    <!-- This string is used to label a radio button in the settings language dialog that, when pressed,
-     changes the app and the language of the speech-recognition-based search to 'Polish'. -->
+    <!-- This string is used to label a radio button in the 'Settings' Voice Search and the Display Language dialogs that, when pressed,
+    changes the app and the language of the speech-recognition-based search to 'Polish'.
+    The string is also used in the keyboard space bar to show the current keyboard language and in
+    the keyboard languages panel list. -->
     <string name="settings_language_polish">波蘭語</string>
 
-    <!-- This string is used to label a radio button in the settings language dialog that, when pressed,
-     changes the app and the language of the speech-recognition-based search to 'Danish'. -->
+    <!-- This string is used to label a radio button in the 'Settings' Voice Search and the Display Language dialogs that, when pressed,
+    changes the app and the language of the speech-recognition-based search to 'Danish'.
+    The string is also used in the keyboard space bar to show the current keyboard language and in
+    the keyboard languages panel list. -->
     <string name="settings_language_danish">丹麥語</string>
 
-    <!-- This string is used to label a radio button in the settings language dialog that, when pressed,
-     changes the app and the language of the speech-recognition-based search to 'Norwegian'. -->
+    <!-- The string is used in the keyboard space bar to show the current keyboard language and in
+    the keyboard languages panel list. -->
     <string name="settings_language_norwegian">挪威語</string>
   
-    <!-- This string is used to label a radio button in the settings language dialog that, when pressed,
-     changes the app and the language of the speech-recognition-based search to 'Danish'. -->
+    <!-- This string is used to label a radio button in the 'Settings' Voice Search and the Display Language dialogs that, when pressed,
+    changes the app and the language of the speech-recognition-based search to 'Norwegian (Bokmaal)'. -->
+    <string name="settings_language_norwegian_bokmaal">挪威語（書面語）</string>
+
+    <!-- This string is used to label a radio button in the 'Settings' Voice Search and the Display Language dialogs that, when pressed,
+    changes the app and the language of the speech-recognition-based search to 'Norwegian (Nynorsk)'. -->
+    <string name="settings_language_norwegian_nynorsk">挪威語（耐諾斯克）</string>
+  
+    <!-- This string is used to label a radio button in the 'Settings' Voice Search and the Display Language dialogs that, when pressed,
+    changes the app and the language of the speech-recognition-based search to 'Swedish'.
+    The string is also used in the keyboard space bar to show the current keyboard language and in
+    the keyboard languages panel list. -->
     <string name="settings_language_swedish">瑞典語</string>
 
-    <!-- This string is used to label a radio button in the settings language dialog that, when pressed,
-     changes the app and the language of the speech-recognition-based search to 'Finnish'. -->
+    <!-- This string is used to label a radio button in the 'Settings' Voice Search and the Display Language dialogs that, when pressed,
+    changes the app and the language of the speech-recognition-based search to 'Finnish'.
+    The string is also used in the keyboard space bar to show the current keyboard language and in
+    the keyboard languages panel list. -->
     <string name="settings_language_finnish">芬蘭語</string>
   
-    <!-- This string is used to label a radio button in the settings language dialog that, when pressed,
-     changes the app and the language of the speech-recognition-based search to 'Dutch'. -->
+    <!-- This string is used to label a radio button in the 'Settings' Voice Search and the Display Language dialogs that, when pressed,
+    changes the app and the language of the speech-recognition-based search to 'Dutch'.
+    The string is also used in the keyboard space bar to show the current keyboard language and in
+    the keyboard languages panel list. -->
     <string name="settings_language_dutch">荷蘭語</string>
+
+    <!-- The string is used in the keyboard space bar to show the current keyboard language and in
+    the keyboard languages panel list. -->
+    <string name="settings_language_thai">泰語</string>
 
     <!-- This string is used to label a button in the 'Settings' dialog window that, when pressed,
         opens a dialog box that contains display-related settings: window size, pixel density, etc. -->
@@ -297,6 +379,10 @@
          Most common reason for this state is that the account password was changed on another device. -->
     <string name="settings_accounts_reconnect">重新連結</string>
 
+    <!-- This string is used to label a button in the 'Settings' dialog window that, when pressed,
+        opens the Release Notes web site for the current app version. -->
+    <string name="settings_whats_new">有什麼新鮮事</string>
+
     <!-- This string is the title of a dialog box shown to the user when a settings
          change requires the application to restart. -->
     <string name="restart_dialog_restart">需要重新啟動</string>
@@ -321,20 +407,9 @@
          and is used to toggle remote debugging of website content in the application. -->
     <string name="developer_options_remote_debugging">啟用遠端除錯</string>
 
-    <!-- This string labels an On/Off switch in the 'Developer Options' dialog
-         and is used to toggle redirecting JavaScript Console output to the Android Logcat (i.e., `adb logcat`). -->
-    <string name="developer_options_show_console">將主控台導向至 Logcat</string>
-
     <!-- This string labels an On/Off switch in the developer options dialog
          and is used to customize background environments of the app. -->
     <string name="developer_options_env_override">啟用環境覆蓋</string>
-
-    <!-- This string labels an On/Off switch in the developer options dialog and is used to toggle
-         running content in a separate process.
-         Multiprocessing: the running of two or more programs or sequences of instructions
-         simultaneously by a computer with more than one central processor.
-         A dialog should appear with a field labeled with the text, 'Enable Multiprocess'. -->
-    <string name="developer_options_multiprocess">啟用多重處理程序</string>
 
     <!-- This string labels an On/Off switch in the developer options dialog and is used to toggle
          the performance monitor. The Performance monitor is used to detect pages that cause the
@@ -351,8 +426,21 @@
     <!-- This string labels an On/Off switch in the developer options dialog and is used to toggle
      UI render mode. If enables it uses hardware acceleration which should be faster but it may be more unstable.
      If disabled it uses software rendering which is stable but not as performant as hardware acceleration
--->
+    -->
     <string name="hardware_acceleration_switch">開啟 UI 硬體加速</string>
+
+    <!-- This string labels an On/Off switch in the developer options dialog and is used to toggle
+         the behavior of the navigation bar reload button. When enabled, the reloads will bypass
+         the browser cache. This feature is used by web developers when they want to always view
+         the most recent version of a web site.
+    -->
+    <string name="bypass_cache_on_reload_switch">開啟 Cache Bypass On Reload</string>
+
+    <!-- This string labels an On/Off switch in the developer options dialog and is used to toggle
+         Multi-e10s. Multi-e10s allocates a process for each open window instead of having only one
+         process for all windows.
+    -->
+    <string name="multi_e10s_switch">開啟多重 e10s</string>
 
     <!-- The string labels an On/Off switch in the developer options dialog and is used to toggle enabling Servo. -->
     <string name="developer_options_servo">啟用 Servo</string>
@@ -407,6 +495,10 @@
          User-Agent (UA) string of the browser. -->
     <string name="developer_options_ua_mode">使用者代理模式</string>
 
+    <!-- This string is used to label a set of radio buttons that allow the user to change the
+         default downloads storage. -->
+    <string name="security_options_downloads_storage">預設下載項目儲存空間</string>
+
     <!-- This string is used to label the 'Desktop' radio button of the 'User-Agent Mode' settings option. -->
     <string name="developer_options_ua_desktop">桌面版</string>
 
@@ -415,6 +507,30 @@
 
     <!-- This string is used to label the 'VR' radio button of the 'User-Agent Mode' settings option. -->
     <string name="developer_options_ua_vr">VR</string>
+
+    <!-- This string is used to label the 'Internal Storage' radio button of the 'Downloads Storage' settings option. -->
+    <string name="privacy_options_downloads_storage_internal">內部</string>
+
+    <!-- This string is used to label the 'External Storage' radio button of the 'Downloads Storage' settings option. -->
+    <string name="privacy_options_downloads_storage_external">外部</string>
+
+    <!-- This string is used to label the 'Standard' radio button of the 'Enhanced Tracking protection' settings option. -->
+    <string name="privacy_options_tracking_etp">標準</string>
+
+    <!-- This string is used as the description of the 'Standard' radio button of the 'Enhanced Tracking protection' settings option. -->
+    <string name="privacy_options_tracking_etp_description">兼顧保護與效能。網站可正常運作。</string>
+
+    <!-- This string is used to label the 'Strict' radio button of the 'Tracking protection' settings option. -->
+    <string name="privacy_options_tracking_strict">嚴格</string>
+
+    <!-- This string is used as the description of the 'Strict' radio button of the 'Enhanced Tracking protection' settings option. -->
+    <string name="privacy_options_tracking_strict_description">保護更強大，但可能會導致某些網站或內容故障。</string>
+
+    <!-- This string is used to label the 'Off' radio button of the 'Tracking protection' settings option. -->
+    <string name="privacy_options_tracking_off">關閉</string>
+
+    <!-- This string is used as the description of the 'Off' radio button of the 'Enhanced Tracking protection' settings option. -->
+    <string name="privacy_options_tracking_off_description">允許任何網頁進行追蹤，收集您的上網行為與喜好。</string>
 
     <!-- This string is used to label radio buttons for setting fixed-foveated-rendering (FFR) level.
      The term "foveation" derives from "fovea", the area of higher-resolution vision in the human retina.
@@ -554,13 +670,18 @@
          when that the content was just synced some time ago. -->
     <string name="fxa_account_last_synced">最近同步: %1$d 分鐘前</string>
 
-    <!-- This string labels an Allow/Don't Allow switch in the Privacy and Security settings dialog
-     and is used to enable or disable playback of DRM controlled content. -->
-    <string name="security_options_drm_content">播放 DRM 控制內容（&lt;a href=&quot;http://somesite.com/&quot;&gt;了解更多&lt;/a&gt;）</string>
+        <!-- This string labels an Allow/Don't Allow switch in the Privacy and Security settings dialog
+         and is used to enable or disable playback of DRM controlled content.
+         '%1$s' Will be replaced at runtime with the DRM Learn More url. -->
+    <string name="security_options_drm_content_v1"><![CDATA[自動允許網站偵測您的設備，播放 DRM 保護內容。（<a href="%1$s">了解更多</a>）]]></string>
 
     <!-- This string labels an Allow/Don't Allow switch in the Privacy and Security settings dialog
      and is used to enable or disable the tabs restoration after a fresh app start. -->
     <string name="security_options_restore_tabs">重新啟動後，還原分頁與視窗</string>
+
+    <!-- This string labels an Allow/Don't Allow switch in the Privacy and Security settings dialog
+     and is used to enable or disable the address bar autocomplete. -->
+    <string name="security_options_autocomplete">網址列自動完成</string>
 
     <!-- This string labels an On/Off switch in the Privacy and Security settings dialog
      and is used to enable or disable tracking protection. -->
@@ -612,6 +733,14 @@
     <!-- This string labels the button in the privacy option panel that open the dialog to add/remove
          pop-up blocked sites. -->
     <string name="security_options_block_pup_up_settings">進階</string>
+
+    <!-- This string labels the button in the privacy option panel that enables/disables Virtual Reality
+        Devices access to websites (WebXR). -->
+    <string name="security_options_permission_webxr">虛擬實境裝置（WebXR）</string>
+
+    <!-- This string labels the button in the privacy option panel that open the dialog to add/remove
+         webxr blocked sites. -->
+    <string name="security_options_webxr_settings">進階</string>
 
     <!-- This string is a label above the group of switches that indicates that the switches below
          relate to Firefox data collection and use. -->
@@ -690,7 +819,7 @@
 
     <!-- This string explains why Mozilla would like the user to allow the crash data to be uploaded.
          '%1$s' will be replaced at runtime with the app's domain name. -->
-    <string name="crash_dialog_message">請傳送您的錯誤資料以協助 Mozilla 改善 %1$s。</string>
+    <string name="crash_dialog_message"><![CDATA[請傳送您的錯誤資料以協助 Mozilla 改善 %1$s。]]></string>
 
     <!-- This string labels a checkbox in the crash dialog box. When checked, the user will no longer
          be prompted for permission to upload crash data after an application crash. -->
@@ -747,6 +876,9 @@
     <string name="video_controls_play">播放</string>
 
     <!-- This string is displayed in a tooltip in the video controls UI. -->
+    <string name="video_controls_exit">結束</string>
+
+    <!-- This string is displayed in a tooltip in the video controls UI. -->
     <string name="video_controls_pause">暫停</string>
 
     <!-- This string is displayed in a tooltip in the video controls UI. -->
@@ -757,6 +889,9 @@
 
     <!-- This string is displayed in a tooltip below the video controls UI. -->
     <string name="video_controls_volume">音量</string>
+
+    <!-- This string is displayed in a tooltip below the video controls UI. -->
+    <string name="video_controls_projection">影片投影</string>
 
     <!-- This string is displayed in a tooltip in the video controls UI (e.g., 'Seek +30 seconds').
     '%1$s' will be replaced at runtime with a duration in seconds (e.g., '30'). -->
@@ -805,6 +940,20 @@
     <!-- This string is displayed in a tooltip that appears in the tray bar on top of the
          bookmarks tray button then a new item is bookmarked. -->
     <string name="bookmarks_saved_notification">已加入書籤！</string>
+
+    <!-- This string is displayed in a notification that appears in the tray bar on top of the
+         downloads tray button then a download finishes. %1$s will be replaced with the downloaded file name. -->
+    <string name="download_completed_notification">已下載 %1$s</string>
+
+    <!-- This string is displayed in an error alert dialog when the user tries to download non http/https files. -->
+    <string name="download_error_protocol">僅支援 http/https 下載</string>
+
+    <!-- This string is displayed in an error alert dialog when the downloaded output file cannot be created. -->
+    <string name="download_error_output">無法建立已下載的檔案</string>
+
+    <!-- This string is displayed in an error alert dialog when the user is trying to download to the
+    external storage but the WRITE_EXTERNAL_STORAGE permission has not been granted. -->
+    <string name="download_error_external_storage">需要有儲存空間的寫入權限，才能寫入外部儲存空間</string>
 
     <!-- This string is displayed in a tooltip that appears when a user hovers
          over an icon representing 'Edit This Bookmark' for an individual bookmark
@@ -856,6 +1005,50 @@
     <!-- This string is displayed is the "Clear History" button in the history list. When pressed a dialog for
          clearing history is displayed. -->
     <string name="history_clear">清除瀏覽記錄</string>
+
+    <!-- This string is displayed as the title of the downloads list, which contains the user's downloaded files. -->
+    <string name="downloads_title">下載項目</string>
+
+    <!-- This string is displayed as the title of the downloads list when the downloads is empty. -->
+    <string name="downloads_empty">您的下載項目清單是空白的</string>
+
+    <!-- This string is displayed under the downloads title in the downloads list. -->
+    <string name="downloads_description">您可以在此處尋找下載過的項目</string>
+
+    <!-- This string is displayed in the middle of the downloads list while the downloads is being loaded. -->
+    <string name="downloads_loading">正在載入下載項目</string>
+
+    <!-- This string is displayed in the "Delete All" button in the downloads list.
+         When pressed the all the downloads in the list are deleted both from the list and the disk. -->
+    <string name="downloads_delete">全部刪除</string>
+
+    <!-- This string is displayed in the "Sort By" button in the downloads list.
+         When pressed a dropdown menu is displayed with the sorting options. -->
+    <string name="downloads_sort">排序方式</string>
+
+    <!-- This string is displayed as an option in the downloads sorting menu
+         When pressed the download list is sorted in alphabetical order from A to Z. -->
+    <string name="downloads_filename_sort_az">依照名稱（A-Z 排序）</string>
+
+    <!-- This string is displayed as an option in the downloads sorting menu
+         When pressed the download list is sorted in alphabetically order from Z to A. -->
+    <string name="downloads_filename_sort_za">依照名稱（Z-A 排序）</string>
+
+    <!-- This string is displayed as an option in the downloads sorting menu
+         When pressed the download list is sorted in download date ascending order. -->
+    <string name="downloads_sort_download_date_asc">最舊</string>
+
+    <!-- This string is displayed as an option in the downloads sorting menu
+         When pressed the download list is sorted in download date descending order. -->
+    <string name="downloads_sort_download_date_desc">最新</string>
+
+    <!-- This string is displayed as an option in the downloads sorting menu
+         When pressed the download list is sorted in download date ascending order. -->
+    <string name="downloads_sort_download_size_asc">最小</string>
+
+    <!-- This string is displayed as an option in the downloads sorting menu
+         When pressed the download list is sorted in download date descending order. -->
+    <string name="downloads_sort_download_size_desc">最大</string>
 
     <!-- This string is displayed is the "Sync" button in the history panel. When pressed the
          history is synced with the Firefox account. -->
@@ -926,11 +1119,16 @@
          the more button is pressed in a history item. It removes the selected item from favorites. -->
     <string name="history_context_remove_bookmarks">移除書籤</string>
 
+    <!-- This string is displayed is the downloads context menu that is displayed when
+         the more button is pressed in a downloads item. It deletes the selected item from the downloads list
+         and also from disk. -->
+    <string name="download_context_delete">刪除</string>
+
     <!-- This string labels the Reset button that restores the default display settings values. -->
     <string name="display_options_reset">重設顯示選項</string>
 
     <!-- This string labels the Reset button that restores the default privacy and security settings values. -->
-    <string name="privacy_options_reset">重設隱私與安全性設定</string>
+    <string name="privacy_options_reset">重設隱私權與安全性設定</string>
 
     <!-- This string labels the Clear All button that removes all the sites from the stored allowed pop-ups sites. -->
     <string name="privacy_options_popups_clear_all">全部清除</string>
@@ -939,7 +1137,7 @@
     <string name="privacy_options_popups_reset">重設彈出視窗封鎖設定</string>
 
     <!-- This string is displayed on top of the allowed sites list in the allowed pop-ups panel. -->
-    <string name="privacy_options_popups_list_header">下列網站要求開啟彈出視窗:</string>
+    <string name="privacy_options_popups_list_header_v1">允許下列網站開啟彈出型視窗:</string>
 
     <!-- This string is displayed in the first line of a text that's displayed in the middle of allowed pop-ups panel instead of the exceptions list
          when there are no exceptions. -->
@@ -948,6 +1146,14 @@
     <!-- This string is displayed in the second line of a text that's displayed in the middle of allowed pop-ups panel instead of the exceptions list
          when there are no exceptions. -->
     <string name="privacy_options_popups_list_empty_second">將於此處顯示獲得權限的網站清單。</string>
+
+    <!-- This string is used to label radio buttons for setting ETP in.
+         '%1$' Will be replaced at runtime with the Learn More url for ETP. -->
+    <string name="privacy_options_tracking"><![CDATA[加強型追蹤保護。（<a href="%1$s">了解更多</a>）]]></string>
+
+    <!-- This string labels the button in the privacy option panel that opens the dialog to add/remove
+         Tracking protection exceptions. -->
+    <string name="privacy_options_tracking_exceptions_v1">進階</string>
 
     <!-- This string labels the Reset button that restores the default controller settings values. -->
     <string name="controller_options_reset">重設控制器設定</string>
@@ -1042,8 +1248,24 @@
     <string name="clear_tooltip">清除</string>
 
     <!-- This string is for the tooltip that appears upon hovering the 'Pop-Up' button in the
-         browser's navigation bar. The button it labels, when pressed, Shows the pop-up blocked dialog. -->
-    <string name="popup_tooltip">已封鎖彈出視窗</string>
+         browser's navigation bar if popups are not blocked for the site.
+         The button it labels, when pressed, Shows the pop-up dialog. -->
+    <string name="popup_tooltip_v1">不封鎖彈出視窗</string>
+
+    <!-- This string is for the tooltip that appears upon hovering the 'Pop-Up' button in the
+         browser's navigation bar if popups are blocked for the site.
+         The button it labels, when pressed, Shows the pop-up dialog. -->
+    <string name="popup_blocked_tooltip">封鎖彈出視窗</string>
+
+    <!-- This string is for the tooltip that appears upon hovering the 'DRM' button in the
+         browser's navigation bar when DRM is allowed for the site. The button it labels, when pressed,
+         shows the DRM bubble on top of the button. -->
+    <string name="drm_enabled_tooltip">允許 DRM 內容</string>
+
+    <!-- This string is for the tooltip that appears upon hovering the 'DRM' button in the
+         browser's navigation bar when DRM not allowed for the site. The button it labels, when pressed,
+         shows the DRM bubble on top of the button. -->
+    <string name="drm_disabled_tooltip">不允許 DRM 內容</string>
 
     <!-- This string is for the tooltip that when clicking the 'Info' (ⓘ) icon visible next to the current website's
          URL in the URL bar. The button it labels, when pressed, shows information about the site. -->
@@ -1056,6 +1278,30 @@
     <!-- This string is for the tooltip that appears upon hovering the 'Resize' button in the browser's navigation bar.
          'Resize' refers to the button used to resize the browset window. -->
     <string name="resize_tooltip">調整大小</string>
+
+    <!-- This string is for the tooltip that appears upon hovering the 'WebXR' button in the
+     browser's navigation bar. The button it labels, when pressed, Shows the WebXR permission dialog. -->
+    <string name="webxr_allowed_tooltip">允許 WebXR</string>
+
+    <!-- This string is for the tooltip that appears upon hovering the 'WebXR' button in the
+ browser's navigation bar. The button it labels, when pressed, Shows the WebXR permission dialog. -->
+    <string name="webxr_blocked_tooltip">封鎖 WebXR</string>
+
+    <!-- This string appears in the WebXR interstial next to an arrow pointing to the controller button that
+     has to be used to exit from WebXR. It's preferred to separate it in two lines if possible.
+     \n is used to create a new line  -->
+    <string name="webxr_interstitial_exit_webxr">結束\nWebXR</string>
+
+    <!-- This string appears in the WebXR interstitial. -->
+    <string name="webxr_interstitial_how_to_continue_1">按任何其他按鈕繼續</string>
+
+    <!-- This string is for the tooltip that appears upon hovering the 'Tracking' button in the
+     browser's navigation bar. The button it labels, when pressed, Shows the Tracking dialog. -->
+    <string name="tracking_allowed_tooltip">已開啟追蹤保護</string>
+
+    <!-- This string is for the tooltip that appears upon hovering the 'Tracking Protection' button in the
+ browser's navigation bar. The button it labels, when pressed, Shows the Tracking Protection dialog. -->
+    <string name="tracking_disabled_tooltip">已關閉追蹤保護</string>
 
     <!-- This string is for the tooltip that appears when the user is not in the browser's Private Browsing mode
          and hovers over the 'Private Browsing' icon in the browser's tray menu. -->
@@ -1071,8 +1317,44 @@
     <!-- This string is shown in the context menu after a longpress on a link. When clicked it opens the target url in a new tab. -->
     <string name="context_menu_open_new_tab_1">用新分頁開啟</string>
 
+    <!-- This string is shown in the context menu after a longpress on a link. When clicked it opens the target url in a new window. -->
+    <string name="context_menu_open_link_new_window_1">用新視窗開啟鏈結</string>
+
+    <!-- This string is shown in the context menu after a longpress on a link. When clicked it opens the target url in a new tab. -->
+    <string name="context_menu_open_link_new_tab_1">用新分頁開啟鏈結</string>
+
+    <!-- This string is shown in the context menu after a longpress on a link. When clicked it opens the image in the current window. -->
+    <string name="context_menu_view_image">檢視圖片</string>
+
+    <!-- This string is shown in the context menu after a longpress on a link. When clicked it opens the video in the current window. -->
+    <string name="context_menu_view_video">播放影片</string>
+
+    <!-- This string is shown in the context menu after a longpress on a link. When clicked it opens the audio in the current window. -->
+    <string name="context_menu_view_audio">播放聲音</string>
+
+    <!-- This string is shown in the context menu after a longpress on a link. When clicked it triggers a linked element download. -->
+    <string name="context_menu_download_link">下載鏈結</string>
+
+    <!-- This string is shown in the context menu after a longpress on a link. When clicked it triggers the video element download. -->
+    <string name="context_menu_download_video">下載影片</string>
+
+    <!-- This string is shown in the context menu after a longpress on a link. When clicked it triggers the audio element download. -->
+    <string name="context_menu_download_audio">下載音訊</string>
+
+    <!-- This string is shown in the context menu after a longpress on a link. When clicked it triggers the image element download. -->
+    <string name="context_menu_download_image">下載圖片</string>
+
     <!-- This string is shown in the context menu after a longpress on a link. When clicked it copies the target to the clipboard -->
     <string name="context_menu_copy_link">複製鏈結</string>
+
+    <!-- This string is shown in the context menu after a longpress on a link. When clicked it copies the image uri to the clipboard -->
+    <string name="context_menu_copy_image_location">複製圖片網址</string>
+
+    <!-- This string is shown in the context menu after a longpress on a link. When clicked it copies the video uri to the clipboard -->
+    <string name="context_menu_copy_video_location">複製影片網址</string>
+
+    <!-- This string is shown in the context menu after a longpress on a link. When clicked it copies the audio uri to the clipboard -->
+    <string name="context_menu_copy_audio_location">複製音訊檔案網址</string>
 
     <!-- This string is shown in the context menu after a longpress on a text. When clicked it cuts the selected text and can be pasted later. -->
     <string name="context_menu_cut_text">剪下</string>
@@ -1089,9 +1371,18 @@
     <!-- This string is shown in the context menu after a longpress on a text. When clicked it unselects the selected text. -->
     <string name="context_menu_unselect">取消選取</string>
 
+    <!-- This string is shown in the context menu after a longpress on a text. When clicked search for the selected text in the active search engine.
+         '%1$s' will be replaced at runtime with the search engine name. -->
+    <string name="context_menu_web_search">使用 %1$s 進行搜尋</string>
+
     <!-- This string is for the tooltip that appears when the user hovers over the 'Bookmark' icon in the
          browser's navigation bar. The button it labels, when pressed, bookmarks the currently open web site. -->
     <string name="bookmark_tooltip">將本頁加入書籤</string>
+
+    <!-- This string is for the tooltip that appears when the user hovers over the 'Bookmark' icon in the
+         browser's navigation bar if the site is already bookmarked. The button it labels, when pressed,
+         removes the currently open web site from bookmarks. -->
+    <string name="remove_bookmark_tooltip">移除書籤</string>
 
     <!-- This string is for the tooltip that appears when the user hovers over the 'Bookmarks' icon in the
          tray. The button it labels, when pressed, opens a list view of the user's saved
@@ -1123,6 +1414,18 @@
     <!-- This string is for the tooltip that appears when the user hovers over the 'History' icon in the
          tray and the History view is closed. The button it labels, when pressed, closes the History view. -->
     <string name="close_history_tooltip">關閉瀏覽紀錄</string>
+
+    <!-- This string is for the tooltip that appears when the user hovers over the 'Downloads' icon in the
+         tray and the Downloads view is closed. The button it labels, when pressed, opens a list view of the user's downloads. -->
+    <string name="open_downloads_tooltip">開啟下載項目</string>
+
+    <!-- This string is for the tooltip that appears when the user hovers over the 'Downloads' icon in the
+         tray and the Downloads view is closed. The button it labels, when pressed, closes the Downloads view. -->
+    <string name="close_downloads_tooltip">關閉下載項目</string>
+
+    <!-- This string is for the tooltip that appears when the user hovers over the 'What's New' icon in the
+         Navigation Bar. The button it labels, when pressed, open the release notes page. -->
+    <string name="whats_new_tooltip">有什麼新鮮事</string>
 
     <!-- This string is displayed in any button used for removing all the items in the current context. -->
     <string name="remove_all">移除全部</string>
@@ -1180,6 +1483,16 @@
          '%1$s' will be replace at runtime with the app's name. -->
     <string name="not_entitled_message">%1$s 沒在此裝置上執行的權限，將結束程式。</string>
 
+
+    <!-- This string is displayed in the title of an Before Unload prompt, which asks for confirmation to stay or leave the current page. -->
+    <string name="before_unload_prompt_title">要離開頁面嗎？</string>
+    <!-- This string is displayed in the message of an Before Unload prompt, which asks for confirmation to stay or leave the current page. -->
+    <string name="before_unload_prompt_message">此頁面正在詢問您是否要離開，輸入的資料可能還沒儲存。</string>
+    <!-- This string is displayed in a button of the Before Unload prompt. Clicking it cancels the navigation and stays on the same page. -->
+    <string name="before_unload_prompt_stay">留在此頁</string>
+    <!-- This string is displayed in a button of the Before Unload prompt. Clicking it confirms the navigation and leaves the page. -->
+    <string name="before_unload_prompt_leave">離開頁面</string>
+
     <!-- This string is displayed in a button that when pressed allows a user to view a page that has been blocked from being displayed.-->
     <string name="performance_unblock_page">解除封鎖頁面</string>
     <!-- This string is displayed as the title of a dialog displayed when poor web page performance has been detected. -->
@@ -1193,7 +1506,7 @@
 
     <!-- This string is displayed in the description of the Voice Search samples collect dialog. That dialog is shown the first time
          a user tries to use the voice search. -->
-    <string name="voice_samples_collect_dialog_description2">為了改善語音識別與其他服務，我們需要收集語音樣本進行研究。將去除可識別出您身分的部分，再安全地儲存您的資料。您就算不允許收集資料，還是可以隨時使用語音搜尋功能。&lt;a href=&quot;privacy&quot;&gt;了解更多資訊&lt;/a&gt;</string>
+    <string name="voice_samples_collect_dialog_description2"><![CDATA[為了改善語音識別與其他服務，我們需要收集語音樣本進行研究。將去除可識別出您身分的部分，再安全地儲存您的資料。您就算不允許收集資料，還是可以隨時使用語音搜尋功能。<a href="privacy">了解更多資訊</a>]]></string>
 
     <!-- This string is displayed in the button of the Voice Search samples collect dialog.
          When clicked the user opts in to the voice data collection. -->
@@ -1216,16 +1529,19 @@
     <!-- This string is displayed in the URL bar when the user is in the history panel -->
     <string name="url_history_title">瀏覽紀錄</string>
 
+    <!-- This string is displayed in the URL bar when the user is in the downloads panel -->
+    <string name="url_downloads_title">下載項目</string>
+
     <!-- This string is displayed in the Clear button on top of the window when in private mode. It only appears
          when there is one window left. When clicked, it closes the private session -->
     <string name="private_clear_button">清除</string>
 
     <!-- This string is displayed in the title of the pop-up blocking dialog.
-         '%1$s' will be replaced at runtime with the app's name. -->
-    <string name="popup_block_title">%1$s 已封鎖了這個網站的彈出視窗</string>
+        '%1$s' will be replaced at runtime with the app's name. -->
+    <string name="popup_block_title_v1">%1$s 已封鎖了這個網站的彈出視窗</string>
 
     <!-- This string is displayed as a description below the title of the pop-up blocking dialog. -->
-    <string name="popup_block_description">還是想要顯示這些視窗嗎？</string>
+    <string name="popup_block_description_v1">還是想要顯示這些視窗嗎？</string>
 
     <!-- This string is displayed on the right of the checkbox in the the pop-up blocking dialog.
          If the checkbox is checked Firefox will never ask again to block pop-ups for this site -->
@@ -1365,4 +1681,178 @@ the Select` button. When clicked it closes all the previously selected tabs -->
     <!-- This string is displayed as a button below the slow script dialog description message. When clicked
        it continues to wait for execution of the web page script that caused the slow down. -->
     <string name="slow_script_dialog_action_wait">稍候</string>
+
+
+    <!-- This string is displayed in the title of the quick PopUp blocking dialog, accessed from the PopUp icon in the URL bar.
+     '%1$s' will be replaced at runtime with the status of the setting. -->
+    <string name="popup_permission_dialog_message">已%1$s此網站開啟彈出型視窗。</string>
+
+    <!-- This string is displayed in the on button of the quick Popup blocking dialog when it's in enabled state. It's accessed from the Popup icon in the URL bar. -->
+    <string name="popup_dialog_button_on">允許</string>
+
+    <!-- This string is displayed in the off button of the quick Popup blocking dialog when it's in disabled state. It's accessed from the Popup icon in the URL bar. -->
+    <string name="popup_dialog_button_off">封鎖</string>
+
+    <!-- This string is displayed in the title of the quick WebXR blocking dialog, accessed from the VR icon in the URL bar.
+     '%1$s' will be replaced at runtime with the status of the setting.
+     '%2$s' will be replaced at runtime with the Learn More page link. -->
+    <string name="webxr_permission_dialog_message"><![CDATA[此網站的 WebXR 功能已%1$s。<a href="%2$s">了解更多</a>]]></string>
+
+    <!-- This string is displayed in the on button of the quick WebXR blocking dialog when it's in enabled state. It's accessed from the WebXR icon in the URL bar. -->
+    <string name="webxr_dialog_button_on">開啟</string>
+
+    <!-- This string is displayed in the off button of the quick WebXR blocking dialog when it's in disabled state. It's accessed from the WebXR icon in the URL bar. -->
+    <string name="webxr_dialog_button_off">關閉</string>
+
+    <!-- This string is displayed in the title of the quick Tracking Protection dialog, accessed from the Tracking Protection icon in the URL bar.
+         '%1$s' will be replaced at runtime with the status of the setting.
+         '%2$s' will be replaced at runtime with the Learn More page link. -->
+    <string name="tracking_dialog_message"><![CDATA[已%1$s此網站的加強型追蹤保護。（<a href="%2$s">了解更多</a>）]]></string>
+
+    <!-- This string is displayed in the on button of the quick Tracking Protection dialog when it's in enabled state. It's accessed from the Tracking Protection icon in the URL bar. -->
+    <string name="tracking_dialog_button_on">開啟</string>
+
+    <!-- This string is displayed in the off button of the quick Tracking Protection dialog when it's in disabled state. It's accessed from the Tracking Protection icon in the URL bar. -->
+    <string name="tracking_dialog_button_off">關閉</string>
+
+    <!-- This string is displayed in the title of the quick DRM dialog, accessed from the DRM icon in the URL bar.
+         '%1$s' will be replaced at runtime with the status of the setting.
+         '%2$s' will be replaced at runtime with the Learn More page link. -->
+    <string name="drm_dialog_message"><![CDATA[此網站的某些影音內容需要使用 DRM 軟體，可能會影響 %1$s 能讓您使用的功能。<a href="%2$s">了解更多</a>]]></string>
+
+    <!-- This string is displayed in the switch button of the quick DRM dialog when it's in enabled state. It's accessed from the DRM icon in the URL bar. -->
+    <string name="drm_dialog_button_on">開啟</string>
+
+    <!-- This string is displayed in the switch button of the quick DRM dialog when it's in disabled state. It's accessed from the DRM icon in the URL bar. -->
+    <string name="drm_dialog_button_off">關閉</string>
+
+    <!-- This string is displayed as the title of a dialog that is displayed the first time a user access DRM content if they haven't
+         explicitly enable/Disable the DRM setting yet. -->
+    <string name="drm_first_use_title_v1">此網站包含 DRM 保護內容。</string>
+  
+    <!-- This string is displayed as the body of a dialog that is displayed the first time a user access DRM content if they haven't
+         explicitly enable/Disable the DRM setting yet.
+         '%1$s' will be replaced at runtime with the Learn More page link. -->
+    <string name="drm_first_use_body_v2"><![CDATA[允許 DRM 會讓網站在您每次造訪時偵測此裝置。<a href="%1$s">了解更多</a>]]></string>
+  
+    <!-- This string is displayed in the enable button that is displayed inside the dialog that is displayed the first time a user access
+         access DRM content if they haven't explicitly enable/Disable the DRM setting yet. -->
+    <string name="drm_first_use_allow">允許</string>
+  
+    <!-- This string is displayed in the do not enable button that is displayed inside the dialog that is displayed the first time a user access
+         access DRM content if they haven't explicitly enable/Disable the DRM setting yet. -->
+    <string name="drm_first_use_do_not_allow">不允許</string>
+
+    <!-- This string is displayed in the disable button of the quick Tracking Protection dialog, accessed from the Tracking Protection icon in the URL bar. -->
+    <string name="tracking_dialog_button_disable">關閉</string>
+
+    <!-- This string is displayed in the body of the confirm dialog shown in some platforms when the back button is pressed to quit the app.
+         '%1$s' will be replaced at runtime with the app name. -->
+    <string name="exit_confirm_dialog_body">您確定要結束 %1$s 嗎？</string>
+
+    <!-- This string is displayed in the Cancel button of the confirm dialog shown in some platforms when the back button is pressed to quit the app.  -->
+    <string name="exit_confirm_dialog_button_cancel">取消</string>
+
+    <!-- This string is displayed in the Quit button of the confirm dialog shown in some platforms when the back button is pressed to quit the app.  -->
+    <string name="exit_confirm_dialog_button_quit">離開</string>
+
+    <!-- This string is displayed in the title of the dialog displayed when the user tries to open an unsupported
+         file from the Downloads library panel. -->
+    <string name="download_open_file_unsupported_title">檔案類型不支援</string>
+
+    <!-- This string is displayed in the body of the dialog displayed when the user tries to open an unsupported
+         file from the Downloads library panel. -->
+    <string name="download_open_file_unsupported_body">無法開啟此檔案，您要使用外部應用程式開啟嗎？</string>
+
+    <!-- This string is displayed in the cancel button of the dialog displayed when the user tries to open an unsupported
+         file from the Downloads library panel. When clicked the dialog is closed.-->
+    <string name="download_open_file_unsupported_cancel">取消</string>
+
+    <!-- This string is displayed in the cancel button of the dialog displayed when the user tries to open an unsupported
+         file from the Downloads library panel. When clicked we hand over the file open to the system.-->
+    <string name="download_open_file_unsupported_open">開啟</string>
+
+    <!-- This string is displayed in the title of the dialog displayed when we try to hand over the file open to
+         the system but the system can't handle it either. -->
+    <string name="download_open_file_error_title">錯誤</string>
+
+    <!-- This string is displayed in the body of the dialog displayed when the file type cannot be opened and
+     there is no system app available to handle it either. -->
+    <string name="download_open_file_open_unsupported_body">不支援的檔案類型。</string>
+
+    <!-- This string is displayed in the body of the dialog displayed when we try to hand over the file open to
+         the system but the system can't handle it either. -->
+    <string name="download_open_file_error_body">找不到與此檔案類型相關聯的應用程式。</string>
+
+    <!-- This string is displayed in the title of the dialog displayed when a download has been requested
+         so the user can confirm if they want to actually download the file. -->
+    <string name="download_confirm_title">您確定要下載此檔案嗎？</string>
+
+    <!-- This string is displayed in the "Cancel" button of the dialog displayed when a download has been requested
+         so the user can confirm if they want to actually download the file. If clicked the download is not started. -->
+    <string name="download_confirm_cancel">取消</string>
+
+    <!-- This string is displayed in the "Download" button of the dialog displayed when a download has been requested
+         so the user can confirm if they want to actually download the file. If clicked the download is queued. -->
+    <string name="download_confirm_download">下載</string>
+
+    <!-- This string is displayed in the confirmation dialog when a downloaded file is deleted from the downloads list. -->
+    <string name="download_delete_file_confirm_title">刪除檔案</string>
+
+    <!-- This string is displayed in the confirmation dialog when a downloaded file is deleted from the downloads list. -->
+    <string name="download_delete_file_confirm_body">您確定要刪除此檔案嗎？</string>
+
+    <!-- This string is displayed in the confirmation dialog checkbox to also delete the file from disk. -->
+    <string name="download_delete_file_confirm_checkbox">也將檔案從磁碟刪除</string>
+
+    <!-- This string is displayed in the confirmation dialog when the delete all button is clicked in the downloads list. -->
+    <string name="download_delete_all_confirm_title">刪除所有已下載的檔案</string>
+
+    <!-- This string is displayed in the confirmation dialog when the delete all button is clicked in the downloads list. -->
+    <string name="download_delete_all_confirm_body">您確定要刪除所有已下載的檔案嗎？</string>
+
+    <!-- This string is displayed in the delete download confirmation dialog checkbox to also delete the file from disk. -->
+    <string name="download_delete_all_confirm_checkbox">也將檔案從磁碟刪除</string>
+
+    <!-- This string is displayed in the delete download confirmation dialog cancel button. -->
+    <string name="download_delete_confirm_cancel">取消</string>
+
+    <!-- This string is displayed in the confirmation dialog delete button. -->
+    <string name="download_delete_confirm_delete">刪除</string>
+
+    <!-- This string is displayed in the title of the download error dialog. -->
+    <string name="download_error_title_v1">下載錯誤</string>
+
+    <!-- This string is displayed in the body of the download error dialog.
+         '%1$s' will be replaced at runtime with the name of the downloaded file. -->
+    <string name="download_error_body">下載 %1$s 時發生錯誤，請再試一次。</string>
+
+    <!-- This string is displayed in the button to dismiss the download error dialog. -->
+    <string name="download_error_ok">確定</string>
+
+    <!-- This string is displayed in the downloads panel, in the download status when the download has failed. -->
+    <string name="download_status_failed">失敗</string>
+
+    <!-- This string is displayed in the downloads panel, in the download status when the download is paused. -->
+    <string name="download_status_paused">已暫停</string>
+
+    <!-- This string is displayed in the downloads panel, in the download status when the download is pending. -->
+    <string name="download_status_pending">等待中</string>
+
+    <!-- This string is displayed in the downloads panel, in the download status when the resource is no longer available. -->
+    <string name="download_status_unavailable">無法使用</string>
+
+    <!-- This string is displayed in the downloads panel, in the download status when an unknown error happened. -->
+    <string name="download_status_unknown_error">未知錯誤</string>
+
+    <!-- This string is shown in the body of the error dialog displayed when the user is trying to download an environment in the external storage
+    but hasn't granted the permission. -->
+    <string name="environment_download_permission_error_body">需要有儲存空間的寫入權限，才能下載環境。</string>
+
+    <!-- This string is shown in the body of the error dialog displayed when the environment unzipping fails. -->
+    <string name="environment_download_unzip_error_body">解壓縮環境時發生錯誤。</string>
+
+    <!-- This string is shown in the title of the error dialog displayed if there is any error during an environment setup. -->
+    <string name="environment_error_title">環境錯誤</string>
+
 </resources>

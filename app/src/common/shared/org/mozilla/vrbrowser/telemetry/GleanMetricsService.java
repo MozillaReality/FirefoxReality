@@ -8,12 +8,15 @@ import androidx.annotation.UiThread;
 import androidx.annotation.VisibleForTesting;
 
 import org.mozilla.vrbrowser.BuildConfig;
+import org.mozilla.vrbrowser.GleanMetrics.Control;
 import org.mozilla.vrbrowser.GleanMetrics.Distribution;
 import org.mozilla.vrbrowser.GleanMetrics.FirefoxAccount;
+import org.mozilla.vrbrowser.GleanMetrics.Immersive;
+import org.mozilla.vrbrowser.GleanMetrics.Pages;
 import org.mozilla.vrbrowser.GleanMetrics.Pings;
 import org.mozilla.vrbrowser.GleanMetrics.Searches;
 import org.mozilla.vrbrowser.GleanMetrics.Url;
-import org.mozilla.vrbrowser.GleanMetrics.Control;
+import org.mozilla.vrbrowser.GleanMetrics.Windows;
 import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.search.SearchEngineWrapper;
 import org.mozilla.vrbrowser.utils.DeviceType;
@@ -21,12 +24,20 @@ import org.mozilla.vrbrowser.utils.SystemUtils;
 import org.mozilla.vrbrowser.utils.UrlUtils;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.Map;
 
+import mozilla.components.concept.fetch.Client;
 import mozilla.components.service.glean.Glean;
 import mozilla.components.service.glean.config.Configuration;
+import mozilla.components.service.glean.net.ConceptFetchHttpUploader;
+import mozilla.telemetry.glean.GleanTimerId;
+
+import static org.mozilla.vrbrowser.ui.widgets.Windows.MAX_WINDOWS;
+import static org.mozilla.vrbrowser.ui.widgets.Windows.WindowPlacement;
 
 
 public class GleanMetricsService {
@@ -36,9 +47,15 @@ public class GleanMetricsService {
     private static boolean initialized = false;
     private static Context context = null;
     private static HashSet<String> domainMap = new HashSet<String>();
+    private static Map<String, GleanTimerId> loadingTimerId = new Hashtable<>();
+    private static GleanTimerId immersiveTimerId;
+    private static Map<Integer, GleanTimerId> windowLifeTimerId = new Hashtable<>();
+    private static GleanTimerId activeWindowTimerId[] = new GleanTimerId[MAX_WINDOWS];
+    private static GleanTimerId openWindowTimerId[] = new GleanTimerId[MAX_WINDOWS];
+    private static GleanTimerId openPrivateWindowTimerId[] = new GleanTimerId[MAX_WINDOWS];
 
     // We should call this at the application initial stage.
-    public static void init(Context aContext) {
+    public static void init(@NonNull Context aContext, @NonNull Client client) {
         if (initialized)
             return;
 
@@ -46,13 +63,13 @@ public class GleanMetricsService {
         initialized = true;
 
         final boolean telemetryEnabled = SettingsStore.getInstance(aContext).isTelemetryEnabled();
-        if (telemetryEnabled) {
-            GleanMetricsService.start();
-        } else {
-            GleanMetricsService.stop();
-        }
-        Configuration config = new Configuration(Configuration.DEFAULT_TELEMETRY_ENDPOINT, BuildConfig.BUILD_TYPE);
-        Glean.INSTANCE.initialize(aContext, true, config);
+        Configuration config = new Configuration(
+                ConceptFetchHttpUploader.fromClient(client),
+                Configuration.DEFAULT_TELEMETRY_ENDPOINT,
+                BuildConfig.BUILD_TYPE);
+
+        Glean.INSTANCE.initialize(aContext, telemetryEnabled, config);
+        setStartupMetrics();
     }
 
     // It would be called when users turn on/off the setting of telemetry.
@@ -68,35 +85,203 @@ public class GleanMetricsService {
         Glean.INSTANCE.setUploadEnabled(false);
     }
 
-    public static void startPageLoadTime() {
-       // TODO: Blocked by Bug 1595914.
-       // pageLoadingTimerId = Pages.INSTANCE.getPageLoad().start();
+    public static void startPageLoadTime(String aUrl) {
+        GleanTimerId pageLoadingTimerId = Pages.INSTANCE.pageLoad().start();
+        loadingTimerId.put(aUrl, pageLoadingTimerId);
     }
 
     public static void stopPageLoadTimeWithURI(String uri) {
-        // TODO: Blocked by Bug 1595914.
-        // Pages.INSTANCE.getPageLoad().stopAndAccumulate(pageLoadingTimerId);
+        if (loadingTimerId.containsKey(uri)) {
+            GleanTimerId pageLoadingTimerId = loadingTimerId.get(uri);
+            Pages.INSTANCE.pageLoad().stopAndAccumulate(pageLoadingTimerId);
+            loadingTimerId.remove(uri);
+        } else {
+            Log.e(LOGTAG, "Can't find page loading url.");
+        }
 
         try {
-            URI uriLink = URI.create(uri);
+            URI uriLink = UrlUtils.parseUri(uri);
             if (uriLink.getHost() == null) {
                 return;
             }
 
             if (domainMap.add(UrlUtils.stripCommonSubdomains(uriLink.getHost()))) {
-                Url.INSTANCE.getDomains().add();
+                Url.INSTANCE.domains().add();
             }
-            Url.INSTANCE.getVisits().add();
-
-        } catch (IllegalArgumentException e) {
+            Url.INSTANCE.visits().add();
+        } catch (URISyntaxException e) {
             Log.e(LOGTAG, "Invalid URL", e);
         }
+    }
 
+    public static void windowsResizeEvent() {
+        Windows.INSTANCE.resize().add();
+    }
+
+    public static void windowsMoveEvent() {
+        Windows.INSTANCE.movement().add();
+    }
+
+    public static void activePlacementEvent(int from, boolean active) {
+        if (active) {
+            if (from == WindowPlacement.FRONT.getValue()) {
+                activeWindowTimerId[from] =
+                        Windows.INSTANCE.activeInFrontTime().start();
+            } else if (from == WindowPlacement.LEFT.getValue()) {
+                activeWindowTimerId[from] =
+                        Windows.INSTANCE.activeInLeftTime().start();
+            } else if (from == WindowPlacement.RIGHT.getValue()) {
+                activeWindowTimerId[from] =
+                        Windows.INSTANCE.activeInRightTime().start();
+            } else {
+                Log.d(LOGTAG,"Undefined WindowPlacement type: " +  from);
+            }
+        } else if (activeWindowTimerId[from] != null) {
+            if (from == WindowPlacement.FRONT.getValue()) {
+                Windows.INSTANCE.activeInFrontTime().
+                        stopAndAccumulate(activeWindowTimerId[from]);
+            } else if (from == WindowPlacement.LEFT.getValue()) {
+                Windows.INSTANCE.activeInLeftTime().
+                        stopAndAccumulate(activeWindowTimerId[from]);
+            } else if (from == WindowPlacement.RIGHT.getValue()) {
+                Windows.INSTANCE.activeInRightTime().
+                        stopAndAccumulate(activeWindowTimerId[from]);
+            } else {
+                Log.d(LOGTAG,"Undefined WindowPlacement type: " +  from);
+            }
+        }
+    }
+
+    public static void openWindowsEvent(int from, int to, boolean isPrivate) {
+        if (isPrivate) {
+            if (from > 0 && openPrivateWindowTimerId[from - 1] != null) {
+                switch (from) {
+                    case 1:
+                        Windows.INSTANCE.singlePriWindowOpenedTime().
+                                stopAndAccumulate(openPrivateWindowTimerId[from - 1]);
+                        break;
+                    case 2:
+                        Windows.INSTANCE.doublePriWindowOpenedTime().
+                                stopAndAccumulate(openPrivateWindowTimerId[from - 1]);
+                        break;
+                    case 3:
+                        Windows.INSTANCE.triplePriWindowOpenedTime().
+                                stopAndAccumulate(openPrivateWindowTimerId[from - 1]);
+                        break;
+                    default:
+                        Log.d(LOGTAG,"Undefined PriWindowOpenedTime type: " +  from);
+                        break;
+                }
+            }
+            if (to > 0) {
+                String label = "";
+                switch (to) {
+                    case 1:
+                        label = "single";
+                        openPrivateWindowTimerId[to - 1] =
+                                Windows.INSTANCE.singlePriWindowOpenedTime().start();
+                        break;
+                    case 2:
+                        label = "double";
+                        openPrivateWindowTimerId[to - 1] =
+                                Windows.INSTANCE.doublePriWindowOpenedTime().start();
+                        break;
+                    case 3:
+                        label = "triple";
+                        openPrivateWindowTimerId[to - 1] =
+                                Windows.INSTANCE.triplePriWindowOpenedTime().start();
+                        break;
+                    default:
+                        Log.d(LOGTAG,"Undefined OpenedPriWindowCount type: " +  to);
+                        break;
+                }
+                Windows.INSTANCE.getOpenedPriWindowCount().get(label).add();
+            }
+        } else {
+            if (from > 0 && openWindowTimerId[from - 1] != null) {
+                switch (from) {
+                    case 1:
+                        Windows.INSTANCE.singleWindowOpenedTime().
+                                stopAndAccumulate(openWindowTimerId[from - 1]);
+                        break;
+                    case 2:
+                        Windows.INSTANCE.doubleWindowOpenedTime().
+                                stopAndAccumulate(openWindowTimerId[from - 1]);
+                        break;
+                    case 3:
+                        Windows.INSTANCE.tripleWindowOpenedTime().
+                                stopAndAccumulate(openWindowTimerId[from - 1]);
+                        break;
+                    default:
+                        Log.d(LOGTAG,"Undefined WindowOpenedTime type: " +  from);
+                        break;
+                }
+            }
+            if (to > 0) {
+                String label = "";
+                switch (to) {
+                    case 1:
+                        label = "single";
+                        openWindowTimerId[to - 1] =
+                                Windows.INSTANCE.singleWindowOpenedTime().start();
+                        break;
+                    case 2:
+                        label = "double";
+                        openWindowTimerId[to - 1] =
+                                Windows.INSTANCE.doubleWindowOpenedTime().start();
+                        break;
+                    case 3:
+                        label = "triple";
+                        openWindowTimerId[to - 1] =
+                                Windows.INSTANCE.tripleWindowOpenedTime().start();
+                        break;
+                    default:
+                        Log.d(LOGTAG,"Undefined OpenedWindowCount type: " +  to);
+                        break;
+                }
+                Windows.INSTANCE.getOpenedWindowCount().get(label).add();
+            }
+        }
+    }
+
+    public static void resetOpenedWindowsCount(int number, boolean isPrivate) {
+        if (number == 0) {
+            return;
+        }
+
+        String label = "";
+        switch (number) {
+            case 1:
+                label = "single";
+                break;
+            case 2:
+                label = "double";
+                break;
+            case 3:
+                label = "triple";
+                break;
+            default:
+                Log.d(LOGTAG, String.format("Undefined OpenedWindowCount type: %d, private? %d",
+                        number, isPrivate == true ? 1: 0));
+                break;
+        }
+
+        if (isPrivate) {
+            Windows.INSTANCE.getOpenedPriWindowCount().get(label).add();
+        } else {
+            Windows.INSTANCE.getOpenedWindowCount().get(label).add();
+        }
     }
 
     public static void sessionStop() {
         domainMap.clear();
-        Pings.INSTANCE.getSessionEnd().send();
+        loadingTimerId.clear();
+        windowLifeTimerId.clear();
+        activeWindowTimerId = new GleanTimerId[MAX_WINDOWS];
+        openWindowTimerId = new GleanTimerId[MAX_WINDOWS];
+        openPrivateWindowTimerId = new GleanTimerId[MAX_WINDOWS];
+
+        Pings.INSTANCE.sessionEnd().submit();
     }
 
     @UiThread
@@ -121,31 +306,26 @@ public class GleanMetricsService {
     }
 
     public static void startImmersive() {
-        // TODO: Blocked by Bug 1595914 and 1595723.
-        // immersiveTimerId = Durarion.INSTANCE.getImmersiveMode().start();
+        immersiveTimerId =  Immersive.INSTANCE.duration().start();
     }
 
     public static void stopImmersive() {
-        // TODO: Blocked by Bug 1595914 and 1595723.
-        // Durarion.INSTANCE.getImmersiveMode().stopAndAccumulate(immersiveTimerId);
+        Immersive.INSTANCE.duration().stopAndAccumulate(immersiveTimerId);
     }
 
-    // TODO: Confirm if we don't need multiple metrics for tracking window open duration.
-    // like WindowLifetime1 ~ WindowLifetimeN for multiple windows.
     public static void openWindowEvent(int windowId) {
-        // TODO: Blocked by Bug 1595914 and Bug 1595723.
-        // GleanTimerId id = Durarion.INSTANCE.getWindowLifetime().start();
-        // windowLifetimeId.put(windowId, id);
+         GleanTimerId timerId = Windows.INSTANCE.duration().start();
+         windowLifeTimerId.put(windowId, timerId);
     }
 
     public static void closeWindowEvent(int windowId) {
-        // TODO: Blocked by Bug 1595914 and Bug 1595723.
-        // if (windowLifetimeId.containsKey(windowId)) {
-        //    Durarion.INSTANCE.getWindowLifetime().stopAndAccumulate(windowLifetimeId.get(windowId));
-        //    windowLifetimeId.remove(windowId);
-        // } else {
-        //    Log.e(LOGTAG, "Can't find window id.");
-        // }
+        if (windowLifeTimerId.containsKey((windowId))) {
+            GleanTimerId timerId = windowLifeTimerId.get(windowId);
+            Windows.INSTANCE.duration().stopAndAccumulate(timerId);
+            windowLifeTimerId.remove(windowId);
+        } else {
+            Log.e(LOGTAG, "Can't find close window id.");
+        }
     }
 
     private static String getDefaultSearchEngineIdentifierForTelemetry() {
@@ -153,11 +333,11 @@ public class GleanMetricsService {
     }
 
     public static void newWindowOpenEvent() {
-        Control.INSTANCE.getOpenNewWindow().add();
+        Control.INSTANCE.openNewWindow().add();
     }
 
     private static void setStartupMetrics() {
-        Distribution.INSTANCE.getChannelName().set(DeviceType.isOculusBuild() ? "oculusvr" : BuildConfig.FLAVOR_platform);
+        Distribution.INSTANCE.channelName().set(DeviceType.getDeviceTypeId());
     }
 
     @VisibleForTesting
@@ -168,33 +348,33 @@ public class GleanMetricsService {
     public static class FxA {
 
         public static void signIn() {
-            FirefoxAccount.INSTANCE.getSignIn().record();
+            FirefoxAccount.INSTANCE.signIn().record();
         }
 
         public static void signInResult(boolean status) {
             Map<FirefoxAccount.signInResultKeys, String> map = new HashMap<>();
             map.put(FirefoxAccount.signInResultKeys.state, String.valueOf(status));
-            FirefoxAccount.INSTANCE.getSignInResult().record(map);
+            FirefoxAccount.INSTANCE.signInResult().record(map);
         }
 
         public static void signOut() {
-            FirefoxAccount.INSTANCE.getSignOut().record();
+            FirefoxAccount.INSTANCE.signOut().record();
         }
 
         public static void bookmarksSyncStatus(boolean status) {
-            FirefoxAccount.INSTANCE.getBookmarksSyncStatus().set(status);
+            FirefoxAccount.INSTANCE.bookmarksSyncStatus().set(status);
         }
 
         public static void historySyncStatus(boolean status) {
-            FirefoxAccount.INSTANCE.getHistorySyncStatus().set(status);
+            FirefoxAccount.INSTANCE.historySyncStatus().set(status);
         }
 
         public static void sentTab() {
-            FirefoxAccount.INSTANCE.getTabSent().add();
+            FirefoxAccount.INSTANCE.tabSent().add();
         }
 
         public static void receivedTab(@NonNull mozilla.components.concept.sync.DeviceType source) {
-            FirefoxAccount.INSTANCE.getReceivedTab().get(source.name()).add();
+            FirefoxAccount.INSTANCE.getReceivedTab().get(source.name().toLowerCase()).add();
         }
     }
 
@@ -205,18 +385,19 @@ public class GleanMetricsService {
             TABS_DIALOG,        // Tab opened from the tabs dialog
             BOOKMARKS,          // Tab opened from the bookmarks panel
             HISTORY,            // Tab opened from the history panel
+            DOWNLOADS,          // Tab opened from the downloads panel
             FXA_LOGIN,          // Tab opened by the FxA login flow
             RECEIVED,           // Tab opened by FxA when a tab is received
             PRE_EXISTING,       // Tab opened as a result of restoring the last session
-            BROWSER             // Tab opened by the browser as a result of a new window open
+            BROWSER,            // Tab opened by the browser as a result of a new window open
         }
 
         public static void openedCounter(@NonNull TabSource source) {
-            org.mozilla.vrbrowser.GleanMetrics.Tabs.INSTANCE.getOpened().get(source.name()).add();
+            org.mozilla.vrbrowser.GleanMetrics.Tabs.INSTANCE.getOpened().get(source.name().toLowerCase()).add();
         }
 
         public static void activatedEvent() {
-            org.mozilla.vrbrowser.GleanMetrics.Tabs.INSTANCE.getActivated().add();
+            org.mozilla.vrbrowser.GleanMetrics.Tabs.INSTANCE.activated().add();
         }
     }
 }

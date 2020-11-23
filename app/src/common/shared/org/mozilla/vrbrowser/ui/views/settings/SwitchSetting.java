@@ -10,6 +10,7 @@ import android.widget.Switch;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.StringRes;
 
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.audio.AudioEngine;
@@ -78,7 +79,7 @@ public class SwitchSetting extends LinearLayout {
     };
 
     public void setLinkClickListener(@NonNull ViewUtils.LinkClickableSpan listener) {
-        ViewUtils.setTextViewHTML(mSwitchDescription, mText, (widget, url) -> listener.onClick(widget, url));
+        ViewUtils.setTextViewHTML(mSwitchDescription, mSwitchDescription.getText().toString(), listener);
     }
 
     public void setValue(boolean value, boolean doApply) {

@@ -10,10 +10,7 @@ import glob
 import os
 import subprocess
 import sys
-
-v1_platforms = {
-   'oculusvr3dofstore',
-}
+import time
 
 def main(name, argv):
    token = ''
@@ -61,24 +58,35 @@ def main(name, argv):
 
       if not release:
          target = target.replace('-release-', '-staging-' + feature_name)
-      else:
-         for platform in v1_platforms:
-            if platform in target.lower():
-               print "Using v1 signing on target:", target
-               cred = v1_token
-               align = True
 
       print "Signing", apk
       print "Target ", target
       cmd = ["curl", "-F", "input=@" + apk, "-o", target, "-H", "Authorization: " + cred, sign_url]
 
-      try:
-         print subprocess.check_output(cmd)
-      except subprocess.CalledProcessError as err:
-         cmd = ' '.join(err.cmd).replace(cred, "XXX")
-         print "Signing apk failed:", cmd
-         print "Output:", err.output
-         sys.exit(err.returncode)
+      signTryCount = 0
+      done = False
+      while not done and signTryCount < 5:
+         if signTryCount > 0:
+            print "Waiting 5 seconds before trying to sign apk again..."
+            time.sleep(5)
+         signTryCount = signTryCount + 1
+         try:
+            print subprocess.check_output(cmd)
+         except subprocess.CalledProcessError as err:
+            cleanCmd = ' '.join(err.cmd).replace(cred, "XXX")
+            print "Signing apk failed:", cleanCmd
+            print "Output:", err.output
+            continue
+         fileinfo = subprocess.check_output(['file', target])
+         if fileinfo.find("ASCII text") != -1:
+            print 'Error returned from autograph:'
+            print subprocess.check_output(['cat', target])
+         else:
+            done = True
+
+      if not done:
+         print "Failed to sign apk after multiple tries"
+         sys.exit(2)
 
       if align:
          split = os.path.splitext(target)
@@ -87,7 +95,11 @@ def main(name, argv):
          print subprocess.check_output(["zipalign", "-f", "-v", "-p", "4", orig, target])
 
       print "Verifying", target
-      print subprocess.check_output(['apksigner', 'verify', '--verbose', target])
+      try:
+         print subprocess.check_output(['apksigner', 'verify', '--verbose', target])
+      except subprocess.CalledProcessError as err:
+         print "Verifying apk failed"
+         sys.exit(err.returncode)
       print "Archiving", target
       os.rename(target, artifacts_path + "/" + os.path.basename(target))
    print "=" * 80

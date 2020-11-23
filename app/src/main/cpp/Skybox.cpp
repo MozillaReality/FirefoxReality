@@ -12,6 +12,8 @@
 #include "vrb/Geometry.h"
 #include "vrb/Matrix.h"
 #include "vrb/ModelLoaderAndroid.h"
+#include "vrb/Program.h"
+#include "vrb/ProgramFactory.h"
 #include "vrb/RenderState.h"
 #include "vrb/RenderContext.h"
 #include "vrb/TextureCubeMap.h"
@@ -113,6 +115,7 @@ struct Skybox::State {
       };
 
       VertexArrayPtr array = VertexArray::Create(aContext);
+      array->SetUVLength(3);
       const float kLength = 140.0f;
       for (int i = 0; i < cubeVertices.size(); i += 3) {
         array->AppendVertex(Vector(-kLength * cubeVertices[i], -kLength * cubeVertices[i + 1],
@@ -129,7 +132,9 @@ struct Skybox::State {
                                     cubeIndices[i + 2] + 1, cubeIndices[i + 3] + 1};
         geometry->AddFace(indices, indices, {});
       }
+      ProgramPtr program = aContext->GetProgramFactory()->CreateProgram(aContext, FeatureCubeTexture);
       RenderStatePtr state = RenderState::Create(aContext);
+      state->SetProgram(program);
       geometry->SetRenderState(state);
 
       texture = LoadTextureCube(aContext, basePath, extension);

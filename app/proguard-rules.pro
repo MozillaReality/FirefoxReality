@@ -30,7 +30,6 @@
     public static int d(...);
 }
 
-
 # --------------------------------------------------------------------
 # REMOVE android speech dependency from GV
 # --------------------------------------------------------------------
@@ -53,6 +52,8 @@
 -keep class org.mozilla.vrbrowser.ui.widgets.WidgetPlacement {*;} # Keep class used in JNI.
 -keep class org.mozilla.vrbrowser.ui.widgets.Windows$** {*;} # Keep state clases used by gson.
 -keep class org.mozilla.vrbrowser.browser.engine.** {*;} # Keep state clases used by gson.
+-keep class org.mozilla.vrbrowser.utils.RemoteProperties {*;} # Keep state clases used by gson.
+-keep class org.mozilla.vrbrowser.utils.Environment {*;} # Keep state clases used by gson.
 
 # --------------------------------------------------------------------
 # Keep classes from HTC SDK
@@ -65,6 +66,21 @@
 # --------------------------------------------------------------------
 -keep class com.psmart.vrlib.** {*;}
 -keep class com.picovr.** {*;}
+
+# --------------------------------------------------------------------
+# App Services
+# --------------------------------------------------------------------
+-keep class mozilla.appservices.** {*;}
+
+# --------------------------------------------------------------------
+# Android ViewModel
+# --------------------------------------------------------------------
+-keep class * extends androidx.lifecycle.ViewModel {
+    <init>();
+}
+-keep class * extends androidx.lifecycle.AndroidViewModel {
+    <init>(android.app.Application);
+}
 
 -dontwarn **
 -target 1.7

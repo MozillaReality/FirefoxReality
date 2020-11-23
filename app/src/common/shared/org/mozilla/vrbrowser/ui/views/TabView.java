@@ -16,12 +16,14 @@ import androidx.annotation.Nullable;
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.browser.engine.Session;
+import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
 import org.mozilla.vrbrowser.utils.AnimationHelper;
 import org.mozilla.vrbrowser.utils.BitmapCache;
 import org.mozilla.vrbrowser.utils.SystemUtils;
 import org.mozilla.vrbrowser.utils.UrlUtils;
 
+import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 
 public class TabView extends RelativeLayout implements GeckoSession.ContentDelegate, Session.BitmapChangedListener {
@@ -50,6 +52,7 @@ public class TabView extends RelativeLayout implements GeckoSession.ContentDeleg
     protected boolean mPressed;
     protected CompletableFuture<Bitmap> mBitmapFuture;
     protected boolean mUsingPlaceholder;
+    private boolean mSendTabEnabled;
     private static final int ICON_ANIMATION_DURATION = 100;
 
     public interface Delegate {
@@ -215,6 +218,16 @@ public class TabView extends RelativeLayout implements GeckoSession.ContentDeleg
         }
     }
 
+    public void setSendTabEnabled(boolean enabled) {
+        mSendTabEnabled = enabled;
+    }
+
+    public void reset() {
+        mSendTabButton.setHovered(false);
+        mCloseButton.setHovered(false);
+        updateState();
+    }
+
     @Override
     public void setSelected(boolean selected) {
         super.setSelected(selected);
@@ -250,7 +263,7 @@ public class TabView extends RelativeLayout implements GeckoSession.ContentDeleg
         boolean selected = isSelected();
 
         mCloseButton.setVisibility(interacted && !selected && !mSelecting ? View.VISIBLE : View.GONE);
-        mSendTabButton.setVisibility(interacted && !selected && !mSelecting ? View.VISIBLE : View.GONE);
+        mSendTabButton.setVisibility(mSendTabEnabled && interacted && !selected && !mSelecting ? View.VISIBLE : View.GONE);
         mTitle.setVisibility(interacted && !selected ? View.VISIBLE : View.GONE);
         mTabOverlay.setPressed(mPressed);
         if (mSelecting) {
@@ -283,6 +296,13 @@ public class TabView extends RelativeLayout implements GeckoSession.ContentDeleg
     }
 
     @Override
+    public void onCloseRequest(@NonNull GeckoSession geckoSession) {
+        if (mSession.getGeckoSession() == geckoSession) {
+            mDelegate.onClose(this);
+        }
+    }
+
+    @Override
     public void onBitmapChanged(Session aSession, Bitmap aBitmap) {
         if (aSession != mSession) {
             return;
@@ -305,7 +325,8 @@ public class TabView extends RelativeLayout implements GeckoSession.ContentDeleg
                 AnimationHelper.animateViewPadding(view,
                         mMaxIconPadding,
                         mMinIconPadding,
-                        ICON_ANIMATION_DURATION);
+                        ICON_ANIMATION_DURATION,
+                        this::updateState);
                 post(() -> setHovered(true));
                 return false;
 
@@ -314,7 +335,7 @@ public class TabView extends RelativeLayout implements GeckoSession.ContentDeleg
                         mMinIconPadding,
                         mMaxIconPadding,
                         ICON_ANIMATION_DURATION,
-                        null);
+                        this::updateState);
                 setHovered(false);
                 return false;
         }

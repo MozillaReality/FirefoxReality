@@ -127,7 +127,7 @@ struct ExternalVR::State {
   vrb::Vector eyeOffsets[device::EyeCount];
   uint64_t lastFrameId = 0;
   bool firstPresentingFrame = false;
-  bool compositorEnabled = false;
+  bool compositorEnabled = true;
   bool waitingForExit = false;
 
   State() {
@@ -156,6 +156,7 @@ struct ExternalVR::State {
     data.size = sizeof(mozilla::gfx::VRExternalShmem);
     system.displayState.isConnected = true;
     system.displayState.isMounted = true;
+    system.displayState.nativeFramebufferScaleFactor = 1.0f;
     const vrb::Matrix identity = vrb::Matrix::Identity();
     memcpy(&(system.sensorState.leftViewMatrix), identity.Data(), sizeof(system.sensorState.leftViewMatrix));
     memcpy(&(system.sensorState.rightViewMatrix), identity.Data(), sizeof(system.sensorState.rightViewMatrix));
@@ -206,6 +207,40 @@ struct ExternalVR::State {
 };
 
 ExternalVR::State * ExternalVR::State::sState = nullptr;
+
+mozilla::gfx::VRControllerType GetVRControllerTypeByDevice(device::DeviceType aType) {
+  mozilla::gfx::VRControllerType result = mozilla::gfx::VRControllerType::_empty;
+
+  switch (aType) {
+    case device::OculusGo:
+      result = mozilla::gfx::VRControllerType::OculusGo;
+      break;
+    case device::OculusQuest:
+      result = mozilla::gfx::VRControllerType::OculusTouch2;
+      break;
+    case device::ViveFocus:
+      result = mozilla::gfx::VRControllerType::HTCViveFocus;
+      break;
+    case device::ViveFocusPlus:
+      result = mozilla::gfx::VRControllerType::HTCViveFocusPlus;
+      break;
+    case device::PicoGaze:
+      result = mozilla::gfx::VRControllerType::PicoGaze;
+      break;
+    case device::PicoNeo2:
+      result = mozilla::gfx::VRControllerType::PicoNeo2;
+      break;
+    case device::PicoG2:
+      result = mozilla::gfx::VRControllerType::PicoG2;
+      break;
+    case device::UnknownType:
+    default:
+      result = mozilla::gfx::VRControllerType::_empty;
+      VRB_LOG("Unknown controller type.");
+      break;
+  }
+  return  result;
+}
 
 ExternalVRPtr
 ExternalVR::Create() {
@@ -300,6 +335,17 @@ ExternalVR::SetEyeResolution(const int32_t aWidth, const int32_t aHeight) {
 }
 
 void
+ExternalVR::SetNativeFramebufferScaleFactor(const float aScale) {
+  m.system.displayState.nativeFramebufferScaleFactor = aScale;
+}
+
+void
+ExternalVR::SetStageSize(const float aWidth, const float aDepth) {
+  m.system.displayState.stageSize.width = aWidth;
+  m.system.displayState.stageSize.height = aDepth;
+}
+
+void
 ExternalVR::SetSittingToStandingTransform(const vrb::Matrix& aTransform) {
   memcpy(&(m.system.displayState.sittingToStandingTransform), aTransform.Data(), sizeof(m.system.displayState.sittingToStandingTransform));
 }
@@ -326,6 +372,11 @@ ExternalVR::SetSourceBrowser(VRBrowserType aBrowser) {
   m.SetSourceBrowser(aBrowser);
 }
 
+uint64_t
+ExternalVR::GetFrameId() const {
+  return m.lastFrameId;
+}
+
 void
 ExternalVR::SetCompositorEnabled(bool aEnabled) {
   if (aEnabled == m.compositorEnabled) {
@@ -333,14 +384,22 @@ ExternalVR::SetCompositorEnabled(bool aEnabled) {
   }
   m.compositorEnabled = aEnabled;
   if (aEnabled) {
-    VRBrowser::ResumeCompositor();
+    // Set suppressFrames to avoid a deadlock between the sync surfaceChanged call
+    // and the gecko VRManager SubmitFrame result wait.
+    m.system.displayState.suppressFrames = true;
+    PushSystemState();
+    VRBrowser::OnExitWebXR([=]{
+        m.system.displayState.suppressFrames = false;
+        PushSystemState();
+    });
   } else {
-    // Set suppressFrames to avoid a deadlock between the compositor sync pause call and the gfxVRExternal SubmitFrame result wait.
+    // Set suppressFrames to avoid a deadlock between the compositor sync pause call
+    // and the gecko VRManager SubmitFrame result wait.
     m.system.displayState.suppressFrames = true;
     m.system.displayState.lastSubmittedFrameId = 0;
     m.lastFrameId = 0;
     PushSystemState();
-    VRBrowser::PauseCompositor();
+    VRBrowser::OnEnterWebXR();
     m.system.displayState.suppressFrames = false;
     PushSystemState();
   }
@@ -365,6 +424,12 @@ ExternalVR::GetControllerCapabilityFlags(device::CapabilityFlags aFlags) {
   }
   if (device::LinearAcceleration & aFlags) {
     result |= static_cast<uint16_t>(mozilla::gfx::ControllerCapabilityFlags::Cap_LinearAcceleration);
+  }
+  if (device::PositionEmulated & aFlags) {
+    result |= static_cast<uint16_t>(mozilla::gfx::ControllerCapabilityFlags::Cap_PositionEmulated);
+  }
+  if (device::GripSpacePosition & aFlags) {
+    result |= static_cast<uint16_t>(mozilla::gfx::ControllerCapabilityFlags::Cap_GripSpacePosition);
   }
 
   return result;
@@ -414,32 +479,53 @@ ExternalVR::PushFramePoses(const vrb::Matrix& aHeadTransform, const std::vector<
     immersiveController.numButtons = controller.numButtons;
     immersiveController.buttonPressed = controller.immersivePressedState;
     immersiveController.buttonTouched = controller.immersiveTouchedState;
-    for (int i = 0; i< controller.numButtons; ++i) {
-      immersiveController.triggerValue[i] = controller.immersiveTriggerValues[i];
+    for (int j = 0; j < controller.numButtons; ++j) {
+      immersiveController.triggerValue[j] = controller.immersiveTriggerValues[j];
     }
     immersiveController.numAxes = controller.numAxes;
-    for (int i = 0; i< controller.numAxes; ++i) {
-      immersiveController.axisValue[i] = controller.immersiveAxes[i];
+    for (int j = 0; j < controller.numAxes; ++j) {
+      immersiveController.axisValue[j] = controller.immersiveAxes[j];
     }
     immersiveController.numHaptics = controller.numHaptics;
     immersiveController.hand = controller.leftHanded ? mozilla::gfx::ControllerHand::Left : mozilla::gfx::ControllerHand::Right;
+    immersiveController.type = GetVRControllerTypeByDevice(controller.type);
 
     const uint16_t flags = GetControllerCapabilityFlags(controller.deviceCapabilities);
     immersiveController.flags = static_cast<mozilla::gfx::ControllerCapabilityFlags>(flags);
-
+    const vrb::Matrix beamTransform = controller.transformMatrix.PostMultiply(controller.immersiveBeamTransform);
     if (flags & static_cast<uint16_t>(mozilla::gfx::ControllerCapabilityFlags::Cap_Orientation)) {
       immersiveController.isOrientationValid = true;
 
-      vrb::Quaternion quaternion(controller.transformMatrix);
-      quaternion = quaternion.Inverse();
-      memcpy(&(immersiveController.pose.orientation), quaternion.Data(), sizeof(immersiveController.pose.orientation));
+      vrb::Quaternion rotate;
+      if (flags & static_cast<uint16_t>(mozilla::gfx::ControllerCapabilityFlags::Cap_GripSpacePosition)) {
+        rotate = controller.transformMatrix;
+        rotate = rotate.Inverse();
+        memcpy(&(immersiveController.pose.orientation), rotate.Data(), sizeof(immersiveController.pose.orientation));
+      }
+      rotate.SetFromRotationMatrix(beamTransform);
+      rotate = rotate.Inverse();
+      memcpy(&(immersiveController.targetRayPose.orientation), rotate.Data(), sizeof(immersiveController.targetRayPose.orientation));
     }
-    if (flags & static_cast<uint16_t>(mozilla::gfx::ControllerCapabilityFlags::Cap_Position)) {
+    if (flags & static_cast<uint16_t>(mozilla::gfx::ControllerCapabilityFlags::Cap_Position) ||
+      flags & static_cast<uint16_t>(mozilla::gfx::ControllerCapabilityFlags::Cap_PositionEmulated)) {
       immersiveController.isPositionValid = true;
 
-      vrb::Vector position(controller.transformMatrix.GetTranslation());
-      memcpy(&(immersiveController.pose.position), position.Data(), sizeof(immersiveController.pose.position));
+      vrb::Vector position;
+      if (flags & static_cast<uint16_t>(mozilla::gfx::ControllerCapabilityFlags::Cap_GripSpacePosition)) {
+        position = controller.transformMatrix.GetTranslation();
+        memcpy(&(immersiveController.pose.position), position.Data(), sizeof(immersiveController.pose.position));
+      }
+      position = beamTransform.GetTranslation();
+      memcpy(&(immersiveController.targetRayPose.position), position.Data(), sizeof(immersiveController.targetRayPose.position));
     }
+    // TODO:: We should add TargetRayMode::_end in moz_external_vr.h to help this check.
+    assert((uint8_t)mozilla::gfx::TargetRayMode::Screen == (uint8_t)device::TargetRayMode::Screen);
+    immersiveController.targetRayMode = (mozilla::gfx::TargetRayMode)controller.targetRayMode;
+    immersiveController.mappingType = mozilla::gfx::GamepadMappingType::XRStandard;
+    immersiveController.selectActionStartFrameId = controller.selectActionStartFrameId;
+    immersiveController.selectActionStopFrameId = controller.selectActionStopFrameId;
+    immersiveController.squeezeActionStartFrameId = controller.squeezeActionStartFrameId;
+    immersiveController.squeezeActionStopFrameId = controller.squeezeActionStopFrameId;
   }
 
   m.system.sensorState.timestamp = aTimestamp;
@@ -461,7 +547,7 @@ ExternalVR::WaitFrameResult() {
       // VRB_LOG("RequestFrame BREAK %llu",  m.browser.layerState[0].layer_stereo_immersive.frameId);
       break;
     }
-    if (m.firstPresentingFrame) {
+    if (m.firstPresentingFrame || m.waitingForExit) {
       return true; // Do not block to show loading screen until the first frame arrives.
     }
     // VRB_LOG("RequestFrame ABOUT TO WAIT FOR FRAME %llu %llu",m.browser.layerState[0].layer_stereo_immersive.frameId, m.lastFrameId);
@@ -517,6 +603,28 @@ ExternalVR::SetHapticState(ControllerContainerPtr aControllerContainer) const {
       aControllerContainer->SetHapticFeedback(i, 0, 0.0f, 0.0f);
     }
   }
+}
+
+void
+ExternalVR::OnPause() {
+  if (m.system.displayState.presentingGeneration == 0) {
+    // Do not call PushSystemState() until correctly initialized.
+    // Fixes WebXR Display not found error due to some superfluous pause/resume life cycle events.
+    return;
+  }
+  m.system.displayState.isConnected = false;
+  PushSystemState();
+}
+
+void
+ExternalVR::OnResume() {
+  if (m.system.displayState.presentingGeneration == 0) {
+    // Do not call PushSystemState() until correctly initialized.
+    // Fixes WebXR Display not found error due to some superfluous pause/resume life cycle events.
+    return;
+  }
+  m.system.displayState.isConnected = true;
+  PushSystemState();
 }
 
 void

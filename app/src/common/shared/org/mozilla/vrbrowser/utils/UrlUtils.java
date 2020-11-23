@@ -7,6 +7,7 @@ package org.mozilla.vrbrowser.utils;
 
 import android.content.Context;
 import android.util.Base64;
+import android.util.Patterns;
 import android.webkit.URLUtil;
 
 import androidx.annotation.NonNull;
@@ -14,9 +15,13 @@ import androidx.annotation.Nullable;
 
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.browser.SettingsStore;
+import org.mozilla.vrbrowser.search.SearchEngineWrapper;
+import org.mozilla.vrbrowser.telemetry.GleanMetricsService;
 
+import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.regex.Pattern;
 
@@ -68,29 +73,58 @@ public class UrlUtils {
         return result;
     }
 
-    private static Pattern domainPattern = Pattern.compile("^(http:\\/\\/www\\.|https:\\/\\/www\\.|http:\\/\\/|https:\\/\\/)?[a-zA-Z0-9]+([\\-\\.]{1}[a-zA-Z0-9]+)*\\.[a-zA-Z]{2,5}(:[0-9]{1,5})?(\\/.*)?$");
+    private static Pattern domainPattern = Pattern.compile("^(http:\\/\\/www\\.|https:\\/\\/www\\.|http:\\/\\/|https:\\/\\/)?[a-zA-Z0-9]+([\\-\\.]{1}[a-zA-Z0-9]+)*\\.[a-zA-Z]{2,5}(:[0-9]{1,5})?(\\/[^ ]*)?$");
     public static boolean isDomain(String text) {
         return domainPattern.matcher(text).find();
     }
 
-    public static boolean isPrivateAboutPage(@NonNull Context context,  @NonNull String uri) {
-        InternalPages.PageResources pageResources = InternalPages.PageResources.create(R.raw.private_mode, R.raw.private_style);
-        byte[] privatePageBytes = InternalPages.createAboutPage(context, pageResources);
-        return uri.equals("data:text/html;base64," + Base64.encodeToString(privatePageBytes, Base64.NO_WRAP));
+    private static Pattern ipPattern = Pattern.compile("^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(:[0-9]+)?(/[^ ]*)?");
+    private static Pattern localhostPattern = Pattern.compile("^(localhost)(:[0-9]+)?(/[^ ]*)?", Pattern.CASE_INSENSITIVE);
+    public static boolean isIPUri(@Nullable String aUri) {
+        if (aUri == null) {
+            return false;
+        }
+        String uri = stripProtocol(aUri).trim();
+        return localhostPattern.matcher(uri).find() || ipPattern.matcher(uri).find();
     }
 
-    public static Boolean isHomeUri(@NonNull Context context, @Nullable String aUri) {
-        return aUri != null && aUri.toLowerCase().startsWith(
+    public static boolean isLocalIP(@Nullable String aUri) {
+        if (!isIPUri(aUri)) {
+            return false;
+        }
+        String uri = stripProtocol(aUri).trim();
+        return uri.startsWith("10.") ||
+               uri.startsWith("172.") ||
+               uri.startsWith("192.168.") || //
+               localhostPattern.matcher(uri).find();
+    }
+
+    public static boolean isPrivateAboutPage(@Nullable Context context,  @Nullable String uri) {
+        InternalPages.PageResources pageResources = InternalPages.PageResources.create(R.raw.private_mode, R.raw.private_style);
+        byte[] privatePageBytes = InternalPages.createAboutPage(context, pageResources);
+        return uri != null && uri.equals("data:text/html;base64," + Base64.encodeToString(privatePageBytes, Base64.NO_WRAP));
+    }
+
+    public static Boolean isHomeUri(@Nullable Context context, @Nullable String aUri) {
+        return aUri != null && context != null && aUri.toLowerCase().startsWith(
                 SettingsStore.getInstance(context).getHomepage()
         );
     }
 
-    public static Boolean isDataUri(@NonNull String aUri) {
-        return aUri.startsWith("data");
+    public static Boolean isDataUri(@Nullable String aUri) {
+        return aUri != null && aUri.startsWith("data");
     }
 
-    public static Boolean isBlankUri(@NonNull Context context, @NonNull String aUri) {
-        return aUri.equals(context.getString(R.string.about_blank));
+    public static Boolean isFileUri(@Nullable String aUri) {
+        return aUri != null && aUri.startsWith("file");
+    }
+
+    public static Boolean isBlobUri(@Nullable String aUri) {
+        return aUri != null && aUri.startsWith("blob");
+    }
+
+    public static Boolean isBlankUri(@Nullable Context context, @Nullable String aUri) {
+        return context != null && aUri != null && aUri.equals(context.getString(R.string.about_blank));
     }
 
     public static String titleBarUrl(@Nullable String aUri) {
@@ -99,20 +133,124 @@ public class UrlUtils {
         }
 
         if (URLUtil.isValidUrl(aUri)) {
-            try {
-                URI uri = URI.create(aUri);
-                URL url = new URL(
-                        uri.getScheme() != null ? uri.getScheme() : "",
-                        uri.getAuthority() != null ? uri.getAuthority() : "",
-                        "");
-                return url.toString();
+            if (UrlUtils.isFileUri(aUri)) {
+                File file = new File(aUri);
+                return file.getName();
 
-            } catch (MalformedURLException | IllegalArgumentException e) {
-                return "";
+            } else {
+                try {
+                    URI uri = parseUri(aUri);
+                    URL url = new URL(
+                            uri.getScheme() != null ? uri.getScheme() : "",
+                            uri.getAuthority() != null ? uri.getAuthority() : "",
+                            "");
+                    return url.toString();
+
+                } catch (MalformedURLException | URISyntaxException e) {
+                    return "";
+                }
             }
 
         } else {
             return aUri;
         }
+    }
+
+    public static final String ABOUT_HISTORY = "about://history";
+
+    public static boolean isHistoryUrl(@Nullable String url) {
+        return url != null && url.equalsIgnoreCase(ABOUT_HISTORY);
+    }
+
+    public static final String ABOUT_BOOKMARKS = "about://bookmarks";
+
+    public static boolean isBookmarksUrl(@Nullable String url) {
+        return url != null && url.equalsIgnoreCase(ABOUT_BOOKMARKS);
+    }
+
+    public static final String ABOUT_DOWNLOADS = "about://downloads";
+
+    public static boolean isDownloadsUrl(@Nullable String url) {
+        if (url == null) {
+            return false;
+        }
+
+        return url.equalsIgnoreCase(ABOUT_DOWNLOADS);
+    }
+
+    public static final String ABOUT_ADDONS = "about://addons";
+
+    public static boolean isAddonsUrl(@Nullable String url) {
+        if (url == null) {
+            return false;
+        }
+
+        return url.equalsIgnoreCase(ABOUT_ADDONS);
+    }
+
+    public static final String WEB_EXTENSION_URL = "moz-extension://";
+
+    public static boolean isWebExtensionUrl(@Nullable String url) {
+        if (url == null) {
+            return false;
+        }
+
+        return url.startsWith(WEB_EXTENSION_URL);
+    }
+
+    public static final String ABOUT_PRIVATE = "about://privatebrowsing";
+
+    public static boolean isPrivateUrl(@Nullable String url) {
+        return url != null && url.equalsIgnoreCase(ABOUT_PRIVATE);
+    }
+
+    public static boolean isAboutPage(@Nullable String url) {
+        return isHistoryUrl(url) || isBookmarksUrl(url) || isDownloadsUrl(url) || isAddonsUrl(url) || isPrivateUrl(url);
+    }
+
+    public static boolean isContentFeed(Context aContext, @Nullable String url) {
+        String feed = aContext.getString(R.string.homepage_url);
+        return UrlUtils.getHost(feed).equalsIgnoreCase(UrlUtils.getHost(url));
+    }
+
+    public static String getHost(String uri) {
+        try {
+            URL url = new URL(uri);
+            return url.getHost();
+        } catch (MalformedURLException e) {
+            return uri;
+        }
+    }
+
+    public static URI parseUri(String aUri) throws URISyntaxException {
+        try {
+            return new URI(aUri);
+        } catch (URISyntaxException e) {
+            if (!StringUtils.isEmpty(aUri) && StringUtils.charCount(aUri, '#') >= 2) {
+                // Browsers are able to handle URLs with double # by ignoring everything after the
+                // second # occurrence. But Java implementation considers it an invalid URL.
+                // Remove everything after the second #.
+                int index = aUri.indexOf("#", aUri.indexOf("#") + 1);
+                return parseUri(aUri.substring(0, index));
+            }
+            throw e;
+        }
+    }
+
+    public static String urlForText(@NonNull Context context, @NonNull String text) {
+        String url = text.trim();
+        if ((UrlUtils.isDomain(text) || UrlUtils.isIPUri(text)) && !text.contains(" ")) {
+            url = text;
+            GleanMetricsService.urlBarEvent(true);
+        } else if (text.startsWith("about:") || text.startsWith("resource://")) {
+            url = text;
+        } else {
+            url = SearchEngineWrapper.get(context).getSearchURL(text);
+
+            // Doing search in the URL bar, so sending "aIsURL: false" to telemetry.
+            GleanMetricsService.urlBarEvent(false);
+        }
+
+        return url;
     }
 }

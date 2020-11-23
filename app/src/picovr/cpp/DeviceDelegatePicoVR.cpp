@@ -4,8 +4,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "DeviceDelegatePicoVR.h"
+#include "DeviceUtils.h"
 #include "ElbowModel.h"
-#include "BrowserEGLContext.h"
+#include "VRBrowserPico.h"
 
 #include <EGL/egl.h>
 #include "vrb/CameraEye.h"
@@ -27,12 +28,14 @@
 namespace crow {
 
 static const vrb::Vector kAverageHeight(0.0f, 1.7f, 0.0f);
+// TODO: Get real sitting to standing transform when SDK provides it
+static const vrb::Vector kAverageSittingToStanding(0.0f, 1.2f, 0.0f);
 // TODO: support different controllers & buttons
-static const int32_t kMaxControllerCount = 2;
-static const int32_t kNumButtons = 6;
-static const int32_t kNumG2Buttons = 2;
-static const int32_t kNumAxes = 2;
-static const int32_t kTypeNeo2 = 1;
+static const int32_t kMaxControllerCount = 3;
+static const int32_t kNumButtons = 7;
+static const int32_t kNumG2Buttons = 3;
+static const int32_t kNumGazeButtons = 1;
+static const int32_t k6DofHeadSet = 1;
 static const int32_t kButtonApp       = 1;
 static const int32_t kButtonTrigger   = 1 << 1;
 static const int32_t kButtonTouchPad  = 1 << 2;
@@ -53,6 +56,8 @@ struct DeviceDelegatePicoVR::State {
     float axisX = 0;
     float axisY = 0;
     ElbowModel::HandEnum hand;
+    int hapticFrameID = 0;
+    int battery = -1;
     Controller()
         : index(-1)
         , created(false)
@@ -90,6 +95,9 @@ struct DeviceDelegatePicoVR::State {
   float ipd = 0.064f;
   float fov = (float) (51.0 * M_PI / 180.0);
   int32_t focusIndex = 0;
+  bool recentered = false;
+  bool isInGazeMode = false;
+  int32_t gazeIndex = -1;
 
   void Initialize() {
     vrb::RenderContextPtr localContext = context.lock();
@@ -99,6 +107,8 @@ struct DeviceDelegatePicoVR::State {
     cameras[device::EyeIndex(device::Eye::Right)] = vrb::CameraEye::Create(create);
     UpdatePerspective();
     UpdateEyeTransform();
+
+    gazeIndex = VRBrowserPico::GetGazeIndex();
 
     for (int32_t index = 0; index < kMaxControllerCount; index++) {
       controllers[index].index = index;
@@ -142,6 +152,16 @@ struct DeviceDelegatePicoVR::State {
     }
   }
 
+  void UpdateHaptics(Controller& aController) {
+    uint64_t inputFrameID = 0;
+    float pulseDuration = 0.0f, pulseIntensity = 0.0f;
+    controllerDelegate->GetHapticFeedback(aController.index, inputFrameID, pulseDuration, pulseIntensity);
+
+    if (aController.hapticFrameID != inputFrameID) {
+      VRBrowserPico::UpdateHaptics(aController.index, pulseIntensity, pulseDuration);
+    }
+  }
+
   void UpdateControllers() {
     for (int32_t i = 0; i < controllers.size(); ++i) {
       if (!controllers[i].enabled) {
@@ -151,7 +171,10 @@ struct DeviceDelegatePicoVR::State {
       device::CapabilityFlags flags = device::Orientation;
       if (controller.is6DoF) {
         flags |= device::Position;
+      } else {
+        flags |= device::PositionEmulated;
       }
+      flags |= device::GripSpacePosition;
       controllerDelegate->SetCapabilityFlags(i, flags);
       const bool appPressed = (controller.buttonsState & kButtonApp) > 0;
       const bool triggerPressed = (controller.buttonsState & kButtonTrigger) > 0;
@@ -162,55 +185,88 @@ struct DeviceDelegatePicoVR::State {
 
       controllerDelegate->SetButtonState(i, ControllerDelegate::BUTTON_APP, -1, appPressed,
                                          appPressed);
-      controllerDelegate->SetButtonState(i, ControllerDelegate::BUTTON_TOUCHPAD, 0, touchPadPressed,
-                                         touchPadPressed);
-      controllerDelegate->SetButtonState(i, ControllerDelegate::BUTTON_TRIGGER, 1, triggerPressed,
+      controllerDelegate->SetButtonState(i, ControllerDelegate::BUTTON_TOUCHPAD, type == k6DofHeadSet ?
+          device::kImmersiveButtonThumbstick : device::kImmersiveButtonTouchpad, touchPadPressed, touchPadPressed);
+      controllerDelegate->SetButtonState(i, ControllerDelegate::BUTTON_TRIGGER, device::kImmersiveButtonTrigger, triggerPressed,
                                          triggerPressed);
-      if (type == kTypeNeo2) {
-        controllerDelegate->SetButtonState(i, ControllerDelegate::BUTTON_OTHERS, 2, gripPressed,
+      if (triggerPressed && renderMode == device::RenderMode::Immersive) {
+        controllerDelegate->SetSelectActionStart(i);
+      } else {
+        controllerDelegate->SetSelectActionStop(i);
+      }
+      if (type == k6DofHeadSet) {
+        controllerDelegate->SetButtonState(i, ControllerDelegate::BUTTON_SQUEEZE, device::kImmersiveButtonSqueeze, gripPressed,
                                            gripPressed, gripPressed ? 20.0f : 0.0f);
+        if (gripPressed && renderMode == device::RenderMode::Immersive) {
+          controllerDelegate->SetSqueezeActionStart(i);
+        } else {
+          controllerDelegate->SetSqueezeActionStop(i);
+        }
         controllerDelegate->SetButtonState(i,
                                            (controller.IsRightHand() ? ControllerDelegate::BUTTON_A
                                                                      : ControllerDelegate::BUTTON_X),
-                                           3, axPressed, axPressed);
+                                           device::kImmersiveButtonA, axPressed, axPressed);
         controllerDelegate->SetButtonState(i,
                                            (controller.IsRightHand() ? ControllerDelegate::BUTTON_B
                                                                      : ControllerDelegate::BUTTON_Y),
-                                           4, byPressed, byPressed);
-        controllerDelegate->SetButtonState(i, ControllerDelegate::BUTTON_OTHERS, 5, false, false);
-      }
+                                           device::kImmersiveButtonB, byPressed, byPressed);
+        controllerDelegate->SetButtonState(i, ControllerDelegate::BUTTON_OTHERS, device::kImmersiveButtonThumbrest, false, false);
 
-      // float axes[kNumAxes] = { controller.axisX , -controller.axisY };
-      float axes[kNumAxes] = { 0.0f, 0.0f };
-      controllerDelegate->SetAxes(i, axes, kNumAxes);
+        const int32_t kNumAxes = 4;
+        float axes[kNumAxes];
+        axes[device::kImmersiveAxisTouchpadX] = axes[device::kImmersiveAxisTouchpadY] = 0.0f;
+        axes[device::kImmersiveAxisThumbstickX] = controller.axisX;
+        axes[device::kImmersiveAxisThumbstickY] = -controller.axisY;
+        controllerDelegate->SetAxes(i, axes, controller.index != GazeModeIndex() ? kNumAxes : 0);
 
-      /*
-      if (type == kTypeNeo2) {
         if (!triggerPressed) {
           controllerDelegate->SetScrolledDelta(i, -controller.axisX, controller.axisY);
         }
       } else {
-       */
+        const int32_t kNumAxes = 2;
+        float axes[kNumAxes] = { 0.0f, 0.0f };
+        if (controller.touched) {
+          axes[device::kImmersiveAxisTouchpadX] = (2.0f * controller.axisX) - 1.0f;
+          axes[device::kImmersiveAxisTouchpadY] = (2.0f * controller.axisY) - 1.0f;
+        }
+        controllerDelegate->SetAxes(i, axes, controller.index != GazeModeIndex() ? kNumAxes : 0);
+
         if (controller.touched) {
           controllerDelegate->SetTouchPosition(i, controller.axisX, controller.axisY);
         } else {
           controllerDelegate->EndTouch(i);
         }
-      //}
+      }
 
       vrb::Matrix transform = controller.transform;
-      if (renderMode == device::RenderMode::StandAlone) {
-        if (type == kTypeNeo2) {
-          transform.TranslateInPlace(headOffset);
-        } else {
-          vrb::Matrix head = vrb::Matrix::Rotation(orientation);
-          head.PreMultiplyInPlace(vrb::Matrix::Position(headOffset));
-          transform = elbow->GetTransform(controller.hand, head, transform);
-        }
+      if (i != gazeIndex) {
+          if (renderMode == device::RenderMode::StandAlone) {
+              if (type == k6DofHeadSet) {
+                  transform.TranslateInPlace(headOffset);
+              } else {
+                  vrb::Matrix head = vrb::Matrix::Rotation(orientation);
+                  head.PreMultiplyInPlace(vrb::Matrix::Position(headOffset));
+                  transform = elbow->GetTransform(controller.hand, head, transform);
+              }
+          }
+          else if (type != k6DofHeadSet) {
+              vrb::Matrix head = vrb::Matrix::Rotation(orientation);
+              transform = elbow->GetTransform(controller.hand, head, transform);
+          }
       }
 
       controllerDelegate->SetTransform(i, transform);
+
+      controllerDelegate->SetBatteryLevel(i, controller.battery);
+
+      if (controllerDelegate->GetHapticCount(i)) {
+        UpdateHaptics(controllers[i]);
+      }
     }
+  }
+
+  int32_t GazeModeIndex() {
+    return gazeIndex;
   }
 };
 
@@ -229,6 +285,10 @@ DeviceDelegatePicoVR::SetRenderMode(const device::RenderMode aMode) {
     return;
   }
   m.renderMode = aMode;
+  if (aMode == device::RenderMode::StandAlone) {
+    // Ensure that all haptics are cancelled when exiting WebVR
+    VRBrowserPico::CancelAllHaptics();
+  }
 }
 
 device::RenderMode
@@ -245,8 +305,18 @@ DeviceDelegatePicoVR::RegisterImmersiveDisplay(ImmersiveDisplayPtr aDisplay) {
   }
 
   m.immersiveDisplay->SetDeviceName("Pico");
-  m.immersiveDisplay->SetCapabilityFlags(device::Position | device::Orientation | device::Present | device::ImmersiveVRSession | device::InlineSession);
-  m.immersiveDisplay->SetEyeResolution(m.renderWidth, m.renderHeight);
+  device::CapabilityFlags flags = device::Orientation | device::Present |
+          device::ImmersiveVRSession | device::InlineSession;
+  if (m.type == k6DofHeadSet) {
+    flags |= device::Position | device::StageParameters;
+    m.immersiveDisplay->SetSittingToStandingTransform(vrb::Matrix::Translation(kAverageSittingToStanding));
+  } else {
+    flags |=  device::PositionEmulated;
+    m.immersiveDisplay->SetSittingToStandingTransform(vrb::Matrix::Translation(kAverageHeight));
+  }
+  m.immersiveDisplay->SetCapabilityFlags(flags);
+  const float scale = 1.0f;
+  m.immersiveDisplay->SetEyeResolution(int(m.renderWidth * scale), int(m.renderHeight * scale));
   m.immersiveDisplay->CompleteEnumeration();
 }
 
@@ -269,10 +339,7 @@ DeviceDelegatePicoVR::GetReorientTransform() const {
 
 void
 DeviceDelegatePicoVR::SetReorientTransform(const vrb::Matrix& aMatrix) {
-  // Until we can get the new heading don't reset it on the Neo 2
-  if (m.type != kTypeNeo2) {
-    // m.reorientMatrix = aMatrix;
-  }
+  m.reorientMatrix = aMatrix;
 }
 
 void
@@ -293,18 +360,30 @@ DeviceDelegatePicoVR::SetControllerDelegate(ControllerDelegatePtr& aController) 
   for (State::Controller& controller: m.controllers) {
     const int32_t index = controller.index;
 
-    if (m.type == kTypeNeo2) {
-      vrb::Matrix beam = vrb::Matrix::Rotation(vrb::Vector(1.0f, 0.0f, 0.0f), -vrb::PI_FLOAT / 11.5f);
-      beam.TranslateInPlace(vrb::Vector(0.0f, 0.012f, -0.06f));
-      m.controllerDelegate->CreateController(index, int32_t(controller.hand), controller.IsRightHand() ? "Pico Neo 2 (Right)" : "Pico Neo 2 (LEFT)", beam);
-      m.controllerDelegate->SetButtonCount(index, kNumButtons);
+    if (index == m.gazeIndex) {
+      vrb::Matrix beam = vrb::Matrix::Identity();
+      m.controllerDelegate->CreateController(index, 0, "Pico Gaze Controller", beam);
+      m.controllerDelegate->SetButtonCount(index, kNumGazeButtons);
       m.controllerDelegate->SetHapticCount(index, 0);
+      m.controllerDelegate->SetControllerType(index, device::PicoGaze);
+      m.controllerDelegate->SetTargetRayMode(index, device::TargetRayMode::Gaze);
     } else {
-      vrb::Matrix beam =  vrb::Matrix::Rotation(vrb::Vector(1.0f, 0.0f, 0.0f), -vrb::PI_FLOAT / 11.5f);
-
-      m.controllerDelegate->CreateController(index, 0, "Pico G2 Controller", beam);
-      m.controllerDelegate->SetButtonCount(index, kNumG2Buttons);
-      m.controllerDelegate->SetHapticCount(index, 0);
+      if (m.type == k6DofHeadSet) {
+        vrb::Matrix beam = vrb::Matrix::Rotation(vrb::Vector(1.0f, 0.0f, 0.0f), -vrb::PI_FLOAT / 11.5f);
+        beam.TranslateInPlace(vrb::Vector(0.0f, 0.012f, -0.06f));
+        m.controllerDelegate->CreateController(index, int32_t(controller.hand), controller.IsRightHand() ? "Pico Neo 2 (Right)" : "Pico Neo 2 (Left)", beam);
+        m.controllerDelegate->SetButtonCount(index, kNumButtons);
+        m.controllerDelegate->SetHapticCount(index, 1);
+        m.controllerDelegate->SetControllerType(index, device::PicoNeo2);
+        m.controllerDelegate->SetTargetRayMode(index, device::TargetRayMode::TrackedPointer);
+      } else {
+        vrb::Matrix beam =  vrb::Matrix::Rotation(vrb::Vector(1.0f, 0.0f, 0.0f), -vrb::PI_FLOAT / 11.5f);
+        m.controllerDelegate->CreateController(index, 0, "Pico G2 Controller", beam);
+        m.controllerDelegate->SetButtonCount(index, kNumG2Buttons);
+        m.controllerDelegate->SetHapticCount(index, 0);
+        m.controllerDelegate->SetControllerType(index, device::PicoG2);
+        m.controllerDelegate->SetTargetRayMode(index, device::TargetRayMode::TrackedPointer);
+      }
     }
     controller.created = true;
   }
@@ -317,20 +396,20 @@ DeviceDelegatePicoVR::ReleaseControllerDelegate() {
 
 int32_t
 DeviceDelegatePicoVR::GetControllerModelCount() const {
-  return m.type == kTypeNeo2 ? 2 : 1;
+  return m.type == k6DofHeadSet ? 2 : 1;
 }
 
 const std::string
 DeviceDelegatePicoVR::GetControllerModelName(const int32_t aModelIndex) const {
-  if (m.type == kTypeNeo2) {
+  if (m.type == k6DofHeadSet) {
     if (aModelIndex == 0) {
-      return "left_controller.obj";
+      return "neo2_left.obj";
     } else if (aModelIndex == 1) {
-      return "right_controller.obj";
+      return "neo2_right.obj";
     }
     return "";
   } else {
-    return "g2-Controller.obj";
+    return "g2.obj";
   }
 }
 
@@ -340,16 +419,41 @@ DeviceDelegatePicoVR::ProcessEvents() {
 }
 
 void
-DeviceDelegatePicoVR::StartFrame() {
+DeviceDelegatePicoVR::StartFrame(const FramePrediction aPrediction) {
   vrb::Matrix head = vrb::Matrix::Rotation(m.orientation);
   head.TranslateInPlace(m.position);
 
   if (m.renderMode == device::RenderMode::StandAlone) {
+    if (m.recentered) {
+      if (m.type == k6DofHeadSet) {
+        m.reorientMatrix = DeviceUtils::CalculateReorientationMatrix(head, kAverageHeight);
+      } else {
+        m.reorientMatrix = vrb::Matrix::Identity();
+      }
+    }
     head.TranslateInPlace(m.headOffset);
   }
 
+  m.recentered = false;
+
   m.cameras[0]->SetHeadTransform(head);
   m.cameras[1]->SetHeadTransform(head);
+
+
+  // Update te gaze mode state based on controllers availability
+  m.isInGazeMode = true;
+  for (int32_t i = 0; i < m.controllers.size(); ++i) {
+    if (i != m.gazeIndex && m.controllers[i].enabled) {
+      m.isInGazeMode = false;
+      break;
+    }
+  }
+
+  if (m.isInGazeMode) {
+    m.controllers[m.gazeIndex].enabled = m.isInGazeMode;
+    m.controllers[m.gazeIndex].transform = head;
+  }
+
   m.UpdateControllers();
 }
 
@@ -361,8 +465,23 @@ DeviceDelegatePicoVR::BindEye(const device::Eye aWhich) {
 }
 
 void
-DeviceDelegatePicoVR::EndFrame(const bool aDiscard) {
+DeviceDelegatePicoVR::EndFrame(const FrameEndMode aMode) {
 
+}
+
+bool
+DeviceDelegatePicoVR::IsInGazeMode() const {
+  return m.isInGazeMode;
+}
+
+int32_t
+DeviceDelegatePicoVR::GazeModeIndex() const {
+  return m.gazeIndex;
+}
+
+bool
+DeviceDelegatePicoVR::IsControllerLightEnabled() const {
+  return false;
 }
 
 void
@@ -373,6 +492,7 @@ DeviceDelegatePicoVR::Pause() {
 void
 DeviceDelegatePicoVR::Resume() {
   m.paused = false;
+  m.setHeadOffset = true;
 }
 
 void
@@ -427,7 +547,6 @@ DeviceDelegatePicoVR::UpdateControllerConnected(const int aIndex, const bool aCo
     controller.enabled = aConnected;
     m.controllerDelegate->SetLeftHanded(aIndex, !controller.IsRightHand());
     m.controllerDelegate->SetEnabled(aIndex, aConnected);
-    m.controllerDelegate->SetVisible(aIndex, aConnected);
     if (m.focusIndex == aIndex) {
       m.controllerDelegate->SetFocused(aIndex);
       m.focusIndex = -1; // Do not set focus again;
@@ -453,6 +572,16 @@ DeviceDelegatePicoVR::UpdateControllerButtons(const int aIndex, const int32_t aB
   m.controllers[aIndex].touched = touched;
 }
 
+void
+DeviceDelegatePicoVR::UpdateControllerBatteryLevel(const int aIndex, const int aBatteryLevel) {
+  m.controllers[aIndex].battery = aBatteryLevel;
+}
+
+void
+DeviceDelegatePicoVR::Recenter() {
+    m.recentered = true;
+    m.setHeadOffset = true;
+}
 
 DeviceDelegatePicoVR::DeviceDelegatePicoVR(State &aState) : m(aState) {}
 

@@ -3,6 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 version: 1
+reporting: checks-v1
 policy:
   pullRequests: public
 tasks:
@@ -31,7 +32,7 @@ tasks:
         expires: {$fromNow: 1 year}
         payload:
           maxRunTime: 14400
-          image: 'mozillamixedreality/firefoxreality:190312'
+          image: 'mozillamixedreality/firefoxreality:200316-SDK29'
           command:
             - /bin/bash
             - '--login'
@@ -40,9 +41,8 @@ tasks:
               git fetch ${repository} ${event.pull_request.head.ref}
               && git config advice.detachedHead false
               && git checkout ${event.pull_request.head.sha}
-              && rm -rf gvr-android-sdk && git clone https://github.com/MozillaReality/FirefoxReality-gvr-android-sdk.git gvr-android-sdk
-              && git submodule update
-              && ./gradlew --no-daemon --console=plain clean `python tools/taskcluster/build_targets.py =all+googlevr+noapi`
+              && git submodule update --init --recursive
+              && ./gradlew --no-daemon --console=plain clean `python tools/taskcluster/build_targets.py =all+noapi=all`
               && ./gradlew app:testNoapiArm64DebugUnitTest
         metadata:
           name: Firefox Reality for Android - Build - Pull Request
@@ -50,20 +50,20 @@ tasks:
           owner: noreply@mozilla.com
           source: ${repository}
 ###############################################################################
-# Task: Master builds
+# Task: Main builds
 #
-# Triggered whenever something is pushed/merged to the master branch.
+# Triggered whenever something is pushed/merged to the main branch.
 # Produces APKs signed with the staging key. These APKs are for
 # testing only and should not be uploaded to App Stores.
 #
 ###############################################################################
-    - $if: 'tasks_for == "github-push" && (event["ref"] == "refs/heads/master" || isFeatureBranch == true)'
+    - $if: 'tasks_for == "github-push" && (event["ref"] == "refs/heads/main" || isFeatureBranch == true)'
       then:
         $let:
           featureName:
             $if: 'isFeatureBranch == true'
             then: "-f ${event.ref[19:]}"
-            else: "-f master"
+            else: "-f main"
         in:
           provisionerId: 'proj-firefoxreality'
           workerType: 'ci-linux'
@@ -73,11 +73,13 @@ tasks:
             - "secrets:get:project/firefoxreality/fr/github-deploy-key"
             - "secrets:get:project/firefoxreality/fr/staging-signing-token"
             - "secrets:get:project/firefoxreality/fr/symbols-token"
+            - "secrets:get:project/firefoxreality/fr/mls-key"
           routes:
             - notify.email.fxr-releng@mozilla.com.on-any
+            - index.project.firefoxreality.main
           payload:
             maxRunTime: 14400
-            image: 'mozillamixedreality/firefoxreality:190312'
+            image: 'mozillamixedreality/firefoxreality:200316-SDK29'
             features:
               taskclusterProxy: true
             command:
@@ -89,8 +91,9 @@ tasks:
                 && git config advice.detachedHead false
                 && git checkout -b build-${event.after} ${event.after}
                 && rm -rf gvr-android-sdk && git clone https://github.com/MozillaReality/FirefoxReality-gvr-android-sdk.git gvr-android-sdk
-                && git submodule update
+                && git submodule update --init --recursive
                 && . tools/taskcluster/get_third_party.sh
+                && python tools/taskcluster/fetch_secret.py -s project/firefoxreality/fr/mls-key -o .mls_token -n key
                 && cp tools/gradle/taskcluster.properties ./user.properties
                 && ./gradlew --no-daemon --console=plain clean `python tools/taskcluster/build_targets.py =all`
                 && python tools/taskcluster/fetch_secret.py -s project/firefoxreality/fr/staging-signing-token -o token -n token
@@ -123,11 +126,12 @@ tasks:
           - "secrets:get:project/firefoxreality/fr/github-deploy-key"
           - "secrets:get:project/firefoxreality/fr/release-signing-token"
           - "secrets:get:project/firefoxreality/fr/symbols-token"
+          - "secrets:get:project/firefoxreality/fr/mls-key"
         routes:
           - notify.email.fxr-releng@mozilla.com.on-any
         payload:
           maxRunTime: 14400
-          image: 'mozillamixedreality/firefoxreality:190312'
+          image: 'mozillamixedreality/firefoxreality:200316-SDK29'
           features:
             taskclusterProxy: true
           command:
@@ -139,8 +143,9 @@ tasks:
               && git config advice.detachedHead false
               && git checkout ${event.release.tag_name}
               && rm -rf gvr-android-sdk && git clone https://github.com/MozillaReality/FirefoxReality-gvr-android-sdk.git gvr-android-sdk
-              && git submodule update
+              && git submodule update --init --recursive
               && . tools/taskcluster/get_third_party.sh
+              && python tools/taskcluster/fetch_secret.py -s project/firefoxreality/fr/mls-key -o .mls_token -n key
               && cp tools/gradle/taskcluster.properties ./user.properties
               && ./gradlew --no-daemon --console=plain clean `python tools/taskcluster/build_targets.py ${event.release.tag_name}`
               && python tools/taskcluster/fetch_secret.py -s project/firefoxreality/fr/release-signing-token -o token -n token

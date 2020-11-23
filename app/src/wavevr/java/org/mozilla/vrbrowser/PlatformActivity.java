@@ -10,7 +10,9 @@ import com.htc.vr.sdk.VRActivity;
 import android.Manifest;
 import android.content.res.AssetManager;
 import android.os.Bundle;
+import android.view.KeyEvent;
 
+import org.mozilla.vrbrowser.utils.DeviceType;
 import org.mozilla.vrbrowser.utils.SystemUtils;
 
 public class PlatformActivity extends VRActivity {
@@ -21,6 +23,10 @@ public class PlatformActivity extends VRActivity {
             return true;
         }
         return false;
+    }
+
+    public static boolean isNotSpecialKey(KeyEvent event) {
+        return true;
     }
 
     public PlatformActivity() {

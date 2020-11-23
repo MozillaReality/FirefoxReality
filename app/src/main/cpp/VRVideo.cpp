@@ -13,6 +13,8 @@
 #include "vrb/Geometry.h"
 #include "vrb/Matrix.h"
 #include "vrb/ModelLoaderAndroid.h"
+#include "vrb/Program.h"
+#include "vrb/ProgramFactory.h"
 #include "vrb/RenderState.h"
 #include "vrb/RenderContext.h"
 #include "vrb/TextureGL.h"
@@ -31,7 +33,7 @@ struct VRVideo::State {
   std::weak_ptr<DeviceDelegate> deviceWeak;
   WidgetPtr window;
   VRVideoProjection projection;
-  vrb::TogglePtr root;
+  vrb::TransformPtr root;
   vrb::TogglePtr leftEye;
   vrb::TogglePtr rightEye;
   VRLayerPtr layer;
@@ -48,7 +50,7 @@ struct VRVideo::State {
     vrb::CreationContextPtr create = context.lock();
     window = aWindow;
     projection = aProjection;
-    root = vrb::Toggle::Create(create);
+    root = vrb::Transform::Create(create);
     VRLayerSurfacePtr windowLayer = aWindow->GetLayer();
     if (windowLayer) {
       layerTextureBackup[0] = windowLayer->GetTextureRect(device::Eye::Left);
@@ -155,9 +157,10 @@ struct VRVideo::State {
 
     std::vector<int> indices;
 
+    vrb::ProgramPtr program = create->GetProgramFactory()->CreateProgram(create, vrb::FeatureSurfaceTexture | vrb::FeatureHighPrecision);
     vrb::RenderStatePtr state = vrb::RenderState::Create(create);
+    state->SetProgram(program);
     state->SetLightsEnabled(false);
-    state->SetFragmentPrecision(GL_HIGH_FLOAT);
     vrb::TexturePtr texture = std::dynamic_pointer_cast<vrb::Texture>(window->GetSurfaceTexture());
     state->SetTexture(texture);
     vrb::GeometryPtr geometry = vrb::Geometry::Create(create);
@@ -228,7 +231,7 @@ struct VRVideo::State {
   vrb::TogglePtr create180LayerToggle(const VRLayerEquirectPtr& aLayer) {
     vrb::CreationContextPtr create = context.lock();
     vrb::TogglePtr result = vrb::Toggle::Create(create);
-    vrb::Matrix rotation = vrb::Matrix::Rotation(vrb::Vector(0.0f, 1.0f, 0.0f), (float)M_PI * 0.5f);
+    vrb::Matrix rotation = vrb::Matrix::Rotation(vrb::Vector(0.0f, 1.0f, 0.0f), -(float)M_PI * 0.5f);
     vrb::TransformPtr transform = vrb::Transform::Create(create);
     transform->AddNode(VRLayerNode::Create(create, aLayer));
     transform->SetTransform(rotation);
@@ -308,7 +311,9 @@ struct VRVideo::State {
     vrb::Vector min, max;
     window->GetWidgetMinAndMax(min, max);
     vrb::GeometryPtr geometry = Quad::CreateGeometry(create, min, max, aUVRect);
+    vrb::ProgramPtr program = create->GetProgramFactory()->CreateProgram(create, vrb::FeatureSurfaceTexture);
     vrb::RenderStatePtr state = vrb::RenderState::Create(create);
+    state->SetProgram(program);
     state->SetLightsEnabled(false);
     vrb::TexturePtr texture = std::dynamic_pointer_cast<vrb::Texture>(window->GetSurfaceTexture());
     state->SetTexture(texture);
@@ -355,6 +360,11 @@ VRVideo::Exit() {
     DeviceDelegatePtr device = m.deviceWeak.lock();
     device->DeleteLayer(m.layer);
   }
+}
+
+void
+VRVideo::SetReorientTransform(const vrb::Matrix& transform) {
+  m.root->SetTransform(transform);
 }
 
 VRVideoPtr

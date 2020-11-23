@@ -7,24 +7,25 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.preference.PreferenceManager;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 
 import org.mozilla.vrbrowser.R;
-import org.mozilla.vrbrowser.VRBrowserApplication;
+import org.mozilla.vrbrowser.VRBrowserActivity;
 import org.mozilla.vrbrowser.browser.SettingsStore;
+import org.mozilla.vrbrowser.browser.engine.Session;
+import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.geolocation.GeolocationData;
-import org.mozilla.vrbrowser.search.suggestions.SuggestionsClient;
+import org.mozilla.vrbrowser.search.suggestions.SearchSuggestionsClientKt;
 import org.mozilla.vrbrowser.utils.SystemUtils;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 
 import kotlinx.coroutines.Dispatchers;
 import mozilla.components.browser.search.SearchEngine;
@@ -62,22 +63,16 @@ public class SearchEngineWrapper implements SharedPreferences.OnSharedPreference
         return mSearchEngineWrapperInstance;
     }
 
-    public interface SuggestionsDelegate {
-        void OnSuggestions(List<String> aSuggestionsList);
-    }
-
     private Context mContext;
     private SearchEngine mSearchEngine;
-    private SearchLocalizationProvider mLocalizationProvider;
-    private SearchEngineManager mSearchEngineManager;
     private SearchSuggestionClient mSuggestionsClient;
     private SharedPreferences mPrefs;
-    private Executor mUIThreadExecutor;
+    private boolean mAutocompleteEnabled;
 
     private SearchEngineWrapper(@NonNull Context aContext) {
         mContext = aContext;
         mPrefs = PreferenceManager.getDefaultSharedPreferences(mContext);
-        mUIThreadExecutor = ((VRBrowserApplication)aContext.getApplicationContext()).getExecutors().mainThread();
+        mAutocompleteEnabled = SettingsStore.getInstance(mContext).isAutocompleteEnabled();
 
         setupSearchEngine(aContext, EMPTY);
     }
@@ -109,18 +104,8 @@ public class SearchEngineWrapper implements SharedPreferences.OnSharedPreference
         return mSearchEngine.buildSearchUrl(aQuery);
     }
 
-    private String getSuggestionURL(String aQuery) {
-        return mSearchEngine.buildSuggestionsURL(aQuery);
-    }
-
     public CompletableFuture<List<String>> getSuggestions(String aQuery) {
-        CompletableFuture<List<String>> future = new CompletableFuture<>();
-        // TODO: Use mSuggestionsClient.getSuggestions when fixed in browser-search.
-        String query = getSuggestionURL(aQuery);
-        mUIThreadExecutor.execute(() ->
-                SuggestionsClient.getSuggestions(mSearchEngine, query).thenAcceptAsync(future::complete));
-
-        return future;
+        return SearchSuggestionsClientKt.getSuggestionsAsync(mSuggestionsClient, aQuery != null ? aQuery : "");
     }
 
     public String getResourceURL() {
@@ -132,11 +117,15 @@ public class SearchEngineWrapper implements SharedPreferences.OnSharedPreference
         return mSearchEngine.getIdentifier();
     }
 
+    public String getEngineName() {
+        return mSearchEngine.getName();
+    }
+
     // Receiver for locale updates
     private BroadcastReceiver mLocaleChangedReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (intent.getAction() == Intent.ACTION_LOCALE_CHANGED) {
+            if (intent.getAction().equals(Intent.ACTION_LOCALE_CHANGED)) {
                 setupSearchEngine(context, EMPTY);
             }
         }
@@ -152,11 +141,14 @@ public class SearchEngineWrapper implements SharedPreferences.OnSharedPreference
         List<SearchEngineFilter> engineFilterList = new ArrayList<>();
 
         GeolocationData data = GeolocationData.parse(SettingsStore.getInstance(aContext).getGeolocationData());
+        SearchLocalizationProvider mLocalizationProvider;
         if (data == null) {
+            Log.d(LOGTAG, "Using Locale based search localization provider");
             // If we don't have geolocation data we default to the Locale search localization provider
             mLocalizationProvider = new LocaleSearchLocalizationProvider();
 
         } else {
+            Log.d(LOGTAG, "Using Geolocation based search localization provider: " + data.toString());
             // If we have geolocation data we initialize the provider with the received data
             // and setup a filter to filter the engines that we need to override for FxR.
             mLocalizationProvider = new GeolocationLocalizationProvider(data);
@@ -174,7 +166,7 @@ public class SearchEngineWrapper implements SharedPreferences.OnSharedPreference
                 engineFilterList,
                 Collections.emptyList());
 
-        mSearchEngineManager = new SearchEngineManager(Arrays.asList(engineProvider), Dispatchers.getDefault());
+        SearchEngineManager mSearchEngineManager = new SearchEngineManager(Collections.singletonList(engineProvider), Dispatchers.getDefault());
 
         // If we don't get any result we use the default configuration.
         if (mSearchEngineManager.getSearchEngines(aContext).size() == 0) {
@@ -183,7 +175,14 @@ public class SearchEngineWrapper implements SharedPreferences.OnSharedPreference
 
         // A name can be used if the user get's to choose among the available engines
         mSearchEngine = mSearchEngineManager.getDefaultSearchEngine(aContext, userPref);
-        mSuggestionsClient = new SearchSuggestionClient(mSearchEngine, (s, continuation) -> null);
+        mSuggestionsClient = new SearchSuggestionClient(
+                mSearchEngine,
+                (searchUrl, continuation) -> {
+                    return (mAutocompleteEnabled && !((VRBrowserActivity)mContext).getWindows().isInPrivateMode()) ?
+                            SearchSuggestionsClientKt.fetchSearchSuggestions(mContext, searchUrl) :
+                            null;
+                }
+        );
     }
 
     private String getEngine(String aCountryCode) {
@@ -195,8 +194,11 @@ public class SearchEngineWrapper implements SharedPreferences.OnSharedPreference
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
         if (mContext != null) {
-            if (key == mContext.getString(R.string.settings_key_geolocation_data)) {
+            if (key.equals(mContext.getString(R.string.settings_key_geolocation_data))) {
                 setupSearchEngine(mContext, EMPTY);
+
+            } else if (key.equals(mContext.getString(R.string.settings_key_autocomplete))) {
+                mAutocompleteEnabled = SettingsStore.getInstance(mContext).isAutocompleteEnabled();
             }
         }
     }

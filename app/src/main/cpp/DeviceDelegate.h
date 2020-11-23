@@ -39,12 +39,22 @@ public:
                               const double aBottomDegrees) = 0;
   virtual void SetEyeOffset(const device::Eye aEye, const float aX, const float aY, const float aZ) = 0;
   virtual void SetEyeResolution(const int32_t aWidth, const int32_t aHeight) = 0;
+  virtual void SetNativeFramebufferScaleFactor(const float aScale) = 0;
+  virtual void SetStageSize(const float aWidth, const float aDepth) = 0;
   virtual void SetSittingToStandingTransform(const vrb::Matrix& aTransform) = 0;
   virtual void CompleteEnumeration() = 0;
 };
 
 class DeviceDelegate {
 public:
+  enum class FramePrediction {
+      NO_FRAME_AHEAD,
+      ONE_FRAME_AHEAD,
+  };
+  enum class FrameEndMode {
+      APPLY,
+      DISCARD
+  };
   virtual device::DeviceType GetDeviceType() { return device::UnknownType; }
   virtual void SetRenderMode(const device::RenderMode aMode) = 0;
   virtual device::RenderMode GetRenderMode() = 0;
@@ -58,24 +68,30 @@ public:
   virtual void SetClearColor(const vrb::Color& aColor) = 0;
   virtual void SetClipPlanes(const float aNear, const float aFar) = 0;
   virtual void SetControllerDelegate(ControllerDelegatePtr& aController) = 0;
-  virtual void SetFoveatedLevel(const int32_t aAppLevel) {};
   virtual void ReleaseControllerDelegate() = 0;
   virtual int32_t GetControllerModelCount() const = 0;
   virtual const std::string GetControllerModelName(const int32_t aModelIndex) const = 0;
   virtual void SetCPULevel(const device::CPULevel aLevel) {};
   virtual void ProcessEvents() = 0;
-  virtual void StartFrame() = 0;
+  virtual bool SupportsFramePrediction(FramePrediction aPrediction) const {
+    return aPrediction == FramePrediction::NO_FRAME_AHEAD;
+  }
+  virtual void StartFrame(const FramePrediction aPrediction = FramePrediction::NO_FRAME_AHEAD) = 0;
   virtual void BindEye(const device::Eye aWhich) = 0;
-  virtual void EndFrame(bool aDiscard = false) = 0;
+  virtual void EndFrame(const FrameEndMode aMode = FrameEndMode::APPLY) = 0;
+  virtual bool IsInGazeMode() const { return false; };
+  virtual int32_t GazeModeIndex() const { return -1; };
   virtual VRLayerQuadPtr CreateLayerQuad(int32_t aWidth, int32_t aHeight,
                                          VRLayerSurface::SurfaceType aSurfaceType) { return nullptr; }
   virtual VRLayerQuadPtr CreateLayerQuad(const VRLayerSurfacePtr& aMoveLayer) { return nullptr; }
   virtual VRLayerCylinderPtr CreateLayerCylinder(int32_t aWidth, int32_t aHeight,
                                                 VRLayerSurface::SurfaceType aSurfaceType) { return nullptr; }
   virtual VRLayerCylinderPtr CreateLayerCylinder(const VRLayerSurfacePtr& aMoveLayer) { return nullptr; }
+  virtual VRLayerProjectionPtr CreateLayerProjection(VRLayerSurface::SurfaceType aSurfaceType) { return nullptr; }
   virtual VRLayerCubePtr CreateLayerCube(int32_t aWidth, int32_t aHeight, GLint aInternalFormat) { return nullptr; }
   virtual VRLayerEquirectPtr CreateLayerEquirect(const VRLayerPtr &aSource) { return nullptr; }
   virtual void DeleteLayer(const VRLayerPtr& aLayer) {};
+  virtual bool IsControllerLightEnabled() const { return true; }
 protected:
   DeviceDelegate() {}
 

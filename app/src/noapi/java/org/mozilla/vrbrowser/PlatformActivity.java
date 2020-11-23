@@ -9,6 +9,7 @@ import android.app.Activity;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.TextView;
@@ -26,43 +27,39 @@ public class PlatformActivity extends Activity {
     static String LOGTAG = SystemUtils.createLogtag(PlatformActivity.class);
     static final float ROTATION = 0.098174770424681f;
 
+    @SuppressWarnings("unused")
     public static boolean filterPermission(final String aPermission) {
         return false;
     }
 
+    public static boolean isNotSpecialKey(KeyEvent event) {
+        return true;
+    }
+
     private GLSurfaceView mView;
     private TextView mFrameRate;
-    private ArrayList<Runnable> mPendingEvents;
+    private final ArrayList<Runnable> mPendingEvents = new ArrayList<>();
     private boolean mSurfaceCreated = false;
     private int mFrameCount;
     private long mLastFrameTime = System.currentTimeMillis();
 
-    private final Runnable activityDestroyedRunnable = new Runnable() {
-        @Override
-        public void run() {
-            synchronized (this) {
-                activityDestroyed();
-                notifyAll();
-            }
+    final Object mRenderLock = new Object();
+
+    private final Runnable activityDestroyedRunnable = () -> {
+        synchronized (mRenderLock) {
+            activityDestroyed();
+            mRenderLock.notifyAll();
         }
     };
 
-    private final Runnable activityPausedRunnable = new Runnable() {
-        @Override
-        public void run() {
-            synchronized (this) {
-                activityPaused();
-                notifyAll();
-            }
+    private final Runnable activityPausedRunnable = () -> {
+        synchronized (mRenderLock) {
+            activityPaused();
+            mRenderLock.notifyAll();
         }
     };
 
-    private final Runnable activityResumedRunnable = new Runnable() {
-        @Override
-        public void run() {
-            activityResumed();
-        }
-    };
+    private final Runnable activityResumedRunnable = this::activityResumed;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,7 +67,6 @@ public class PlatformActivity extends Activity {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.noapi_layout);
-        mPendingEvents = new ArrayList<>();
         mFrameRate = findViewById(R.id.frame_rate_text);
         mView = findViewById(R.id.gl_view);
         mView.setEGLContextClientVersion(3);
@@ -156,10 +152,10 @@ public class PlatformActivity extends Activity {
     @Override
     protected void onPause() {
         Log.d(LOGTAG, "PlatformActivity onPause");
-        synchronized (activityPausedRunnable) {
+        synchronized (mRenderLock) {
             queueRunnable(activityPausedRunnable);
             try {
-                activityPausedRunnable.wait();
+                mRenderLock.wait();
             } catch(InterruptedException e) {
                 Log.e(LOGTAG, "activityPausedRunnable interrupted: " + e.toString());
             }
@@ -181,10 +177,10 @@ public class PlatformActivity extends Activity {
     protected void onDestroy() {
         Log.d(LOGTAG, "PlatformActivity onDestroy");
         super.onDestroy();
-        synchronized (activityDestroyedRunnable) {
+        synchronized (mRenderLock) {
             queueRunnable(activityDestroyedRunnable);
             try {
-                activityDestroyedRunnable.wait();
+                mRenderLock.wait();
             } catch(InterruptedException e) {
                 Log.e(LOGTAG, "activityDestroyedRunnable interrupted: " + e.toString());
             }
@@ -252,6 +248,7 @@ public class PlatformActivity extends Activity {
             }
             return false;
         });
+        setImmersiveSticky();
     }
 
     private void updateUI(final int aMode) {
@@ -262,6 +259,7 @@ public class PlatformActivity extends Activity {
             Log.d(LOGTAG, "Got render mode of Immersive");
             findViewById(R.id.click_button).setVisibility(View.VISIBLE);
         }
+        setImmersiveSticky();
     }
 
     private void dispatchMoveAxis(final float aX, final float aY, final float aZ) {
@@ -281,6 +279,7 @@ public class PlatformActivity extends Activity {
     }
 
     @Keep
+    @SuppressWarnings("unused")
     private void setRenderMode(final int aMode) {
         runOnUiThread(() -> updateUI(aMode));
     }

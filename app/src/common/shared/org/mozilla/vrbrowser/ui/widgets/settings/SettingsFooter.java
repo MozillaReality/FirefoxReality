@@ -50,17 +50,15 @@ public class SettingsFooter extends FrameLayout {
         mBinding = DataBindingUtil.inflate(inflater, R.layout.options_footer, this, true);
 
         TypedArray attributes = aContext.obtainStyledAttributes(attrs, R.styleable.SettingsFooter, defStyleAttr, defStyleRes);
-        if (attributes != null) {
-            String buttonText = attributes.getString(R.styleable.SettingsFooter_buttonText);
-            String description = attributes.getString(R.styleable.SettingsFooter_description);
+        String buttonText = attributes.getString(R.styleable.SettingsFooter_buttonText);
+        String description = attributes.getString(R.styleable.SettingsFooter_description);
 
-            if (buttonText != null) {
-                mBinding.resetButton.setButtonText(buttonText);
-            }
+        if (buttonText != null) {
+            mBinding.resetButton.setButtonText(buttonText);
+        }
 
-            if (description != null) {
-                mBinding.resetButton.setDescription(description);
-            }
+        if (description != null) {
+            mBinding.resetButton.setDescription(description);
         }
         attributes.recycle();
     }
@@ -75,6 +73,10 @@ public class SettingsFooter extends FrameLayout {
 
     public void setFooterButtonText(@StringRes int textRes) {
         mBinding.resetButton.setButtonText(textRes);
+    }
+
+    public void setDescription(@StringRes int textRes) {
+        mBinding.resetButton.setDescription(getContext().getString(textRes));
     }
 
     public void setFooterButtonVisibility(int visibility) {

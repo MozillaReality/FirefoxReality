@@ -31,7 +31,6 @@ add_library( # Sets the name of the library.
              src/main/cpp/ExternalVR.cpp
              src/main/cpp/GeckoSurfaceTexture.cpp
              src/main/cpp/GestureDelegate.cpp
-             src/main/cpp/LoadingAnimation.cpp
              src/main/cpp/JNIUtil.cpp
              src/main/cpp/Pointer.cpp
              src/main/cpp/Skybox.cpp
@@ -54,19 +53,13 @@ target_sources(
     src/wavevr/cpp/native-lib.cpp
     src/wavevr/cpp/DeviceDelegateWaveVR.cpp
     )
-elseif(GOOGLEVR)
-target_sources(
-    native-lib
-    PUBLIC
-    src/googlevr/cpp/native-lib.cpp
-    src/googlevr/cpp/DeviceDelegateGoogleVR.cpp
-    )
 elseif(PICOVR)
 target_sources(
         native-lib
         PUBLIC
         src/picovr/cpp/native-lib.cpp
         src/picovr/cpp/DeviceDelegatePicoVR.cpp
+        src/picovr/cpp/VRBrowserPico.cpp
 )
 elseif(NOAPI)
 target_sources(
@@ -89,7 +82,34 @@ target_link_libraries(native-lib native_app_glue)
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -u ANativeActivity_onCreate")
 endif()
 
-if(OCULUSVR)
+
+if(OPENXR)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DXR_USE_PLATFORM_ANDROID -DXR_USE_GRAPHICS_API_OPENGL_ES")
+include_directories(
+        ${CMAKE_SOURCE_DIR}/../third_party/OpenXR-SDK/include
+        ${CMAKE_SOURCE_DIR}/../third_party/ovr_openxr_mobile_sdk/OpenXR/Include
+        ${CMAKE_SOURCE_DIR}/../app/src/openxr/cpp
+)
+target_sources(
+        native-lib
+        PUBLIC
+        src/openxr/cpp/DeviceDelegateOpenXR.cpp
+        src/openxr/cpp/OpenXRSwapChain.cpp
+        src/openxr/cpp/OpenXRLayers.cpp
+        src/openxr/cpp/OpenXRInput.cpp
+        src/openxr/cpp/OpenXRExtensions.cpp
+)
+add_custom_command(TARGET native-lib POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_SOURCE_DIR}/../third_party/ovr_openxr_mobile_sdk/OpenXR/Libs/Android/${ANDROID_ABI}/Release/libopenxr_oculus.so
+        ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libopenxr_oculus.so
+        )
+elseif(OCULUSVR)
+include_directories(
+        ${CMAKE_SOURCE_DIR}/../third_party/ovr_mobile/VrApi/Include
+        ${CMAKE_SOURCE_DIR}/../third_party/OVRPlatformSDK/Include
+        ${CMAKE_SOURCE_DIR}/../app/src/oculusvr/cpp
+)
 target_sources(
     native-lib
     PUBLIC
@@ -102,19 +122,14 @@ add_custom_command(TARGET native-lib POST_BUILD
         ${CMAKE_SOURCE_DIR}/../third_party/ovr_mobile/VrApi/Libs/Android/${ANDROID_ABI}/Release/libvrapi.so
         ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libvrapi.so
         )
+endif()
+
+if(OCULUSVR)
 add_custom_command(TARGET native-lib POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_SOURCE_DIR}/../third_party/OVRPlatformSDK/Android/libs/${ANDROID_ABI}/libovrplatformloader.so
         ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libovrplatformloader.so
         )
-endif()
-
-if(SNAPDRAGONVR)
-target_sources(
-    native-lib
-    PUBLIC
-    src/svr/cpp/DeviceDelegateSVR.cpp
-    )
 endif()
 
 # Searches for a specified prebuilt library and stores the path as a
@@ -132,29 +147,22 @@ find_library( # Sets the name of the path variable.
               android )
 
 add_library(oculusvr-lib SHARED IMPORTED)
+if(OPENXR)
+set_target_properties(oculusvr-lib PROPERTIES IMPORTED_LOCATION
+                      ${CMAKE_SOURCE_DIR}/../third_party/ovr_openxr_mobile_sdk/OpenXR/Libs/Android/${ANDROID_ABI}/Release/libopenxr_oculus.so )
+else()
 set_target_properties(oculusvr-lib PROPERTIES IMPORTED_LOCATION
                       ${CMAKE_SOURCE_DIR}/../third_party/ovr_mobile/VrApi/Libs/Android/${ANDROID_ABI}/Release/libvrapi.so )
+endif()
+
 
 add_library(ovrplatform-lib SHARED IMPORTED)
 set_target_properties(ovrplatform-lib PROPERTIES IMPORTED_LOCATION
                       ${CMAKE_SOURCE_DIR}/../third_party/OVRPlatformSDK/Android/libs/${ANDROID_ABI}/libovrplatformloader.so )
 
-add_library(googlevr-lib SHARED IMPORTED)
-set_target_properties(googlevr-lib PROPERTIES IMPORTED_LOCATION
-                      ${CMAKE_SOURCE_DIR}/../gvr-android-sdk/libraries/jni/${ANDROID_ABI}/libgvr.so)
-
-add_library(svr-lib SHARED IMPORTED)
-set_target_properties(svr-lib PROPERTIES IMPORTED_LOCATION
-                      ${CMAKE_SOURCE_DIR}/../third_party/svr/libs/${ANDROID_ABI}/libsvrapi.so )
-
 add_library(wavevr-lib SHARED IMPORTED)
 set_target_properties(wavevr-lib PROPERTIES IMPORTED_LOCATION
                       ${CMAKE_SOURCE_DIR}/../third_party/wavesdk/build/wvr_client/jni/${ANDROID_ABI}/libwvr_api.so )
-
-add_library(picovr-lib SHARED IMPORTED)
-set_target_properties(picovr-lib PROPERTIES IMPORTED_LOCATION
-        ${CMAKE_SOURCE_DIR}/../third_party/picovr/${ANDROID_ABI}/libPvr_NativeSDK.so )
-
 
 # Specifies libraries CMake should link to your target library. You
 # can link multiple libraries, such as libraries you define in this

@@ -3,6 +3,7 @@ package org.mozilla.vrbrowser.ui.widgets;
 import android.content.Context;
 import android.util.Log;
 
+import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -14,20 +15,23 @@ import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.VRBrowserApplication;
 import org.mozilla.vrbrowser.browser.Accounts;
+import org.mozilla.vrbrowser.browser.HistoryStore;
 import org.mozilla.vrbrowser.browser.Media;
 import org.mozilla.vrbrowser.browser.Services;
 import org.mozilla.vrbrowser.browser.SettingsStore;
+import org.mozilla.vrbrowser.browser.adapter.ComponentsAdapter;
+import org.mozilla.vrbrowser.browser.components.GeckoEngineSession;
 import org.mozilla.vrbrowser.browser.engine.Session;
 import org.mozilla.vrbrowser.browser.engine.SessionState;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
+import org.mozilla.vrbrowser.downloads.DownloadsManager;
 import org.mozilla.vrbrowser.telemetry.GleanMetricsService;
-import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
 import org.mozilla.vrbrowser.ui.widgets.dialogs.PromptDialogWidget;
 import org.mozilla.vrbrowser.ui.widgets.dialogs.UIDialog;
-import org.mozilla.vrbrowser.ui.widgets.settings.SettingsWidget;
 import org.mozilla.vrbrowser.utils.BitmapCache;
 import org.mozilla.vrbrowser.utils.ConnectivityReceiver;
 import org.mozilla.vrbrowser.utils.SystemUtils;
+import org.mozilla.vrbrowser.utils.UrlUtils;
 
 import java.io.File;
 import java.io.FileReader;
@@ -47,10 +51,22 @@ import mozilla.components.concept.sync.OAuthAccount;
 import mozilla.components.concept.sync.Profile;
 import mozilla.components.concept.sync.TabData;
 
+import static org.mozilla.vrbrowser.ui.widgets.settings.SettingsView.SettingViewType.FXA;
+
 public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWidget.Delegate,
         WindowWidget.WindowListener, TabsWidget.TabDelegate, Services.TabReceivedDelegate {
 
     private static final String LOGTAG = SystemUtils.createLogtag(Windows.class);
+
+    public static final int WHITE = 0xFFFFFFFF;
+    public static final int GRAY = 0x555555FF;
+
+    @IntDef(value = { OPEN_IN_FOREGROUND, OPEN_IN_BACKGROUND, OPEN_IN_NEW_WINDOW})
+    public @interface NewTabLocation {}
+    public static final int OPEN_IN_FOREGROUND = 0;
+    public static final int OPEN_IN_BACKGROUND = 1;
+    public static final int OPEN_IN_NEW_WINDOW = 2;
+
 
     private static final String WINDOWS_SAVE_FILENAME = "windows_state.json";
 
@@ -64,8 +80,9 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         int textureHeight;
         float worldWidth;
         int tabIndex = -1;
+        @PanelType int panelType = Windows.NONE;
 
-        public void load(WindowWidget aWindow, WindowsState aState, int aTabIndex) {
+        public void load(@NonNull WindowWidget aWindow, WindowsState aState, int aTabIndex) {
             WidgetPlacement widgetPlacement;
             if (aWindow.isFullScreen()) {
                 widgetPlacement = aWindow.getBeforeFullscreenPlacement();
@@ -82,6 +99,12 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             textureHeight = widgetPlacement.height;
             worldWidth = widgetPlacement.worldWidth;
             tabIndex = aTabIndex;
+            if (aWindow.isLibraryVisible()) {
+                panelType = aWindow.getSelectedPanel();
+
+            } else {
+                panelType = Windows.NONE;
+            }
         }
     }
 
@@ -111,6 +134,22 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
     private Accounts mAccounts;
     private Services mServices;
     private PromptDialogWidget mNoInternetDialog;
+    private boolean mCompositorPaused = false;
+    private WindowsState mWindowsState;
+    private boolean mIsRestoreEnabled;
+    private boolean mAfterRestore;
+    private String mAddedTabUri;
+    private @NewTabLocation int mAddedTabLocation = OPEN_IN_FOREGROUND;
+    private DownloadsManager mDownloadsManager;
+    private ConnectivityReceiver mConnectivityReceived;
+
+    @IntDef(value = { NONE, BOOKMARKS, HISTORY, DOWNLOADS, ADDONS})
+    public @interface PanelType {}
+    public static final int NONE = 0;
+    public static final int BOOKMARKS = 1;
+    public static final int HISTORY = 2;
+    public static final int DOWNLOADS = 3;
+    public static final int ADDONS = 4;
 
     public enum WindowPlacement{
         FRONT(0),
@@ -145,13 +184,18 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
 
         mStoredCurvedMode = SettingsStore.getInstance(mContext).getCylinderDensity() > 0.0f;
 
-        mAccounts = ((VRBrowserApplication)mContext.getApplicationContext()).getAccounts();
+        mAccounts = mWidgetManager.getServicesProvider().getAccounts();
         mAccounts.addAccountListener(mAccountObserver);
-        mServices = ((VRBrowserApplication)mContext.getApplicationContext()).getServices();
+        mServices = mWidgetManager.getServicesProvider().getServices();
         mServices.setTabReceivedDelegate(this);
 
-        mWidgetManager.addConnectivityListener(mConnectivityDelegate);
+        mConnectivityReceived = mWidgetManager.getServicesProvider().getConnectivityReceiver();
+        mConnectivityReceived.addListener(mConnectivityDelegate);
 
+        mDownloadsManager = mWidgetManager.getServicesProvider().getDownloadsManager();
+
+        mIsRestoreEnabled = SettingsStore.getInstance(mContext).isRestoreTabsEnabled();
+        mWindowsState = restoreState();
         restoreWindows();
     }
 
@@ -162,11 +206,18 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             state.privateMode = mPrivateMode;
             state.focusedWindowPlacement = mFocusedWindow.isFullScreen() ?  mFocusedWindow.getWindowPlacementBeforeFullscreen() : mFocusedWindow.getWindowPlacement();
             ArrayList<Session> sessions = SessionStore.get().getSortedSessions(false);
-            state.tabs = sessions.stream().map(Session::getSessionState).collect(Collectors.toCollection(ArrayList::new));
+            state.tabs = sessions.stream()
+                    .map(Session::getSessionState)
+                    .filter(sessionState -> HistoryStore.getBLOCK_LIST().stream().noneMatch(uri ->
+                        sessionState.mUri != null && sessionState.mUri.startsWith(uri)
+                    ))
+                    .collect(Collectors.toCollection(ArrayList::new));
             for (WindowWidget window : mRegularWindows) {
-                WindowState windowState = new WindowState();
-                windowState.load(window, state, sessions.indexOf(window.getSession()));
-                state.regularWindowsState.add(windowState);
+                if (window.getSession() != null) {
+                    WindowState windowState = new WindowState();
+                    windowState.load(window, state, state.tabs.indexOf(window.getSession().getSessionState()));
+                    state.regularWindowsState.add(windowState);
+                }
             }
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
             gson.toJson(state, writer);
@@ -267,18 +318,37 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         return newWindow;
     }
 
-    private WindowWidget addRestoredWindow(@NonNull WindowState aState, @NonNull Session aSession) {
+    private WindowWidget addRestoredWindow(@NonNull WindowState aState, @Nullable Session aSession) {
         if (getCurrentWindows().size() >= MAX_WINDOWS) {
             return null;
         }
 
-        aSession.setActive(true);
+        if (aSession != null) {
+            aSession.setActive(true);
+        }
         WindowWidget newWindow = createWindow(aSession);
         newWindow.getPlacement().width = aState.textureWidth;
         newWindow.getPlacement().height = aState.textureHeight;
         newWindow.getPlacement().worldWidth = aState.worldWidth;
-        newWindow.setRestored(true);
         placeWindow(newWindow, aState.placement);
+        if (newWindow.getSession() != null) {
+            switch (aState.panelType) {
+                case BOOKMARKS:
+                    newWindow.getSession().loadUri(UrlUtils.ABOUT_BOOKMARKS);
+                    break;
+                case HISTORY:
+                    newWindow.getSession().loadUri(UrlUtils.ABOUT_HISTORY);
+                    break;
+                case DOWNLOADS:
+                    newWindow.getSession().loadUri(UrlUtils.ABOUT_DOWNLOADS);
+                    break;
+                case ADDONS:
+                    newWindow.getSession().loadUri(UrlUtils.ABOUT_ADDONS);
+                    break;
+                case NONE:
+                    break;
+            }
+        }
         updateCurvedMode(true);
 
         mWidgetManager.addWidget(newWindow);
@@ -290,8 +360,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         WindowWidget leftWindow = getLeftWindow();
         WindowWidget rightWindow = getRightWindow();
 
-        aWindow.hideBookmarks();
-        aWindow.hideHistory();
+        aWindow.hidePanel();
 
         if (leftWindow == aWindow) {
             removeWindow(leftWindow);
@@ -402,6 +471,10 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
     }
 
     public void pauseCompositor() {
+        if (mCompositorPaused) {
+            return;
+        }
+        mCompositorPaused = true;
         for (WindowWidget window: mRegularWindows) {
             window.pauseCompositor();
         }
@@ -411,6 +484,10 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
     }
 
     public void resumeCompositor() {
+        if (!mCompositorPaused) {
+            return;
+        }
+        mCompositorPaused = false;
         for (WindowWidget window: mRegularWindows) {
             window.resumeCompositor();
         }
@@ -427,12 +504,23 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
 
     public void onResume() {
         mIsPaused = false;
+        if (mCompositorPaused) {
+            resumeCompositor();
+        }
 
-        TelemetryWrapper.resetOpenedWindowsCount(mRegularWindows.size(), false);
-        TelemetryWrapper.resetOpenedWindowsCount(mPrivateWindows.size(), true);
+        GleanMetricsService.resetOpenedWindowsCount(mRegularWindows.size(), false);
+        GleanMetricsService.resetOpenedWindowsCount(mPrivateWindows.size(), true);
+    }
+
+    public boolean isPaused() {
+        return mIsPaused;
     }
 
     public void onDestroy() {
+        if (mTabsWidget != null && !mTabsWidget.isReleased()) {
+            mTabsWidget.releaseWidget();
+            mTabsWidget = null;
+        }
         mDelegate = null;
         for (WindowWidget window: mRegularWindows) {
             window.close();
@@ -442,7 +530,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         }
         mAccounts.removeAccountListener(mAccountObserver);
         mServices.setTabReceivedDelegate(null);
-        mWidgetManager.removeConnectivityListener(mConnectivityDelegate);
+        mConnectivityReceived.removeListener(mConnectivityDelegate);
     }
 
     public boolean isInPrivateMode() {
@@ -502,18 +590,29 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             return;
         }
         mPrivateMode = true;
-        updateCurvedMode(true);
+
         if (mFocusedWindow != null) {
             mRegularWindowPlacement = mFocusedWindow.getWindowPlacement();
 
         } else {
             mRegularWindowPlacement = WindowPlacement.FRONT;
         }
-        for (WindowWidget window: mRegularWindows) {
+        for (int i=0; i<mRegularWindows.size(); i++) {
+            WindowWidget window = mRegularWindows.get(i);
             setWindowVisible(window, false);
         }
-        for (WindowWidget window: mPrivateWindows) {
+
+        updateViews();
+        updateCurvedMode(true);
+
+        for (int i=0; i<mPrivateWindows.size(); i++) {
+            WindowWidget window = mPrivateWindows.get(i);
             setWindowVisible(window, true);
+
+            // Make sure that if the Window session it's been closed we restore a valid session
+            if (SessionStore.get().getSession(window.getSession().getId()) == null) {
+                onTabsClose(Collections.singletonList(window.getSession()));
+            }
         }
 
         if (mPrivateWindows.size() == 0) {
@@ -525,7 +624,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         } else {
             focusWindow(getWindowWithPlacement(mPrivateWindowPlacement));
         }
-        updateViews();
+
         mWidgetManager.pushWorldBrightness(this, WidgetManagerDelegate.DEFAULT_DIM_BRIGHTNESS);
     }
 
@@ -534,24 +633,35 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             return;
         }
         mPrivateMode = false;
-        updateCurvedMode(true);
+
         if (mFocusedWindow != null) {
             mPrivateWindowPlacement = mFocusedWindow.getWindowPlacement();
 
         } else {
             mPrivateWindowPlacement = WindowPlacement.FRONT;
         }
-        for (WindowWidget window: mPrivateWindows) {
+        for (int i=0; i<mPrivateWindows.size(); i++) {
+            WindowWidget window = mPrivateWindows.get(i);
             setWindowVisible(window, false);
         }
-        for (WindowWidget window: mRegularWindows) {
+
+        updateViews();
+        updateCurvedMode(true);
+
+        for (int i=0; i<mRegularWindows.size(); i++) {
+            WindowWidget window = mRegularWindows.get(i);
             setWindowVisible(window, true);
+
+            // Make sure that if the Window session it's been closed we restore a valid session
+            if (SessionStore.get().getSession(window.getSession().getId()) == null) {
+                onTabsClose(Collections.singletonList(window.getSession()));
+            }
         }
         WindowWidget window = getWindowWithPlacement(mRegularWindowPlacement);
         if (window != null) {
             focusWindow(window);
         }
-        updateViews();
+
         mWidgetManager.popWorldBrightness(this);
     }
 
@@ -570,7 +680,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         return false;
     }
 
-    private void updateMaxWindowScales() {
+    void updateMaxWindowScales() {
         float maxScale = 3;
         if (mFullscreenWindow == null && getCurrentWindows().size() >= 3) {
             maxScale = 1.5f;
@@ -583,13 +693,17 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         }
     }
 
+    public ArrayList<WindowWidget> getCurrentWindows(boolean privateMode) {
+        return privateMode ? mPrivateWindows : mRegularWindows;
+    }
+
     public ArrayList<WindowWidget> getCurrentWindows() {
-        return mPrivateMode ? mPrivateWindows : mRegularWindows;
+        return getCurrentWindows(mPrivateMode);
     }
 
     @Nullable
-    private WindowWidget getWindowWithPlacement(WindowPlacement aPlacement) {
-        for (WindowWidget window: getCurrentWindows()) {
+    private WindowWidget getWindowWithPlacement(WindowPlacement aPlacement, boolean privateMode) {
+        for (WindowWidget window: privateMode ? mPrivateWindows : mRegularWindows) {
             if (window.getWindowPlacement() == aPlacement) {
                 return window;
             }
@@ -598,11 +712,21 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
     }
 
     @Nullable
-    private WindowWidget getFrontWindow() {
+    private WindowWidget getWindowWithPlacement(WindowPlacement aPlacement) {
+        return getWindowWithPlacement(aPlacement, mPrivateMode);
+    }
+
+    @Nullable
+    private WindowWidget getFrontWindow(boolean privateMode) {
         if (mFullscreenWindow != null) {
             return mFullscreenWindow;
         }
-        return getWindowWithPlacement(WindowPlacement.FRONT);
+        return getWindowWithPlacement(WindowPlacement.FRONT, privateMode);
+    }
+
+    @Nullable
+    private WindowWidget getFrontWindow() {
+        return getFrontWindow(mPrivateMode);
     }
 
     @Nullable
@@ -616,30 +740,12 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
     }
 
     private void restoreWindows() {
-        boolean restoreEnabled = SettingsStore.getInstance(mContext).isRestoreTabsEnabled();
-        WindowsState windowsState = restoreState();
-        if (restoreEnabled && windowsState != null) {
-            ArrayList<Session> restoredSessions = new ArrayList<>();
-            if (windowsState.tabs != null) {
-                windowsState.tabs.forEach(state -> {
-                    restoredSessions.add(SessionStore.get().createSuspendedSession(state));
-                    GleanMetricsService.Tabs.openedCounter(GleanMetricsService.Tabs.TabSource.PRE_EXISTING);
-                });
-            }
-            mPrivateMode = false;
-            for (WindowState windowState : windowsState.regularWindowsState) {
-                if (windowState.tabIndex >= 0 && windowState.tabIndex < restoredSessions.size()) {
-                    addRestoredWindow(windowState, restoredSessions.get(windowState.tabIndex));
-                }
-            }
-            mPrivateMode = !windowsState.privateMode;
-            if (windowsState.privateMode) {
-                enterPrivateMode();
-            } else {
-                exitPrivateMode();
+        if (mIsRestoreEnabled && mWindowsState != null) {
+            for (WindowState windowState : mWindowsState.regularWindowsState) {
+                addRestoredWindow(windowState, null);
             }
 
-            WindowWidget windowToFocus = getWindowWithPlacement(windowsState.focusedWindowPlacement);
+            WindowWidget windowToFocus = getWindowWithPlacement(mWindowsState.focusedWindowPlacement);
             if (windowToFocus == null) {
                 windowToFocus = getFrontWindow();
                 if (windowToFocus == null && getCurrentWindows().size() > 0) {
@@ -659,6 +765,48 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         updateViews();
     }
 
+    public void restoreSessions() {
+        if (mIsRestoreEnabled && mWindowsState != null) {
+            ArrayList<Session> restoredSessions = new ArrayList<>();
+            if (mWindowsState.tabs != null) {
+                mWindowsState.tabs.forEach(state -> {
+                    restoredSessions.add(SessionStore.get().createSuspendedSession(state));
+                    GleanMetricsService.Tabs.openedCounter(GleanMetricsService.Tabs.TabSource.PRE_EXISTING);
+                });
+            }
+
+            for (WindowState windowState : mWindowsState.regularWindowsState) {
+                WindowWidget targetWindow = getWindowWithPlacement(windowState.placement);
+                if (targetWindow != null) {
+                    if (windowState.tabIndex >= 0 && windowState.tabIndex < restoredSessions.size()) {
+                        Session defaultSession = targetWindow.getSession();
+                        Session session = restoredSessions.get(windowState.tabIndex);
+                        targetWindow.setSession(session, WindowWidget.DEACTIVATE_CURRENT_SESSION);
+                        session.setActive(true);
+                        // Destroy the default blank session
+                        SessionStore.get().destroySession(defaultSession);
+
+                    } else {
+                        targetWindow.loadHome();
+                    }
+                }
+            }
+
+            if (mWindowsState.privateMode) {
+                enterPrivateMode();
+            } else {
+                exitPrivateMode();
+            }
+        }
+
+        if (mAddedTabUri != null) {
+            openNewTab(mAddedTabUri, mAddedTabLocation);
+            mAddedTabUri = null;
+        }
+
+        mAfterRestore = true;
+    }
+
     private void removeWindow(@NonNull WindowWidget aWindow) {
         BitmapCache.getInstance(mContext).removeBitmap(aWindow.getSession().getId());
         mWidgetManager.removeWidget(aWindow);
@@ -670,9 +818,9 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         updateCurvedMode(true);
 
         if (mPrivateMode) {
-            TelemetryWrapper.openWindowsEvent(mPrivateWindows.size() + 1, mPrivateWindows.size(), true);
+            GleanMetricsService.openWindowsEvent(mPrivateWindows.size() + 1, mPrivateWindows.size(), true);
         } else {
-            TelemetryWrapper.openWindowsEvent(mRegularWindows.size() + 1, mRegularWindows.size(), false);
+            GleanMetricsService.openWindowsEvent(mRegularWindows.size() + 1, mRegularWindows.size(), false);
         }
     }
 
@@ -681,6 +829,10 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             setFirstPaint(aWindow, aWindow.getSession());
         }
         aWindow.setVisible(aVisible);
+        if (aWindow != mFocusedWindow) {
+            aWindow.getTitleBar().setVisible(aVisible);
+        }
+        aWindow.getTopBar().setVisible(aVisible);
     }
 
     private void placeWindow(@NonNull WindowWidget aWindow, WindowPlacement aPosition) {
@@ -830,9 +982,9 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         window.getTitleBar().setDelegate(this);
 
         if (mPrivateMode) {
-            TelemetryWrapper.openWindowsEvent(mPrivateWindows.size() - 1, mPrivateWindows.size(), true);
+            GleanMetricsService.openWindowsEvent(mPrivateWindows.size() - 1, mPrivateWindows.size(), true);
         } else {
-            TelemetryWrapper.openWindowsEvent(mRegularWindows.size() - 1, mRegularWindows.size(), false);
+            GleanMetricsService.openWindowsEvent(mRegularWindows.size() - 1, mRegularWindows.size(), false);
         }
 
         mForcedCurvedMode = getCurrentWindows().size() > 1;
@@ -866,21 +1018,25 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         public void onAuthenticated(@NonNull OAuthAccount oAuthAccount, @NonNull AuthType authType) {
             if (authType == AuthType.Signin.INSTANCE || authType == AuthType.Signup.INSTANCE) {
                 UIDialog.closeAllDialogs();
-                Session session = mFocusedWindow.getSession();
-                addTab(mFocusedWindow, mAccounts.getConnectionSuccessURL());
-                onTabsClose(new ArrayList<>(Collections.singletonList(session)));
+
+                Session fxaSession = SessionStore.get().getSession(mAccounts.getOriginSessionId());
+                if (fxaSession != null) {
+                    Session originSession = SessionStore.get().getSession(fxaSession.getId());
+                    closeTabs(Collections.singletonList(originSession), fxaSession.isPrivateMode(), true);
+                    addTab(getFocusedWindow(), mAccounts.getConnectionSuccessURL());
+                }
 
                 switch (mAccounts.getLoginOrigin()) {
                     case BOOKMARKS:
-                        getFocusedWindow().showBookmarks();
+                        mFocusedWindow.getSession().loadUri(UrlUtils.ABOUT_BOOKMARKS);
                         break;
 
                     case HISTORY:
-                        getFocusedWindow().showHistory();
+                        mFocusedWindow.getSession().loadUri(UrlUtils.ABOUT_HISTORY);
                         break;
 
                     case SETTINGS:
-                        mWidgetManager.getTray().showSettingsDialog(SettingsWidget.SettingDialog.FXA);
+                        mWidgetManager.getTray().showSettingsDialog(FXA);
                         break;
                 }
             }
@@ -898,10 +1054,6 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
     };
 
     // Tray Listener
-    @Override
-    public void onBookmarksClicked() {
-        mFocusedWindow.switchBookmarks();
-    }
 
     @Override
     public void onPrivateBrowsingClicked() {
@@ -921,8 +1073,13 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
     }
 
     @Override
-    public void onHistoryClicked() {
-        mFocusedWindow.switchHistory();
+    public void onLibraryClicked() {
+        if (mDownloadsManager.isDownloading()) {
+            mFocusedWindow.switchPanel(Windows.DOWNLOADS);
+
+        } else {
+            mFocusedWindow.switchPanel(Windows.NONE);
+        }
     }
 
     @Override
@@ -972,8 +1129,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
     public void onMoveLeftClicked(TopBarWidget aWidget) {
         WindowWidget window = aWidget.getAttachedWindow();
         if (window != null) {
-            TelemetryWrapper.windowsMoveEvent();
-
+            GleanMetricsService.windowsMoveEvent();
             moveWindowLeft(window);
         }
     }
@@ -982,7 +1138,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
     public void onMoveRightClicked(TopBarWidget aWidget) {
         WindowWidget window = aWidget.getAttachedWindow();
         if (window != null) {
-            TelemetryWrapper.windowsMoveEvent();
+            GleanMetricsService.windowsMoveEvent();
 
             moveWindowRight(window);
         }
@@ -999,8 +1155,10 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
     @Override
     public void onMediaPlayClicked(@NonNull TitleBarWidget titleBar) {
         for (WindowWidget window : getCurrentWindows()) {
-            if (window.getTitleBar() == titleBar) {
-                window.getSession().getFullScreenVideo().play();
+            if (window.getTitleBar() == titleBar &&
+                    window.getSession() != null &&
+                    window.getSession().getActiveVideo() != null) {
+                window.getSession().getActiveVideo().play();
             }
         }
     }
@@ -1008,8 +1166,10 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
     @Override
     public void onMediaPauseClicked(@NonNull TitleBarWidget titleBar) {
         for (WindowWidget window : getCurrentWindows()) {
-            if (window.getTitleBar() == titleBar) {
-                window.getSession().getFullScreenVideo().pause();
+            if (window.getTitleBar() == titleBar &&
+                    window.getSession() != null &&
+                    window.getSession().getActiveVideo() != null) {
+                window.getSession().getActiveVideo().pause();
             }
         }
     }
@@ -1045,13 +1205,18 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
     }
 
     @Nullable
-    private WindowWidget getWindowWithSession(Session aSession) {
-        for (WindowWidget window: getCurrentWindows()) {
+    private WindowWidget getWindowWithSession(Session aSession, boolean privateMode) {
+        for (WindowWidget window: getCurrentWindows(privateMode)) {
             if (window.getSession() == aSession) {
                 return window;
             }
         }
         return null;
+    }
+
+    @Nullable
+    private WindowWidget getWindowWithSession(Session aSession) {
+        return getWindowWithSession(aSession, mPrivateMode);
     }
 
     // WindowWidget.Delegate
@@ -1101,6 +1266,10 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         }
     }
 
+public void selectTab(@NonNull Session aTab) {
+        onTabSelect(aTab);
+    }
+
     @Override
     public void onTabSelect(Session aTab) {
         if (mFocusedWindow.getSession() != aTab) {
@@ -1115,18 +1284,28 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             Session moveTo = targetWindow.getSession();
             moveFrom.surfaceDestroyed();
             moveTo.surfaceDestroyed();
-            windowToMove.setSession(moveTo, WindowWidget.SESSION_DO_NOT_RELEASE_DISPLAY);
-            targetWindow.setSession(moveFrom, WindowWidget.SESSION_DO_NOT_RELEASE_DISPLAY);
-            SessionStore.get().setActiveSession(targetWindow.getSession());
+            windowToMove.setSession(moveTo, WindowWidget.SESSION_DO_NOT_RELEASE_DISPLAY, WindowWidget.LEAVE_CURRENT_SESSION_ACTIVE);
+            targetWindow.setSession(moveFrom, WindowWidget.SESSION_DO_NOT_RELEASE_DISPLAY, WindowWidget.LEAVE_CURRENT_SESSION_ACTIVE);
             windowToMove.setActiveWindow(false);
             targetWindow.setActiveWindow(true);
 
         } else {
             setFirstPaint(targetWindow, aTab);
-            targetWindow.getSession().setActive(false);
-            aTab.setActive(true);
-            targetWindow.setSession(aTab);
-            SessionStore.get().setActiveSession(aTab);
+            // The Web Extensions require an active target session so we need to make sure we always keep the
+            // Web Extension target session active when switching tabs.
+            Session currentWindowSession = targetWindow.getSession();
+            Session popUpSession = ComponentsAdapter.get().getStore().getState().getExtensions().values().stream()
+                    .filter(extensionState -> extensionState.getPopupSession() != null)
+                    .map(extensionState -> ((GeckoEngineSession) extensionState.getPopupSession()).getSession())
+                    .findFirst().orElse(null);
+            Session parentPopupSession = null;
+            if (popUpSession != null) {
+                parentPopupSession = SessionStore.get().getSession(popUpSession.getSessionState().mParentId);
+            }
+            targetWindow.setSession(aTab,
+                    (popUpSession == null && aTab.isWebExtensionSession()) || parentPopupSession == currentWindowSession ?
+                            WindowWidget.LEAVE_CURRENT_SESSION_ACTIVE :
+                            WindowWidget.DEACTIVATE_CURRENT_SESSION);
         }
     }
 
@@ -1134,18 +1313,38 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         addTab(targetWindow, null);
     }
 
+    public void openNewTabAfterRestore(@NonNull String aUri, @NewTabLocation int aLocation) {
+        if (mAfterRestore) {
+            openNewTab(aUri, aLocation);
+        } else {
+            mAddedTabUri = aUri;
+            mAddedTabLocation = aLocation;
+        }
+    }
+
+    private void openNewTab(@NonNull String aUri, @NewTabLocation int aLocation) {
+        if (aLocation == OPEN_IN_NEW_WINDOW) {
+            WindowWidget newWindow = addWindow();
+            if ((newWindow != null) && (newWindow.getSession() != null)) {
+                newWindow.getSession().loadUri(aUri);
+            }
+        } else if (mFocusedWindow != null) {
+            if (aLocation == OPEN_IN_FOREGROUND) {
+                addTab(mFocusedWindow, aUri);
+            } else if (aLocation == OPEN_IN_BACKGROUND) {
+                addBackgroundTab(mFocusedWindow, aUri);
+            }
+        }
+    }
+
     public void addTab(@NonNull WindowWidget targetWindow, @Nullable String aUri) {
         Session session = SessionStore.get().createSuspendedSession(aUri, targetWindow.getSession().isPrivateMode());
+        session.setParentSession(targetWindow.getSession());
         setFirstPaint(targetWindow, session);
-        targetWindow.getSession().setActive(false);
-        session.setActive(true);
-        targetWindow.setSession(session);
+        targetWindow.setSession(session, WindowWidget.DEACTIVATE_CURRENT_SESSION);
         if (aUri == null || aUri.isEmpty()) {
             session.loadHomePage();
-        } else {
-            session.loadUri(aUri);
         }
-        SessionStore.get().setActiveSession(session);
     }
 
     public void addBackgroundTab(WindowWidget targetWindow, String aUri) {
@@ -1157,21 +1356,33 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
 
     @Override
     public void onTabAdd() {
-        addTab(mFocusedWindow, null);
+        addTab(mFocusedWindow);
         GleanMetricsService.Tabs.openedCounter(GleanMetricsService.Tabs.TabSource.TABS_DIALOG);
     }
 
     @Override
-    public void onTabsClose(ArrayList<Session> aTabs) {
+    public void onTabsClose(List<Session> aTabs) {
+        closeTabs(aTabs, mPrivateMode, true);
+    }
+
+    public void closeTab(@NonNull Session aTab) {
+        if (isSessionFocused(aTab)) {
+            closeTabs(Collections.singletonList(aTab), mPrivateMode, true);
+        } else {
+            closeTabs(Collections.singletonList(aTab), mPrivateMode, false);
+        }
+    }
+
+    private void closeTabs(List<Session> aTabs, boolean privateMode, boolean hidePanel) {
         WindowWidget targetWindow = mFocusedWindow;
         // Prepare available tabs to choose from
-        ArrayList<Session> available = SessionStore.get().getSortedSessions(mPrivateMode);
+        ArrayList<Session> available = SessionStore.get().getSortedSessions(privateMode);
         available.removeAll(aTabs);
-        available.removeIf(session -> getWindowWithSession(session) != null);
+        available.removeIf(session -> getWindowWithSession(session, privateMode) != null);
 
         // Sort windows by priority to take an available tab
-        WindowWidget front = getFrontWindow();
-        ArrayList<WindowWidget> windows =  new ArrayList<>(getCurrentWindows());
+        WindowWidget front = getFrontWindow(privateMode);
+        ArrayList<WindowWidget> windows =  getCurrentWindows(privateMode);
         windows.sort((w1, w2) -> {
             // Max priority for the target window
             if (w1 == targetWindow) {
@@ -1201,14 +1412,13 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
                 Session tab = available.get(0);
                 if (tab != null) {
                     setFirstPaint(window, tab);
-                    tab.setActive(true);
-                    window.setSession(tab);
+                    window.setSession(tab, WindowWidget.LEAVE_CURRENT_SESSION_ACTIVE, hidePanel);
                 }
 
                 available.remove(0);
             } else {
                 // We don't have more tabs available for the front window, load home.
-                addTab(window, null);
+                addTab(window);
             }
         }
 
@@ -1217,8 +1427,6 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             cache.removeBitmap(session.getId());
             SessionStore.get().destroySession(session);
         }
-
-        SessionStore.get().setActiveSession(targetWindow.getSession());
     }
 
     @Override
@@ -1239,9 +1447,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
 
             if (i == 0 && !fullscreen) {
                 // Set the first received tab of the list the current one.
-                SessionStore.get().setActiveSession(session);
-                targetWindow.getSession().setActive(false);
-                targetWindow.setSession(session);
+                targetWindow.setSession(session, WindowWidget.DEACTIVATE_CURRENT_SESSION);
             }
         }
 
@@ -1264,7 +1470,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
             mNoInternetDialog.setDescriptionVisible(false);
             mNoInternetDialog.setTitle(R.string.no_internet_title);
             mNoInternetDialog.setBody(R.string.no_internet_message);
-            mNoInternetDialog.setButtonsDelegate(index -> {
+            mNoInternetDialog.setButtonsDelegate((index, isChecked) -> {
                 mNoInternetDialog.hide(UIWidget.REMOVE_WIDGET);
                 mNoInternetDialog.releaseWidget();
                 mNoInternetDialog = null;
@@ -1334,5 +1540,10 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
                 NotificationManager.show(BOOKMARK_ADDED_NOTIFICATION_ID, notification);
             }
         }
+    }
+
+    public boolean isSessionFocused(@NonNull Session session) {
+        return mRegularWindows.stream().anyMatch(window -> window.getSession() == session && !window.isLibraryVisible() && session.isPrivateMode() == mPrivateMode) ||
+                mPrivateWindows.stream().anyMatch(window -> window.getSession() == session && !window.isLibraryVisible() && session.isPrivateMode() == mPrivateMode );
     }
 }

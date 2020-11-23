@@ -9,9 +9,11 @@ import android.app.NativeActivity;
 import android.Manifest;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
 
+import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.utils.SystemUtils;
 
 public class PlatformActivity extends NativeActivity {
@@ -22,6 +24,10 @@ public class PlatformActivity extends NativeActivity {
             return true;
         }
         return false;
+    }
+
+    public static boolean isNotSpecialKey(KeyEvent event) {
+        return true;
     }
 
     @Override

@@ -23,41 +23,41 @@ import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.databinding.DataBindingUtil;
+import androidx.lifecycle.ViewModelProvider;
 
-import org.mozilla.geckoview.GeckoSessionSettings;
 import org.mozilla.vrbrowser.BuildConfig;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.VRBrowserActivity;
 import org.mozilla.vrbrowser.VRBrowserApplication;
 import org.mozilla.vrbrowser.audio.AudioEngine;
 import org.mozilla.vrbrowser.browser.Accounts;
+import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.browser.engine.Session;
-import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.databinding.SettingsBinding;
+import org.mozilla.vrbrowser.db.SitePermission;
 import org.mozilla.vrbrowser.telemetry.GleanMetricsService;
+import org.mozilla.vrbrowser.ui.viewmodel.SettingsViewModel;
 import org.mozilla.vrbrowser.ui.widgets.UIWidget;
-import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
 import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
+import org.mozilla.vrbrowser.ui.widgets.WindowWidget;
 import org.mozilla.vrbrowser.ui.widgets.dialogs.RestartDialogWidget;
 import org.mozilla.vrbrowser.ui.widgets.dialogs.UIDialog;
+import org.mozilla.vrbrowser.utils.RemoteProperties;
 import org.mozilla.vrbrowser.utils.StringUtils;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
+import mozilla.components.Build;
+import mozilla.components.concept.storage.Login;
 import mozilla.components.concept.sync.AccountObserver;
 import mozilla.components.concept.sync.AuthType;
 import mozilla.components.concept.sync.OAuthAccount;
 import mozilla.components.concept.sync.Profile;
 
 public class SettingsWidget extends UIDialog implements SettingsView.Delegate {
-
-    public enum SettingDialog {
-        MAIN, LANGUAGE, DISPLAY, PRIVACY, DEVELOPER, FXA, ENVIRONMENT, CONTROLLER
-    }
 
     private SettingsBinding mBinding;
     private AudioEngine mAudio;
@@ -67,6 +67,8 @@ public class SettingsWidget extends UIDialog implements SettingsView.Delegate {
     private RestartDialogWidget mRestartDialog;
     private Accounts mAccounts;
     private Executor mUIThreadExecutor;
+    private SettingsView.SettingViewType mOpenDialog;
+    private SettingsViewModel mSettingsViewModel;
 
     class VersionGestureListener extends GestureDetector.SimpleOnGestureListener {
 
@@ -74,7 +76,9 @@ public class SettingsWidget extends UIDialog implements SettingsView.Delegate {
 
         @Override
         public boolean onDown (MotionEvent e) {
-            mBinding.buildText.setText(mIsHash ? StringUtils.versionCodeToDate(getContext(), BuildConfig.VERSION_CODE) : BuildConfig.GIT_HASH);
+            mBinding.buildText.setText(mIsHash ?
+                    StringUtils.versionCodeToDate(getContext(), BuildConfig.VERSION_CODE) :
+                    BuildConfig.GIT_HASH + " (AC " + Build.version + ")");
 
             mIsHash = !mIsHash;
 
@@ -99,7 +103,14 @@ public class SettingsWidget extends UIDialog implements SettingsView.Delegate {
 
     @SuppressLint("ClickableViewAccessibility")
     private void initialize() {
+        mSettingsViewModel = new ViewModelProvider(
+                (VRBrowserActivity)getContext(),
+                ViewModelProvider.AndroidViewModelFactory.getInstance(((VRBrowserActivity) getContext()).getApplication()))
+                .get(SettingsViewModel.class);
+
         updateUI();
+
+        mOpenDialog = SettingsView.SettingViewType.MAIN;
 
         mAccounts = ((VRBrowserApplication)getContext().getApplicationContext()).getAccounts();
         mAccounts.addAccountListener(mAccountObserver);
@@ -122,17 +133,13 @@ public class SettingsWidget extends UIDialog implements SettingsView.Delegate {
 
         // Inflate this data binding layout
         mBinding = DataBindingUtil.inflate(inflater, R.layout.settings, this, true);
+        mBinding.setSettingsmodel(mSettingsViewModel);
 
         mBinding.backButton.setOnClickListener(v -> {
             if (mAudio != null) {
                 mAudio.playSound(AudioEngine.Sound.CLICK);
             }
 
-            onDismiss();
-        });
-
-        mBinding.reportIssueButton.setOnClickListener(v -> {
-            onSettingsReportClick();
             onDismiss();
         });
 
@@ -165,7 +172,7 @@ public class SettingsWidget extends UIDialog implements SettingsView.Delegate {
                 mAudio.playSound(AudioEngine.Sound.CLICK);
             }
 
-            showEnvironmentOptionsDialog();
+            showView(SettingsView.SettingViewType.ENVIRONMENT);
         });
 
         try {
@@ -221,7 +228,16 @@ public class SettingsWidget extends UIDialog implements SettingsView.Delegate {
                 mAudio.playSound(AudioEngine.Sound.CLICK);
             }
 
-            showControllerOptionsDialog();
+            showView(SettingsView.SettingViewType.CONTROLLER);
+        });
+
+        mBinding.whatsNewButton.setOnClickListener(v -> {
+            SettingsStore.getInstance(getContext()).setRemotePropsVersionName(BuildConfig.VERSION_NAME);
+            RemoteProperties props = mSettingsViewModel.getProps().getValue().get(BuildConfig.VERSION_NAME);
+            if (props != null) {
+                mWidgetManager.openNewTabForeground(props.getWhatsNewUrl());
+            }
+            onDismiss();
         });
 
         mCurrentView = null;
@@ -231,7 +247,7 @@ public class SettingsWidget extends UIDialog implements SettingsView.Delegate {
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
 
-        updateUI();
+        showView(mOpenDialog);
     }
 
     @Override
@@ -256,34 +272,13 @@ public class SettingsWidget extends UIDialog implements SettingsView.Delegate {
                                   WidgetPlacement.unitFromMeters(getContext(), R.dimen.window_world_z);
     }
 
-    private void onSettingsPrivacyClick() {
-        showView(new PrivacyOptionsView(getContext(), mWidgetManager));
+    @Override
+    public void attachToWindow(@NonNull WindowWidget window) {
+        mWidgetPlacement.parentHandle = window.getHandle();
     }
 
-    private void onSettingsReportClick() {
-        Session session = SessionStore.get().getActiveSession();
-        String url = session.getCurrentUri();
-
-        try {
-            if (url == null) {
-                // In case the user had no active sessions when reporting, just leave the URL field empty.
-                url = "";
-            } else if (url.startsWith("jar:") || url.startsWith("resource:") || url.startsWith("about:") || url.startsWith("data:")) {
-                url = "";
-            } else if (session.isHomeUri(url)) {
-                // Use the original URL (without any hash).
-                url = session.getHomeUri();
-            }
-
-            url = URLEncoder.encode(url, "UTF-8");
-
-        } catch (UnsupportedEncodingException e) {
-            Log.e(LOGTAG, "Cannot encode URL");
-        }
-
-        mWidgetManager.openNewTabForeground(getContext().getString(R.string.private_report_url, url));
-
-        onDismiss();
+    private void onSettingsPrivacyClick() {
+        showView(SettingsView.SettingViewType.PRIVACY);
     }
 
     private void manageAccount() {
@@ -303,10 +298,12 @@ public class SettingsWidget extends UIDialog implements SettingsView.Delegate {
                                 mAccounts.logoutAsync();
 
                             } else {
-                                mAccounts.setLoginOrigin(Accounts.LoginOrigin.SETTINGS);
                                 mWidgetManager.openNewTabForeground(url);
-                                WidgetManagerDelegate widgetManager = ((VRBrowserActivity)getContext());
-                                widgetManager.getFocusedWindow().getSession().setUaMode(GeckoSessionSettings.USER_AGENT_MODE_MOBILE);
+                                Session currentSession = mWidgetManager.getFocusedWindow().getSession();
+                                String sessionId = currentSession != null ? currentSession.getId() : null;
+
+                                mAccounts.setOrigin(Accounts.LoginOrigin.SETTINGS, sessionId);
+
                                 GleanMetricsService.Tabs.openedCounter(GleanMetricsService.Tabs.TabSource.FXA_LOGIN);
                             }
 
@@ -320,7 +317,7 @@ public class SettingsWidget extends UIDialog implements SettingsView.Delegate {
                 break;
 
             case SIGNED_IN:
-                post(this::showFXAOptionsDialog);
+                post(() -> showView(SettingsView.SettingViewType.FXA));
                 break;
         }
     }
@@ -377,24 +374,92 @@ public class SettingsWidget extends UIDialog implements SettingsView.Delegate {
     }
 
     private void onDeveloperOptionsClick() {
-        showDeveloperOptionsDialog();
+        showView(SettingsView.SettingViewType.DEVELOPER);
     }
 
     private void onLanguageOptionsClick() {
-        showLanguageOptionsDialog();
+        showView(SettingsView.SettingViewType.LANGUAGE);
     }
 
     private void onDisplayOptionsClick() {
-        showDisplayOptionsDialog();
+        showView(SettingsView.SettingViewType.DISPLAY);
     }
 
-    public void showView(SettingsView aView) {
+    @Override
+    public void showView(SettingsView.SettingViewType aType) {
+        showView(aType, null);
+    }
+
+    @Override
+    public void showView(SettingsView.SettingViewType aType, @Nullable Object extras) {
+        switch (aType) {
+            case MAIN:
+                showView((SettingsView) null);
+                break;
+            case LANGUAGE:
+                showView(new LanguageOptionsView(getContext(), mWidgetManager));
+                break;
+            case LANGUAGE_DISPLAY:
+                showView(new DisplayLanguageOptionsView(getContext(), mWidgetManager));
+                break;
+            case LANGUAGE_CONTENT:
+                showView(new ContentLanguageOptionsView(getContext(), mWidgetManager));
+                break;
+            case LANGUAGE_VOICE:
+                showView(new VoiceSearchLanguageOptionsView(getContext(), mWidgetManager));
+                break;
+            case DISPLAY:
+                showView(new DisplayOptionsView(getContext(), mWidgetManager));
+                break;
+            case PRIVACY:
+                showView(new PrivacyOptionsView(getContext(), mWidgetManager));
+                break;
+            case POPUP_EXCEPTIONS:
+                showView(new SitePermissionsOptionsView(getContext(), mWidgetManager, SitePermission.SITE_PERMISSION_POPUP));
+                break;
+            case WEBXR_EXCEPTIONS:
+                showView(new SitePermissionsOptionsView(getContext(), mWidgetManager, SitePermission.SITE_PERMISSION_WEBXR));
+                break;
+            case DEVELOPER:
+                showView(new DeveloperOptionsView(getContext(), mWidgetManager));
+                break;
+            case FXA:
+                showView(new FxAAccountOptionsView(getContext(), mWidgetManager));
+                break;
+            case ENVIRONMENT:
+                showView(new EnvironmentOptionsView(getContext(), mWidgetManager));
+                break;
+            case CONTROLLER:
+                showView(new ControllerOptionsView(getContext(), mWidgetManager));
+                break;
+            case TRACKING_EXCEPTION:
+                showView(new TrackingPermissionsOptionsView(getContext(), mWidgetManager));
+                break;
+            case LOGINS_AND_PASSWORDS:
+                showView(new LoginAndPasswordsOptionsView(getContext(), mWidgetManager));
+                break;
+            case LOGIN_EXCEPTIONS:
+                showView(new SitePermissionsOptionsView(getContext(), mWidgetManager, SitePermission.SITE_PERMISSION_AUTOFILL));
+                break;
+            case SAVED_LOGINS:
+                showView(new SavedLoginsOptionsView(getContext(), mWidgetManager));
+                break;
+            case LOGIN_EDIT:
+                if (extras != null) {
+                    showView(new LoginEditOptionsView(getContext(), mWidgetManager, (Login)extras));
+                }
+                break;
+        }
+    }
+
+    private void showView(SettingsView aView) {
         if (mCurrentView != null) {
             mCurrentView.onHidden();
             this.removeView(mCurrentView);
         }
         mCurrentView = aView;
         if (mCurrentView != null) {
+            mOpenDialog = aView.getType();
             Point viewDimensions = mCurrentView.getDimensions();
             mViewMarginH = mWidgetPlacement.width - viewDimensions.x;
             mViewMarginH = WidgetPlacement.convertDpToPixel(getContext(), mViewMarginH);
@@ -410,69 +475,18 @@ public class SettingsWidget extends UIDialog implements SettingsView.Delegate {
             mBinding.optionsLayout.setVisibility(View.GONE);
 
         } else {
+            updateUI();
             mBinding.optionsLayout.setVisibility(View.VISIBLE);
             updateCurrentAccountState();
         }
     }
 
-    private void showPrivacyOptionsDialog() {
-        showView(new PrivacyOptionsView(getContext(), mWidgetManager));
-    }
-
-    private void showDeveloperOptionsDialog() {
-        showView(new DeveloperOptionsView(getContext(), mWidgetManager));
-    }
-
-    private void showControllerOptionsDialog() {
-        showView(new ControllerOptionsView(getContext(), mWidgetManager));
-    }
-
-    private void showLanguageOptionsDialog() {
-        LanguageOptionsView view = new LanguageOptionsView(getContext(), mWidgetManager);
-        view.setDelegate(this);
-        showView(view);
-    }
-
-    private void showDisplayOptionsDialog() {
-        showView(new DisplayOptionsView(getContext(), mWidgetManager));
-    }
-
-    private void showEnvironmentOptionsDialog() {
-        showView(new EnvironmentOptionsView(getContext(), mWidgetManager));
-    }
-
-    private void showFXAOptionsDialog() {
-        showView(new FxAAccountOptionsView(getContext(), mWidgetManager));
-    }
-
-    public void show(@ShowFlags int aShowFlags, @NonNull SettingDialog settingDialog) {
+    public void show(@ShowFlags int aShowFlags, @NonNull SettingsView.SettingViewType settingDialog) {
         if (!isVisible()) {
             show(aShowFlags);
         }
 
-        switch (settingDialog) {
-            case LANGUAGE:
-                showLanguageOptionsDialog();
-                break;
-            case DISPLAY:
-                showDisplayOptionsDialog();
-                break;
-            case PRIVACY:
-                showPrivacyOptionsDialog();
-                break;
-            case DEVELOPER:
-                showDeveloperOptionsDialog();
-                break;
-            case FXA:
-                showFXAOptionsDialog();
-                break;
-            case ENVIRONMENT:
-                showEnvironmentOptionsDialog();
-                break;
-            case CONTROLLER:
-                showControllerOptionsDialog();
-                break;
-        }
+        showView(settingDialog);
     }
 
     @Override
@@ -488,13 +502,19 @@ public class SettingsWidget extends UIDialog implements SettingsView.Delegate {
         if (mCurrentView != null) {
             if (!mCurrentView.isEditing()) {
                 if (isLanguagesSubView(mCurrentView)) {
-                    showLanguageOptionsDialog();
+                    showView(SettingsView.SettingViewType.LANGUAGE);
 
                 } else if (isPrivacySubView(mCurrentView)) {
-                    showPrivacyOptionsDialog();
+                    showView(SettingsView.SettingViewType.PRIVACY);
+
+                } else if (isLoginsSubview(mCurrentView)) {
+                    showView(SettingsView.SettingViewType.LOGINS_AND_PASSWORDS);
+
+                } else if (isSavedLoginsSubview(mCurrentView)) {
+                    showView(SettingsView.SettingViewType.SAVED_LOGINS);
 
                 } else {
-                    showView(null);
+                    showView(SettingsView.SettingViewType.MAIN);
                 }
             }
         } else {
@@ -504,7 +524,7 @@ public class SettingsWidget extends UIDialog implements SettingsView.Delegate {
 
     @Override
     public void exitWholeSettings() {
-        showView(null);
+        showView(SettingsView.SettingViewType.MAIN);
         hide(UIWidget.REMOVE_WIDGET);
     }
 
@@ -523,21 +543,25 @@ public class SettingsWidget extends UIDialog implements SettingsView.Delegate {
     }
 
     private boolean isLanguagesSubView(View view) {
-        if (view instanceof DisplayLanguageOptionsView ||
+        return view instanceof DisplayLanguageOptionsView ||
                 view instanceof ContentLanguageOptionsView ||
-                view instanceof  VoiceSearchLanguageOptionsView) {
-            return true;
-        }
-
-        return false;
+                view instanceof VoiceSearchLanguageOptionsView;
     }
 
     private boolean isPrivacySubView(View view) {
-        if (view instanceof PopUpExceptionsOptionsView) {
-            return true;
-        }
+        return (view instanceof SitePermissionsOptionsView &&
+                ((SitePermissionsOptionsView)view).getType() != SettingsView.SettingViewType.LOGIN_EXCEPTIONS) ||
+                view instanceof LoginAndPasswordsOptionsView;
+    }
 
-        return false;
+    private boolean isLoginsSubview(View view) {
+        return (view instanceof SitePermissionsOptionsView &&
+                ((SitePermissionsOptionsView)view).getType() == SettingsView.SettingViewType.LOGIN_EXCEPTIONS) ||
+                view instanceof SavedLoginsOptionsView;
+    }
+
+    private boolean isSavedLoginsSubview(View view) {
+        return view instanceof LoginEditOptionsView;
     }
 
 }

@@ -29,6 +29,13 @@ public interface WidgetManagerDelegate {
         void onWorldClick();
     }
 
+    interface WebXRListener {
+        void onEnterWebXR();
+        void onExitWebXR();
+        void onDismissWebXRInterstitial();
+        void onWebXRRenderStateChange(boolean aRendering);
+    }
+
     float DEFAULT_DIM_BRIGHTNESS = 0.25f;
     float DEFAULT_NO_DIM_BRIGHTNESS = 1.0f;
 
@@ -43,14 +50,25 @@ public interface WidgetManagerDelegate {
     int CPU_LEVEL_NORMAL = 0;
     int CPU_LEVEL_HIGH = 1;
 
+    @IntDef(value = { WEBXR_INTERSTITIAL_FORCED, WEBXR_INTERSTITIAL_ALLOW_DISMISS, WEBXR_INTERSTITIAL_HIDDEN})
+    @interface WebXRInterstitialState {}
+    int WEBXR_INTERSTITIAL_FORCED = 0;
+    int WEBXR_INTERSTITIAL_ALLOW_DISMISS = 1;
+    int WEBXR_INTERSTITIAL_HIDDEN = 2;
+
+    @IntDef(value = { YAW_TARGET_ALL, YAW_TARGET_WIDGETS})
+    @interface YawTarget {}
+    int YAW_TARGET_ALL = 0; // Targets widgets and VR videos.
+    int YAW_TARGET_WIDGETS = 1; // Targets widgets only.
+
     int newWidgetHandle();
-    void addWidget(@NonNull Widget aWidget);
-    void updateWidget(@NonNull Widget aWidget);
-    void removeWidget(@NonNull Widget aWidget);
+    void addWidget(Widget aWidget);
+    void updateWidget(Widget aWidget);
+    void removeWidget(Widget aWidget);
     void updateVisibleWidgets();
-    void startWidgetResize(@NonNull Widget aWidget, float maxWidth, float maxHeight, float minWidth, float minHeight);
-    void finishWidgetResize(@NonNull Widget aWidget);
-    void startWidgetMove(@NonNull Widget aWidget, @WidgetMoveBehaviourFlags int aMoveBehaviour);
+    void startWidgetResize(Widget aWidget, float maxWidth, float maxHeight, float minWidth, float minHeight);
+    void finishWidgetResize(Widget aWidget);
+    void startWidgetMove(Widget aWidget, @WidgetMoveBehaviourFlags int aMoveBehaviour);
     void finishWidgetMove();
     void addUpdateListener(@NonNull UpdateListener aUpdateListener);
     void removeUpdateListener(@NonNull UpdateListener aUpdateListener);
@@ -59,17 +77,15 @@ public interface WidgetManagerDelegate {
     void pushWorldBrightness(Object aKey, float aBrightness);
     void setWorldBrightness(Object aKey, float aBrightness);
     void popWorldBrightness(Object aKey);
-    void setTrayVisible(boolean visible);
     void setControllersVisible(boolean visible);
     void setWindowSize(float targetWidth, float targetHeight);
     void setIsServoSession(boolean aIsServo);
     void keyboardDismissed();
     void updateEnvironment();
-    void updateFoveatedLevel();
     void updatePointerColor();
     void showVRVideo(int aWindowHandle, @VideoProjectionMenuWidget.VideoProjectionFlags int aVideoProjection);
     void hideVRVideo();
-    void resetUIYaw();
+    void recenterUIYaw(@YawTarget int target);
     void setCylinderDensity(float aDensity);
     float getCylinderDensity();
     void addFocusChangeListener(@NonNull FocusChangeListener aListener);
@@ -78,18 +94,23 @@ public interface WidgetManagerDelegate {
     void removePermissionListener(PermissionListener aListener);
     void addWorldClickListener(WorldClickListener aListener);
     void removeWorldClickListener(WorldClickListener aListener);
+    void addWebXRListener(WebXRListener aListener);
+    void removeWebXRListener(WebXRListener aListener);
+    void setWebXRIntersitialState(@WebXRInterstitialState int aState);
+    boolean isWebXRIntersitialHidden();
+    boolean isWebXRPresenting();
     boolean isPermissionGranted(@NonNull String permission);
     void requestPermission(String uri, @NonNull String permission, GeckoSession.PermissionDelegate.Callback aCallback);
     boolean canOpenNewWindow();
-    void openNewWindow(@NonNull String uri);
+    void openNewWindow(String uri);
     void openNewTab(@NonNull String uri);
     void openNewTabForeground(@NonNull String uri);
     WindowWidget getFocusedWindow();
     TrayWidget getTray();
     NavigationBarWidget getNavigationBar();
     Windows getWindows();
-    void addConnectivityListener(ConnectivityReceiver.Delegate aListener);
-    void removeConnectivityListener(ConnectivityReceiver.Delegate aListener);
     void saveState();
     void updateLocale(@NonNull Context context);
+    @NonNull
+    AppServicesProvider getServicesProvider();
 }

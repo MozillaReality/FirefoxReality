@@ -98,20 +98,20 @@ class LanguageOptionsView extends SettingsView {
     };
 
     private void setVoiceLanguage() {
-        mBinding.voiceSearchLanguageDescription.setText(getSpannedLanguageText(LocaleUtils.getVoiceSearchLanguage(getContext()).getName()),  TextView.BufferType.SPANNABLE);
+        mBinding.voiceSearchLanguageDescription.setText(getSpannedLanguageText(LocaleUtils.getVoiceSearchLanguage(getContext()).getDisplayName()),  TextView.BufferType.SPANNABLE);
     }
 
     private void setContentLanguage() {
         List<Language> preferredLanguages = LocaleUtils.getPreferredLanguages(getContext());
         String text = "";
         if (preferredLanguages.size() > 0) {
-            text = preferredLanguages.get(0).getName();
+            text = preferredLanguages.get(0).getDisplayName();
         }
         mBinding.contentLanguageDescription.setText(getSpannedLanguageText(text));
     }
 
     private void setDisplayLanguage() {
-        mBinding.displayLanguageDescription.setText(getSpannedLanguageText(LocaleUtils.getDisplayLanguage(getContext()).getName()));
+        mBinding.displayLanguageDescription.setText(getSpannedLanguageText(LocaleUtils.getDisplayLanguage(getContext()).getDisplayName()));
     }
 
     private int getLanguageIndex(@NonNull String text) {
@@ -123,7 +123,7 @@ class LanguageOptionsView extends SettingsView {
             return text.indexOf("[");
         }
 
-        return text.length() - 1;
+        return text.length();
     }
 
     private SpannableStringBuilder getSpannedLanguageText(@NonNull String language) {
@@ -135,11 +135,11 @@ class LanguageOptionsView extends SettingsView {
         return spanned;
     }
 
-    private OnClickListener mContentListener = v -> mDelegate.showView(mContentLanguage);
+    private OnClickListener mContentListener = v -> mDelegate.showView(SettingViewType.LANGUAGE_CONTENT);
 
-    private OnClickListener mVoiceSearchListener = v -> mDelegate.showView(mVoiceLanguage);
+    private OnClickListener mVoiceSearchListener = v -> mDelegate.showView(SettingViewType.LANGUAGE_VOICE);
 
-    private OnClickListener mDisplayListener = v -> mDelegate.showView(mDisplayLanguage);
+    private OnClickListener mDisplayListener = v -> mDelegate.showView(SettingViewType.LANGUAGE_DISPLAY);
 
     private SharedPreferences.OnSharedPreferenceChangeListener mPreferencesListener = (sharedPreferences, key) -> {
         if (key.equals(getContext().getString(R.string.settings_key_content_languages))) {
@@ -157,6 +157,11 @@ class LanguageOptionsView extends SettingsView {
     public Point getDimensions() {
         return new Point( WidgetPlacement.dpDimension(getContext(), R.dimen.settings_dialog_width),
                 WidgetPlacement.dpDimension(getContext(), R.dimen.settings_dialog_height));
+    }
+
+    @Override
+    protected SettingViewType getType() {
+        return SettingViewType.LANGUAGE;
     }
 
 }

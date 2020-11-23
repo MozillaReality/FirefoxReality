@@ -6,6 +6,7 @@ import android.graphics.Rect;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.webkit.URLUtil;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -21,8 +22,10 @@ import org.mozilla.vrbrowser.ui.views.UITextButton;
 import org.mozilla.vrbrowser.ui.widgets.dialogs.SendTabDialogWidget;
 import org.mozilla.vrbrowser.ui.widgets.dialogs.UIDialog;
 import org.mozilla.vrbrowser.utils.BitmapCache;
+import org.mozilla.vrbrowser.utils.UrlUtils;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class TabsWidget extends UIDialog {
     protected BitmapCache mBitmapCache;
@@ -48,7 +51,7 @@ public class TabsWidget extends UIDialog {
     public interface TabDelegate {
         void onTabSelect(Session aTab);
         void onTabAdd();
-        void onTabsClose(ArrayList<Session> aTabs);
+        void onTabsClose(List<Session> aTabs);
     }
 
     public TabsWidget(Context aContext) {
@@ -158,6 +161,10 @@ public class TabsWidget extends UIDialog {
 
     @Override
     public void releaseWidget() {
+        if (mSendTabDialog != null && !mSendTabDialog.isReleased()) {
+            mSendTabDialog.releaseWidget();
+        }
+        mSendTabDialog = null;
         super.releaseWidget();
     }
 
@@ -234,9 +241,19 @@ public class TabsWidget extends UIDialog {
             holder.tabView.setSelecting(mSelecting);
             holder.tabView.setSelected(mSelectedTabs.contains(holder.tabView.getSession()));
             holder.tabView.setActive(SessionStore.get().getActiveSession() == holder.tabView.getSession());
+            if (holder.tabView.getSession() != null) {
+                String uri = holder.tabView.getSession().getCurrentUri();
+                holder.tabView.setSendTabEnabled(URLUtil.isHttpUrl(uri) || URLUtil.isHttpsUrl(uri));
+            } else {
+                holder.tabView.setSendTabEnabled(false);
+            }
             holder.tabView.setDelegate(new TabView.Delegate() {
                 @Override
                 public void onClose(TabView aSender) {
+                    if (aSender.getSession() != null) {
+                        String uri = aSender.getSession().getCurrentUri();
+                        aSender.setSendTabEnabled(URLUtil.isHttpUrl(uri) || URLUtil.isHttpsUrl(uri));
+                    }
                     if (mTabDelegate != null) {
                         ArrayList<Session> closed = new ArrayList<>();
                         closed.add(aSender.getSession());
@@ -251,6 +268,7 @@ public class TabsWidget extends UIDialog {
                         mTabs.remove(holder.getAdapterPosition() - 1);
                         mAdapter.notifyItemRemoved(holder.getAdapterPosition());
                         updateTabCounter();
+
                     } else {
                         onDismiss();
                     }
@@ -285,12 +303,13 @@ public class TabsWidget extends UIDialog {
 
                 @Override
                 public void onSend(TabView aSender) {
-                    if (mSendTabDialog == null) {
-                        mSendTabDialog = new SendTabDialogWidget(getContext());
-                    }
+                    mSendTabDialog = SendTabDialogWidget.getInstance(getContext());
                     mSendTabDialog.setSessionId(aSender.getSession().getId());
                     mSendTabDialog.mWidgetPlacement.parentHandle = mWidgetManager.getFocusedWindow().getHandle();
+                    mSendTabDialog.setDelegate(() -> show(REQUEST_FOCUS));
                     mSendTabDialog.show(UIWidget.REQUEST_FOCUS);
+
+                    holder.tabView.reset();
                 }
             });
         }
@@ -310,9 +329,10 @@ public class TabsWidget extends UIDialog {
         mSelecting = true;
         mSelectTabsButton.setVisibility(View.GONE);
         mDoneButton.setVisibility(View.VISIBLE);
-        mAdapter.notifyDataSetChanged();
         updateSelectionMode();
         mWidgetManager.pushBackHandler(mSelectModeBackHandler);
+
+        post(() -> mAdapter.notifyDataSetChanged());
     }
 
     private void exitSelectMode() {
@@ -323,9 +343,10 @@ public class TabsWidget extends UIDialog {
         mSelectTabsButton.setVisibility(View.VISIBLE);
         mDoneButton.setVisibility(View.GONE);
         mSelectedTabs.clear();
-        mAdapter.notifyDataSetChanged();
         updateSelectionMode();
         mWidgetManager.popBackHandler(mSelectModeBackHandler);
+
+        post(() -> mAdapter.notifyDataSetChanged());
     }
 
     private void updateSelectionMode() {

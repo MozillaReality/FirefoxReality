@@ -37,12 +37,12 @@
 
             <ImageView
                 android:id="@+id/voiceSearchAnimationSearching"
-                android:layout_width="100dp"
-                android:layout_height="100dp"
+                android:layout_width="120dp"
+                android:layout_height="120dp"
                 android:layout_gravity="center_horizontal"
-                android:src="@drawable/ic_voice_search_searching"
+                android:src="@drawable/spinner"
                 visibleInvisible="@{state == State.SEARCHING }"
-                tools:src="@drawable/ic_voice_search_searching" />
+                tools:src="@drawable/spinner" />
         </FrameLayout>
 
         <FrameLayout
@@ -85,7 +85,7 @@
                 android:textColor="@color/white"
                 android:textSize="24sp"
                 android:typeface="sans"
-                visibleInvisible="@{state == State.ERROR}"
+                visibleInvisible="@{state == State.SPEECH_ERROR}"
                 android:layout_gravity="center_horizontal"
                 android:gravity="center_horizontal"
                 tools:text='@{String.format("%s %s", @string/voice_search_error, @string/voice_search_try_again)}' />
@@ -110,12 +110,11 @@
             android:layout_height="wrap_content"
             android:layout_above="@id/buttonsContainer"
             android:layout_marginBottom="15dp"
-            visibleGone="@{state == State.LISTENING || state == State.ERROR}">
+            visibleGone="@{state == State.LISTENING || state == State.SPEECH_ERROR}">
             <TextView
                 android:id="@+id/description"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="5dp"
                 android:text="@string/voice_search_example"
                 android:textColor="@color/rhino"
                 android:textSize="12sp"

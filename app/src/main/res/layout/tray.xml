@@ -1,20 +1,153 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tool="http://schemas.android.com/tools">
     <data>
         <variable
             name="viewmodel"
             type="org.mozilla.vrbrowser.ui.viewmodel.WindowViewModel" />
+        <variable
+            name="traymodel"
+            type="org.mozilla.vrbrowser.ui.viewmodel.TrayViewModel" />
     </data>
 
     <RelativeLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:gravity="center">
+        android:layout_width="@dimen/tray_width"
+        android:layout_height="@dimen/tray_height"
+        android:gravity="top|center_horizontal">
+
+        <RelativeLayout
+            android:id="@+id/status_bar"
+            android:layout_width="wrap_content"
+            android:layout_height="20dp"
+            android:layout_alignStart="@+id/tray_buttons"
+            android:layout_alignEnd="@+id/tray_buttons"
+            android:background="@drawable/tray_background_top"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp">
+            <LinearLayout
+                android:id="@+id/time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:layout_marginEnd="5dp"
+                android:orientation="horizontal">
+                <TextView
+                    android:id="@+id/time_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="@dimen/text_smallest_size"
+                    android:tint="@color/concrete"
+                    android:text="@{traymodel.time}"
+                    android:textColor="@color/concrete"
+                    tool:text="18:30"/>
+                <TextView
+                    android:id="@+id/time_pm_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="5sp"
+                    android:gravity="bottom"
+                    android:textColor="@color/concrete"
+                    android:text="@{traymodel.pm}"
+                    app:visibleGone="@{!traymodel.pm.isEmpty}"
+                    tool:text="pm"/>
+            </LinearLayout>
+            <FrameLayout
+                android:id="@+id/wifi"
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:layout_toEndOf="@+id/time"
+                android:layout_centerVertical="true">
+                <ImageView
+                    android:id="@+id/wifi_icon_background"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@{traymodel.wifiConnected ? @drawable/ic_icon_statusbar_wifi_list : @drawable/ic_icon_statusbar_nowifi}"
+                    android:tint="@color/iron"
+                    android:scaleType="fitCenter"/>
+                <ImageView
+                    android:id="@+id/wifi_icon"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/ic_icon_statusbar_wifi_list"
+                    android:tint="@color/concrete"
+                    android:scaleType="fitCenter"
+                    app:visibleGone="@{traymodel.wifiConnected}"/>
+            </FrameLayout>
+            <LinearLayout
+                android:id="@+id/left_controller"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_centerVertical="true"
+                android:layout_toStartOf="@+id/right_controller"
+                android:layout_marginEnd="12dp">
+                <ImageView
+                    android:id="@+id/left_controller_icon"
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:src="@{traymodel.leftControllerIcon}"
+                    android:tint="@color/concrete"
+                    android:scaleType="fitCenter"/>
+                <ImageView
+                    android:id="@+id/left_controller_battery_indicator"
+                    android:layout_width="5dp"
+                    android:layout_height="12dp"
+                    android:src="@{traymodel.leftControllerBatteryLevel}"
+                    android:scaleType="fitCenter"/>
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/right_controller"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_centerVertical="true"
+                android:layout_toStartOf="@+id/headset"
+                android:layout_marginEnd="12dp">
+                <ImageView
+                    android:id="@+id/right_controller_icon"
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:src="@{traymodel.rightControllerIcon}"
+                    android:tint="@color/concrete"
+                    android:scaleType="fitCenter"/>
+                <ImageView
+                    android:id="@+id/right_controller_battery_indicator"
+                    android:layout_width="5dp"
+                    android:layout_height="12dp"
+                    android:src="@{traymodel.rightControllerBatteryLevel}"
+                    android:scaleType="fitCenter"/>
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/headset"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_centerVertical="true"
+                android:layout_alignParentEnd="true">
+                <ImageView
+                    android:id="@+id/headset_icon"
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:src="@{traymodel.headsetIcon}"
+                    android:tint="@color/concrete"
+                    android:scaleType="fitCenter"/>
+                <ImageView
+                    android:id="@+id/headset_battery_indicator"
+                    android:layout_width="5dp"
+                    android:layout_height="12dp"
+                    android:src="@{traymodel.headsetBatteryLevel}"
+                    android:scaleType="fitCenter"/>
+            </LinearLayout>
+        </RelativeLayout>
 
         <LinearLayout
+            android:id="@+id/tray_buttons"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_below="@id/status_bar"
+            android:background="@drawable/tray_background_bottom"
             android:orientation="horizontal">
 
             <org.mozilla.vrbrowser.ui.views.UIButton
@@ -22,49 +155,64 @@
                 style="@style/trayButtonStartTheme"
                 android:tooltipText="@string/new_window_tooltip"
                 app:tooltipDensity="@dimen/tray_tooltip_density"
-                app:tooltipPosition="top"
+                app:tooltipPosition="bottom"
                 app:tooltipLayout="@layout/tooltip_tray"
-                android:src="@drawable/ic_icon_tray_newwindow"/>
+                android:src="@drawable/ic_icon_tray_newwindow"
+                app:visibleGone="@{!traymodel.isMaxWindows}"/>
 
             <org.mozilla.vrbrowser.ui.views.UIButton
                 android:id="@+id/tabsButton"
                 style="@style/trayButtonMiddleTheme"
                 android:tooltipText="@string/tabs_tray_tooltip"
                 app:tooltipDensity="@dimen/tray_tooltip_density"
-                app:tooltipPosition="top"
+                app:tooltipPosition="bottom"
                 app:tooltipLayout="@layout/tooltip_tray"
-                android:src="@drawable/ic_icon_tray_tabs"/>
+                android:src="@drawable/ic_icon_tray_tabs"
+                app:regularModeBackground="@{traymodel.isMaxWindows ? @drawable/tray_background_unchecked_start : @drawable/tray_background_unchecked_middle}"
+                app:privateModeBackground="@{traymodel.isMaxWindows ? @drawable/tray_background_start_private : @drawable/tray_background_middle_private}"
+                app:activeModeBackground="@{traymodel.isMaxWindows ? @drawable/tray_background_checked_start : @drawable/tray_background_checked_middle}"/>
 
             <org.mozilla.vrbrowser.ui.views.UIButton
                 android:id="@+id/privateButton"
                 style="@style/trayButtonMiddleTheme"
-                android:tooltipText="@string/private_browsing_enter_tooltip"
+                android:tooltipText="@{viewmodel.isPrivateSession? @string/private_browsing_exit_tooltip : @string/private_browsing_enter_tooltip}"
                 app:tooltipDensity="@dimen/tray_tooltip_density"
-                app:tooltipPosition="top"
+                app:tooltipPosition="bottom"
                 app:tooltipLayout="@layout/tooltip_tray"
-                android:src="@drawable/ic_icon_tray_private_browsing_v2"/>
+                android:src="@{viewmodel.isPrivateSession ? @drawable/ic_icon_tray_private_browsing_on_v2 : @drawable/ic_icon_tray_private_browsing_v2}"
+                app:privateMode="@{viewmodel.isPrivateSession}"/>
 
-            <include layout="@layout/vertical_separator"/>
-
-            <org.mozilla.vrbrowser.ui.views.UIButton
-                android:id="@+id/bookmarksButton"
-                style="@style/trayButtonMiddleTheme"
-                android:tooltipText="@string/open_bookmarks_tooltip"
-                app:tooltipDensity="@dimen/tray_tooltip_density"
-                app:tooltipPosition="top"
-                app:tooltipLayout="@layout/tooltip_tray"
-                android:src="@drawable/ic_icon_tray_bookmarks_v2"/>
-
-            <org.mozilla.vrbrowser.ui.views.UIButton
-                android:id="@+id/historyButton"
-                style="@style/trayButtonMiddleTheme"
-                android:tooltipText="@string/open_history_tooltip"
-                app:tooltipDensity="@dimen/tray_tooltip_density"
-                app:tooltipPosition="top"
-                app:tooltipLayout="@layout/tooltip_tray"
-                android:src="@drawable/ic_icon_history"/>
-
-            <include layout="@layout/vertical_separator"/>
+            <RelativeLayout
+                android:layout_width="40dp"
+                android:layout_height="40dp">
+                <org.mozilla.vrbrowser.ui.views.UIButton
+                    android:id="@+id/libraryButton"
+                    style="@style/trayButtonMiddleTheme"
+                    android:tooltipText="@{viewmodel.isLibraryVisible ? @string/close_library_tooltip : @string/open_library_tooltip}"
+                    app:tooltipDensity="@dimen/tray_tooltip_density"
+                    app:tooltipPosition="bottom"
+                    app:tooltipLayout="@layout/tooltip_tray"
+                    android:src="@drawable/ic_icon_library"
+                    app:clipDrawable="@drawable/ic_icon_library_clip"
+                    app:activeMode="@{viewmodel.isLibraryVisible}"/>
+                <androidx.appcompat.widget.AppCompatTextView
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:layout_margin="2dp"
+                    android:padding="1dp"
+                    android:layout_alignParentTop="true"
+                    android:layout_alignParentEnd="true"
+                    android:gravity="center"
+                    android:textAlignment="gravity"
+                    android:textStyle="bold"
+                    app:autoSizeTextType="uniform"
+                    app:autoSizeMinTextSize="4sp"
+                    app:autoSizeMaxTextSize="10sp"
+                    app:autoSizeStepGranularity="2sp"
+                    android:background="@drawable/downloads_badge"
+                    android:text="@{(traymodel.downloadsNumber &lt; 100) ? String.valueOf(traymodel.downloadsNumber) : @string/ellipsis}"
+                    visibleGone="@{traymodel.downloadsNumber > 0}"/>
+            </RelativeLayout>
 
             <org.mozilla.vrbrowser.ui.views.UIButton
                 android:id="@+id/settingsButton"
@@ -72,7 +220,7 @@
                 android:tooltipText="@string/settings_tooltip"
                 android:contentDescription="@string/settings_tooltip"
                 app:tooltipDensity="@dimen/tray_tooltip_density"
-                app:tooltipPosition="top"
+                app:tooltipPosition="bottom"
                 app:tooltipLayout="@layout/tooltip_tray"
                 android:src="@drawable/ic_icon_tray_settings_v3"/>
         </LinearLayout>

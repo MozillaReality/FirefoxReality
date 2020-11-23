@@ -11,10 +11,15 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.Dimension;
+import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.databinding.BindingAdapter;
+import androidx.databinding.ObservableList;
+import androidx.recyclerview.widget.RecyclerView;
 
 import org.mozilla.vrbrowser.R;
+import org.mozilla.vrbrowser.downloads.Download;
 import org.mozilla.vrbrowser.ui.views.HoneycombButton;
 import org.mozilla.vrbrowser.ui.views.UIButton;
 import org.mozilla.vrbrowser.ui.views.UITextButton;
@@ -87,8 +92,8 @@ public class BindingAdapters {
         view.setLayoutParams(params);
     }
 
-    @BindingAdapter("leftMargin")
-    public static void setLeftMargin(@NonNull View view, @NonNull @Dimension float margin) {
+    @BindingAdapter("startMargin")
+    public static void setStartMargin(@NonNull View view, @NonNull @Dimension float margin) {
         if (view.getLayoutParams() instanceof ViewGroup.MarginLayoutParams) {
             ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) view.getLayoutParams();
             if (params.getMarginStart() != Math.round(margin)) {
@@ -164,4 +169,51 @@ public class BindingAdapters {
         button.setPrivateMode(isPrivateMode);
     }
 
+    @BindingAdapter("activeMode")
+    public static void setActiveMode(@NonNull UIButton button, boolean isActiveMode) {
+        button.setActiveMode(isActiveMode);
+    }
+
+    @BindingAdapter("notificationMode")
+    public static void setNotificationMode(@NonNull UIButton button, boolean isNotificationMode) {
+        button.setNotificationMode(isNotificationMode);
+    }
+
+    @BindingAdapter("regularModeBackground")
+    public static void setRegularModeBackground(@NonNull UIButton button, @NonNull Drawable drawable) {
+        button.setRegularModeBackground(drawable);
+    }
+
+    @BindingAdapter("privateModeBackground")
+    public static void setPrivateModeBackground(@NonNull UIButton button, @NonNull Drawable drawable) {
+        button.setPrivateModeBackground(drawable);
+    }
+
+    @BindingAdapter("activeModeBackground")
+    public static void setActiveModeBackground(@NonNull UIButton button, @NonNull Drawable drawable) {
+        button.setActiveModeBackground(drawable);
+    }
+
+    @BindingAdapter("android:tooltipText")
+    public static void setTooltipText(@NonNull UIButton button, @Nullable String text){
+        button.setTooltipText(text);
+    }
+
+    @BindingAdapter("items")
+    public static void bindAdapterWithDefaultBinder(@NonNull RecyclerView recyclerView, @Nullable ObservableList<Download> items) {
+        DownloadsAdapter adapter = (DownloadsAdapter)recyclerView.getAdapter();
+        if (adapter != null) {
+            adapter.setDownloadsList(items);
+        }
+    }
+
+    @BindingAdapter("drawable")
+    public static void setDrawable(@NonNull ImageView view, @DrawableRes int drawableRes) {
+        view.setImageResource(drawableRes);
+    }
+
+    @BindingAdapter("android:src")
+    public static void setImageResource(ImageView imageView, int resource){
+        imageView.setImageResource(resource);
+    }
  }

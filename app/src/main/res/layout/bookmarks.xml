@@ -7,15 +7,11 @@
         <import type="android.view.View"/>
 
         <variable
+            name="bookmarksViewModel"
+            type="org.mozilla.vrbrowser.ui.viewmodel.BookmarksViewModel" />
+
+        <variable
             name="isAccountsUIEnabled"
-            type="boolean" />
-
-        <variable
-            name="isLoading"
-            type="boolean" />
-
-        <variable
-            name="isEmpty"
             type="boolean" />
 
         <variable
@@ -35,65 +31,27 @@
             type="boolean" />
 
         <variable
-            name="isNarrow"
-            type="boolean" />
-
-        <variable
             name="callback"
             type="org.mozilla.vrbrowser.ui.callbacks.BookmarksCallback" />
     </data>
 
-    <LinearLayout
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@drawable/panel_background"
-        android:orientation="vertical"
-        android:paddingTop="30dp"
-        android:paddingBottom="30dp">
-
-        <include android:id="@+id/bookmarks_narrow"
-            layout="@layout/bookmarks_narrow"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="30dp"
-            android:layout_marginEnd="50dp"
-            android:layout_marginBottom="20dp"
-            app:isAccountsUIEnabled="@{isAccountsUIEnabled}"
-            app:isEmpty="@{isEmpty}"
-            app:isSignedIn="@{isSignedIn}"
-            app:isSyncEnabled="@{isSyncEnabled}"
-            app:lastSync="@{lastSync}"
-            app:isSyncing="@{isSyncing}"
-            app:isNarrow="@{isNarrow}"
-            app:callback="@{callback}"/>
-
-        <include android:id="@+id/bookmarks_wide"
-            layout="@layout/bookmarks_wide"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="30dp"
-            android:layout_marginEnd="50dp"
-            android:layout_marginBottom="20dp"
-            app:isAccountsUIEnabled="@{isAccountsUIEnabled}"
-            app:isEmpty="@{isEmpty}"
-            app:isSignedIn="@{isSignedIn}"
-            app:isSyncEnabled="@{isSyncEnabled}"
-            app:lastSync="@{lastSync}"
-            app:isSyncing="@{isSyncing}"
-            app:isNarrow="@{isNarrow}"
-            app:callback="@{callback}"/>
+        android:layout_height="match_parent">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:layout_centerInParent="true"
             android:gravity="center_vertical|center_horizontal"
             android:orientation="vertical"
-            app:visibleGone="@{!isLoading &amp;&amp; isEmpty}">
+            app:visibleGone="@{!bookmarksViewModel.isLoading &amp;&amp; bookmarksViewModel.isEmpty}">
 
             <ImageView
-                android:layout_width="@{isNarrow ? @dimen/library_icon_size_narrow : @dimen/library_icon_size_wide, default=wrap_content}"
-                android:layout_height="@{isNarrow ? @dimen/library_icon_size_narrow : @dimen/library_icon_size_wide, default=wrap_content}"
+                android:layout_width="@{bookmarksViewModel.isNarrow ? @dimen/library_icon_size_narrow : @dimen/library_icon_size_wide, default=wrap_content}"
+                android:layout_height="@{bookmarksViewModel.isNarrow ? @dimen/library_icon_size_narrow : @dimen/library_icon_size_wide, default=wrap_content}"
                 android:src="@drawable/ic_icon_bookmarks"
+                android:tint="@color/concrete"
                 app:srcCompat="@drawable/ic_icon_bookmarks" />
 
             <TextView
@@ -115,7 +73,7 @@
                 android:fontFamily="sans-serif"
                 android:textAlignment="center"
                 android:textAllCaps="false"
-                android:textColor="@color/fog"
+                android:textColor="@color/concrete"
                 android:textSize="@dimen/text_medium_big_size"
                 android:textStyle="normal"
                 android:maxWidth="360dp"
@@ -130,25 +88,58 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:contentDescription="@string/bookmarks_loading"
+            android:layout_centerInParent="true"
             android:gravity="center_vertical|center_horizontal"
             android:text="@string/bookmarks_loading"
             android:textAlignment="center"
             android:textColor="@color/fog"
             android:visibility="gone"
-            app:visibleGone="@{isLoading}" />
+            app:visibleGone="@{bookmarksViewModel.isLoading}" />
 
         <org.mozilla.vrbrowser.ui.views.CustomRecyclerView
             android:id="@+id/bookmarks_list"
             style="@style/customRecyclerViewStyle"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_marginStart="30dp"
-            android:layout_marginEnd="30dp"
+            android:layout_alignParentTop="true"
+            android:layout_above="@+id/header"
             android:contentDescription="Bookmarks feed"
             android:fadingEdgeLength="60dp"
             android:requiresFadingEdge="vertical"
             app:layoutManager="org.mozilla.vrbrowser.ui.adapters.CustomLinearLayoutManager"
-            app:visibleGone="@{!isLoading &amp;&amp; !isEmpty}" />
+            app:visibleGone="@{!bookmarksViewModel.isLoading &amp;&amp; !bookmarksViewModel.isEmpty}" />
 
-    </LinearLayout>
+        <FrameLayout
+            android:id="@+id/header"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:layout_alignParentBottom="true">
+            <include android:id="@+id/bookmarks_narrow"
+                layout="@layout/bookmarks_narrow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:isAccountsUIEnabled="@{isAccountsUIEnabled}"
+                app:isEmpty="@{bookmarksViewModel.isEmpty}"
+                app:isSignedIn="@{isSignedIn}"
+                app:isSyncEnabled="@{isSyncEnabled}"
+                app:lastSync="@{lastSync}"
+                app:isSyncing="@{isSyncing}"
+                app:isNarrow="@{bookmarksViewModel.isNarrow}"
+                app:callback="@{callback}"/>
+
+            <include android:id="@+id/bookmarks_wide"
+                layout="@layout/bookmarks_wide"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:isAccountsUIEnabled="@{isAccountsUIEnabled}"
+                app:isEmpty="@{bookmarksViewModel.isEmpty}"
+                app:isSignedIn="@{isSignedIn}"
+                app:isSyncEnabled="@{isSyncEnabled}"
+                app:lastSync="@{lastSync}"
+                app:isSyncing="@{isSyncing}"
+                app:isNarrow="@{bookmarksViewModel.isNarrow}"
+                app:callback="@{callback}"/>
+        </FrameLayout>
+    </RelativeLayout>
 </layout>

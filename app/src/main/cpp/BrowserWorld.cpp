@@ -12,7 +12,6 @@
 #include "ExternalBlitter.h"
 #include "ExternalVR.h"
 #include "GeckoSurfaceTexture.h"
-#include "LoadingAnimation.h"
 #include "Skybox.h"
 #include "SplashAnimation.h"
 #include "Pointer.h"
@@ -25,6 +24,7 @@
 #include "VRBrowser.h"
 #include "VRVideo.h"
 #include "VRLayer.h"
+#include "VRLayerNode.h"
 #include "vrb/CameraSimple.h"
 #include "vrb/Color.h"
 #include "vrb/ConcreteClass.h"
@@ -42,6 +42,7 @@
 #include "vrb/NodeFactoryObj.h"
 #include "vrb/ParserObj.h"
 #include "vrb/PerformanceMonitor.h"
+#include "vrb/ProgramFactory.h"
 #include "vrb/RenderContext.h"
 #include "vrb/RenderState.h"
 #include "vrb/SurfaceTextureFactory.h"
@@ -143,7 +144,6 @@ PerformanceObserver::PerformanceRestored(const double& aTargetFrameRate, const d
 } // namespace
 
 namespace crow {
-
 struct BrowserWorld::State {
   BrowserWorldWeakPtr self;
   std::vector<WidgetPtr> widgets;
@@ -158,6 +158,9 @@ struct BrowserWorld::State {
   GroupPtr rootOpaqueParent;
   TransformPtr rootOpaque;
   TransformPtr rootTransparent;
+  TransformPtr rootWebXRInterstitial;
+  TransformPtr rootEnvironment;
+  VRLayerProjectionPtr layerEnvironment;
   GroupPtr rootController;
   LightPtr light;
   ControllerContainerPtr controllers;
@@ -179,7 +182,6 @@ struct BrowserWorld::State {
   uint32_t loaderDelay;
   bool exitImmersiveRequested;
   WidgetPtr resizingWidget;
-  LoadingAnimationPtr loadingAnimation;
   SplashAnimationPtr splashAnimation;
   VRVideoPtr vrVideo;
   PerformanceMonitorPtr monitor;
@@ -188,31 +190,39 @@ struct BrowserWorld::State {
   std::unordered_map<vrb::Node*, std::pair<Widget*, float>> depthSorting;
   std::function<void(device::Eye)> drawHandler;
   std::function<void()> frameEndHandler;
+  bool wasInGazeMode = false;
+  WebXRInterstialState webXRInterstialState;
+  vrb::Matrix widgetsYaw;
+  bool wasWebXRRendering = false;
+  double lastBatteryLevelUpdate = -1.0;
 
   State() : paused(true), glInitialized(false), modelsLoaded(false), env(nullptr), cylinderDensity(0.0f), nearClip(0.1f),
             farClip(300.0f), activity(nullptr), windowsInitialized(false), exitImmersiveRequested(false), loaderDelay(0) {
     context = RenderContext::Create();
     create = context->GetRenderThreadCreationContext();
     loader = ModelLoaderAndroid::Create(context);
+    context->GetProgramFactory()->SetLoaderThread(loader);
     rootOpaque = Transform::Create(create);
     rootTransparent = Transform::Create(create);
     rootController = Group::Create(create);
     light = Light::Create(create);
     rootOpaqueParent = Group::Create(create);
     rootOpaqueParent->AddNode(rootOpaque);
+    rootWebXRInterstitial = Transform::Create(create);
     //rootOpaque->AddLight(light);
     //rootTransparent->AddLight(light);
-    rootController->AddLight(light);
     cullVisitor = CullVisitor::Create(create);
     drawList = DrawableList::Create(create);
     controllers = ControllerContainer::Create(create, rootTransparent);
     externalVR = ExternalVR::Create();
     blitter = ExternalBlitter::Create(create);
     fadeAnimation = FadeAnimation::Create(create);
-    loadingAnimation = LoadingAnimation::Create(create);
     splashAnimation = SplashAnimation::Create(create);
     monitor = PerformanceMonitor::Create(create);
     monitor->AddPerformanceMonitorObserver(std::make_shared<PerformanceObserver>());
+    wasInGazeMode = false;
+    webXRInterstialState = WebXRInterstialState::FORCED;
+    widgetsYaw = vrb::Matrix::Identity();
 #if defined(WAVEVR)
     monitor->SetPerformanceDelta(15.0);
 #endif
@@ -222,7 +232,9 @@ struct BrowserWorld::State {
   bool CheckExitImmersive();
   void EnsureControllerFocused();
   void ChangeControllerFocus(const Controller& aController);
+  void UpdateGazeModeState();
   void UpdateControllers(bool& aRelayoutWidgets);
+  void ClearWebXRControllerData();
   WidgetPtr GetWidget(int32_t aHandle) const;
   WidgetPtr FindWidget(const std::function<bool(const WidgetPtr&)>& aCondition) const;
   bool IsParent(const Widget& aChild, const Widget& aParent) const;
@@ -235,21 +247,31 @@ struct BrowserWorld::State {
 void
 BrowserWorld::State::CheckBackButton() {
   for (Controller& controller: controllers->GetControllers()) {
-    if (!controller.enabled || (controller.index < 0)) {
-      continue;
-    }
+      if (!controller.enabled || (controller.index < 0)) {
+          continue;
+      }
 
-    if (!(controller.lastButtonState & ControllerDelegate::BUTTON_APP) &&
-        (controller.buttonState & ControllerDelegate::BUTTON_APP)) {
+      if (!(controller.lastButtonState & ControllerDelegate::BUTTON_APP) &&
+          (controller.buttonState & ControllerDelegate::BUTTON_APP)) {
+          VRBrowser::HandleBack();
+          webXRInterstialState = WebXRInterstialState::HIDDEN;
+      } else if (webXRInterstialState == WebXRInterstialState::ALLOW_DISMISS
+                 && controller.lastButtonState && controller.buttonState == 0) {
+          VRBrowser::OnDismissWebXRInterstitial();
+          webXRInterstialState = WebXRInterstialState::HIDDEN;
+      }
       controller.lastButtonState = controller.buttonState;
-      VRBrowser::HandleBack();
-    }
   }
 }
 
 bool
 BrowserWorld::State::CheckExitImmersive() {
   if (exitImmersiveRequested && externalVR->IsPresenting()) {
+    webXRInterstialState = WebXRInterstialState::HIDDEN;
+    if (wasWebXRRendering) {
+      VRBrowser::OnWebXRRenderStateChange(false);
+      wasWebXRRendering = false;
+    }
     externalVR->StopPresenting();
     blitter->StopPresenting();
     exitImmersiveRequested = false;
@@ -335,11 +357,37 @@ ScaleScrollDelta(const float aValue, const double aStartTime, const double aCurr
 }
 
 void
+BrowserWorld::State::UpdateGazeModeState() {
+  bool isInGazeMode = device->IsInGazeMode();
+  if (isInGazeMode != wasInGazeMode) {
+    int32_t gazeIndex = device->GazeModeIndex();
+    if (isInGazeMode && gazeIndex >= 0) {
+      VRB_LOG("Gaze mode ON")
+      controllers->SetEnabled(gazeIndex, true);
+
+    } else {
+      VRB_LOG("Gaze mode OFF")
+      controllers->SetEnabled(gazeIndex, false);
+    }
+    wasInGazeMode = isInGazeMode;
+  }
+}
+
+void
 BrowserWorld::State::UpdateControllers(bool& aRelayoutWidgets) {
   EnsureControllerFocused();
+  int leftBatteryLevel = -1;
+  int rightBatteryLevel = -1;
   for (Controller& controller: controllers->GetControllers()) {
     if (!controller.enabled || (controller.index < 0)) {
       continue;
+    }
+    if (controller.index != device->GazeModeIndex()) {
+      if (controller.leftHanded) {
+        leftBatteryLevel = controller.batteryLevel;
+      } else {
+        rightBatteryLevel = controller.batteryLevel;
+      }
     }
     if (controller.pointer && !controller.pointer->IsLoaded()) {
       controller.pointer->Load(device);
@@ -349,9 +397,15 @@ BrowserWorld::State::UpdateControllers(bool& aRelayoutWidgets) {
       VRBrowser::HandleBack();
     }
 
+
+    const bool pressed = controller.buttonState & ControllerDelegate::BUTTON_TRIGGER ||
+                         controller.buttonState & ControllerDelegate::BUTTON_TOUCHPAD;
+    const bool wasPressed = controller.lastButtonState & ControllerDelegate::BUTTON_TRIGGER ||
+                            controller.lastButtonState & ControllerDelegate::BUTTON_TOUCHPAD;
+
     if (!controller.focused) {
       const bool focusRequested =
-          ((controller.buttonState & ControllerDelegate::BUTTON_TRIGGER) && (controller.lastButtonState & ControllerDelegate::BUTTON_TRIGGER) == 0) ||
+          (pressed && !wasPressed) ||
               ((controller.buttonState & ControllerDelegate::BUTTON_A) && (controller.lastButtonState & ControllerDelegate::BUTTON_A) == 0) ||
               ((controller.buttonState & ControllerDelegate::BUTTON_B) && (controller.lastButtonState & ControllerDelegate::BUTTON_B) == 0) ||
               ((controller.buttonState & ControllerDelegate::BUTTON_X) && (controller.lastButtonState & ControllerDelegate::BUTTON_X) == 0) ||
@@ -359,8 +413,6 @@ BrowserWorld::State::UpdateControllers(bool& aRelayoutWidgets) {
       if (focusRequested) {
         ChangeControllerFocus(controller);
       }
-      controller.lastButtonState = controller.buttonState;
-      continue;
     }
 
     const vrb::Vector start = controller.StartPoint();
@@ -371,31 +423,49 @@ BrowserWorld::State::UpdateControllers(bool& aRelayoutWidgets) {
     vrb::Vector hitPoint;
     vrb::Vector hitNormal;
 
-    for (const WidgetPtr& widget: widgets) {
-      if (resizingWidget && resizingWidget->IsResizingActive() && resizingWidget != widget) {
-        // Don't interact with other widgets when resizing gesture is active.
-        continue;
-      }
-      if (movingWidget && movingWidget->GetWidget() != widget) {
-        // Don't interact with other widgets when moving gesture is active.
-        continue;
-      }
+    bool isResizing = resizingWidget && resizingWidget->IsResizingActive();
+    WidgetPtr previousWidget = controller.widget ? GetWidget(controller.widget) : nullptr;
+    bool isDragging = pressed && wasPressed && previousWidget && !isResizing;
+    if (isDragging) {
       vrb::Vector result;
       vrb::Vector normal;
       float distance = 0.0f;
       bool isInWidget = false;
-      const bool clamp = !widget->IsResizing() && !movingWidget;
-      if (widget->TestControllerIntersection(start, direction, result, normal, clamp, isInWidget, distance)) {
-        if (isInWidget && (distance < hitDistance)) {
-          hitWidget = widget;
-          hitDistance = distance;
-          hitPoint = result;
-          hitNormal = normal;
+      if (previousWidget->TestControllerIntersection(start, direction, result, normal, false,
+                                                     isInWidget, distance)) {
+        hitWidget = previousWidget;
+        hitPoint = result;
+        hitNormal = normal;
+      }
+    } else if (controllers->IsVisible()){
+      for (const WidgetPtr& widget: widgets) {
+        if (controller.focused) {
+          if (isResizing && resizingWidget != widget) {
+            // Don't interact with other widgets when resizing gesture is active.
+            continue;
+          }
+          if (movingWidget && movingWidget->GetWidget() != widget) {
+            // Don't interact with other widgets when moving gesture is active.
+            continue;
+          }
+        }
+        vrb::Vector result;
+        vrb::Vector normal;
+        float distance = 0.0f;
+        bool isInWidget = false;
+        const bool clamp = !widget->IsResizing() && !movingWidget;
+        if (widget->TestControllerIntersection(start, direction, result, normal, clamp, isInWidget, distance)) {
+          if (isInWidget && (distance < hitDistance)) {
+            hitWidget = widget;
+            hitDistance = distance;
+            hitPoint = result;
+            hitNormal = normal;
+          }
         }
       }
     }
 
-    if ((!hitWidget || !hitWidget->IsResizing()) && resizingWidget) {
+    if (controller.focused && (!hitWidget || !hitWidget->IsResizing()) && resizingWidget) {
       resizingWidget->HoverExitResize();
       resizingWidget.reset();
     }
@@ -406,18 +476,13 @@ BrowserWorld::State::UpdateControllers(bool& aRelayoutWidgets) {
       if (hitWidget) {
         vrb::Matrix translation = vrb::Matrix::Translation(hitPoint);
         vrb::Matrix localRotation = vrb::Matrix::Rotation(hitNormal);
-        vrb::Matrix reorient = device->GetReorientTransform();
+        vrb::Matrix reorient = rootTransparent->GetTransform();
         controller.pointer->SetTransform(reorient.AfineInverse().PostMultiply(translation).PostMultiply(localRotation));
         controller.pointer->SetScale(hitPoint, device->GetHeadTransform());
       }
     }
 
-    const bool pressed = controller.buttonState & ControllerDelegate::BUTTON_TRIGGER ||
-                         controller.buttonState & ControllerDelegate::BUTTON_TOUCHPAD;
-    const bool wasPressed = controller.lastButtonState & ControllerDelegate::BUTTON_TRIGGER ||
-                              controller.lastButtonState & ControllerDelegate::BUTTON_TOUCHPAD;
-
-    if (movingWidget && movingWidget->IsMoving(controller.index)) {
+    if (controller.focused && movingWidget && movingWidget->IsMoving(controller.index)) {
       if (!pressed && wasPressed) {
         movingWidget->EndMoving();
       } else {
@@ -427,7 +492,7 @@ BrowserWorld::State::UpdateControllers(bool& aRelayoutWidgets) {
           aRelayoutWidgets = true;
         }
       }
-    } else if (hitWidget && hitWidget->IsResizing()) {
+    } else if (controller.focused && hitWidget && hitWidget->IsResizing()) {
       bool aResized = false, aResizeEnded = false;
       hitWidget->HandleResize(hitPoint, pressed, aResized, aResizeEnded);
 
@@ -448,7 +513,7 @@ BrowserWorld::State::UpdateControllers(bool& aRelayoutWidgets) {
       }
     } else if (hitWidget) {
       float theX = 0.0f, theY = 0.0f;
-      hitWidget->ConvertToWidgetCoordinates(hitPoint, theX, theY);
+      hitWidget->ConvertToWidgetCoordinates(hitPoint, theX, theY, !isDragging);
       const uint32_t handle = hitWidget->GetHandle();
       if (!pressed && wasPressed) {
         controller.inDeadZone = true;
@@ -462,8 +527,7 @@ BrowserWorld::State::UpdateControllers(bool& aRelayoutWidgets) {
         controller.widget = handle;
         controller.pointerX = theX;
         controller.pointerY = theY;
-        VRBrowser::HandleMotionEvent(handle, controller.index, jboolean(pressed),
-                                     controller.pointerX, controller.pointerY);
+        VRBrowser::HandleMotionEvent(handle, controller.index, jboolean(controller.focused), jboolean(pressed), controller.pointerX, controller.pointerY);
       }
       if ((controller.scrollDeltaX != 0.0f) || controller.scrollDeltaY != 0.0f) {
         if (controller.scrollStart < 0.0) {
@@ -496,21 +560,25 @@ BrowserWorld::State::UpdateControllers(bool& aRelayoutWidgets) {
         }
       }
     } else if (controller.widget) {
-      VRBrowser::HandleMotionEvent(0, controller.index, (jboolean) pressed, 0.0f, 0.0f);
+      VRBrowser::HandleMotionEvent(0, controller.index, jboolean(controller.focused), (jboolean) pressed, 0.0f, 0.0f);
       controller.widget = 0;
 
     } else if (wasPressed != pressed) {
-      VRBrowser::HandleMotionEvent(0, controller.index, (jboolean) pressed, 0.0f, 0.0f);
+      VRBrowser::HandleMotionEvent(0, controller.index, jboolean(controller.focused), (jboolean) pressed, 0.0f, 0.0f);
     } else if (vrVideo != nullptr) {
       const bool togglePressed = controller.buttonState & ControllerDelegate::BUTTON_X ||
                                  controller.buttonState & ControllerDelegate::BUTTON_A;
       const bool toggleWasPressed = controller.lastButtonState & ControllerDelegate::BUTTON_X ||
                                     controller.lastButtonState & ControllerDelegate::BUTTON_A;
       if (togglePressed != toggleWasPressed) {
-        VRBrowser::HandleMotionEvent(0, controller.index, (jboolean) togglePressed, 0.0f, 0.0f);
+        VRBrowser::HandleMotionEvent(0, controller.index, jboolean(controller.focused), (jboolean) togglePressed, 0.0f, 0.0f);
       }
     }
     controller.lastButtonState = controller.buttonState;
+  }
+  if ((context->GetTimestamp() - lastBatteryLevelUpdate) > 1.0) {
+    VRBrowser::UpdateControllerBatteryLevels(leftBatteryLevel, rightBatteryLevel);
+    lastBatteryLevelUpdate = context->GetTimestamp();
   }
   if (gestures) {
     const int32_t gestureCount = gestures->GetGestureCount();
@@ -527,6 +595,24 @@ BrowserWorld::State::UpdateControllers(bool& aRelayoutWidgets) {
       }
     }
   }
+}
+
+void
+BrowserWorld::State::ClearWebXRControllerData() {
+    for (Controller& controller: controllers->GetControllers()) {
+        if (!controller.enabled || (controller.index < 0)) {
+            continue;
+        };
+        controller.immersiveTouchedState = 0;
+        controller.immersivePressedState = 0;
+        controller.selectActionStartFrameId = 0;
+        controller.selectActionStopFrameId = 0;
+        controller.squeezeActionStartFrameId = 0;
+        controller.squeezeActionStopFrameId = 0;
+        for (int i = 0; i < controller.numAxes; ++i) {
+            controller.immersiveAxes[i] = 0;
+        }
+    }
 }
 
 WidgetPtr
@@ -646,12 +732,14 @@ BrowserWorld::State::SortWidgets() {
     Widget* wa = da->second.first;
     Widget* wb = db->second.first;
 
-    // Parenting sort
+    // Parenting or layer priority sort
     if (wa && wb && wa->IsVisible() && wb->IsVisible()) {
       if (IsParent(*wa, *wb)) {
         return true;
       } else if (IsParent(*wb, *wa)) {
         return false;
+      } else if (wa->GetPlacement()->layerPriority != wb->GetPlacement()->layerPriority) {
+        return wa->GetPlacement()->layerPriority > wb->GetPlacement()->layerPriority;
       }
     }
 
@@ -712,6 +800,7 @@ BrowserWorld::RegisterDeviceDelegate(DeviceDelegatePtr aDelegate) {
     m.leftCamera = m.device->GetCamera(device::Eye::Left);
     m.rightCamera = m.device->GetCamera(device::Eye::Right);
     ControllerDelegatePtr delegate = m.controllers;
+    delegate->SetGazeModeIndex(m.device->GazeModeIndex());
     m.device->SetClipPlanes(m.nearClip, m.farClip);
     m.device->SetControllerDelegate(delegate);
     m.gestures = m.device->GetGestureDelegate();
@@ -727,6 +816,7 @@ void
 BrowserWorld::Pause() {
   ASSERT_ON_RENDER_THREAD();
   m.paused = true;
+  m.externalVR->OnPause();
   m.monitor->Pause();
 }
 
@@ -734,6 +824,7 @@ void
 BrowserWorld::Resume() {
   ASSERT_ON_RENDER_THREAD();
   m.paused = false;
+  m.externalVR->OnResume();
   m.monitor->Resume();
 }
 
@@ -779,13 +870,13 @@ BrowserWorld::InitializeJava(JNIEnv* aEnv, jobject& aActivity, jobject& aAssetMa
     }
     m.controllers->InitializeBeam();
     m.controllers->SetPointerColor(vrb::Color(VRBrowser::GetPointerColor()));
-    m.loadingAnimation->LoadModels(m.loader);
     m.rootController->AddNode(m.controllers->GetRoot());
-#if !defined(SNAPDRAGONVR)
+    if (m.device->IsControllerLightEnabled()) {
+      m.rootController->AddLight(m.light);
+    }
+
     UpdateEnvironment();
-    // Don't load the env model, we are going for skyboxes in v1.0
-//    CreateFloor();
-#endif
+
     m.fadeAnimation->SetFadeChangeCallback([=](const vrb::Color& aTintColor) {
       if (m.skybox) {
         m.skybox->SetTintColor(aTintColor);
@@ -885,6 +976,9 @@ BrowserWorld::StartFrame() {
   m.context->Update();
   m.externalVR->PullBrowserState();
   m.externalVR->SetHapticState(m.controllers);
+
+  const uint64_t frameId = m.externalVR->GetFrameId();
+  m.controllers->SetFrameId(frameId);
   m.CheckExitImmersive();
 
   if (m.splashAnimation) {
@@ -894,6 +988,7 @@ BrowserWorld::StartFrame() {
     TickImmersive();
   } else {
     bool relayoutWidgets = false;
+    m.UpdateGazeModeState();
     m.UpdateControllers(relayoutWidgets);
     if (relayoutWidgets) {
       UpdateVisibleWidgets();
@@ -911,7 +1006,7 @@ BrowserWorld::EndFrame() {
     m.frameEndHandler();
     m.frameEndHandler = nullptr;
   } else {
-    m.device->EndFrame(false);
+    m.device->EndFrame();
   }
   m.drawHandler = nullptr;
 
@@ -941,7 +1036,7 @@ void
 BrowserWorld::UpdateEnvironment() {
   ASSERT_ON_RENDER_THREAD();
   std::string skyboxPath = VRBrowser::GetActiveEnvironment();
-  std::string extension;
+  std::string extension = Skybox::ValidateCustomSkyboxAndFindFileExtension(skyboxPath);
   if (VRBrowser::isOverrideEnvPathEnabled()) {
     std::string storagePath = VRBrowser::GetStorageAbsolutePath(INJECT_SKYBOX_PATH);
     if (std::ifstream(storagePath)) {
@@ -960,12 +1055,6 @@ BrowserWorld::UpdateEnvironment() {
 
   VRB_LOG("Setting environment: %s", skyboxPath.c_str());
   CreateSkyBox(skyboxPath, extension);
-}
-
-void
-BrowserWorld::UpdateFoveatedLevel(const int aAppLevel) {
-  ASSERT_ON_RENDER_THREAD();
-  m.device->SetFoveatedLevel(aAppLevel);
 }
 
 void
@@ -1029,10 +1118,16 @@ BrowserWorld::AddWidget(int32_t aHandle, const WidgetPlacementPtr& aPlacement) {
     widget = Widget::Create(m.context, aHandle, aPlacement, textureWidth, textureHeight, quad);
   }
 
-  if (aPlacement->opaque) {
-    m.rootOpaque->AddNode(widget->GetRoot());
-  } else {
-    m.rootTransparent->AddNode(widget->GetRoot());
+  switch (aPlacement->GetScene()) {
+      case WidgetPlacement::Scene::ROOT_TRANSPARENT:
+        m.rootTransparent->AddNode(widget->GetRoot());
+        break;
+      case WidgetPlacement::Scene::ROOT_OPAQUE:
+        m.rootOpaque->AddNode(widget->GetRoot());
+        break;
+      case WidgetPlacement::Scene::WEBXR_INTERSTITIAL:
+        m.rootWebXRInterstitial->AddNode(widget->GetRoot());
+        break;
   }
 
   m.widgets.push_back(widget);
@@ -1146,7 +1241,7 @@ BrowserWorld::StartWidgetMove(int32_t aHandle, int32_t aMoveBehavour) {
       continue;
     }
 
-    if (controller.pointer && controller.pointer->GetHitWidget() == widget) {
+    if (controller.pointer && controller.focused && controller.pointer->GetHitWidget() == widget) {
       controllerIndex = controller.index;
       start = controller.StartPoint();
       direction = controller.Direction();
@@ -1310,13 +1405,20 @@ BrowserWorld::SetControllersVisible(const bool aVisible) {
 }
 
 void
-BrowserWorld::ResetUIYaw() {
+BrowserWorld::RecenterUIYaw(const YawTarget aTarget) {
   vrb::Matrix head = m.device->GetHeadTransform();
-  vrb::Vector vector = head.MultiplyDirection(vrb::Vector(1.0f, 0.0f, 0.0f));
-  const float yaw = atan2(vector.z(), vector.x());
 
-  vrb::Matrix matrix = vrb::Matrix::Rotation(vrb::Vector(0.0f, 1.0f, 0.0f), -yaw);
-  m.device->SetReorientTransform(matrix);
+  if (aTarget == YawTarget::ALL) {
+    vrb::Vector vector = head.MultiplyDirection(vrb::Vector(1.0f, 0.0f, 0.0f));
+    float yaw = atan2(vector.z(), vector.x());
+    vrb::Matrix matrix = vrb::Matrix::Rotation(vrb::Vector(0.0f, 1.0f, 0.0f), -yaw);
+    m.device->SetReorientTransform(matrix);
+    m.widgetsYaw = vrb::Matrix::Identity();
+  } else {
+    vrb::Vector vector = m.device->GetReorientTransform().AfineInverse().PostMultiply(head).MultiplyDirection(vrb::Vector(1.0f, 0.0f, 0.0f));
+    const float yaw = atan2(vector.z(), vector.x());
+    m.widgetsYaw = vrb::Matrix::Rotation(vrb::Vector(0.0f, 1.0f, 0.0f), -yaw);
+  }
 }
 
 void
@@ -1330,6 +1432,11 @@ BrowserWorld::SetCylinderDensity(const float aDensity) {
 void
 BrowserWorld::SetCPULevel(const device::CPULevel aLevel) {
   m.device->SetCPULevel(aLevel);
+}
+
+void
+BrowserWorld::SetWebXRInterstitalState(const WebXRInterstialState aState) {
+  m.webXRInterstialState = aState;
 }
 
 void
@@ -1370,7 +1477,13 @@ BrowserWorld::TickWorld() {
   m.SortWidgets();
   m.device->StartFrame();
   m.rootOpaque->SetTransform(m.device->GetReorientTransform());
-  m.rootTransparent->SetTransform(m.device->GetReorientTransform());
+  m.rootTransparent->SetTransform(m.device->GetReorientTransform().PostMultiply(m.widgetsYaw));
+  if (m.rootEnvironment) {
+    m.rootEnvironment->SetTransform(m.device->GetReorientTransform());
+  }
+  if (m.vrVideo) {
+    m.vrVideo->SetReorientTransform(m.device->GetReorientTransform());
+  }
 
   m.drawHandler = [=](device::Eye aEye) {
     DrawWorld(aEye);
@@ -1381,15 +1494,38 @@ void
 BrowserWorld::DrawWorld(device::Eye aEye) {
   const CameraPtr camera = aEye == device::Eye::Left ? m.leftCamera : m.rightCamera;
   m.device->BindEye(aEye);
+
+  // Draw skybox
   m.drawList->Reset();
   m.rootOpaqueParent->Cull(*m.cullVisitor, *m.drawList);
   m.drawList->Draw(*camera);
+
+  // Draw environment if available
+  if (m.layerEnvironment) {
+    m.layerEnvironment->SetCurrentEye(aEye);
+    m.layerEnvironment->Bind();
+    VRB_GL_CHECK(glViewport(0, 0, m.layerEnvironment->GetWidth(), m.layerEnvironment->GetHeight()));
+    VRB_GL_CHECK(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+
+  }
+  if (m.rootEnvironment) {
+    m.drawList->Reset();
+    m.rootEnvironment->Cull(*m.cullVisitor, *m.drawList);
+    m.drawList->Draw(*camera);
+  }
+  if (m.layerEnvironment) {
+    m.layerEnvironment->Unbind();
+  }
+
+  // Draw equirect video
   if (m.vrVideo) {
     m.vrVideo->SelectEye(aEye);
     m.drawList->Reset();
     m.vrVideo->GetRoot()->Cull(*m.cullVisitor, *m.drawList);
     m.drawList->Draw(*camera);
   }
+
+  // Draw controllers
   m.drawList->Reset();
   m.rootController->Cull(*m.cullVisitor, *m.drawList);
   m.drawList->Draw(*camera);
@@ -1405,33 +1541,66 @@ BrowserWorld::TickImmersive() {
   m.externalVR->SetCompositorEnabled(false);
   m.device->SetRenderMode(device::RenderMode::Immersive);
 
-  m.device->StartFrame();
-  VRB_GL_CHECK(glDepthMask(GL_FALSE));
-  m.externalVR->PushFramePoses(m.device->GetHeadTransform(), m.controllers->GetControllers(), m.context->GetTimestamp());
+  const bool supportsFrameAhead = m.device->SupportsFramePrediction(DeviceDelegate::FramePrediction::ONE_FRAME_AHEAD);
+  auto framePrediction = DeviceDelegate::FramePrediction::ONE_FRAME_AHEAD;
+  if (!supportsFrameAhead || (m.externalVR->GetVRState() != ExternalVR::VRState::Rendering) || m.webXRInterstialState != WebXRInterstialState::HIDDEN) {
+      // Do not use one frame ahead prediction if not supported or we are rendering the spinner.
+      framePrediction = DeviceDelegate::FramePrediction::NO_FRAME_AHEAD;
+      m.device->StartFrame(framePrediction);
+      if (m.webXRInterstialState != WebXRInterstialState::HIDDEN) {
+          // Hide controller input until the interstitial is hidden.
+          m.ClearWebXRControllerData();
+      }
+      m.externalVR->PushFramePoses(m.device->GetHeadTransform(), m.controllers->GetControllers(),
+                                   m.context->GetTimestamp());
+  }
   int32_t surfaceHandle, textureWidth, textureHeight = 0;
   device::EyeRect leftEye, rightEye;
   bool aDiscardFrame = !m.externalVR->WaitFrameResult();
   m.externalVR->GetFrameResult(surfaceHandle, textureWidth, textureHeight, leftEye, rightEye);
   ExternalVR::VRState state = m.externalVR->GetVRState();
+  if (supportsFrameAhead) {
+      if (framePrediction != DeviceDelegate::FramePrediction::ONE_FRAME_AHEAD) {
+          // StartFrame() has been already called to render the spinner, do not call it again.
+          // Instead, repeat the XR frame and render the spinner while we transition
+          // to one frame ahead prediction.
+          state = ExternalVR::VRState::Loading;
+      } else {
+          // Predict poses for one frame ahead and push the data to shmem so Gecko
+          // can start the next XR RAF ASAP.
+          m.device->StartFrame(framePrediction);
+      }
+      m.externalVR->PushFramePoses(m.device->GetHeadTransform(), m.controllers->GetControllers(),
+              m.context->GetTimestamp());
+  }
   if (state == ExternalVR::VRState::Rendering) {
     if (!aDiscardFrame) {
       if (textureWidth > 0 && textureHeight > 0) {
         m.device->SetImmersiveSize((uint32_t) textureWidth/2, (uint32_t) textureHeight);
       }
       m.blitter->StartFrame(surfaceHandle, leftEye, rightEye);
-      m.drawHandler = [=](device::Eye aEye) {
-        DrawImmersive(aEye);
-      };
+      if (m.webXRInterstialState != WebXRInterstialState::HIDDEN) {
+        TickWebXRInterstitial();
+      } else {
+        if (!m.wasWebXRRendering) {
+          // Disable Spinner animation in Java to avoid triggering superfluous Android Draw calls.
+          VRBrowser::OnWebXRRenderStateChange(true);
+          m.wasWebXRRendering = true;
+        }
+        m.drawHandler = [=](device::Eye aEye) {
+            DrawImmersive(aEye);
+        };
+      }
     }
     m.frameEndHandler = [=]() {
-      m.device->EndFrame(aDiscardFrame);
+      m.device->EndFrame(aDiscardFrame ? DeviceDelegate::FrameEndMode::DISCARD : DeviceDelegate::FrameEndMode::APPLY);
       m.blitter->EndFrame();
     };
   } else {
     if (surfaceHandle != 0) {
       m.blitter->CancelFrame(surfaceHandle);
     }
-    TickLoadingAnimation();
+    TickWebXRInterstitial();
   }
 }
 
@@ -1442,20 +1611,22 @@ BrowserWorld::DrawImmersive(device::Eye aEye) {
 }
 
 void
-BrowserWorld::TickLoadingAnimation() {
-  m.loadingAnimation->Update();
+BrowserWorld::TickWebXRInterstitial() {
+  m.rootWebXRInterstitial->SetTransform(m.device->GetReorientTransform());
   m.drawHandler = [=](device::Eye eye) {
-    DrawLoadingAnimation(eye);
+      DrawWebXRInterstitial(eye);
   };
 }
 
 void
-BrowserWorld::DrawLoadingAnimation(device::Eye aEye) {
-  VRB_GL_CHECK(glDepthMask(GL_TRUE));
-  m.drawList->Reset();
-  m.loadingAnimation->GetRoot()->Cull(*m.cullVisitor, *m.drawList);
+BrowserWorld::DrawWebXRInterstitial(crow::device::Eye aEye) {
+  const CameraPtr camera = aEye == device::Eye::Left ? m.leftCamera : m.rightCamera;
   m.device->BindEye(aEye);
-  m.drawList->Draw(aEye == device::Eye::Left ? *m.leftCamera : *m.rightCamera);
+  VRB_GL_CHECK(glDepthMask(GL_FALSE));
+  m.drawList->Reset();
+  m.rootWebXRInterstitial->Cull(*m.cullVisitor, *m.drawList);
+  m.drawList->Draw(*camera);
+  VRB_GL_CHECK(glDepthMask(GL_TRUE));
 }
 
 void
@@ -1477,7 +1648,7 @@ BrowserWorld::TickSplashAnimation() {
       if (m.fadeAnimation) {
         m.fadeAnimation->FadeIn();
       }
-      m.device->EndFrame(false);
+      m.device->EndFrame();
     };
   }
 }
@@ -1524,6 +1695,23 @@ BrowserWorld::CreateSkyBox(const std::string& aBasePath, const std::string& aExt
     m.skybox = Skybox::Create(m.create, layer);
     m.rootOpaqueParent->AddNode(m.skybox->GetRoot());
     m.skybox->Load(m.loader, aBasePath, extension);
+  }
+}
+
+void BrowserWorld::CreateEnvironment() {
+  ASSERT_ON_RENDER_THREAD();
+  m.rootEnvironment = Transform::Create(m.create);
+  m.rootEnvironment->AddLight(Light::Create(m.create));
+
+  vrb::TransformPtr model = Transform::Create(m.create);
+  m.loader->LoadModel("FirefoxPlatform2_low.obj", model);
+  m.rootEnvironment->AddNode(model);
+  vrb::Matrix transform = vrb::Matrix::Identity();
+  model->SetTransform(transform);
+
+  m.layerEnvironment = m.device->CreateLayerProjection(VRLayerSurface::SurfaceType::FBO);
+  if (m.layerEnvironment) {
+    m.rootEnvironment->AddNode(VRLayerNode::Create(m.create, m.layerEnvironment));
   }
 }
 
@@ -1621,11 +1809,6 @@ JNI_METHOD(void, updateEnvironmentNative)
   crow::BrowserWorld::Instance().UpdateEnvironment();
 }
 
-JNI_METHOD(void, updateFoveatedLevelNative)
-(JNIEnv*, jobject, jint aAppLevel) {
-  crow::BrowserWorld::Instance().UpdateFoveatedLevel(aAppLevel);
-}
-
 JNI_METHOD(void, updatePointerColorNative)
 (JNIEnv*, jobject) {
   crow::BrowserWorld::Instance().UpdatePointerColor();
@@ -1646,16 +1829,19 @@ JNI_METHOD(void, setControllersVisibleNative)
   crow::BrowserWorld::Instance().SetControllersVisible(aVisible);
 }
 
-JNI_METHOD(void, resetUIYawNative)
-(JNIEnv*, jobject) {
-  crow::BrowserWorld::Instance().ResetUIYaw();
+JNI_METHOD(void, recenterUIYawNative)
+(JNIEnv*, jobject, jint aTarget) {
+  crow::BrowserWorld::YawTarget value = crow::BrowserWorld::YawTarget::ALL;
+  if (aTarget == 1) {
+    value = crow::BrowserWorld::YawTarget::WIDGETS;
+  }
+  crow::BrowserWorld::Instance().RecenterUIYaw(value);
 }
 
 JNI_METHOD(void, setCylinderDensityNative)
 (JNIEnv*, jobject, jfloat aDensity) {
   crow::BrowserWorld::Instance().SetCylinderDensity(aDensity);
 }
-
 
 JNI_METHOD(void, runCallbackNative)
 (JNIEnv*, jobject, jlong aCallback) {
@@ -1671,9 +1857,24 @@ JNI_METHOD(void, setCPULevelNative)
   crow::BrowserWorld::Instance().SetCPULevel(static_cast<crow::device::CPULevel>(aCPULevel));
 }
 
+JNI_METHOD(void, setWebXRIntersitialStateNative)
+(JNIEnv*, jobject, jint aState) {
+  crow::BrowserWorld::WebXRInterstialState value;
+  if (aState == 0) {
+    value = crow::BrowserWorld::WebXRInterstialState::FORCED;
+  } else if (aState == 1) {
+    value = crow::BrowserWorld::WebXRInterstialState::ALLOW_DISMISS;
+  } else {
+    value = crow::BrowserWorld::WebXRInterstialState::HIDDEN;
+  }
+  crow::BrowserWorld::Instance().SetWebXRInterstitalState(value);
+}
+
 JNI_METHOD(void, setIsServo)
 (JNIEnv*, jobject, jboolean aIsServo) {
   crow::BrowserWorld::Instance().SetIsServo(aIsServo);
 }
+
+
 
 } // extern "C"

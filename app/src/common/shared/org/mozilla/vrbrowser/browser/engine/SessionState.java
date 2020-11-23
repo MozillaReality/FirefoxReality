@@ -1,5 +1,7 @@
 package org.mozilla.vrbrowser.browser.engine;
 
+import androidx.annotation.IntDef;
+
 import com.google.gson.Gson;
 import com.google.gson.JsonParser;
 import com.google.gson.TypeAdapter;
@@ -20,6 +22,24 @@ import java.util.UUID;
 
 @JsonAdapter(SessionState.SessionStateAdapterFactory.class)
 public class SessionState {
+    @IntDef(value = { WEBXR_UNUSED, WEBXR_ALLOWED, WEBXR_BLOCKED})
+    public @interface WebXRState {}
+    public static final int WEBXR_UNUSED = 0;
+    public static final int WEBXR_ALLOWED = 1;
+    public static final int WEBXR_BLOCKED = 2;
+
+    @IntDef(value = { POPUP_UNUSED, POPUP_ALLOWED, POPUP_BLOCKED})
+    public @interface PopupState {}
+    public static final int POPUP_UNUSED = 0;
+    public static final int POPUP_ALLOWED = 1;
+    public static final int POPUP_BLOCKED = 2;
+
+    @IntDef(value = { DRM_UNUSED, DRM_ALLOWED, DRM_BLOCKED})
+    public @interface DrmState {}
+    public static final int DRM_UNUSED = 0;
+    public static final int DRM_ALLOWED = 1;
+    public static final int DRM_BLOCKED = 2;
+
     private transient boolean mIsActive;
     public boolean mCanGoBack;
     public boolean mCanGoForward;
@@ -34,12 +54,16 @@ public class SessionState {
     public transient GeckoDisplay mDisplay;
     public SessionSettings mSettings;
     public transient ArrayList<Media> mMediaElements = new ArrayList<>();
+    public transient @WebXRState int mWebXRState = WEBXR_UNUSED;
+    public transient @PopupState int mPopUpState = POPUP_UNUSED;
+    public transient @DrmState int mDrmState = DRM_UNUSED;
     @JsonAdapter(SessionState.GeckoSessionStateAdapter.class)
     public GeckoSession.SessionState mSessionState;
     public long mLastUse;
     public String mRegion;
     public String mId = UUID.randomUUID().toString();
     public String mParentId; // Parent session stack Id.
+    public transient boolean mIsWebExtensionSession = false;
 
     public SessionState recreate() {
         SessionState result = new SessionState();
@@ -52,6 +76,7 @@ public class SessionState {
         result.mRegion = mRegion;
         result.mId = mId;
         result.mParentId = mParentId;
+        result.mIsWebExtensionSession = mIsWebExtensionSession;
 
         return result;
     }
