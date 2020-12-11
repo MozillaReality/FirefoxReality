@@ -180,6 +180,7 @@ android {
 
         wavevr {
             minSdkVersion build_versions.min_sdk_wave
+            targetSdkVersion build_versions.target_sdk_wave
             dimension "platform"
             externalNativeBuild {
                 cmake {
@@ -193,6 +194,7 @@ android {
 
         wavevrStore {
             minSdkVersion build_versions.min_sdk_wave
+            targetSdkVersion build_versions.target_sdk_wave
             dimension "platform"
             externalNativeBuild {
                 cmake {
