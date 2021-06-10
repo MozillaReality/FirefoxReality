@@ -72,7 +72,7 @@ android {
         minSdkVersion build_versions.min_sdk
         targetSdkVersion build_versions.target_sdk
         versionCode 1
-        versionName "12.2"
+        versionName "12.1"
         buildConfigField "String", "GIT_HASH", "\"${getGitHash()}\""
         buildConfigField "Boolean", "DISABLE_CRASH_RESTART", getCrashRestartDisabled()
         buildConfigField "Boolean", "TASKCLUSTER_BUILD", getTaskclusterBuild()
@@ -180,13 +180,12 @@ android {
 
         wavevr {
             minSdkVersion build_versions.min_sdk_wave
-            targetSdkVersion build_versions.target_sdk_wave
             dimension "platform"
             externalNativeBuild {
                 cmake {
-                    cppFlags " -I" + file("${project.rootDir}/third_party/wavesdk/build/wvr_client-${versions.wavevr}/include").absolutePath +
+                    cppFlags " -I" + file("${project.rootDir}/third_party/wavesdk/build/wvr_client/include").absolutePath +
                             " -DWAVEVR"
-                    arguments "-DVR_SDK_LIB=wavevr-lib", "-DWAVEVR=ON", "-DWAVE_SDK_VERSION=${versions.wavevr}"
+                    arguments "-DVR_SDK_LIB=wavevr-lib", "-DWAVEVR=ON"
                 }
             }
             applicationIdSuffix ".internal"
@@ -194,13 +193,12 @@ android {
 
         wavevrStore {
             minSdkVersion build_versions.min_sdk_wave
-            targetSdkVersion build_versions.target_sdk_wave
             dimension "platform"
             externalNativeBuild {
                 cmake {
-                    cppFlags " -I" + file("${project.rootDir}/third_party/wavesdk/build/wvr_client-${versions.wavevr}/include").absolutePath +
+                    cppFlags " -I" + file("${project.rootDir}/third_party/wavesdk/build/wvr_client/include").absolutePath +
                             " -DWAVEVR"
-                    arguments "-DVR_SDK_LIB=wavevr-lib", "-DWAVEVR=ON", "-DWAVE_SDK_VERSION=${versions.wavevr}"
+                    arguments "-DVR_SDK_LIB=wavevr-lib", "-DWAVEVR=ON"
                 }
             }
         }
@@ -356,7 +354,7 @@ android {
             res.srcDirs = [
                     'src/wavevr/res'
             ]
-            jniLibs.srcDirs = ["${project.rootDir}/third_party/wavesdk/build/wvr_client-${versions.wavevr}/jni"]
+            jniLibs.srcDirs = ["${project.rootDir}/third_party/wavesdk/build/wvr_client/jni"]
         }
 
         wavevrStore {
@@ -369,7 +367,7 @@ android {
             assets.srcDirs = [
                     'src/wavevr/assets'
             ]
-            jniLibs.srcDirs = ["${project.rootDir}/third_party/wavesdk/build/wvr_client-${versions.wavevr}/jni"]
+            jniLibs.srcDirs = ["${project.rootDir}/third_party/wavesdk/build/wvr_client/jni"]
             manifest.srcFile "src/wavevr/AndroidManifest.xml"
         }
 
@@ -500,8 +498,8 @@ if (findProject(':servo')) {
 
 if (findProject(':wavesdk')) {
     dependencies {
-        wavevrImplementation fileTree(dir: "${project.rootDir}/third_party/wavesdk/", include: ['*.aar'])
-        wavevrStoreImplementation fileTree(dir: "${project.rootDir}/third_party/wavesdk/", include: ['*.aar'])
+        wavevrImplementation project(':wavesdk')
+        wavevrStoreImplementation project(':wavesdk')
     }
 }
 

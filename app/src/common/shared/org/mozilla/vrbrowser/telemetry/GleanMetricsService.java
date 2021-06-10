@@ -85,9 +85,10 @@ public class GleanMetricsService {
         Glean.INSTANCE.setUploadEnabled(false);
     }
 
-    public static void startPageLoadTime(String aUrl) {
-        GleanTimerId pageLoadingTimerId = Pages.INSTANCE.pageLoad().start();
-        loadingTimerId.put(aUrl, pageLoadingTimerId);
+    public static void startPageLoadTime() {
+//    public static void startPageLoadTime(String aUrl) {
+//        GleanTimerId pageLoadingTimerId = Pages.INSTANCE.pageLoad().start();
+//        loadingTimerId.put(aUrl, pageLoadingTimerId);
     }
 
     public static void stopPageLoadTimeWithURI(String uri) {
@@ -314,20 +315,20 @@ public class GleanMetricsService {
     }
 
     public static void openWindowEvent(int windowId) {
-         GleanTimerId timerId = Windows.INSTANCE.duration().start();
-         if (timerId != null) {
-            windowLifeTimerId.put(windowId, timerId);
-         }
+//         GleanTimerId timerId = Windows.INSTANCE.duration().start();
+//         if (timerId != null) {
+//            windowLifeTimerId.put(windowId, timerId);
+//         }
     }
 
     public static void closeWindowEvent(int windowId) {
-        if (windowLifeTimerId.containsKey((windowId))) {
-            GleanTimerId timerId = windowLifeTimerId.get(windowId);
-            Windows.INSTANCE.duration().stopAndAccumulate(timerId);
-            windowLifeTimerId.remove(windowId);
-        } else {
-            Log.e(LOGTAG, "Can't find close window id.");
-        }
+//        if (windowLifeTimerId.containsKey((windowId))) {
+//            GleanTimerId timerId = windowLifeTimerId.get(windowId);
+//            Windows.INSTANCE.duration().stopAndAccumulate(timerId);
+//            windowLifeTimerId.remove(windowId);
+//        } else {
+//            Log.e(LOGTAG, "Can't find close window id.");
+//        }
     }
 
     private static String getDefaultSearchEngineIdentifierForTelemetry() {

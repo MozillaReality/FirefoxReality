@@ -54,7 +54,6 @@ versions.snakeyaml = "1.24"
 versions.gson = "2.8.5"
 versions.robolectric = "4.2.1"
 versions.work = "2.2.0"
-versions.wavevr = "3.2.0"
 ext.versions = versions
 
 def deps = [:]
@@ -187,7 +186,6 @@ def build_versions = [:]
 build_versions.min_sdk = 24
 build_versions.min_sdk_wave = 25
 build_versions.target_sdk = 29
-build_versions.target_sdk_wave = 26
 build_versions.build_tools = "29.0.2"
 ext.build_versions = build_versions
 
