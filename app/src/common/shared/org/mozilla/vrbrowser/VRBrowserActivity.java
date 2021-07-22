@@ -42,6 +42,9 @@ import androidx.lifecycle.LifecycleRegistry;
 import androidx.lifecycle.ViewModelStore;
 import androidx.lifecycle.ViewModelStoreOwner;
 
+import com.lgh.uvccamera.UVCCameraProxy;
+import com.serenegiant.usb.UVCCamera;
+
 import org.json.JSONObject;
 import org.mozilla.geckoview.GeckoRuntime;
 import org.mozilla.geckoview.GeckoSession;
@@ -65,6 +68,7 @@ import org.mozilla.vrbrowser.ui.widgets.AppServicesProvider;
 import org.mozilla.vrbrowser.ui.widgets.KeyboardWidget;
 import org.mozilla.vrbrowser.ui.widgets.NavigationBarWidget;
 import org.mozilla.vrbrowser.ui.widgets.RootWidget;
+import org.mozilla.vrbrowser.ui.widgets.SeeThroughWidget;
 import org.mozilla.vrbrowser.ui.widgets.TrayWidget;
 import org.mozilla.vrbrowser.ui.widgets.UISurfaceTextureRenderer;
 import org.mozilla.vrbrowser.ui.widgets.UIWidget;
@@ -168,6 +172,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     Windows mWindows;
     RootWidget mRootWidget;
     KeyboardWidget mKeyboard;
+    SeeThroughWidget mSeeThroughWidget;
     NavigationBarWidget mNavigationBar;
     CrashDialogWidget mCrashDialog;
     TrayWidget mTray;
@@ -327,6 +332,9 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         // Create keyboard widget
         mKeyboard = new KeyboardWidget(this);
 
+        // Create seethrough widget
+        mSeeThroughWidget = new SeeThroughWidget(this);
+
         // Create the WebXR interstitial
         mWebXRInterstitial = new WebXRInterstitialWidget(this);
 
@@ -372,7 +380,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         mTray.setAddWindowVisible(mWindows.canOpenNewWindow());
         attachToWindow(mWindows.getFocusedWindow(), null);
 
-        addWidgets(Arrays.asList(mRootWidget, mNavigationBar, mKeyboard, mTray, mWebXRInterstitial));
+        addWidgets(Arrays.asList(mRootWidget, mNavigationBar, mKeyboard, mSeeThroughWidget, mTray, mWebXRInterstitial));
 
         // Show the what's upp dialog if we haven't showed it yet and this is v6.
         if (!SettingsStore.getInstance(this).isWhatsNewDisplayed()) {
@@ -389,11 +397,13 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
         mPermissionDelegate.setParentWidgetHandle(aWindow.getHandle());
         mNavigationBar.attachToWindow(aWindow);
         mKeyboard.attachToWindow(aWindow);
+        mSeeThroughWidget.attachToWindow(aWindow);
         mTray.attachToWindow(aWindow);
 
         if (aPrevWindow != null) {
             updateWidget(mNavigationBar);
             updateWidget(mKeyboard);
+            updateWidget(mSeeThroughWidget);
             updateWidget(mTray);
         }
     }

@@ -505,6 +505,12 @@
          VR Immersive Mode. -->
     <string name="developer_options_msaa">多重采样抗锯齿（MSAA）</string>
 
+    <string name="developer_options_camera">相机</string>
+
+    <string name="developer_options_native_camera">原生相机</string>
+
+    <string name="developer_options_uvc_camera">USB相机</string>
+
     <!-- This string is used to label the MSAA radio button that disables MSAA in Immersive Mode. -->
     <string name="developer_options_msaa_disabled">已禁用</string>
 
@@ -905,6 +911,9 @@
 
     <!-- This string labels the radio option that selects the 'Void' background in the 'Brightness' mode. -->
     <string name="brightness_mode_void">空白</string>
+
+    <!-- This string labels the radio option that selects the 'Passthrough' background in the 'Brightness' mode. -->
+    <string name="brightness_mode_passthrough">穿透</string>
 
     <!-- This string labels a button to open the Video Projection selector. -->
     <string name="video_mode_tooltip">视频投影</string>

@@ -77,6 +77,7 @@ public class TrayWidget extends UIWidget implements WidgetManagerDelegate.Update
     private TrayBinding mBinding;
     private AudioEngine mAudio;
     private SettingsWidget mSettingsWidget;
+    private SeeThroughWidget mSeeThroughWidget;
     private List<TrayListener> mTrayListeners;
     private int mMinPadding;
     private int mMaxPadding;
@@ -218,6 +219,21 @@ public class TrayWidget extends UIWidget implements WidgetManagerDelegate.Update
 
             notifyLibraryClicked();
             view.requestFocusFromTouch();
+        });
+
+        mBinding.seethroughButton.setOnHoverListener(mButtonScaleHoverListener);
+        mBinding.seethroughButton.setOnClickListener(view -> {
+            if (isImmersive()) {
+                return;
+            }
+            if (mAudio != null) {
+                mAudio.playSound(AudioEngine.Sound.CLICK);
+            }
+
+            toggleSeeThroughWidget();
+            if (mSeeThroughWidget.isVisible()) {
+                view.requestFocusFromTouch();
+            }
         });
 
         mBinding.wifi.setOnHoverListener((view, motionEvent) -> {
@@ -484,6 +500,11 @@ public class TrayWidget extends UIWidget implements WidgetManagerDelegate.Update
         mTrayListeners.forEach(TrayListener::onLibraryClicked);
     }
 
+    private void notifyCameraClicked() {
+        hideNotifications();
+        mTrayListeners.forEach(TrayListener::onCameraClicked);
+    }
+
     @Override
     protected void initializeWidgetPlacement(WidgetPlacement aPlacement) {
         Context context = getContext();
@@ -642,6 +663,47 @@ public class TrayWidget extends UIWidget implements WidgetManagerDelegate.Update
 
         mSettingsWidget.show(REQUEST_FOCUS, settingDialog);
     }
+
+    public void toggleSeeThroughWidget() {
+        if(mSeeThroughWidget ==null)
+        {
+            mSeeThroughWidget = new SeeThroughWidget(getContext());
+        }
+        mSeeThroughWidget.attachToWindow(mAttachedWindow);
+
+        if(mSeeThroughWidget.isVisible())
+        {
+            mSeeThroughWidget.hide(KEEP_WIDGET);
+
+        } else
+
+        {
+            mSeeThroughWidget.show(REQUEST_FOCUS);
+        }
+    }
+
+//    public void toggleSeeThroughWidget(@NonNull SettingsView.SettingViewType settingDialog) {
+//        if (mSettingsWidget == null) {
+//            mSettingsWidget = new SettingsWidget(getContext());
+//        }
+//        mSettingsWidget.attachToWindow(mAttachedWindow);
+//
+//        if (mSettingsWidget.isVisible()) {
+//            mSettingsWidget.hide(KEEP_WIDGET);
+//
+//        } else {
+//            mSettingsWidget.show(REQUEST_FOCUS, settingDialog);
+//        }
+//    }
+//
+//    public void showSettingsDialog(@NonNull SettingsView.SettingViewType settingDialog) {
+//        if (mSettingsWidget == null) {
+//            mSettingsWidget = new SettingsWidget(getContext());
+//        }
+//        mSettingsWidget.attachToWindow(mAttachedWindow);
+//
+//        mSettingsWidget.show(REQUEST_FOCUS, settingDialog);
+//    }
 
     public void setAddWindowVisible(boolean aVisible) {
         mTrayViewModel.setIsMaxWindows(!aVisible);

@@ -1218,8 +1218,7 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         }
         Log.d(LOGTAG, "Session onPageStart");
         mState.mIsLoading = true;
-        GleanMetricsService.startPageLoadTime();
-//        GleanMetricsService.startPageLoadTime(aUri);
+        GleanMetricsService.startPageLoadTime(aUri);
 
         setWebXRState(SessionState.WEBXR_UNUSED);
         for (GeckoSession.ProgressDelegate listener : mProgressListeners) {

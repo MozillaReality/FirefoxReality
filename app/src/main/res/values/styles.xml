@@ -453,4 +453,17 @@
 
     <style name="Widget.FastScroll" parent="android:Widget.Material.FastScroll"/>
 
+    <style name="btn_style">
+        <item name="android:layout_width">180pt</item>
+        <item name="android:layout_height">100pt</item>
+        <item name="android:onClick">onClick</item>
+        <item name="android:textSize">24pt</item>
+    </style>
+
+    <style name="img_style">
+        <item name="android:layout_width">320pt</item>
+        <item name="android:layout_height">240pt</item>
+        <item name="android:onClick">onClick</item>
+    </style>
+
 </resources>

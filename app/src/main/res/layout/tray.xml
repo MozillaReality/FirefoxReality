@@ -215,6 +215,15 @@
             </RelativeLayout>
 
             <org.mozilla.vrbrowser.ui.views.UIButton
+                android:id="@+id/seethroughButton"
+                style="@style/trayButtonMiddleTheme"
+                android:tooltipText="@string/developer_options_camera"
+                app:tooltipDensity="@dimen/tray_tooltip_density"
+                app:tooltipPosition="bottom"
+                app:tooltipLayout="@layout/tooltip_tray"
+                android:src="@drawable/ic_icon_dialog_camera"/>
+
+            <org.mozilla.vrbrowser.ui.views.UIButton
                 android:id="@+id/settingsButton"
                 style="@style/trayButtonEndTheme"
                 android:tooltipText="@string/settings_tooltip"

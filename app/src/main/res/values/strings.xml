@@ -501,6 +501,12 @@
          VR Immersive Mode. -->
     <string name="developer_options_msaa">MSAA</string>
 
+    <string name="developer_options_camera">Camera</string>
+
+    <string name="developer_options_native_camera">Camera</string>
+
+    <string name="developer_options_uvc_camera">UVC Camera</string>
+
     <!-- This string is used to label the MSAA radio button that disables MSAA in Immersive Mode. -->
     <string name="developer_options_msaa_disabled">Disabled</string>
 
