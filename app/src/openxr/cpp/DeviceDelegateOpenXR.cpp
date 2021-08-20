@@ -631,7 +631,7 @@ DeviceDelegateOpenXR::StartFrame(const FramePrediction aPrediction) {
 
   // Query head location
   XrSpaceLocation location {XR_TYPE_SPACE_LOCATION};
-  xrLocateSpace(m.viewSpace, m.localSpace, m.predictedDisplayTime, &location);
+  CHECK_XRCMD(xrLocateSpace(m.viewSpace, m.localSpace, m.predictedDisplayTime, &location));
   m.predictedPose = location.pose;
 
   vrb::Matrix head = XrPoseToMatrix(location.pose);
@@ -822,10 +822,6 @@ DeviceDelegateOpenXR::CreateLayerQuad(int32_t aWidth, int32_t aHeight,
     return nullptr;
   }
 
-  if (aSurfaceType == VRLayerSurface::SurfaceType::AndroidSurface) {
-    return nullptr; // Remove when XR_ERROR_LAYER_INVALID bug is fixed
-  }
-
   VRLayerQuadPtr layer = VRLayerQuad::Create(aWidth, aHeight, aSurfaceType);
   OpenXRLayerQuadPtr xrLayer = OpenXRLayerQuad::Create(m.jniEnv, layer);
   m.AddUILayer(xrLayer, aSurfaceType);
@@ -836,9 +832,6 @@ VRLayerQuadPtr
 DeviceDelegateOpenXR::CreateLayerQuad(const VRLayerSurfacePtr& aMoveLayer) {
   if (!m.layersEnabled) {
     return nullptr;
-  }
-  if (aMoveLayer->GetSurfaceType() == VRLayerSurface::SurfaceType::AndroidSurface) {
-    return nullptr; // Remove when XR_ERROR_LAYER_INVALID bug is fixed
   }
 
   VRLayerQuadPtr layer = VRLayerQuad::Create(aMoveLayer->GetWidth(), aMoveLayer->GetHeight(), aMoveLayer->GetSurfaceType());
@@ -863,9 +856,7 @@ DeviceDelegateOpenXR::CreateLayerCylinder(int32_t aWidth, int32_t aHeight,
   if (!m.layersEnabled) {
     return nullptr;
   }
-  if (aSurfaceType == VRLayerSurface::SurfaceType::AndroidSurface) {
-    return nullptr; // Remove when XR_ERROR_LAYER_INVALID bug is fixed
-  }
+
   VRLayerCylinderPtr layer = VRLayerCylinder::Create(aWidth, aHeight, aSurfaceType);
   OpenXRLayerCylinderPtr xrLayer = OpenXRLayerCylinder::Create(m.jniEnv, layer);
   m.AddUILayer(xrLayer, aSurfaceType);
@@ -876,9 +867,6 @@ VRLayerCylinderPtr
 DeviceDelegateOpenXR::CreateLayerCylinder(const VRLayerSurfacePtr& aMoveLayer) {
   if (!m.layersEnabled) {
     return nullptr;
-  }
-  if (aMoveLayer->GetSurfaceType() == VRLayerSurface::SurfaceType::AndroidSurface) {
-    return nullptr; // Remove when XR_ERROR_LAYER_INVALID bug is fixed
   }
 
   VRLayerCylinderPtr layer = VRLayerCylinder::Create(aMoveLayer->GetWidth(), aMoveLayer->GetHeight(), aMoveLayer->GetSurfaceType());
@@ -920,9 +908,7 @@ DeviceDelegateOpenXR::CreateLayerEquirect(const VRLayerPtr &aSource) {
   if (!m.layersEnabled) {
     return nullptr;
   }
-  if (true) {
-    return nullptr; // Remove when XR_ERROR_LAYER_INVALID bug is fixed
-  }
+
   VRLayerEquirectPtr result = VRLayerEquirect::Create();
   OpenXRLayerPtr source;
   for (const OpenXRLayerPtr& layer: m.uiLayers) {
