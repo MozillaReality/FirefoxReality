@@ -51,7 +51,7 @@ public class SeeThroughWidget extends UIWidget implements GeckoSession.Navigatio
     }
 
     private void initView() {
-        mTextureView = findViewById(R.id.textureView);
+        mTextureView = findViewById(R.id.seethroughView);
 //        mSurfaceView = findViewById(R.id.surfaceView);
 //        mSurfaceView.setZOrderOnTop(true);
 //        mImageView1 = findViewById(R.id.imag1);
