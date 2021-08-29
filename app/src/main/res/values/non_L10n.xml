@@ -2,8 +2,12 @@
     <string name="app_name" translatable="false">Firefox Reality</string>
     <string name="bug_report_url" translatable="false">mzl.la/fxr</string>
     <!-- You can test a local file using: "resource://android/assets/webvr/index.html" -->
-    <string name="homepage_url" translatable="false">https://start.duckduckgo.com/</string>
+    <string name="homepage_url" translatable="false">https://www.baidu.com/</string>
+    <string name="proxy_url" translatable="false">192.168.1.96</string>
+    <string name="proxy_port" translatable="false">7890</string>
     <string name="settings_key_homepage" translatable="false">settings_homepage</string>
+    <string name="settings_key_proxyurl" translatable="false">settings_proxyurl</string>
+    <string name="settings_key_proxyport" translatable="false">settings_proxyport</string>
     <string name="settings_key_crash" translatable="false">settings_crash</string>
     <string name="settings_key_locale" translatable="false">settings_locale</string>
     <string name="settings_key_telemetry" translatable="false">settings_telemetry</string>
