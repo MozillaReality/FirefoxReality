@@ -39,7 +39,7 @@
                 android:orientation="vertical">
 
                 <org.mozilla.vrbrowser.ui.views.settings.SwitchSetting
-                    android:id="@+id/curved_display_switch"
+                    android:id="@+id/proxy_switch"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:description="@string/developer_options_proxy" />
@@ -69,7 +69,7 @@
             android:id="@+id/footer_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:description="@string/display_options_reset"
+            app:description="@string/proxy_options_reset"
             app:buttonText="@string/developer_options_reset_button"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"

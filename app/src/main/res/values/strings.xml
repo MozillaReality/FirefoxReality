@@ -1332,6 +1332,9 @@
     <!-- This string labels the Reset button that restores the default display settings values. -->
     <string name="display_options_reset">Reset Display Settings</string>
 
+    <!-- This string labels the Reset button that restores the default display settings values. -->
+    <string name="proxy_options_reset">Reset Proxy Settings</string>
+
     <!-- This string labels the Reset button that restores the default privacy and security settings values. -->
     <string name="privacy_options_reset">Reset Privacy &amp; Security Settings</string>
 

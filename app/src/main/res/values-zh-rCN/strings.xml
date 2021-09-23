@@ -434,6 +434,8 @@
      and is used to enable or disable curved display. -->
     <string name="developer_options_curved_display">启用曲面显示</string>
 
+    <string name="developer_options_proxy">启用网络代理</string>
+
     <!-- This string labels an On/Off switch in the 'Developer Options' dialog
          and is used to toggle remote debugging of website content in the application. -->
     <string name="developer_options_remote_debugging">启用远程调试</string>
@@ -1332,6 +1334,9 @@
 
     <!-- This string labels the Reset button that restores the default display settings values. -->
     <string name="display_options_reset">重置显示设置</string>
+
+    <!-- This string labels the Reset button that restores the default display settings values. -->
+    <string name="proxy_options_reset">重置显示设置</string>
 
     <!-- This string labels the Reset button that restores the default privacy and security settings values. -->
     <string name="privacy_options_reset">重置隐私与安全设置</string>

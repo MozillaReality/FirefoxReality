@@ -15,10 +15,11 @@ import androidx.databinding.DataBindingUtil;
 import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.databinding.OptionsProxyBinding;
-import org.mozilla.vrbrowser.ui.views.settings.RadioGroupSetting;
 import org.mozilla.vrbrowser.ui.views.settings.SwitchSetting;
 import org.mozilla.vrbrowser.ui.widgets.WidgetManagerDelegate;
 import org.mozilla.vrbrowser.ui.widgets.WidgetPlacement;
+
+import java.util.Properties;
 
 class ProxyOptionsView extends SettingsView {
 
@@ -53,22 +54,23 @@ class ProxyOptionsView extends SettingsView {
         mBinding.footerLayout.setFooterButtonClickListener(mResetListener);
 
         // Options
-        mBinding.curvedDisplaySwitch.setOnCheckedChangeListener(mCurvedDisplayListener);
-        setCurvedDisplay(SettingsStore.getInstance(getContext()).getCylinderDensity() > 0.0f, false);
+        mBinding.proxySwitch.setOnCheckedChangeListener(mProxySwitchListener);
+        setProxySwitch(SettingsStore.getInstance(getContext()).getCylinderDensity() > 0.0f, false);
 
         mDefaultProxyUrl = getContext().getString(R.string.proxy_url);
         mDefaultProxyPort = getContext().getString(R.string.proxy_port);
 
-//        mBinding.proxyUrlEdit.setHint1(getContext().getString(R.string.homepage_hint, getContext().getString(R.string.app_name)));
+        mBinding.proxyUrlEdit.setHint1(SettingsStore.getInstance(getContext()).getProxyUrl());
         mBinding.proxyUrlEdit.setDefaultFirstValue(mDefaultProxyUrl);
         mBinding.proxyUrlEdit.setFirstText(SettingsStore.getInstance(getContext()).getProxyUrl());
         mBinding.proxyUrlEdit.setOnClickListener(mProxyUrlListener);
+        setProxyUrl(SettingsStore.getInstance(getContext()).getProxyUrl());
 
-        mBinding.proxyPortEdit.setDefaultFirstValue(mDefaultProxyUrl);
+        mBinding.proxyPortEdit.setHint1(SettingsStore.getInstance(getContext()).getProxyPort());
+        mBinding.proxyPortEdit.setDefaultFirstValue(mDefaultProxyPort);
         mBinding.proxyPortEdit.setFirstText(SettingsStore.getInstance(getContext()).getProxyPort());
         mBinding.proxyPortEdit.setOnClickListener(mProxyPortListener);
-
-//        setProxy(SettingsStore.getInstance(getContext()).getProxyUrl(), SettingsStore.getInstance(getContext()).getProxyPort());
+        setProxyPort(SettingsStore.getInstance(getContext()).getProxyPort());
     }
 
     @Override
@@ -104,58 +106,70 @@ class ProxyOptionsView extends SettingsView {
 
     private OnClickListener mProxyUrlListener = (view) -> {
         if (!mBinding.proxyUrlEdit.getFirstText().isEmpty()) {
-            setProxy(mBinding.proxyUrlEdit.getFirstText(), mBinding.proxyUrlEdit.getFirstText());
+            setProxyUrl(mBinding.proxyUrlEdit.getFirstText());
 
         } else {
-            setProxy(mDefaultProxyUrl, mDefaultProxyPort);
+            setProxyUrl(mDefaultProxyUrl);
         }
     };
 
     private OnClickListener mProxyPortListener = (view) -> {
         if (!mBinding.proxyPortEdit.getFirstText().isEmpty()) {
-            setProxy(mBinding.proxyPortEdit.getFirstText(), mBinding.proxyPortEdit.getFirstText());
+            setProxyPort(mBinding.proxyPortEdit.getFirstText());
 
         } else {
-            setProxy(mDefaultProxyUrl, mDefaultProxyPort);
+            setProxyPort(mDefaultProxyPort);
         }
     };
 
-    private SwitchSetting.OnCheckedChangeListener mCurvedDisplayListener = (compoundButton, enabled, apply) ->
-            setCurvedDisplay(enabled, true);
+    private SwitchSetting.OnCheckedChangeListener mProxySwitchListener = (compoundButton, enabled, apply) ->
+            setProxySwitch(enabled, true);
 
     private OnClickListener mResetListener = (view) -> {
         boolean restart = false;
 
-        setProxy(mDefaultProxyUrl, mDefaultProxyPort);
-        setCurvedDisplay(false, true);
+        setProxyUrl(mDefaultProxyUrl);
+        setProxyPort(mDefaultProxyPort);
 
         if (restart) {
             showRestartDialog();
         }
     };
 
-    private void setCurvedDisplay(boolean value, boolean doApply) {
-        mBinding.curvedDisplaySwitch.setOnCheckedChangeListener(null);
-        mBinding.curvedDisplaySwitch.setValue(value, false);
-        mBinding.curvedDisplaySwitch.setOnCheckedChangeListener(mCurvedDisplayListener);
+    private void setProxySwitch(boolean value, boolean doApply) {
+        mBinding.proxySwitch.setOnCheckedChangeListener(null);
+        mBinding.proxySwitch.setValue(value, false);
+        mBinding.proxySwitch.setOnCheckedChangeListener(mProxySwitchListener);
 
+        // set proxy
         if (doApply) {
-            float density = value ? SettingsStore.CYLINDER_DENSITY_ENABLED_DEFAULT : 0.0f;
-            SettingsStore.getInstance(getContext()).setCylinderDensity(density);
-            mWidgetManager.setCylinderDensity(density);
+            String url = mBinding.proxyUrlEdit.getFirstText();
+            String port = mBinding.proxyPortEdit.getFirstText();
+
+            Properties prop = System.getProperties();
+            prop.put("proxyHost", url);
+            prop.put("proxyPort", port);
+            prop.put("proxySet", "true");
+
+        } else {
+            Properties prop = System.getProperties();
+            prop.put("proxySet", "false");
         }
     }
 
-    private void setProxy(String newProxyUrl, String newProxyPort) {
+    private void setProxyUrl(String newProxyUrl) {
         mBinding.proxyUrlEdit.setOnClickListener(null);
         mBinding.proxyUrlEdit.setFirstText(newProxyUrl);
+        mBinding.proxyUrlEdit.setHint1(newProxyUrl);
+        SettingsStore.getInstance(getContext()).setProxyUrl(newProxyUrl);
+        mBinding.proxyUrlEdit.setOnClickListener(mProxyUrlListener);
+    }
 
+    private void setProxyPort(String newProxyPort) {
         mBinding.proxyPortEdit.setOnClickListener(null);
         mBinding.proxyPortEdit.setFirstText(newProxyPort);
-
-        System.setProperty(newProxyUrl, newProxyPort);
-
-        mBinding.proxyUrlEdit.setOnClickListener(mProxyUrlListener);
+        mBinding.proxyPortEdit.setHint1(newProxyPort);
+        SettingsStore.getInstance(getContext()).setProxyPort(newProxyPort);
         mBinding.proxyPortEdit.setOnClickListener(mProxyPortListener);
     }
 

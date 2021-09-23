@@ -389,7 +389,7 @@ public class SettingsStore {
     public String getProxyPort() {
         return mPrefs.getString(
                 mContext.getString(R.string.settings_key_proxyport),
-                mContext.getString(R.string.proxy_url));
+                mContext.getString(R.string.proxy_port));
     }
 
     public void setProxyPort(String aProxyPort) {
