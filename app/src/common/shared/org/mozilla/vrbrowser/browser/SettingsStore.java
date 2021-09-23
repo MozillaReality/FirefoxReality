@@ -374,6 +374,30 @@ public class SettingsStore {
         editor.commit();
     }
 
+    public String getProxyUrl() {
+        return mPrefs.getString(
+                mContext.getString(R.string.settings_key_proxyurl),
+                mContext.getString(R.string.proxy_url));
+    }
+
+    public void setProxyUrl(String aProxyUrl) {
+        SharedPreferences.Editor editor = mPrefs.edit();
+        editor.putString(mContext.getString(R.string.settings_key_proxyurl), aProxyUrl);
+        editor.commit();
+    }
+
+    public String getProxyPort() {
+        return mPrefs.getString(
+                mContext.getString(R.string.settings_key_proxyport),
+                mContext.getString(R.string.proxy_url));
+    }
+
+    public void setProxyPort(String aProxyPort) {
+        SharedPreferences.Editor editor = mPrefs.edit();
+        editor.putString(mContext.getString(R.string.settings_key_proxyport), aProxyPort);
+        editor.commit();
+    }
+
     public float getDisplayDensity() {
         return mPrefs.getFloat(
                 mContext.getString(R.string.settings_key_display_density), DISPLAY_DENSITY_DEFAULT);

@@ -384,6 +384,14 @@
         opens the Firfox Reality support web site in the browser window. -->
     <string name="settings_help">Help</string>
 
+    <!-- This string is used to label a button in the 'Settings' dialog window that, when pressed,
+        opens the Firfox Reality support web site in the browser window. -->
+    <string name="settings_proxy">Proxy</string>
+
+    <string name="settings_proxy_url">Url</string>
+
+    <string name="settings_proxy_port">Port</string>
+
     <!-- This string is displayed in the settings header under the Firefox Reality logo. When clicked the settings panel is closed
          a the survey web site in opened in the currently focused window -->
     <string name="settings_send_your_feedback">Send us Your Feedback</string>
@@ -421,6 +429,10 @@
     <!-- This string labels an On/Off switch in the 'Developer Options' dialog
      and is used to enable or disable curved display. -->
     <string name="developer_options_curved_display">Enable Curved Display</string>
+
+    <!-- This string labels an On/Off switch in the 'Developer Options' dialog
+     and is used to enable or disable curved display. -->
+    <string name="developer_options_proxy">Enable Proxy</string>
 
     <!-- This string labels an On/Off switch in the 'Developer Options' dialog
          and is used to toggle remote debugging of website content in the application. -->

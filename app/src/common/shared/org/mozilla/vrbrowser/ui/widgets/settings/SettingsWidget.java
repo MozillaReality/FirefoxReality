@@ -167,6 +167,14 @@ public class SettingsWidget extends UIDialog implements SettingsView.Delegate {
             onDisplayOptionsClick();
         });
 
+        mBinding.proxyButton.setOnClickListener(view -> {
+            if (mAudio != null) {
+                mAudio.playSound(AudioEngine.Sound.CLICK);
+            }
+
+            onProxyOptionsClick();
+        });
+
         mBinding.environmentButton.setOnClickListener(view -> {
             if (mAudio != null) {
                 mAudio.playSound(AudioEngine.Sound.CLICK);
@@ -231,14 +239,14 @@ public class SettingsWidget extends UIDialog implements SettingsView.Delegate {
             showView(SettingsView.SettingViewType.CONTROLLER);
         });
 
-        mBinding.whatsNewButton.setOnClickListener(v -> {
-            SettingsStore.getInstance(getContext()).setRemotePropsVersionName(BuildConfig.VERSION_NAME);
-            RemoteProperties props = mSettingsViewModel.getProps().getValue().get(BuildConfig.VERSION_NAME);
-            if (props != null) {
-                mWidgetManager.openNewTabForeground(props.getWhatsNewUrl());
-            }
-            onDismiss();
-        });
+//        mBinding.whatsNewButton.setOnClickListener(v -> {
+//            SettingsStore.getInstance(getContext()).setRemotePropsVersionName(BuildConfig.VERSION_NAME);
+//            RemoteProperties props = mSettingsViewModel.getProps().getValue().get(BuildConfig.VERSION_NAME);
+//            if (props != null) {
+//                mWidgetManager.openNewTabForeground(props.getWhatsNewUrl());
+//            }
+//            onDismiss();
+//        });
 
         mCurrentView = null;
     }
@@ -385,6 +393,10 @@ public class SettingsWidget extends UIDialog implements SettingsView.Delegate {
         showView(SettingsView.SettingViewType.DISPLAY);
     }
 
+    private void onProxyOptionsClick() {
+        showView(SettingsView.SettingViewType.PROXY);
+    }
+
     @Override
     public void showView(SettingsView.SettingViewType aType) {
         showView(aType, null);
@@ -410,6 +422,9 @@ public class SettingsWidget extends UIDialog implements SettingsView.Delegate {
                 break;
             case DISPLAY:
                 showView(new DisplayOptionsView(getContext(), mWidgetManager));
+                break;
+            case PROXY:
+                showView(new ProxyOptionsView(getContext(), mWidgetManager));
                 break;
             case PRIVACY:
                 showView(new PrivacyOptionsView(getContext(), mWidgetManager));

@@ -23,6 +23,7 @@ public abstract class SettingsView extends FrameLayout {
         LANGUAGE_CONTENT,
         LANGUAGE_VOICE,
         DISPLAY,
+        PROXY,
         PRIVACY,
         POPUP_EXCEPTIONS,
         WEBXR_EXCEPTIONS,
