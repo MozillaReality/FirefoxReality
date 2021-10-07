@@ -571,6 +571,16 @@ public class SettingsStore {
         editor.commit();
     }
 
+    public float getProxySetting() {
+        return mPrefs.getFloat(mContext.getString(R.string.settings_key_proxy_setting),  0);
+    }
+
+    public void setProxySetting(float aProxy) {
+        SharedPreferences.Editor editor = mPrefs.edit();
+        editor.putFloat(mContext.getString(R.string.settings_key_proxy_setting), aProxy);
+        editor.commit();
+    }
+
     public boolean isCurvedModeEnabled() {
         return getCylinderDensity() > 0;
     }

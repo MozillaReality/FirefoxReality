@@ -3,8 +3,8 @@
     <string name="bug_report_url" translatable="false">mzl.la/fxr</string>
     <!-- You can test a local file using: "resource://android/assets/webvr/index.html" -->
     <string name="homepage_url" translatable="false">https://www.baidu.com/</string>
-    <string name="proxy_url" translatable="false">192.168.1.96</string>
-    <string name="proxy_port" translatable="false">7890</string>
+    <string name="proxy_url" translatable="false">192.168.1.55</string>
+    <string name="proxy_port" translatable="false">10809</string>
     <string name="settings_key_homepage" translatable="false">settings_homepage</string>
     <string name="settings_key_proxyurl" translatable="false">settings_proxyurl</string>
     <string name="settings_key_proxyport" translatable="false">settings_proxyport</string>
@@ -34,6 +34,7 @@
     <string name="settings_key_display_language" translatable="false">settings_display_language</string>
     <string name="settings_key_content_languages" translatable="false">settings_content_languages</string>
     <string name="settings_key_cylinder_density" translatable="false">settings_cylinder_density</string>
+    <string name="settings_key_proxy_setting" translatable="false">settings_proxy_setting</string>
     <string name="settings_key_keyboard_locale" translatable="false">settings_key_keyboard_locale</string>
     <string name="settings_key_crash_restart_count" translatable="false">settings_key_crash_restart_count</string>
     <string name="settings_key_crash_restart_count_timestamp" translatable="false">settings_key_crash_restart_count_timestamp</string>

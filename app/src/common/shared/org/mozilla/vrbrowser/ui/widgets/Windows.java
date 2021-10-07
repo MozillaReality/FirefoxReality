@@ -43,6 +43,7 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
 import java.util.stream.Collectors;
 
 import mozilla.components.concept.sync.AccountObserver;
@@ -129,6 +130,7 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
     private WindowPlacement mPrivateWindowPlacement;
     private boolean mStoredCurvedMode = false;
     private boolean mForcedCurvedMode = false;
+    private boolean mProxySetting = false;
     private boolean mIsPaused = false;
     private TabsWidget mTabsWidget;
     private Accounts mAccounts;
@@ -183,6 +185,9 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
         mPrivateWindowPlacement = WindowPlacement.FRONT;
 
         mStoredCurvedMode = SettingsStore.getInstance(mContext).getCylinderDensity() > 0.0f;
+
+        mProxySetting = SettingsStore.getInstance(mContext).getProxySetting() > 0.0f;
+        updateProxySetting(mProxySetting);
 
         mAccounts = mWidgetManager.getServicesProvider().getAccounts();
         mAccounts.addAccountListener(mAccountObserver);
@@ -890,6 +895,23 @@ public class Windows implements TrayListener, TopBarWidget.Delegate, TitleBarWid
                 placement.translationX = WidgetPlacement.dpDimension(mContext, R.dimen.multi_window_padding);
                 placement.translationY = 0.0f;
                 placement.translationZ = 0.0f;
+        }
+    }
+
+    public void updateProxySetting(boolean proxy) {
+        // set proxy
+        if (proxy) {
+            String url = SettingsStore.getInstance(mContext).getProxyUrl();
+            String port = SettingsStore.getInstance(mContext).getProxyPort();
+
+            Properties prop = System.getProperties();
+            prop.put("proxyHost", url);
+            prop.put("proxyPort", port);
+            prop.put("proxySet", "true");
+
+        } else {
+            Properties prop = System.getProperties();
+            prop.put("proxySet", "false");
         }
     }
 

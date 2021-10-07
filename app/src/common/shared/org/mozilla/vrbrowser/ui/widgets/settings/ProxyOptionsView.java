@@ -55,7 +55,7 @@ class ProxyOptionsView extends SettingsView {
 
         // Options
         mBinding.proxySwitch.setOnCheckedChangeListener(mProxySwitchListener);
-        setProxySwitch(SettingsStore.getInstance(getContext()).getCylinderDensity() > 0.0f, false);
+        setProxySwitch(SettingsStore.getInstance(getContext()).getProxySetting() > 0.0f, false);
 
         mDefaultProxyUrl = getContext().getString(R.string.proxy_url);
         mDefaultProxyPort = getContext().getString(R.string.proxy_port);
@@ -142,7 +142,10 @@ class ProxyOptionsView extends SettingsView {
         mBinding.proxySwitch.setOnCheckedChangeListener(mProxySwitchListener);
 
         // set proxy
-        if (doApply) {
+        float proxy = value ? 1.0f : 0.0f;
+        SettingsStore.getInstance(getContext()).setProxySetting(proxy);
+
+        if (proxy > 0.0f) {
             String url = mBinding.proxyUrlEdit.getFirstText();
             String port = mBinding.proxyPortEdit.getFirstText();
 
