@@ -8,6 +8,7 @@ import android.util.Pair;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import org.mozilla.geckoview.GeckoResult;
 import org.mozilla.geckoview.GeckoRuntime;
 import org.mozilla.geckoview.GeckoSession;
 import org.mozilla.vrbrowser.BuildConfig;
@@ -79,11 +80,6 @@ public class SessionStore implements
 
     private SessionStore() {
         mSessions = new ArrayList<>();
-    }
-
-    public static void prefOverrides(Context context) {
-        // FIXME: Once GeckoView has a prefs API
-        SessionUtils.vrPrefsWorkAround(context);
     }
 
     public void initialize(Context context) {
@@ -470,10 +466,11 @@ public class SessionStore implements
     }
 
     @Override
-    public void onContentPermissionRequest(@NonNull GeckoSession session, @Nullable String uri, int type, @NonNull Callback callback) {
+    public GeckoResult<Integer> onContentPermissionRequest(@NonNull GeckoSession session, @NonNull ContentPermission perm) {
         if (mPermissionDelegate != null) {
-            mPermissionDelegate.onContentPermissionRequest(session, uri, type, callback);
+            return mPermissionDelegate.onContentPermissionRequest(session, perm);
         }
+        return GeckoResult.fromValue(ContentPermission.VALUE_DENY);
     }
 
     @Override
