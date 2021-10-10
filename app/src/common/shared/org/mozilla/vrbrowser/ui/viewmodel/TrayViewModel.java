@@ -22,6 +22,7 @@ public class TrayViewModel extends AndroidViewModel {
     private MutableLiveData<String> time;
     private MutableLiveData<String> pm;
     private MutableLiveData<ObservableBoolean> wifiConnected;
+    private MutableLiveData<ObservableInt> proxyIcon;
     private MutableLiveData<ObservableInt> headsetIcon;
     private MutableLiveData<ObservableInt> headsetBatteryLevel;
     private MutableLiveData<ObservableInt> leftControllerIcon;
@@ -45,6 +46,7 @@ public class TrayViewModel extends AndroidViewModel {
         pm = new MutableLiveData<>();
         pm = new MutableLiveData<>();
         wifiConnected = new MutableLiveData<>(new ObservableBoolean(true));
+        proxyIcon = new MutableLiveData<>(new ObservableInt(R.drawable.ic_icon_proxy_vpn));
         headsetIcon = new MutableLiveData<>(new ObservableInt(R.drawable.ic_icon_statusbar_headset_normal));
         headsetBatteryLevel = new MutableLiveData<>(new ObservableInt(R.drawable.ic_icon_statusbar_indicator));
         leftControllerIcon = new MutableLiveData<>(new ObservableInt(R.drawable.ic_icon_statusbar_controller_generic));
@@ -70,6 +72,7 @@ public class TrayViewModel extends AndroidViewModel {
         time.postValue(time.getValue());
         pm.postValue(pm.getValue());
         wifiConnected.postValue(wifiConnected.getValue());
+        proxyIcon.setValue(proxyIcon.getValue());
         headsetIcon.setValue(headsetIcon.getValue());
         headsetBatteryLevel.setValue(headsetBatteryLevel.getValue());
         leftControllerIcon.setValue(leftControllerIcon.getValue());
@@ -133,6 +136,14 @@ public class TrayViewModel extends AndroidViewModel {
 
     public MutableLiveData<ObservableBoolean> getWifiConnected() {
         return wifiConnected;
+    }
+
+    public void setProxyIcon(int image) {
+        this.proxyIcon.setValue(new ObservableInt(image));
+    }
+
+    public MutableLiveData<ObservableInt> getProxyIcon() {
+        return proxyIcon;
     }
 
     public void setHeadsetIcon(int image) {

@@ -58,7 +58,8 @@
                 android:layout_width="12dp"
                 android:layout_height="12dp"
                 android:layout_toEndOf="@+id/time"
-                android:layout_centerVertical="true">
+                android:layout_centerVertical="true"
+                android:layout_marginEnd="10dp">
                 <ImageView
                     android:id="@+id/wifi_icon_background"
                     android:layout_width="match_parent"
@@ -74,6 +75,30 @@
                     android:tint="@color/concrete"
                     android:scaleType="fitCenter"
                     app:visibleGone="@{traymodel.wifiConnected}"/>
+            </FrameLayout>
+            <FrameLayout
+                android:id="@+id/proxy_state"
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:layout_toEndOf="@+id/wifi"
+                android:layout_centerVertical="true"
+                android:layout_marginEnd="10dp">
+                <ImageView
+                    android:id="@+id/proxy_icon_background"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@{traymodel.proxyIcon}"
+                    android:tooltipText="@string/settings_proxy"
+                    android:tint="@color/concrete"
+                    android:scaleType="fitCenter"/>
+                <ImageView
+                    android:id="@+id/proxy_icon"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:tint="@color/concrete"
+                    android:src="@{traymodel.proxyIcon}"
+                    android:tooltipText="@string/settings_proxy"
+                    android:scaleType="fitCenter"/>
             </FrameLayout>
             <LinearLayout
                 android:id="@+id/left_controller"

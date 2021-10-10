@@ -192,7 +192,7 @@
                         <org.mozilla.vrbrowser.ui.views.HoneycombButton
                             android:id="@+id/proxyButton"
                             style="?attr/honeycombButtonStyle"
-                            app:honeycombButtonIcon="@drawable/ic_icon_proxy_allowed"
+                            app:honeycombButtonIcon="@drawable/ic_icon_proxy_vpn"
                             app:honeycombButtonText="@string/settings_proxy"
                             app:honeycombButtonTextSize="@dimen/settings_main_button_text_width" />
 

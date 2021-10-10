@@ -36,6 +36,7 @@ import org.mozilla.vrbrowser.VRBrowserActivity;
 import org.mozilla.vrbrowser.VRBrowserApplication;
 import org.mozilla.vrbrowser.audio.AudioEngine;
 import org.mozilla.vrbrowser.browser.BookmarksStore;
+import org.mozilla.vrbrowser.browser.SettingsStore;
 import org.mozilla.vrbrowser.browser.engine.Session;
 import org.mozilla.vrbrowser.browser.engine.SessionStore;
 import org.mozilla.vrbrowser.databinding.TrayBinding;
@@ -682,29 +683,6 @@ public class TrayWidget extends UIWidget implements WidgetManagerDelegate.Update
         }
     }
 
-//    public void toggleSeeThroughWidget(@NonNull SettingsView.SettingViewType settingDialog) {
-//        if (mSettingsWidget == null) {
-//            mSettingsWidget = new SettingsWidget(getContext());
-//        }
-//        mSettingsWidget.attachToWindow(mAttachedWindow);
-//
-//        if (mSettingsWidget.isVisible()) {
-//            mSettingsWidget.hide(KEEP_WIDGET);
-//
-//        } else {
-//            mSettingsWidget.show(REQUEST_FOCUS, settingDialog);
-//        }
-//    }
-//
-//    public void showSettingsDialog(@NonNull SettingsView.SettingViewType settingDialog) {
-//        if (mSettingsWidget == null) {
-//            mSettingsWidget = new SettingsWidget(getContext());
-//        }
-//        mSettingsWidget.attachToWindow(mAttachedWindow);
-//
-//        mSettingsWidget.show(REQUEST_FOCUS, settingDialog);
-//    }
-
     public void setAddWindowVisible(boolean aVisible) {
         mTrayViewModel.setIsMaxWindows(!aVisible);
     }
@@ -840,6 +818,22 @@ public class TrayWidget extends UIWidget implements WidgetManagerDelegate.Update
         }
     }
 
+    private boolean updateProxyIcon(final boolean proxy) {
+        try {
+            if (proxy) {
+                mBinding.proxyState.setVisibility(View.VISIBLE);
+                mTrayViewModel.setProxyIcon(R.drawable.ic_icon_proxy_vpn);
+            } else {
+                mBinding.proxyState.setVisibility(View.GONE);
+            }
+
+            return true;
+        } catch (Exception e) {
+            Log.e(LOGTAG, "Failed to update wifi icon");
+        }
+
+        return false;
+    }
 
     private boolean updateWifiIcon(final int level) {
         try {
@@ -876,6 +870,7 @@ public class TrayWidget extends UIWidget implements WidgetManagerDelegate.Update
 
     private void updateWifi() {
         if ((mTrayViewModel.getWifiConnected().getValue() != null) && mTrayViewModel.getWifiConnected().getValue().get()) {
+            // Update Wifi
             WifiManager wifiManager = (WifiManager) getContext().getSystemService(Context.WIFI_SERVICE);
             if (wifiManager != null) {
                 WifiInfo wifiInfo = wifiManager.getConnectionInfo();
@@ -893,6 +888,15 @@ public class TrayWidget extends UIWidget implements WidgetManagerDelegate.Update
                     mWifiSSID = getContext().getString(R.string.tray_wifi_no_connection);
                 }
             }
+
+            // Update Proxy
+            boolean ProxySetting = SettingsStore.getInstance(getContext()).getProxySetting() > 0.0f;
+            updateProxyIcon(ProxySetting);
+
+        } else {
+            // Update Proxy
+            boolean ProxySetting = false;
+            updateProxyIcon(ProxySetting);
         }
     }
 
