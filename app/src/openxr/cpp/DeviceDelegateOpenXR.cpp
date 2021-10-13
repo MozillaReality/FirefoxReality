@@ -129,7 +129,7 @@ struct DeviceDelegateOpenXR::State {
     createInfo.next = (XrBaseInStructure*)&java;
     createInfo.enabledExtensionCount = (uint32_t)extensions.size();
     createInfo.enabledExtensionNames = extensions.data();
-    strcpy(createInfo.applicationInfo.applicationName, "Firefox Reality");
+    strcpy(createInfo.applicationInfo.applicationName, "Extended Reality");
     createInfo.applicationInfo.apiVersion = XR_CURRENT_API_VERSION;
 
     CHECK_XRCMD(xrCreateInstance(&createInfo, &instance));
