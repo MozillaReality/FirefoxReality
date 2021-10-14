@@ -122,7 +122,7 @@ namespace crow {
     // Oculus Touch:  https://github.com/immersive-web/webxr-input-profiles/blob/master/packages/registry/profiles/oculus/oculus-touch-v2.json
     const OpenXRInputMapping OculusTouch {
         "/interaction_profiles/oculus/touch_controller",
-        "Quest",
+        "Oculus Quest",
         "vr_controller_oculusquest_left.obj",
         "vr_controller_oculusquest_right.obj",
         std::vector<OpenXRInputProfile> { "oculus-touch-v2", "oculus-touch", "generic-trigger-squeeze-thumbstick" },
