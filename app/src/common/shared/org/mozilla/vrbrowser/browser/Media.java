@@ -26,6 +26,7 @@ public class Media implements MediaSession.Delegate {
     private boolean mIsMuted = false;
     private CopyOnWriteArrayList<MediaSession.Delegate> mMediaListeners;
     private ResizeDelegate mResizeDelegate;
+    private VideoAvailabilityListener mAvailabilityDelegate;
     private long mFeatures = 0;
 
     public Media() {
@@ -142,6 +143,9 @@ public class Media implements MediaSession.Delegate {
     public void onActivated(@NonNull GeckoSession session, @NonNull MediaSession mediaSession) {
         mMediaSession = mediaSession;
         mMediaListeners.forEach(listener -> listener.onActivated(session, mediaSession));
+        if (mAvailabilityDelegate != null) {
+            mAvailabilityDelegate.onVideoAvailabilityChanged(this, true);
+        }
     }
 
     @Override
@@ -150,6 +154,9 @@ public class Media implements MediaSession.Delegate {
             mMediaSession = null;
         }
         mMediaListeners.forEach(listener -> listener.onDeactivated(session, mediaSession));
+        if (mAvailabilityDelegate != null) {
+            mAvailabilityDelegate.onVideoAvailabilityChanged(this, false);
+        }
     }
 
     @Override
@@ -221,5 +228,9 @@ public class Media implements MediaSession.Delegate {
 
     public void setResizeDelegate(ResizeDelegate aResizeDelegate) {
         mResizeDelegate = aResizeDelegate;
+    }
+
+    public void setAvailabilityDelegate(VideoAvailabilityListener aDelegate) {
+        mAvailabilityDelegate = aDelegate;
     }
 }

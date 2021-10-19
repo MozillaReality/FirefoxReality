@@ -325,6 +325,10 @@ public class Session implements ContentBlocking.Delegate, GeckoSession.Navigatio
         mExternalRequestDelegate = aDelegate;
     }
 
+    public void setVideoAvailabilityDelegate(VideoAvailabilityListener aDelegate) {
+        mMedia.setAvailabilityDelegate(aDelegate);
+    }
+
     public void addNavigationListener(GeckoSession.NavigationDelegate aListener) {
         mNavigationListeners.addIfAbsent(aListener);
         dumpState(aListener);
