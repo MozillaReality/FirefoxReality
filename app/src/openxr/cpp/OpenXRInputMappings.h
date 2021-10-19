@@ -181,6 +181,26 @@ namespace crow {
             }
     };
 
+  const OpenXRInputMapping Hvr6DOF {
+      "/interaction_profiles/huawei/controller",
+      "Haliday: G3HMD by Huawei",
+      "vr_controller_oculusquest_left.obj",
+      "vr_controller_oculusquest_right.obj",
+      std::vector<OpenXRInputProfile> { "oculus-touch-v3", "oculus-touch-v2", "oculus-touch", "generic-trigger-squeeze-thumbstick" },
+      std::vector<OpenXRButton> {
+          { OpenXRButtonType::Trigger, kPathTrigger, OpenXRButtonFlags::All, OpenXRHandFlags::Both },
+          { OpenXRButtonType::Thumbstick, kPathThumbstick, OpenXRButtonFlags::ClickTouch, OpenXRHandFlags::Both },
+          // { OpenXRButtonType::ButtonX, kPathButtonX, OpenXRButtonFlags::ClickTouch, OpenXRHandFlags::Left },
+          // { OpenXRButtonType::ButtonY, kPathButtonY, OpenXRButtonFlags::ClickTouch, OpenXRHandFlags::Left, ControllerDelegate::Button::BUTTON_APP },
+          // { OpenXRButtonType::ButtonA, kPathButtonA, OpenXRButtonFlags::ClickTouch, OpenXRHandFlags::Right },
+          // { OpenXRButtonType::ButtonB, kPathButtonB, OpenXRButtonFlags::ClickTouch, OpenXRHandFlags::Right, ControllerDelegate::Button::BUTTON_APP },
+      },
+      std::vector<OpenXRAxis> {
+          { OpenXRAxisType::Thumbstick, kPathThumbstick,  OpenXRHandFlags::Both },
+          { OpenXRAxisType::Trackpad, kPathTrackpad,  OpenXRHandFlags::Both },
+      }
+  };
+
     // Default fallback: https://github.com/immersive-web/webxr-input-profiles/blob/master/packages/registry/profiles/generic/generic-button.json
     const OpenXRInputMapping KHRSimple {
             "/interaction_profiles/khr/simple_controller",
@@ -195,7 +215,7 @@ namespace crow {
     };
 
     const std::array<OpenXRInputMapping, 4> OpenXRInputMappings {
-        OculusTouch, OculusTouch2, Hvr3DOF, KHRSimple
+        OculusTouch, OculusTouch2, Hvr6DOF, KHRSimple
     };
 
 } // namespace crow

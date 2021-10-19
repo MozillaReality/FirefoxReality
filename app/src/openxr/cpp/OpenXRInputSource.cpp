@@ -193,6 +193,10 @@ std::optional<OpenXRInputSource::OpenXRButtonState> OpenXRInputSource::GetButton
       result.clicked = true;
     }
 
+    if (result.clicked) {
+      VRB_DEBUG("openxr button clicked: %s", OpenXRButtonTypeNames->at((int) button.type));
+    }
+
     return hasValue ? std::make_optional(result) : std::nullopt;
 }
 
@@ -410,11 +414,15 @@ void OpenXRInputSource::Update(const XrFrameState& frameState, XrSpace localSpac
     vrb::Matrix poseMatrix = XrPoseToMatrix(poseLocation.pose);
 
     if (poseLocation.locationFlags & XR_SPACE_LOCATION_POSITION_VALID_BIT) {
-#ifndef HVR
+
       if (renderMode == device::RenderMode::StandAlone) {
+#ifdef HVR
+        poseMatrix.TranslateInPlace(vrb::Vector(0.0, 0.25, 0.0));
+#else
         poseMatrix.TranslateInPlace(kAverageHeight);
-      }
 #endif
+      }
+
       flags |= device::Position;
     } else {
 #if HVR
@@ -432,7 +440,9 @@ void OpenXRInputSource::Update(const XrFrameState& frameState, XrSpace localSpac
     poseLocation = { XR_TYPE_SPACE_LOCATION };
     CHECK_XRCMD(GetPoseState(mGripAction, mGripSpace, localSpace, frameState,  isPoseActive, poseLocation));
     if (isPoseActive) {
-        delegate.SetImmersiveBeamTransform(mIndex, XrPoseToMatrix(poseLocation.pose));
+        auto beamTransform = XrPoseToMatrix(poseLocation.pose);
+        delegate.SetImmersiveBeamTransform(mIndex, beamTransform);
+        delegate.SetBeamTransform(mIndex, vrb::Matrix::Translation(vrb::Vector(-0.011f, -0.007f, 0.0f)));
         flags |= device::GripSpacePosition;
     } else {
         delegate.SetImmersiveBeamTransform(mIndex, vrb::Matrix::Identity());
