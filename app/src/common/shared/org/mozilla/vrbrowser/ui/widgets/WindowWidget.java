@@ -447,7 +447,9 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
                 mWidgetManager.updateWidget(WindowWidget.this);
                 mWidgetManager.popWorldBrightness(WindowWidget.this);
                 mWidgetManager.popBackHandler(mBackHandler);
-                resumeCompositor();
+                if (mTexture != null) {
+                    resumeCompositor();
+                }
             }
         }
     }
@@ -760,7 +762,7 @@ public class WindowWidget extends UIWidget implements SessionChangeListener,
             mTexture.setDefaultBufferSize(aWidth, aHeight);
         }
 
-        if (mSurface != null && mView == null) {
+        if (mTexture != null && mSurface != null && mView == null) {
             callSurfaceChanged();
         }
     }
