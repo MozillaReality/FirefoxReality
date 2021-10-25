@@ -42,6 +42,7 @@ object EngineProvider {
             builder.debugLogging(settingsStore.isDebugLoggingEnabled)
             builder.consoleOutput(settingsStore.isDebugLoggingEnabled)
             builder.loginAutofillEnabled(settingsStore.isAutoFillEnabled)
+            builder.configFilePath(SessionUtils.prepareConfigurationPath(context))
 
             if (settingsStore.transparentBorderWidth > 0) {
                 builder.useMaxScreenDepth(true)
