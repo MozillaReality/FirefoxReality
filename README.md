@@ -1,5 +1,7 @@
 # Firefox Reality
 
+Note: Mozilla is no longer maintaining Firefox Reality. A fork of this repo is now maintained by Igalia and can be found here [https://github.com/Igalia/wolvic]
+
 The goal of the Firefox Reality project is to create a full-featured browser exclusively for *standalone* AR and VR headsets.
 
 You can find us in [#fxr:mozilla.org on the Matrix](https://chat.mozilla.org/#/room/#fxr:mozilla.org) ([Instructions for joining](https://wiki.mozilla.org/Matrix)), Twitter [@MozillaReality](https://twitter.com/mozillareality), and at [mixedreality@mozilla.com](mailto:mixedreality@mozilla.com).
