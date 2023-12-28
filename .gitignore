@@ -59,6 +59,7 @@ app/.externalNativeBuild
 app/.cxx
 openwnn/.externalNativeBuild
 
+# Swap files created by Vim
 *.swp
 
 # Testing Oculus signature
